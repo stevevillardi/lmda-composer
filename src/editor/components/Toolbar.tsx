@@ -1,4 +1,5 @@
-import { Play, RefreshCw, Settings, Circle } from 'lucide-react';
+import { useState } from 'react';
+import { Play, RefreshCw, Settings, Circle, AlertTriangle } from 'lucide-react';
 import { useEditorStore } from '../stores/editor-store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,7 +12,19 @@ import {
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
+import type { ScriptLanguage } from '@/shared/types';
 
 const MODE_ITEMS = [
   { value: 'freeform', label: 'Freeform' },
@@ -37,7 +50,37 @@ export function Toolbar() {
     isExecuting,
     executeScript,
     refreshPortals,
+    isDirty,
   } = useEditorStore();
+
+  // State for language switch confirmation dialog
+  const [pendingLanguage, setPendingLanguage] = useState<ScriptLanguage | null>(null);
+
+  // Handle language toggle click
+  const handleLanguageClick = (newLanguage: ScriptLanguage) => {
+    if (newLanguage === language) return;
+    
+    if (isDirty) {
+      // Show confirmation dialog
+      setPendingLanguage(newLanguage);
+    } else {
+      // No unsaved changes, switch directly
+      setLanguage(newLanguage);
+    }
+  };
+
+  // Confirm language switch
+  const confirmLanguageSwitch = () => {
+    if (pendingLanguage) {
+      setLanguage(pendingLanguage, true); // Force reset to template
+      setPendingLanguage(null);
+    }
+  };
+
+  // Cancel language switch
+  const cancelLanguageSwitch = () => {
+    setPendingLanguage(null);
+  };
 
   // Get selected entities for display
   const selectedPortal = portals.find(p => p.id === selectedPortalId);
@@ -186,7 +229,7 @@ export function Toolbar() {
           type="text"
           value={hostname}
           onChange={(e) => setHostname(e.target.value)}
-          placeholder="Hostname or IP"
+          placeholder="Enter system.hostname..."
           className="w-[300px] h-8"
         />
       </div>
@@ -200,7 +243,7 @@ export function Toolbar() {
           <Button
             variant={language === 'groovy' ? 'default' : 'ghost'}
             size="sm"
-            onClick={() => setLanguage('groovy')}
+            onClick={() => handleLanguageClick('groovy')}
             className={cn(
               "h-6 px-2.5 text-xs font-medium",
               language === 'groovy' && "shadow-sm"
@@ -211,7 +254,7 @@ export function Toolbar() {
           <Button
             variant={language === 'powershell' ? 'default' : 'ghost'}
             size="sm"
-            onClick={() => setLanguage('powershell')}
+            onClick={() => handleLanguageClick('powershell')}
             className={cn(
               "h-6 px-2.5 text-xs font-medium",
               language === 'powershell' && "shadow-sm"
@@ -273,6 +316,36 @@ export function Toolbar() {
           <TooltipContent>Settings</TooltipContent>
         </Tooltip>
       </div>
+
+      {/* Language Switch Confirmation Dialog */}
+      <AlertDialog open={pendingLanguage !== null} onOpenChange={(open) => !open && cancelLanguageSwitch()}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogMedia className="bg-amber-500/10">
+              <AlertTriangle className="size-8 text-amber-500" />
+            </AlertDialogMedia>
+            <AlertDialogTitle>
+              Switch to {pendingLanguage === 'groovy' ? 'Groovy' : 'PowerShell'}?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              You have unsaved changes in your script. Switching languages will reset 
+              the editor to the default {pendingLanguage === 'groovy' ? 'Groovy' : 'PowerShell'} template 
+              and your current changes will be lost.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={cancelLanguageSwitch}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmLanguageSwitch}
+              className="bg-amber-600 hover:bg-amber-500"
+            >
+              Switch & Reset
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -1,12 +1,23 @@
 import { PortalManager } from './portal-manager';
+import { ScriptExecutor, type ExecutorContext } from './script-executor';
 import type { 
   EditorToSWMessage, 
   ContentToSWMessage,
-  DeviceContext 
+  DeviceContext,
+  ExecuteScriptRequest,
 } from '@/shared/types';
 
 // Initialize managers
 const portalManager = new PortalManager();
+
+// Create executor context that bridges to PortalManager
+const executorContext: ExecutorContext = {
+  getCsrfToken: (portalId: string) => portalManager.getCsrfToken(portalId),
+  refreshCsrfToken: (portalId: string) => portalManager.refreshCsrfTokenForPortal(portalId),
+  discoverPortals: async () => { await portalManager.discoverPortals(); },
+};
+
+const scriptExecutor = new ScriptExecutor(executorContext);
 
 // Handle messages from content scripts and editor
 chrome.runtime.onMessage.addListener((
@@ -54,8 +65,13 @@ async function handleMessage(
       }
 
       case 'EXECUTE_SCRIPT': {
-        // TODO: Implement in Phase 2
-        sendResponse({ type: 'ERROR', payload: { code: 'NOT_IMPLEMENTED', message: 'Execute script not yet implemented' } });
+        const request = message.payload as ExecuteScriptRequest;
+        console.log('EXECUTE_SCRIPT request:', request.language, 'on collector', request.collectorId);
+        
+        const result = await scriptExecutor.execute(request);
+        console.log('EXECUTE_SCRIPT result:', result.status, 'duration:', result.duration, 'ms');
+        
+        sendResponse({ type: 'EXECUTION_UPDATE', payload: result });
         break;
       }
 

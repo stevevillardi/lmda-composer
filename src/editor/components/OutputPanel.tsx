@@ -1,7 +1,10 @@
-import { Trash2 } from 'lucide-react';
+import { Trash2, Copy, CheckCircle2, XCircle, Clock, Loader2 } from 'lucide-react';
+import { useState } from 'react';
 import { useEditorStore } from '../stores/editor-store';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 export function OutputPanel() {
   const { 
@@ -21,20 +24,33 @@ export function OutputPanel() {
       >
         {/* Tab Header */}
         <div className="flex items-center justify-between px-2 py-1 bg-secondary/30 border-b border-border">
-          <TabsList variant="line">
-            <TabsTrigger value="raw">Raw Output</TabsTrigger>
-            <TabsTrigger value="parsed">Parsed</TabsTrigger>
-            <TabsTrigger value="validation">Validation</TabsTrigger>
-          </TabsList>
+          <div className="flex items-center gap-3">
+            <TabsList variant="line">
+              <TabsTrigger value="raw">Raw Output</TabsTrigger>
+              <TabsTrigger value="parsed">Parsed</TabsTrigger>
+              <TabsTrigger value="validation">Validation</TabsTrigger>
+            </TabsList>
+            
+            {/* Status Badge */}
+            <ExecutionStatus 
+              isExecuting={isExecuting} 
+              execution={currentExecution} 
+            />
+          </div>
           
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={clearOutput}
-            title="Clear output"
-          >
-            <Trash2 className="size-4" />
-          </Button>
+          <div className="flex items-center gap-1">
+            {currentExecution?.rawOutput && (
+              <CopyButton text={currentExecution.rawOutput} />
+            )}
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              onClick={clearOutput}
+              title="Clear output"
+            >
+              <Trash2 className="size-4" />
+            </Button>
+          </div>
         </div>
 
         {/* Output Content */}
@@ -42,7 +58,8 @@ export function OutputPanel() {
           <TabsContent value="raw" className="h-full p-3 font-mono text-sm">
             {isExecuting ? (
               <div className="flex items-center gap-2 text-muted-foreground">
-                <div className="animate-pulse">Executing script...</div>
+                <Loader2 className="size-4 animate-spin" />
+                <span>Executing script...</span>
               </div>
             ) : currentExecution ? (
               <RawOutputContent execution={currentExecution} />
@@ -70,6 +87,86 @@ export function OutputPanel() {
   );
 }
 
+interface ExecutionStatusProps {
+  isExecuting: boolean;
+  execution: ReturnType<typeof useEditorStore.getState>['currentExecution'];
+}
+
+function ExecutionStatus({ isExecuting, execution }: ExecutionStatusProps) {
+  if (isExecuting) {
+    return (
+      <Badge variant="secondary" className="gap-1.5">
+        <Loader2 className="size-3 animate-spin" />
+        Running
+      </Badge>
+    );
+  }
+
+  if (!execution) {
+    return null;
+  }
+
+  const isError = execution.status === 'error';
+  const duration = formatDuration(execution.duration);
+
+  return (
+    <div className="flex items-center gap-2">
+      <Badge 
+        variant={isError ? 'destructive' : 'default'}
+        className={cn(
+          'gap-1.5',
+          !isError && 'bg-green-600 hover:bg-green-500'
+        )}
+      >
+        {isError ? (
+          <XCircle className="size-3" />
+        ) : (
+          <CheckCircle2 className="size-3" />
+        )}
+        {isError ? 'Error' : 'Complete'}
+      </Badge>
+      
+      <span className="text-xs text-muted-foreground flex items-center gap-1">
+        <Clock className="size-3" />
+        {duration}
+      </span>
+    </div>
+  );
+}
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(text);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <Button
+      variant="ghost"
+      size="icon-sm"
+      onClick={handleCopy}
+      title="Copy output"
+    >
+      {copied ? (
+        <CheckCircle2 className="size-4 text-green-500" />
+      ) : (
+        <Copy className="size-4" />
+      )}
+    </Button>
+  );
+}
+
+function formatDuration(ms: number): string {
+  if (ms < 1000) {
+    return `${ms}ms`;
+  }
+  const seconds = (ms / 1000).toFixed(1);
+  return `${seconds}s`;
+}
+
 interface RawOutputContentProps {
   execution: NonNullable<ReturnType<typeof useEditorStore.getState>['currentExecution']>;
 }
@@ -77,16 +174,52 @@ interface RawOutputContentProps {
 function RawOutputContent({ execution }: RawOutputContentProps) {
   if (execution.status === 'error') {
     return (
-      <div className="text-destructive">
-        <div className="font-semibold mb-1">Error:</div>
-        <div>{execution.error}</div>
+      <div className="space-y-2">
+        <div className="text-destructive">
+          <span className="font-semibold">Error: </span>
+          <span>{execution.error}</span>
+        </div>
+        {execution.rawOutput && (
+          <div className="pt-2 border-t border-border">
+            <pre className="whitespace-pre-wrap break-words text-muted-foreground">
+              {execution.rawOutput}
+            </pre>
+          </div>
+        )}
       </div>
     );
   }
 
+  // Check for warnings in output (lines starting with [Warning:)
+  const lines = execution.rawOutput.split('\n');
+  const warningLines: string[] = [];
+  const outputLines: string[] = [];
+  
+  let inWarningSection = true;
+  for (const line of lines) {
+    if (inWarningSection && line.startsWith('[Warning:')) {
+      warningLines.push(line);
+    } else if (inWarningSection && line === '') {
+      // Empty line after warnings
+      continue;
+    } else {
+      inWarningSection = false;
+      outputLines.push(line);
+    }
+  }
+
   return (
-    <pre className="whitespace-pre-wrap break-words">
-      {execution.rawOutput || 'No output'}
-    </pre>
+    <div className="space-y-2">
+      {warningLines.length > 0 && (
+        <div className="text-yellow-500 text-xs mb-2">
+          {warningLines.map((warning, i) => (
+            <div key={i}>{warning}</div>
+          ))}
+        </div>
+      )}
+      <pre className="whitespace-pre-wrap break-words">
+        {outputLines.join('\n') || 'No output'}
+      </pre>
+    </div>
   );
 }

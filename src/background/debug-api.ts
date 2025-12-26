@@ -1,0 +1,211 @@
+/**
+ * Debug API Client
+ * 
+ * Handles communication with LogicMonitor's Debug API for script execution.
+ * Scripts are executed on collectors and results are polled asynchronously.
+ */
+
+import { API_VERSION, EXECUTION_POLL_INTERVAL_MS, EXECUTION_MAX_ATTEMPTS } from '@/shared/types';
+
+// ============================================================================
+// Types
+// ============================================================================
+
+export interface PollResult {
+  status: 'pending' | 'complete' | 'error';
+  output?: string;
+  errorMessage?: string;
+}
+
+interface DebugExecuteResponse {
+  sessionId: string;
+}
+
+interface DebugPollResponse {
+  output?: string;
+  sessionId?: string;
+}
+
+// ============================================================================
+// Debug API Functions
+// ============================================================================
+
+/**
+ * Execute a debug command on a collector.
+ * Returns a sessionId that can be used to poll for results.
+ */
+export async function executeDebugCommand(
+  portal: string,
+  collectorId: number,
+  cmdline: string,
+  csrfToken: string
+): Promise<string> {
+  const url = `https://${portal}/santaba/rest/debug/?collectorId=${collectorId}`;
+  
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': csrfToken,
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-version': API_VERSION,
+    },
+    credentials: 'include',
+    body: JSON.stringify({ cmdline }),
+  });
+
+  if (!response.ok) {
+    if (response.status === 403) {
+      throw new Error('CSRF token expired or invalid');
+    }
+    if (response.status === 401) {
+      throw new Error('Session expired - please log in to LogicMonitor');
+    }
+    throw new Error(`Debug API error: ${response.status} ${response.statusText}`);
+  }
+
+  const data: DebugExecuteResponse = await response.json();
+  
+  if (!data.sessionId) {
+    throw new Error('No sessionId returned from debug API');
+  }
+
+  return data.sessionId;
+}
+
+/**
+ * Poll for the result of a debug command.
+ * Returns the current status and output if complete.
+ */
+export async function pollDebugResult(
+  portal: string,
+  collectorId: number,
+  sessionId: string,
+  csrfToken: string
+): Promise<PollResult> {
+  const url = `https://${portal}/santaba/rest/debug/${sessionId}?collectorId=${collectorId}`;
+  
+  const response = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'X-CSRF-Token': csrfToken,
+      'X-Requested-With': 'XMLHttpRequest',
+      'X-version': API_VERSION,
+    },
+    credentials: 'include',
+  });
+
+  // 202 Accepted = still running
+  if (response.status === 202) {
+    return { status: 'pending' };
+  }
+
+  if (!response.ok) {
+    if (response.status === 403) {
+      throw new Error('CSRF token expired or invalid');
+    }
+    if (response.status === 401) {
+      throw new Error('Session expired - please log in to LogicMonitor');
+    }
+    return {
+      status: 'error',
+      errorMessage: `Poll failed: ${response.status} ${response.statusText}`,
+    };
+  }
+
+  const data: DebugPollResponse = await response.json();
+  
+  return {
+    status: 'complete',
+    output: data.output ?? '',
+  };
+}
+
+/**
+ * Execute a command and poll until complete or timeout.
+ * Returns the final output or throws on error/timeout.
+ */
+export async function executeAndPoll(
+  portal: string,
+  collectorId: number,
+  cmdline: string,
+  csrfToken: string,
+  onProgress?: (attempt: number, maxAttempts: number) => void
+): Promise<string> {
+  // Execute the command
+  const sessionId = await executeDebugCommand(portal, collectorId, cmdline, csrfToken);
+
+  // Poll for results
+  for (let attempt = 1; attempt <= EXECUTION_MAX_ATTEMPTS; attempt++) {
+    onProgress?.(attempt, EXECUTION_MAX_ATTEMPTS);
+    
+    const result = await pollDebugResult(portal, collectorId, sessionId, csrfToken);
+    
+    if (result.status === 'complete') {
+      return result.output ?? '';
+    }
+    
+    if (result.status === 'error') {
+      throw new Error(result.errorMessage ?? 'Execution failed');
+    }
+    
+    // Still pending, wait before next poll
+    await sleep(EXECUTION_POLL_INTERVAL_MS);
+  }
+
+  throw new Error(`Execution timed out after ${EXECUTION_MAX_ATTEMPTS} seconds`);
+}
+
+// ============================================================================
+// Command Builders
+// ============================================================================
+
+/**
+ * Groovy preamble that sets up hostProps and instanceProps using CollectorDb.
+ * Uses base64-encoded hostname/wildvalue which are replaced before execution.
+ */
+const GROOVY_PREAMBLE = `import com.santaba.agent.collector3.CollectorDb;def hostProps = [:];def instanceProps = [:];try{hostProps = CollectorDb.getInstance().getHost(new String("##HOSTNAMEBASE64##".decodeBase64())).getProperties();instanceProps["wildvalue"] = new String("##WILDVALUEBASE64##".decodeBase64());}catch(Exception e){};`;
+
+/**
+ * Build a Groovy debug command line.
+ * If hostname is provided, prepends preamble that sets up hostProps via CollectorDb.
+ * 
+ * @param script The Groovy script to execute
+ * @param hostname Optional hostname for hostProps lookup
+ * @param wildvalue Optional wildvalue for instanceProps
+ */
+export function buildGroovyCommand(script: string, hostname?: string, wildvalue?: string): string {
+  let finalScript = script;
+  
+  if (hostname) {
+    // Prepend the preamble and substitute base64-encoded values
+    const hostnameBase64 = btoa(hostname);
+    const wildvalueBase64 = btoa(wildvalue || '');
+    
+    let preamble = GROOVY_PREAMBLE
+      .replace('##HOSTNAMEBASE64##', hostnameBase64)
+      .replace('##WILDVALUEBASE64##', wildvalueBase64);
+    
+    finalScript = preamble + script;
+  }
+  
+  // hostId is always null - we use the preamble approach instead
+  return `!groovy hostId=null \n${finalScript}`;
+}
+
+/**
+ * Build a PowerShell debug command line.
+ * @param script The PowerShell script to execute
+ */
+export function buildPowerShellCommand(script: string): string {
+  return `!posh \n${script}`;
+}
+
+// ============================================================================
+// Helpers
+// ============================================================================
+
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+

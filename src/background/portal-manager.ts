@@ -179,6 +179,21 @@ export class PortalManager {
   getCsrfToken(portalId: string): string | null {
     return this.portals.get(portalId)?.csrfToken ?? null;
   }
+
+  /**
+   * Refresh CSRF token for a specific portal and return the new token.
+   * Used when a request fails with 403 (token expired).
+   */
+  async refreshCsrfTokenForPortal(portalId: string): Promise<string | null> {
+    const portal = this.portals.get(portalId);
+    if (!portal) {
+      console.warn(`Portal ${portalId} not found for CSRF refresh`);
+      return null;
+    }
+
+    await this.refreshCsrfToken(portal);
+    return portal.csrfToken;
+  }
 }
 
 // Function to be injected into the page to fetch CSRF token

@@ -44,7 +44,7 @@ interface EditorState {
   setHostname: (hostname: string) => void;
   setWildvalue: (wildvalue: string) => void;
   setScript: (script: string) => void;
-  setLanguage: (language: ScriptLanguage) => void;
+  setLanguage: (language: ScriptLanguage, force?: boolean) => void;
   setMode: (mode: ScriptMode) => void;
   setOutputTab: (tab: 'raw' | 'parsed' | 'validation') => void;
   executeScript: () => Promise<void>;
@@ -53,7 +53,7 @@ interface EditorState {
   clearOutput: () => void;
 }
 
-const DEFAULT_GROOVY_TEMPLATE = `import com.santaba.agent.groovyapi.expect.Expect;
+export const DEFAULT_GROOVY_TEMPLATE = `import com.santaba.agent.groovyapi.expect.Expect;
 import com.santaba.agent.groovyapi.snmp.Snmp;
 import com.santaba.agent.groovyapi.http.*;
 import com.santaba.agent.groovyapi.jmx.*;
@@ -65,10 +65,10 @@ def hostname = hostProps.get("system.hostname");
 return 0;
 `;
 
-const DEFAULT_POWERSHELL_TEMPLATE = `# LogicMonitor PowerShell Script
-# Note: Use $hostProps hashtable for device properties
+export const DEFAULT_POWERSHELL_TEMPLATE = `# LogicMonitor PowerShell Script
+# Use ##PROPERTY.NAME## tokens for device properties (e.g., ##SYSTEM.HOSTNAME##)
 
-$hostname = $hostProps["system.hostname"]
+$hostname = "##SYSTEM.HOSTNAME##"
 
 # Your script here
 
@@ -115,22 +115,36 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     set({ wildvalue });
   },
 
-  setScript: (script) => {
-    set({ script, isDirty: true });
+  setScript: (newScript) => {
+    const { script: currentScript } = get();
+    // Only mark as dirty if the script actually changed
+    if (newScript !== currentScript) {
+      set({ script: newScript, isDirty: true });
+    }
   },
 
-  setLanguage: (language) => {
-    const currentScript = get().script;
-    const isDefaultGroovy = currentScript === DEFAULT_GROOVY_TEMPLATE;
-    const isDefaultPowershell = currentScript === DEFAULT_POWERSHELL_TEMPLATE;
+  setLanguage: (language, force = false) => {
+    const { script, isDirty, language: currentLanguage } = get();
     
-    // If switching language and script is still default, update template
-    if (isDefaultGroovy || isDefaultPowershell) {
+    // If same language, do nothing
+    if (language === currentLanguage) return;
+    
+    // Normalize scripts for comparison (trim whitespace, normalize line endings)
+    const normalize = (s: string) => s.trim().replace(/\r\n/g, '\n');
+    const isDefaultGroovy = normalize(script) === normalize(DEFAULT_GROOVY_TEMPLATE);
+    const isDefaultPowershell = normalize(script) === normalize(DEFAULT_POWERSHELL_TEMPLATE);
+    
+    // Switch templates if:
+    // - force is true (user confirmed reset)
+    // - script hasn't been modified from defaults
+    if (force || !isDirty || isDefaultGroovy || isDefaultPowershell) {
       set({ 
         language, 
-        script: language === 'groovy' ? DEFAULT_GROOVY_TEMPLATE : DEFAULT_POWERSHELL_TEMPLATE 
+        script: language === 'groovy' ? DEFAULT_GROOVY_TEMPLATE : DEFAULT_POWERSHELL_TEMPLATE,
+        isDirty: false, // Reset dirty flag when switching to template
       });
     } else {
+      // Script has been modified - just change the language, keep the script
       set({ language });
     }
   },
@@ -156,11 +170,17 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           startTime: Date.now(),
           error: 'Please select a portal and collector',
         },
+        outputTab: 'raw',
       });
       return;
     }
 
-    set({ isExecuting: true });
+    // Clear previous execution and switch to raw output tab
+    set({ 
+      isExecuting: true, 
+      currentExecution: null,
+      outputTab: 'raw',
+    });
 
     try {
       const response = await chrome.runtime.sendMessage({
@@ -176,9 +196,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         },
       });
 
-      if (response.type === 'EXECUTION_UPDATE') {
+      if (response?.type === 'EXECUTION_UPDATE') {
         set({ currentExecution: response.payload, isExecuting: false });
-      } else if (response.type === 'ERROR') {
+      } else if (response?.type === 'ERROR') {
         set({
           currentExecution: {
             id: crypto.randomUUID(),
@@ -186,7 +206,21 @@ export const useEditorStore = create<EditorState>((set, get) => ({
             rawOutput: '',
             duration: 0,
             startTime: Date.now(),
-            error: response.payload.message,
+            error: response.payload?.message ?? 'Unknown error from service worker',
+          },
+          isExecuting: false,
+        });
+      } else {
+        // Unexpected response format
+        console.error('Unexpected response from EXECUTE_SCRIPT:', response);
+        set({
+          currentExecution: {
+            id: crypto.randomUUID(),
+            status: 'error',
+            rawOutput: '',
+            duration: 0,
+            startTime: Date.now(),
+            error: 'Unexpected response from execution service',
           },
           isExecuting: false,
         });
