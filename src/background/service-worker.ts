@@ -1,14 +1,17 @@
 import { PortalManager } from './portal-manager';
 import { ScriptExecutor, type ExecutorContext } from './script-executor';
+import { ModuleLoader } from './module-loader';
 import type { 
   EditorToSWMessage, 
   ContentToSWMessage,
   DeviceContext,
   ExecuteScriptRequest,
+  FetchModulesRequest,
 } from '@/shared/types';
 
 // Initialize managers
 const portalManager = new PortalManager();
+const moduleLoader = new ModuleLoader(portalManager);
 
 // Create executor context that bridges to PortalManager
 const executorContext: ExecutorContext = {
@@ -72,6 +75,17 @@ async function handleMessage(
         console.log('EXECUTE_SCRIPT result:', result.status, 'duration:', result.duration, 'ms');
         
         sendResponse({ type: 'EXECUTION_UPDATE', payload: result });
+        break;
+      }
+
+      case 'FETCH_MODULES': {
+        const { portalId, moduleType, offset = 0, size = 1000 } = message.payload as FetchModulesRequest;
+        console.log('FETCH_MODULES request:', moduleType, 'for portal', portalId);
+        
+        const response = await moduleLoader.fetchModules(portalId, moduleType, offset, size);
+        console.log('FETCH_MODULES response:', response.items.length, 'modules, total:', response.total);
+        
+        sendResponse({ type: 'MODULES_FETCHED', payload: response });
         break;
       }
 

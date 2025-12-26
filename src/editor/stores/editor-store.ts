@@ -5,8 +5,10 @@ import type {
   ScriptLanguage, 
   ScriptMode,
   ExecutionResult,
-  LogicModule,
   ExecuteScriptRequest,
+  LogicModuleType,
+  LogicModuleInfo,
+  FetchModulesResponse,
 } from '@/shared/types';
 import { parseOutput, type ParseResult } from '../utils/output-parser';
 
@@ -38,10 +40,19 @@ interface EditorState {
   pendingExecution: Omit<ExecuteScriptRequest, 'wildvalue' | 'datasourceId'> | null;
   
   // Module browser
+  moduleBrowserOpen: boolean;
+  selectedModuleType: LogicModuleType;
+  modulesCache: Record<LogicModuleType, LogicModuleInfo[]>;
+  isFetchingModules: boolean;
+  selectedModule: LogicModuleInfo | null;
   moduleSearchQuery: string;
-  moduleSearchResults: LogicModule[];
-  isSearching: boolean;
-  loadedModule: LogicModule | null;
+  
+  // Pending load confirmation state
+  pendingModuleLoad: {
+    script: string;
+    language: ScriptLanguage;
+    mode: ScriptMode;
+  } | null;
   
   // UI state
   outputTab: 'raw' | 'parsed' | 'validation';
@@ -68,6 +79,16 @@ interface EditorState {
   setExecutionContextDialogOpen: (open: boolean) => void;
   confirmExecutionContext: (wildvalue: string, datasourceId: string) => Promise<void>;
   cancelExecutionContextDialog: () => void;
+  
+  // Module browser actions
+  setModuleBrowserOpen: (open: boolean) => void;
+  setSelectedModuleType: (type: LogicModuleType) => void;
+  fetchModules: (type: LogicModuleType) => Promise<void>;
+  setSelectedModule: (module: LogicModuleInfo | null) => void;
+  setModuleSearchQuery: (query: string) => void;
+  loadModuleScript: (script: string, language: ScriptLanguage, mode: ScriptMode) => void;
+  confirmModuleLoad: () => void;
+  cancelModuleLoad: () => void;
 }
 
 export const DEFAULT_GROOVY_TEMPLATE = `import com.santaba.agent.groovyapi.expect.Expect;
@@ -110,15 +131,38 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   parsedOutput: null,
   executionContextDialogOpen: false,
   pendingExecution: null,
+  moduleBrowserOpen: false,
+  selectedModuleType: 'datasource',
+  modulesCache: {
+    datasource: [],
+    configsource: [],
+    topologysource: [],
+    propertysource: [],
+    logsource: [],
+    diagnosticsource: [],
+  },
+  isFetchingModules: false,
+  selectedModule: null,
   moduleSearchQuery: '',
-  moduleSearchResults: [],
-  isSearching: false,
-  loadedModule: null,
+  pendingModuleLoad: null,
   outputTab: 'raw',
 
   // Actions
   setSelectedPortal: (portalId) => {
-    set({ selectedPortalId: portalId, selectedCollectorId: null, collectors: [] });
+    set({ 
+      selectedPortalId: portalId, 
+      selectedCollectorId: null, 
+      collectors: [],
+      // Clear module cache when portal changes
+      modulesCache: {
+        datasource: [],
+        configsource: [],
+        topologysource: [],
+        propertysource: [],
+        logsource: [],
+        diagnosticsource: [],
+      },
+    });
     if (portalId) {
       get().refreshCollectors();
     }
@@ -442,6 +486,114 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       executionContextDialogOpen: false, 
       pendingExecution: null,
     });
+  },
+
+  // Module browser actions
+  setModuleBrowserOpen: (open) => {
+    set({ moduleBrowserOpen: open });
+    // Fetch modules for the selected type when opening
+    if (open) {
+      const { selectedModuleType, modulesCache, selectedPortalId } = get();
+      if (selectedPortalId && modulesCache[selectedModuleType].length === 0) {
+        get().fetchModules(selectedModuleType);
+      }
+    } else {
+      // Clear selection when closing
+      set({ selectedModule: null, moduleSearchQuery: '' });
+    }
+  },
+
+  setSelectedModuleType: (type) => {
+    set({ selectedModuleType: type, selectedModule: null });
+    const { modulesCache, selectedPortalId } = get();
+    // Fetch if cache is empty for this type
+    if (selectedPortalId && modulesCache[type].length === 0) {
+      get().fetchModules(type);
+    }
+  },
+
+  fetchModules: async (type) => {
+    const { selectedPortalId } = get();
+    if (!selectedPortalId) return;
+
+    set({ isFetchingModules: true });
+
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: 'FETCH_MODULES',
+        payload: {
+          portalId: selectedPortalId,
+          moduleType: type,
+          offset: 0,
+          size: 1000,
+        },
+      });
+
+      if (response?.type === 'MODULES_FETCHED') {
+        const fetchResponse = response.payload as FetchModulesResponse;
+        set((state) => ({
+          modulesCache: {
+            ...state.modulesCache,
+            [type]: fetchResponse.items,
+          },
+          isFetchingModules: false,
+        }));
+      } else {
+        console.error('Failed to fetch modules:', response);
+        set({ isFetchingModules: false });
+      }
+    } catch (error) {
+      console.error('Error fetching modules:', error);
+      set({ isFetchingModules: false });
+    }
+  },
+
+  setSelectedModule: (module) => {
+    set({ selectedModule: module });
+  },
+
+  setModuleSearchQuery: (query) => {
+    set({ moduleSearchQuery: query });
+  },
+
+  loadModuleScript: (script, language, mode) => {
+    const { isDirty } = get();
+    
+    if (isDirty) {
+      // Store pending load and wait for confirmation
+      set({ pendingModuleLoad: { script, language, mode } });
+    } else {
+      // No unsaved changes, load directly
+      set({
+        script,
+        language,
+        mode,
+        isDirty: false,
+        moduleBrowserOpen: false,
+        selectedModule: null,
+        moduleSearchQuery: '',
+      });
+    }
+  },
+
+  confirmModuleLoad: () => {
+    const { pendingModuleLoad } = get();
+    if (!pendingModuleLoad) return;
+
+    set({
+      script: pendingModuleLoad.script,
+      language: pendingModuleLoad.language,
+      mode: pendingModuleLoad.mode,
+      isDirty: false,
+      pendingModuleLoad: null,
+      moduleBrowserOpen: false,
+      selectedModule: null,
+      moduleSearchQuery: '',
+    });
+  },
+
+  cancelModuleLoad: () => {
+    set({ pendingModuleLoad: null });
   },
 }));
 

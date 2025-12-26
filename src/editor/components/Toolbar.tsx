@@ -10,6 +10,7 @@ import {
   Database,
   type LucideIcon,
   Target,
+  FolderOpen,
 } from 'lucide-react';
 import { useEditorStore } from '../stores/editor-store';
 import { Button } from '@/components/ui/button';
@@ -69,6 +70,7 @@ export function Toolbar() {
     executeScript,
     refreshPortals,
     isDirty,
+    setModuleBrowserOpen,
   } = useEditorStore();
 
   // State for language switch confirmation dialog
@@ -323,6 +325,29 @@ export function Toolbar() {
 
       {/* Action Group */}
       <div className="flex items-center gap-1.5">
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setModuleBrowserOpen(true)}
+                disabled={!selectedPortalId}
+                className="gap-1.5 h-8"
+                aria-label="Open from LogicModule"
+              >
+                <FolderOpen className="size-3.5" />
+                <span className="hidden sm:inline">Open from LMX</span>
+              </Button>
+            }
+          />
+          <TooltipContent>
+            {selectedPortalId 
+              ? 'Browse and load scripts from LogicModules' 
+              : 'Select a portal to browse LogicModules'}
+          </TooltipContent>
+        </Tooltip>
+
         <Button
           onClick={executeScript}
           disabled={isExecuting || !selectedPortalId || !selectedCollectorId}

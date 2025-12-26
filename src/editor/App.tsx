@@ -4,6 +4,7 @@ import { EditorPanel } from './components/EditorPanel';
 import { OutputPanel } from './components/OutputPanel';
 import { StatusBar } from './components/StatusBar';
 import { ExecutionContextDialog } from './components/ExecutionContextDialog';
+import { LogicModuleBrowser } from './components/LogicModuleBrowser';
 import { useEditorStore } from './stores/editor-store';
 import {
   ResizablePanelGroup,
@@ -59,6 +60,7 @@ export function App() {
 
       {/* Dialogs */}
       <ExecutionContextDialog />
+      <LogicModuleBrowser />
     </div>
   );
 }

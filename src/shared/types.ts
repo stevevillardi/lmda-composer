@@ -75,9 +75,36 @@ export interface ExecutionResult {
 
 export type LogicModuleType = 
   | 'datasource'
+  | 'configsource'
+  | 'topologysource'
   | 'propertysource'
-  | 'eventsource'
-  | 'configsource';
+  | 'logsource'
+  | 'diagnosticsource';
+
+// API endpoint paths for each module type
+export const MODULE_ENDPOINTS: Record<LogicModuleType, string> = {
+  datasource: '/setting/datasources',
+  configsource: '/setting/configsources',
+  topologysource: '/setting/topologysources',
+  propertysource: '/setting/propertyrules',
+  logsource: '/setting/logsources',
+  diagnosticsource: '/setting/diagnosticsources',
+};
+
+// Lightweight module info for list display (before fetching full details)
+export interface LogicModuleInfo {
+  id: number;
+  name: string;
+  displayName: string;
+  moduleType: LogicModuleType;
+  appliesTo: string;
+  collectMethod: string;
+  hasAutoDiscovery: boolean;
+  scriptType: ScriptType;
+  // Script content (for preview)
+  collectionScript?: string;
+  adScript?: string;
+}
 
 export type CollectMethod = 
   | 'script'
@@ -142,6 +169,19 @@ export interface LogicModule {
 // Message Types
 // ============================================================================
 
+export interface FetchModulesRequest {
+  portalId: string;
+  moduleType: LogicModuleType;
+  offset?: number;
+  size?: number;
+}
+
+export interface FetchModulesResponse {
+  items: LogicModuleInfo[];
+  total: number;
+  hasMore: boolean;
+}
+
 export type EditorToSWMessage =
   | { type: 'DISCOVER_PORTALS' }
   | { type: 'GET_COLLECTORS'; payload: { portalId: string } }
@@ -149,6 +189,7 @@ export type EditorToSWMessage =
   | { type: 'CANCEL_EXECUTION'; payload: { executionId: string } }
   | { type: 'SEARCH_MODULES'; payload: { portalId: string; query: string } }
   | { type: 'LOAD_MODULE'; payload: { portalId: string; moduleId: number } }
+  | { type: 'FETCH_MODULES'; payload: FetchModulesRequest }
   | { type: 'GET_DEVICE'; payload: { portalId: string; hostname: string } }
   | { type: 'OPEN_EDITOR'; payload?: DeviceContext };
 
@@ -158,6 +199,7 @@ export type SWToEditorMessage =
   | { type: 'EXECUTION_UPDATE'; payload: ExecutionResult }
   | { type: 'MODULES_UPDATE'; payload: LogicModule[] }
   | { type: 'MODULE_LOADED'; payload: LogicModule }
+  | { type: 'MODULES_FETCHED'; payload: FetchModulesResponse }
   | { type: 'DEVICE_LOADED'; payload: Device }
   | { type: 'ERROR'; payload: { code: string; message: string } };
 

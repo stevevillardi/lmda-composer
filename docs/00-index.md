@@ -265,10 +265,14 @@ const selector = '[data-testid="LM_navigationMoreOptions24PxIcon"]';
 - [x] Validation rules for Batch Collection (wildvalue prefix, invalid chars)
 - [x] UX improvements (mode icons, execution mode label, disabled tabs for freeform)
 
-### Phase 4: LogicModule Integration
-- [ ] Module search
-- [ ] Load scripts into editor
-- [ ] Device context panel
+### Phase 4: LogicModule Integration ✅ COMPLETE
+- [x] Module browser with 6 module types (DataSource, ConfigSource, TopologySource, PropertySource, LogSource, DiagnosticSource)
+- [x] Paginated API fetching with script-only filter
+- [x] Type toggle group with searchable module list
+- [x] Dual-pane Monaco preview (AD + Collection) for AD-enabled modules
+- [x] Load confirmation dialog when editor has unsaved changes
+- [x] Auto-set language and execution mode when loading scripts
+- [x] "Open from LMX" button in toolbar (enabled when portal is selected)
 
 ### Phase 5: Polish
 - [ ] Resource tree context menu injection

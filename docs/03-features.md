@@ -12,7 +12,7 @@
 | Active Discovery mode with validation | P1 | 3 | ✅ |
 | Collection mode with validation | P1 | 3 | ✅ |
 | Batch Collection mode with validation | P1 | 3 | ✅ |
-| LogicModule browser (read-only) | P1 | 4 | |
+| LogicModule browser | P1 | 4 | ✅ |
 | Resource tree context menu | P2 | 5 | |
 | Command palette | P2 | 5 | |
 | Execution history | P2 | 5 | |
@@ -391,39 +391,53 @@ if (dsId) {
 
 ---
 
-## Phase 4 Features
+## Phase 4 Features ✅ COMPLETE
 
-### F4.1 LogicModule Browser (Read-Only)
+### F4.1 LogicModule Browser ✅
 
 **Description:**  
-Search and browse LogicModules in the selected portal, loading their scripts into the editor.
+Browse LogicModules across 6 module types in the selected portal, preview scripts in read-only Monaco editors, and load them into the main editor.
 
 **User Story:**  
-As a user, I want to load existing DataSource scripts so I can test and debug them without navigating the LM UI.
+As a user, I want to load existing LogicModule scripts so I can test and debug them without navigating the LM UI.
+
+**Supported Module Types:**
+| Type | Endpoint | Filter |
+|------|----------|--------|
+| DataSource | `/setting/datasources` | `collectMethod~"script"` |
+| ConfigSource | `/setting/configsources` | `collectMethod~"script"` |
+| TopologySource | `/setting/topologysources` | `collectMethod~"script"` |
+| PropertySource | `/setting/propertyrules` | None (always script) |
+| LogSource | `/setting/logsources` | `collectMethod~"script"` |
+| DiagnosticSource | `/setting/diagnosticsources` | None |
 
 **Behavior:**
-1. Open module browser (Ctrl+O or button)
-2. Search by name
-3. Display matching modules with metadata
-4. Click "Load AD" or "Load Collection" to load script
-5. Script replaces editor content
+1. Click "Open from LMX" button in toolbar (requires portal selection)
+2. Toggle between 6 module types
+3. Search modules by name, displayName, or appliesTo
+4. Select a module to see script preview
+5. AD-enabled modules show dual-pane view (AD left, Collection right)
+6. Click "Load" to load script into editor
+7. Confirmation dialog if editor has unsaved changes
+8. Auto-sets language and execution mode based on loaded script
 
 **Acceptance Criteria:**
-- [ ] Search DataSources by name
-- [ ] Show module type, collection method
-- [ ] Load Groovy AD scripts
-- [ ] Load Groovy Collection scripts
-- [ ] Load PowerShell scripts
-- [ ] Clear indication of what's being loaded
+- [x] Browse all 6 module types
+- [x] Filter by script-based collection methods
+- [x] Search modules by name/displayName/appliesTo
+- [x] Show collectMethod, AD status, appliesTo in list
+- [x] Dual-pane preview for AD-enabled modules
+- [x] Single-pane preview for non-AD modules
+- [x] Load Groovy scripts with proper mode
+- [x] Load PowerShell scripts with proper mode
+- [x] Confirmation when loading with unsaved changes
+- [x] Auto-set language (Groovy/PowerShell)
+- [x] Auto-set mode (AD/Collection/Batch Collection)
 
-**API Endpoint:**
-```
-GET /santaba/rest/setting/datasources?filter=name~"{query}"
-GET /santaba/rest/setting/datasources/{id}
-```
-
-**Open Question:**  
-> ⚠️ Need to verify exact field names for script content in DataSource response (groovyScript? scriptContent?). Investigate API response structure.
+**Implementation Files:**
+- `src/background/module-loader.ts` - API client
+- `src/editor/components/LogicModuleBrowser.tsx` - Main dialog
+- `src/editor/components/ModulePreview.tsx` - Dual-pane preview
 
 ---
 

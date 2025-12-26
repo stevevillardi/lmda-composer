@@ -1,6 +1,14 @@
 import { loader } from '@monaco-editor/react';
 import * as monaco from 'monaco-editor';
 
+// Configure Monaco environment to disable web workers
+// This is required for Chrome extensions due to CSP restrictions that block worker-src
+self.MonacoEnvironment = {
+  getWorker: function () {
+    return null as unknown as Worker;
+  },
+};
+
 // Configure Monaco to use the bundled version instead of CDN
 // This is required for Chrome extensions due to CSP restrictions
 loader.config({ monaco });
