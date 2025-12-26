@@ -112,9 +112,9 @@ WMI.query(hostname, query)
 
 ---
 
-## Phase 2 Features
+## Phase 2 Features ✅ COMPLETE
 
-### F2.1 Script Execution via Debug API
+### F2.1 Script Execution via Debug API ✅
 
 **Description:**  
 Execute scripts directly via LogicMonitor's Debug API, bypassing the native debug UI.
@@ -122,80 +122,135 @@ Execute scripts directly via LogicMonitor's Debug API, bypassing the native debu
 **User Story:**  
 As a user, I want to run my script and see results directly in the IDE without switching to the LM debug console.
 
-**Behavior:**
-1. User clicks "Run" or presses Ctrl+Enter
-2. Script sent to service worker
-3. Service worker calls Debug API with script
-4. Poll for results until complete
-5. Display output in Output Panel
+**Implementation:**
+
+1. **ScriptExecutor** orchestrates the full flow
+2. **CSRF Token Acquisition** with 3-level fallback:
+   - Try cached token
+   - Try refresh for portal
+   - Re-discover all portals and retry
+3. **Groovy Execution:**
+   - Prepends hostProps preamble if hostname provided
+   - Uses `hostId=null` with CollectorDb preamble approach
+4. **PowerShell Execution:**
+   - Detects `##TOKEN##` patterns
+   - Prefetches properties via Groovy if tokens found
+   - Substitutes tokens with property values
+   - Missing properties become empty strings
 
 **Acceptance Criteria:**
-- [ ] Groovy scripts execute successfully
-- [ ] PowerShell scripts execute successfully
-- [ ] Shows execution progress indicator
-- [ ] Displays full output on completion
-- [ ] Handles errors gracefully
-- [ ] Supports cancellation (if possible)
+- [x] Groovy scripts execute successfully
+- [x] PowerShell scripts execute successfully
+- [x] Shows execution progress indicator (spinner)
+- [x] Displays full output on completion
+- [x] Handles errors gracefully
+- [x] Status badges (Running, Complete, Error)
+- [x] Duration and timing display
+- [x] Copy output button
 
 **API Flow:**
 ```
 POST /santaba/rest/debug/?collectorId={id}
-Body: { "cmdline": "!groovy hostId={id} \n {script}" }
+Body: { "cmdline": "!groovy hostId=null \n {preamble}{script}" }
 Response: { "sessionId": "abc123" }
 
 GET /santaba/rest/debug/{sessionId}?collectorId={id}
-Response: { "output": "...", "status": "complete" }
+Response: { "output": "...", "cmdline": null (when complete) }
 ```
 
 ---
 
-### F2.2 PowerShell hostProps Support
+### F2.2 PowerShell Property Token Substitution ✅
 
 **Description:**  
-Provide hostProps and instanceProps to PowerShell scripts by pre-fetching via Groovy.
+Provide device properties to PowerShell scripts via `##PROPERTY.NAME##` token substitution, matching LogicMonitor's native behavior.
 
 **User Story:**  
-As a user writing PowerShell scripts, I want access to device properties just like I have in Groovy so I can write context-aware scripts.
+As a user writing PowerShell scripts, I want to use `##SYSTEM.HOSTNAME##` tokens just like in real DataSources so my scripts are directly usable in LogicMonitor.
 
-**Behavior:**
-1. If language is PowerShell and hostname is provided:
-   a. Execute small Groovy script to fetch hostProps as JSON
-   b. Parse JSON response
-   c. Inject as PowerShell hashtable at top of user script
-2. Execute combined script
+**Implementation:**
+
+Uses token substitution (not `$hostProps` injection) to match LM's native approach:
+
+1. **Token Detection:** Check script for `##PROPERTY.NAME##` patterns
+2. **Property Prefetch:** If tokens found AND hostname provided:
+   - Execute Groovy script via CollectorDb
+   - Parse JSON response into property map
+3. **Token Substitution:**
+   - Replace `##PROPERTY.NAME##` with actual values
+   - Case-insensitive property lookup
+   - Missing properties → empty string
+4. **Execute:** Run the substituted script
 
 **Groovy Prefetch Script:**
 ```groovy
 import groovy.json.JsonOutput
 import com.santaba.agent.collector3.CollectorDb
 
-def host = CollectorDb.getInstance().getHost("##HOSTNAME##")
-def props = host?.getProperties() ?: [:]
+def host = CollectorDb.getInstance().getHost("hostname")
+if (host == null) {
+  println "{}"
+  return 0
+}
+def props = [:]
+def hostProps = host.getProperties()
+for (key in hostProps.keySet()) {
+  props[key] = hostProps.get(key)?.toString() ?: ""
+}
 println JsonOutput.toJson(props)
 return 0
 ```
 
-**PowerShell Injection:**
+**PowerShell Token Pattern:**
 ```powershell
-$hostProps = @{
-    "system.hostname" = "10.0.0.1"
-    "system.displayname" = "WebServer01"
-    # ... all properties
-}
-$hostname = $hostProps["system.hostname"]
+# Before substitution
+$hostname = "##SYSTEM.HOSTNAME##"
+$displayName = "##SYSTEM.DISPLAYNAME##"
 
-# User script below
+# After substitution
+$hostname = "10.0.0.1"
+$displayName = "WebServer01"
 ```
 
 **Acceptance Criteria:**
-- [ ] hostProps available in PowerShell scripts
-- [ ] Works with any device in the collector's cache
-- [ ] JSON parsing handles all property types
-- [ ] Error handling if device not found
-- [ ] User informed if device not in cache
+- [x] `##TOKEN##` patterns detected correctly
+- [x] Property prefetch via CollectorDb works
+- [x] Case-insensitive property lookup
+- [x] Missing properties replaced with empty string
+- [x] Warning shown for missing properties
+- [x] Warning shown if prefetch fails
+- [x] Prefetch skipped if no tokens in script (optimization)
 
-**Open Question:**  
-> ⚠️ What happens if the device is not in the collector's cache? Need to investigate `CollectorDb.getInstance().getHost()` behavior for uncached devices.
+**Resolved Questions:**
+- **Device not in cache:** `CollectorDb.getInstance().getHost()` returns `null`. We handle this by returning empty JSON `{}` and substituting all tokens with empty strings.
+- **ParamMap iteration:** Use `keySet()` + `get(key)`, not `.each { k, v -> }` or `.entrySet()`.
+
+---
+
+### F2.3 Language Switch Confirmation ✅
+
+**Description:**  
+When switching languages (Groovy ↔ PowerShell) with unsaved changes, show a confirmation dialog.
+
+**User Story:**  
+As a user, I want to be warned before losing my script changes when switching languages.
+
+**Implementation:**
+
+1. **Dirty Detection:** Track if script has been modified via `isDirty` flag
+2. **Toggle Handler:** Check `isDirty` before switching languages
+3. **Confirmation Dialog:** AlertDialog with warning icon
+   - Title: "Switch to {language}?"
+   - Description: Explains changes will be lost
+   - Cancel: Closes dialog, keeps current script
+   - "Switch & Reset": Confirms switch, loads default template
+
+**Acceptance Criteria:**
+- [x] Dialog appears when switching with unsaved changes
+- [x] Correct template loaded for new language
+- [x] Cancel preserves current script
+- [x] Confirm resets to default template
+- [x] `isDirty` flag reset after template load
 
 ---
 

@@ -72,11 +72,13 @@
 | Element | shadcn Component | Description |
 |---------|------------------|-------------|
 | Portal Selector | `Select` | Dropdown of discovered LM portals |
-| Collector Selector | `Combobox` | Searchable dropdown of collectors |
-| Device Input | `Input` | Hostname/IP with autocomplete |
-| Mode Selector | `Tabs` or `Select` | AD / Collection / Freeform |
+| Portal Refresh | `Button` (icon) | Refresh portal discovery |
+| Collector Selector | `Select` | Dropdown of collectors for selected portal |
+| Device Input | `Input` | Hostname/IP (system.hostname) |
+| Language Toggle | `Button` group | Groovy / PowerShell toggle (shows confirmation if dirty) |
+| Mode Selector | `Select` | Freeform / AD / Collection / Batch Collection |
 | Run Button | `Button` | Execute script (primary action) |
-| More Menu | `DropdownMenu` | Settings, keyboard shortcuts, about |
+| Settings | `Button` (icon) | Settings menu (future) |
 
 **Behavior:**
 - Portal selector shows status indicator (green dot = active session)
@@ -84,6 +86,9 @@
 - Device input supports paste, auto-detects format
 - Run button shows loading spinner during execution
 - Keyboard shortcut: `Ctrl+Enter` or `F5` to run
+- Language toggle shows `AlertDialog` confirmation if editor has unsaved changes
+  - Warns that switching will reset to default template
+  - Options: Cancel (keep current) or Switch & Reset (confirm)
 
 ### 2. Monaco Editor Panel
 

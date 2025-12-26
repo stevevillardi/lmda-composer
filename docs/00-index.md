@@ -62,7 +62,9 @@ Scripts are located in different fields based on the collection method:
 **Note:** PowerShell scripts are stored in `groovyScript` field but identified by `scriptType: "powerShell"`.
 
 #### hostId Parameter
-The `hostId` parameter accepts the **device ID** (numeric portal ID), not hostname.
+The `hostId` parameter accepts the **device ID** (numeric portal ID), not hostname. However, we don't use this approach.
+
+**Our Implementation:** We set `hostId=null` and instead prepend a Groovy preamble that directly uses `CollectorDb.getInstance().getHost()` to fetch properties. This matches how the original extension worked and avoids needing to look up device IDs.
 
 ```
 !groovy [options] \nscriptbody
@@ -73,8 +75,30 @@ Options:
     h: indicates which host (in the collector) the hostProps will bound to
 ```
 
+**Preamble Approach (Used):**
+```groovy
+// Prepended to user's Groovy script when hostname is provided
+import com.santaba.agent.collector3.CollectorDb;
+def hostProps = [:];
+def instanceProps = [:];
+try {
+  hostProps = CollectorDb.getInstance().getHost(new String("BASE64_HOSTNAME".decodeBase64())).getProperties();
+  instanceProps["wildvalue"] = new String("BASE64_WILDVALUE".decodeBase64());
+} catch(Exception e) {};
+// User's script follows...
+```
+
 #### CSRF Token
 Token is valid as long as the user session is valid. No separate expiry.
+
+**Multi-Level Fallback (Implemented):**
+Chrome service workers can be terminated after inactivity, losing in-memory state. Our `ScriptExecutor.acquireCsrfToken()` handles this:
+1. **Level 1:** Try cached token from PortalManager
+2. **Level 2:** Try refreshing token for the specific portal
+3. **Level 3:** Re-discover all portals (re-scan LM tabs, fetch fresh tokens)
+4. Try to get token again after re-discovery
+
+This ensures execution works even after the service worker wakes from sleep.
 
 #### Rate Limits
 Rate limit info is returned in response headers:
@@ -97,8 +121,33 @@ Default limits by HTTP method:
 
 ### Technical Details
 
-#### PowerShell hostProps
-Groovy prefetch is the **only way** to get sensitive properties for PowerShell. The REST API redacts sensitive values, so we must use `CollectorDb.getInstance().getHost()` via Groovy.
+#### PowerShell Property Token Substitution
+PowerShell scripts use `##PROPERTY.NAME##` tokens (e.g., `##SYSTEM.HOSTNAME##`) that are substituted with actual values before execution. This matches LogicMonitor's native behavior.
+
+**Implementation Flow:**
+1. Check if script contains `##TOKEN##` patterns
+2. If tokens found AND hostname provided:
+   - Execute Groovy prefetch script via `CollectorDb.getInstance().getHost()`
+   - Parse returned JSON properties
+   - Replace all `##PROPERTY.NAME##` tokens with values (case-insensitive lookup)
+   - Missing properties are replaced with empty strings
+3. If prefetch fails or no hostname: Replace all tokens with empty strings
+4. Execute the substituted PowerShell script
+
+**Why Groovy Prefetch?**
+The REST API redacts sensitive property values. `CollectorDb.getInstance().getHost()` returns unredacted properties from the collector's cache.
+
+**ParamMap Iteration Note:**
+LogicMonitor's `ParamMap` class doesn't support standard Java Map iteration. Use `keySet()` with `get(key)`:
+```groovy
+// WRONG - ParamMap.each() doesn't work like standard Map
+hostProps.getProperties().each { k, v -> ... }
+
+// RIGHT - Use keySet() and get()
+for (key in hostProps.keySet()) {
+  props[key] = hostProps.get(key)?.toString() ?: ""
+}
+```
 
 #### Debug Timeout
 Maximum script execution time is **120 seconds**.
@@ -162,11 +211,14 @@ The existing extension handles this by:
 - [x] Collector API integration (fetches collectors per portal)
 - [x] CSRF token management
 
-### Phase 2: Execution Engine 🚧 IN PROGRESS
-- [ ] Debug API client (execute/poll)
-- [ ] Script execution flow
-- [ ] PowerShell hostProps via Groovy prefetch
-- [ ] Output display and parsing
+### Phase 2: Execution Engine ✅ COMPLETE
+- [x] Debug API client (execute/poll)
+- [x] Script execution flow (ScriptExecutor)
+- [x] PowerShell property token substitution via Groovy prefetch
+- [x] Groovy hostProps via CollectorDb preamble injection
+- [x] CSRF token multi-level fallback with portal re-discovery
+- [x] Language switch confirmation dialog for dirty editors
+- [x] Raw output display with status badges
 
 ### Phase 3: Validation & Modes
 - [ ] AD mode with instance parsing

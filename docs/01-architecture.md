@@ -84,11 +84,35 @@ The service worker is the central coordinator. It:
 ```
 background/
 ├── service-worker.ts      # Entry point, message routing
-├── portal-manager.ts      # Multi-portal detection
-├── collector-pool.ts      # Collector list management
-├── debug-api.ts           # Debug API client
-├── module-loader.ts       # LogicModule fetching
-└── storage.ts             # chrome.storage wrapper
+├── portal-manager.ts      # Multi-portal detection, CSRF tokens, collectors
+├── script-executor.ts     # Orchestrates script execution flow
+├── debug-api.ts           # Debug API client (execute/poll, command builders)
+├── property-prefetcher.ts # Fetches device props via Groovy for PowerShell
+├── token-substitutor.ts   # ##TOKEN## detection and replacement
+├── module-loader.ts       # LogicModule fetching (Phase 4)
+└── storage.ts             # chrome.storage wrapper (Phase 5)
+```
+
+**Script Execution Architecture:**
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                      ScriptExecutor                              │
+│  - acquireCsrfToken() with 3-level fallback                     │
+│  - executeGroovy() → prepends hostProps preamble                │
+│  - executePowerShell() → token substitution flow                │
+└────────────────────────┬────────────────────────────────────────┘
+                         │
+        ┌────────────────┼────────────────┐
+        ▼                ▼                ▼
+┌───────────────┐ ┌─────────────┐ ┌──────────────────┐
+│  debug-api    │ │  property-  │ │  token-          │
+│               │ │  prefetcher │ │  substitutor     │
+│ - execute()   │ │             │ │                  │
+│ - poll()      │ │ - Groovy    │ │ - hasTokens()    │
+│ - buildCmd()  │ │   prefetch  │ │ - substitute()   │
+└───────────────┘ │ - JSON parse│ │ - extractTokens()│
+                  └─────────────┘ └──────────────────┘
 ```
 
 ### 2. Content Scripts (`content/`)

@@ -4,6 +4,11 @@ import { EditorPanel } from './components/EditorPanel';
 import { OutputPanel } from './components/OutputPanel';
 import { StatusBar } from './components/StatusBar';
 import { useEditorStore } from './stores/editor-store';
+import {
+  ResizablePanelGroup,
+  ResizablePanel,
+  ResizableHandle,
+} from '@/components/ui/resizable';
 
 export function App() {
   const { refreshPortals, script } = useEditorStore();
@@ -30,18 +35,23 @@ export function App() {
       {/* Toolbar */}
       <Toolbar />
 
-      {/* Main Content Area */}
-      <div className="flex-1 flex flex-col min-h-0">
-        {/* Editor and Context Panel */}
-        <div className="flex-1 min-h-0">
+      {/* Main Content Area - Resizable Panels */}
+      <ResizablePanelGroup direction="vertical" className="flex-1 min-h-0">
+        {/* Editor Panel */}
+        <ResizablePanel defaultSize={70} minSize={30}>
           <EditorPanel />
-        </div>
+        </ResizablePanel>
+
+        {/* Resize Handle */}
+        <ResizableHandle withHandle />
 
         {/* Output Panel */}
-        <div className="h-64 border-t border-border">
-          <OutputPanel />
-        </div>
-      </div>
+        <ResizablePanel defaultSize={30} minSize={10}>
+          <div className="h-full border-t border-border">
+            <OutputPanel />
+          </div>
+        </ResizablePanel>
+      </ResizablePanelGroup>
 
       {/* Status Bar */}
       <StatusBar />
