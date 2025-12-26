@@ -161,10 +161,35 @@ export async function executeAndPoll(
 // ============================================================================
 
 /**
- * Groovy preamble that sets up hostProps and instanceProps using CollectorDb.
- * Uses base64-encoded hostname/wildvalue which are replaced before execution.
+ * Groovy preamble that sets up hostProps, instanceProps, datasourceinstanceProps, and taskProps.
+ * Uses base64-encoded values which are replaced before execution.
+ * 
+ * Variables provided:
+ * - hostProps: Device properties from CollectorDb
+ * - instanceProps: Instance properties including wildvalue
+ * - datasourceinstanceProps: All instances for batch collection (from getDatasourceInstanceProps)
+ * - taskProps: Task configuration with default pollinterval
  */
-const GROOVY_PREAMBLE = `import com.santaba.agent.collector3.CollectorDb;def hostProps = [:];def instanceProps = [:];try{hostProps = CollectorDb.getInstance().getHost(new String("##HOSTNAMEBASE64##".decodeBase64())).getProperties();instanceProps["wildvalue"] = new String("##WILDVALUEBASE64##".decodeBase64());}catch(Exception e){};`;
+const GROOVY_PREAMBLE = `import com.santaba.agent.collector3.CollectorDb;
+def hostProps = [:];
+def instanceProps = [:];
+def datasourceinstanceProps = [:];
+def taskProps = ["pollinterval": "180"];
+try {
+  def collectorDb = CollectorDb.getInstance();
+  def hostname = new String("##HOSTNAMEBASE64##".decodeBase64());
+  def host = collectorDb.getHost(hostname);
+  if (host != null) {
+    hostProps = host.getProperties();
+    instanceProps["wildvalue"] = new String("##WILDVALUEBASE64##".decodeBase64());
+    def dsId = new String("##DATASOURCEIDBASE64##".decodeBase64());
+    if (dsId) {
+      def dsParam = dsId.isInteger() ? dsId.toInteger() : dsId;
+      datasourceinstanceProps = collectorDb.getDatasourceInstanceProps(hostname, dsParam);
+    }
+  }
+} catch(Exception e) {};
+`;
 
 /**
  * Build a Groovy debug command line.
@@ -173,18 +198,26 @@ const GROOVY_PREAMBLE = `import com.santaba.agent.collector3.CollectorDb;def hos
  * @param script The Groovy script to execute
  * @param hostname Optional hostname for hostProps lookup
  * @param wildvalue Optional wildvalue for instanceProps
+ * @param datasourceId Optional datasource name or ID for batch collection
  */
-export function buildGroovyCommand(script: string, hostname?: string, wildvalue?: string): string {
+export function buildGroovyCommand(
+  script: string, 
+  hostname?: string, 
+  wildvalue?: string,
+  datasourceId?: string
+): string {
   let finalScript = script;
   
   if (hostname) {
     // Prepend the preamble and substitute base64-encoded values
     const hostnameBase64 = btoa(hostname);
     const wildvalueBase64 = btoa(wildvalue || '');
+    const datasourceIdBase64 = btoa(datasourceId || '');
     
-    let preamble = GROOVY_PREAMBLE
+    const preamble = GROOVY_PREAMBLE
       .replace('##HOSTNAMEBASE64##', hostnameBase64)
-      .replace('##WILDVALUEBASE64##', wildvalueBase64);
+      .replace('##WILDVALUEBASE64##', wildvalueBase64)
+      .replace('##DATASOURCEIDBASE64##', datasourceIdBase64);
     
     finalScript = preamble + script;
   }

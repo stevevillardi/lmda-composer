@@ -116,13 +116,19 @@ export class ScriptExecutor {
   /**
    * Execute a Groovy script.
    * If hostname is provided, prepends preamble that sets up hostProps via CollectorDb.
+   * If datasourceId is provided, fetches datasourceinstanceProps for batch collection.
    */
   private async executeGroovy(
     request: ExecuteScriptRequest,
     csrfToken: string
   ): Promise<string> {
-    // Build command - hostname enables hostProps via preamble
-    const cmdline = buildGroovyCommand(request.script, request.hostname, request.wildvalue);
+    // Build command - hostname enables hostProps via preamble, datasourceId enables batch collection
+    const cmdline = buildGroovyCommand(
+      request.script, 
+      request.hostname, 
+      request.wildvalue,
+      request.datasourceId
+    );
     
     return executeAndPoll(
       request.portalId,

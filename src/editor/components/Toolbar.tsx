@@ -1,8 +1,20 @@
 import { useState } from 'react';
-import { Play, RefreshCw, Settings, Circle, AlertTriangle } from 'lucide-react';
+import { 
+  Play, 
+  RefreshCw, 
+  Settings, 
+  Circle, 
+  AlertTriangle,
+  Terminal,
+  Activity,
+  Database,
+  type LucideIcon,
+  Target,
+} from 'lucide-react';
 import { useEditorStore } from '../stores/editor-store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { 
   Select, 
   SelectContent, 
@@ -24,13 +36,19 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
-import type { ScriptLanguage } from '@/shared/types';
+import type { ScriptLanguage, ScriptMode } from '@/shared/types';
 
-const MODE_ITEMS = [
-  { value: 'freeform', label: 'Freeform' },
-  { value: 'ad', label: 'Active Discovery' },
-  { value: 'collection', label: 'Collection' },
-  { value: 'batchcollection', label: 'Batch Collection' },
+interface ModeItem {
+  value: ScriptMode;
+  label: string;
+  icon: LucideIcon;
+}
+
+const MODE_ITEMS: ModeItem[] = [
+  { value: 'freeform', label: 'Freeform', icon: Terminal },
+  { value: 'ad', label: 'Active Discovery', icon: Target },
+  { value: 'collection', label: 'Collection', icon: Activity },
+  { value: 'batchcollection', label: 'Batch Collection', icon: Database },
 ];
 
 export function Toolbar() {
@@ -245,7 +263,7 @@ export function Toolbar() {
             size="sm"
             onClick={() => handleLanguageClick('groovy')}
             className={cn(
-              "h-6 px-2.5 text-xs font-medium",
+              "h-7 px-3 text-xs font-medium",
               language === 'groovy' && "shadow-sm"
             )}
           >
@@ -256,7 +274,7 @@ export function Toolbar() {
             size="sm"
             onClick={() => handleLanguageClick('powershell')}
             className={cn(
-              "h-6 px-2.5 text-xs font-medium",
+              "h-7 px-3 text-xs font-medium",
               language === 'powershell' && "shadow-sm"
             )}
           >
@@ -265,22 +283,40 @@ export function Toolbar() {
         </div>
 
         {/* Mode Selector */}
-        <Select 
-          value={mode} 
-          onValueChange={(value) => setMode(value as typeof mode)}
-          items={MODE_ITEMS}
-        >
-          <SelectTrigger className="w-[140px] h-8">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent align="start">
-            {MODE_ITEMS.map((item) => (
-              <SelectItem key={item.value} value={item.value}>
-                {item.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <div className="flex items-center gap-2">
+          <Label className="text-xs text-muted-foreground whitespace-nowrap">
+            Execution Mode:
+          </Label>
+          <Select 
+            value={mode} 
+            onValueChange={(value) => setMode(value as typeof mode)}
+            items={MODE_ITEMS}
+          >
+            <SelectTrigger className="w-[180px] h-8">
+              <div className="flex items-center gap-2">
+                {(() => {
+                  const selectedMode = MODE_ITEMS.find(m => m.value === mode);
+                  const Icon = selectedMode?.icon;
+                  return Icon ? <Icon className="size-4 shrink-0" /> : null;
+                })()}
+                <SelectValue />
+              </div>
+            </SelectTrigger>
+            <SelectContent align="start">
+              {MODE_ITEMS.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <SelectItem key={item.value} value={item.value}>
+                    <div className="flex items-center gap-2">
+                      <Icon className="size-4" />
+                      <span>{item.label}</span>
+                    </div>
+                  </SelectItem>
+                );
+              })}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div className="flex-1" />

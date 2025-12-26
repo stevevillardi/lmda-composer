@@ -1,10 +1,13 @@
 import { Trash2, Copy, CheckCircle2, XCircle, Clock, Loader2 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useEditorStore } from '../stores/editor-store';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { ParsedContent } from './ParsedContent';
+import { ValidationContent } from './ValidationContent';
 
 export function OutputPanel() {
   const { 
@@ -13,7 +16,17 @@ export function OutputPanel() {
     setOutputTab, 
     clearOutput,
     isExecuting,
+    mode,
   } = useEditorStore();
+
+  const isFreeformMode = mode === 'freeform';
+  
+  // Auto-switch to 'raw' tab when switching to freeform mode
+  useEffect(() => {
+    if (isFreeformMode && (outputTab === 'parsed' || outputTab === 'validation')) {
+      setOutputTab('raw');
+    }
+  }, [isFreeformMode, outputTab, setOutputTab]);
 
   return (
     <div className="flex flex-col h-full">
@@ -27,8 +40,46 @@ export function OutputPanel() {
           <div className="flex items-center gap-3">
             <TabsList variant="line">
               <TabsTrigger value="raw">Raw Output</TabsTrigger>
-              <TabsTrigger value="parsed">Parsed</TabsTrigger>
-              <TabsTrigger value="validation">Validation</TabsTrigger>
+              {isFreeformMode ? (
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <span 
+                        className="px-2 py-1 text-sm font-medium text-muted-foreground/50 cursor-not-allowed"
+                        tabIndex={0}
+                        aria-disabled="true"
+                      >
+                        Parsed
+                      </span>
+                    }
+                  />
+                  <TooltipContent>
+                    Switch to AD or Collection mode to parse and validate output
+                  </TooltipContent>
+                </Tooltip>
+              ) : (
+                <TabsTrigger value="parsed">Parsed</TabsTrigger>
+              )}
+              {isFreeformMode ? (
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <span 
+                        className="px-2 py-1 text-sm font-medium text-muted-foreground/50 cursor-not-allowed"
+                        tabIndex={0}
+                        aria-disabled="true"
+                      >
+                        Validation
+                      </span>
+                    }
+                  />
+                  <TooltipContent>
+                    Switch to AD or Collection mode to parse and validate output
+                  </TooltipContent>
+                </Tooltip>
+              ) : (
+                <TabsTrigger value="validation">Validation</TabsTrigger>
+              )}
             </TabsList>
             
             {/* Status Badge */}
@@ -44,11 +95,12 @@ export function OutputPanel() {
             )}
             <Button
               variant="ghost"
-              size="icon-sm"
+              size="sm"
               onClick={clearOutput}
-              title="Clear output"
+              className="gap-1.5 h-7 px-2 text-xs"
             >
-              <Trash2 className="size-4" />
+              <Trash2 className="size-3.5" />
+              Clear
             </Button>
           </div>
         </div>
@@ -70,16 +122,12 @@ export function OutputPanel() {
             )}
           </TabsContent>
 
-          <TabsContent value="parsed" className="h-full p-3 font-mono text-sm">
-            <div className="text-muted-foreground">
-              Parsing not yet implemented. View raw output for now.
-            </div>
+          <TabsContent value="parsed" className="h-full overflow-auto">
+            <ParsedContent />
           </TabsContent>
 
-          <TabsContent value="validation" className="h-full p-3 font-mono text-sm">
-            <div className="text-muted-foreground">
-              Validation not yet implemented.
-            </div>
+          <TabsContent value="validation" className="h-full overflow-auto">
+            <ValidationContent />
           </TabsContent>
         </div>
       </Tabs>

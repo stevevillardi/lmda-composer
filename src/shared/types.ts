@@ -49,6 +49,7 @@ export interface ExecuteScriptRequest {
   hostname?: string;
   deviceId?: number;
   wildvalue?: string;
+  datasourceId?: string;  // Datasource name (e.g., "snmp64_If-") or numeric ID for batch collection
 }
 
 export type ExecutionStatus = 

@@ -3,6 +3,7 @@ import { Toolbar } from './components/Toolbar';
 import { EditorPanel } from './components/EditorPanel';
 import { OutputPanel } from './components/OutputPanel';
 import { StatusBar } from './components/StatusBar';
+import { ExecutionContextDialog } from './components/ExecutionContextDialog';
 import { useEditorStore } from './stores/editor-store';
 import {
   ResizablePanelGroup,
@@ -55,6 +56,9 @@ export function App() {
 
       {/* Status Bar */}
       <StatusBar />
+
+      {/* Dialogs */}
+      <ExecutionContextDialog />
     </div>
   );
 }

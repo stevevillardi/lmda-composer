@@ -6,7 +6,9 @@ import type {
   ScriptMode,
   ExecutionResult,
   LogicModule,
+  ExecuteScriptRequest,
 } from '@/shared/types';
+import { parseOutput, type ParseResult } from '../utils/output-parser';
 
 interface EditorState {
   // Portal/Collector selection
@@ -18,6 +20,7 @@ interface EditorState {
   // Device context
   hostname: string;
   wildvalue: string;
+  datasourceId: string;  // Datasource name or ID for batch collection
   
   // Editor state
   script: string;
@@ -28,6 +31,11 @@ interface EditorState {
   // Execution state
   isExecuting: boolean;
   currentExecution: ExecutionResult | null;
+  parsedOutput: ParseResult | null;
+  
+  // Execution context dialog state (for Collection/Batch Collection modes)
+  executionContextDialogOpen: boolean;
+  pendingExecution: Omit<ExecuteScriptRequest, 'wildvalue' | 'datasourceId'> | null;
   
   // Module browser
   moduleSearchQuery: string;
@@ -43,6 +51,7 @@ interface EditorState {
   setSelectedCollector: (collectorId: number | null) => void;
   setHostname: (hostname: string) => void;
   setWildvalue: (wildvalue: string) => void;
+  setDatasourceId: (datasourceId: string) => void;
   setScript: (script: string) => void;
   setLanguage: (language: ScriptLanguage, force?: boolean) => void;
   setMode: (mode: ScriptMode) => void;
@@ -51,6 +60,14 @@ interface EditorState {
   refreshPortals: () => Promise<void>;
   refreshCollectors: () => Promise<void>;
   clearOutput: () => void;
+  
+  // Parsing actions
+  parseCurrentOutput: () => void;
+  
+  // Execution context dialog actions
+  setExecutionContextDialogOpen: (open: boolean) => void;
+  confirmExecutionContext: (wildvalue: string, datasourceId: string) => Promise<void>;
+  cancelExecutionContextDialog: () => void;
 }
 
 export const DEFAULT_GROOVY_TEMPLATE = `import com.santaba.agent.groovyapi.expect.Expect;
@@ -83,12 +100,16 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   selectedCollectorId: null,
   hostname: '',
   wildvalue: '',
+  datasourceId: '',
   script: DEFAULT_GROOVY_TEMPLATE,
   language: 'groovy',
   mode: 'freeform',
   isDirty: false,
   isExecuting: false,
   currentExecution: null,
+  parsedOutput: null,
+  executionContextDialogOpen: false,
+  pendingExecution: null,
   moduleSearchQuery: '',
   moduleSearchResults: [],
   isSearching: false,
@@ -113,6 +134,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   setWildvalue: (wildvalue) => {
     set({ wildvalue });
+  },
+
+  setDatasourceId: (datasourceId) => {
+    set({ datasourceId });
   },
 
   setScript: (newScript) => {
@@ -150,7 +175,13 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   setMode: (mode) => {
-    set({ mode });
+    const { outputTab } = get();
+    // Clear parsed output and switch to raw tab if in freeform mode
+    const updates: Partial<EditorState> = { mode, parsedOutput: null };
+    if (mode === 'freeform' && (outputTab === 'parsed' || outputTab === 'validation')) {
+      updates.outputTab = 'raw';
+    }
+    set(updates);
   },
 
   setOutputTab: (tab) => {
@@ -171,6 +202,24 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           error: 'Please select a portal and collector',
         },
         outputTab: 'raw',
+        parsedOutput: null,
+      });
+      return;
+    }
+
+    // For Collection or Batch Collection mode, always show the execution context dialog
+    // This allows users to confirm/modify wildvalue or datasource ID before each run
+    if (state.mode === 'collection' || state.mode === 'batchcollection') {
+      set({
+        executionContextDialogOpen: true,
+        pendingExecution: {
+          portalId: state.selectedPortalId,
+          collectorId: state.selectedCollectorId,
+          script: state.script,
+          language: state.language,
+          mode: state.mode,
+          hostname: state.hostname || undefined,
+        },
       });
       return;
     }
@@ -179,6 +228,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     set({ 
       isExecuting: true, 
       currentExecution: null,
+      parsedOutput: null,
       outputTab: 'raw',
     });
 
@@ -193,11 +243,18 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           mode: state.mode,
           hostname: state.hostname || undefined,
           wildvalue: state.wildvalue || undefined,
+          datasourceId: state.datasourceId || undefined,
         },
       });
 
       if (response?.type === 'EXECUTION_UPDATE') {
-        set({ currentExecution: response.payload, isExecuting: false });
+        const execution = response.payload as ExecutionResult;
+        set({ currentExecution: execution, isExecuting: false });
+        
+        // Auto-parse output if not in freeform mode and execution succeeded
+        if (state.mode !== 'freeform' && execution.status === 'complete' && execution.rawOutput) {
+          get().parseCurrentOutput();
+        }
       } else if (response?.type === 'ERROR') {
         set({
           currentExecution: {
@@ -282,7 +339,109 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   clearOutput: () => {
-    set({ currentExecution: null });
+    set({ currentExecution: null, parsedOutput: null });
+  },
+
+  // Parse the current execution output based on mode
+  parseCurrentOutput: () => {
+    const { currentExecution, mode } = get();
+    if (!currentExecution?.rawOutput || mode === 'freeform') {
+      set({ parsedOutput: null });
+      return;
+    }
+    
+    const result = parseOutput(currentExecution.rawOutput, mode);
+    set({ parsedOutput: result });
+  },
+
+  // Execution context dialog actions
+  setExecutionContextDialogOpen: (open) => {
+    set({ executionContextDialogOpen: open });
+  },
+
+  confirmExecutionContext: async (wildvalue: string, datasourceId: string) => {
+    const { pendingExecution } = get();
+    if (!pendingExecution) return;
+
+    // Close dialog and store values
+    set({ 
+      executionContextDialogOpen: false, 
+      wildvalue: wildvalue || get().wildvalue,
+      datasourceId: datasourceId || get().datasourceId,
+      pendingExecution: null,
+    });
+
+    // Now execute with the context values
+    set({ 
+      isExecuting: true, 
+      currentExecution: null,
+      parsedOutput: null,
+      outputTab: 'raw',
+    });
+
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: 'EXECUTE_SCRIPT',
+        payload: {
+          ...pendingExecution,
+          wildvalue: wildvalue || undefined,
+          datasourceId: datasourceId || undefined,
+        },
+      });
+
+      if (response?.type === 'EXECUTION_UPDATE') {
+        const execution = response.payload as ExecutionResult;
+        set({ currentExecution: execution, isExecuting: false });
+        
+        // Auto-parse output
+        if (execution.status === 'complete' && execution.rawOutput) {
+          get().parseCurrentOutput();
+        }
+      } else if (response?.type === 'ERROR') {
+        set({
+          currentExecution: {
+            id: crypto.randomUUID(),
+            status: 'error',
+            rawOutput: '',
+            duration: 0,
+            startTime: Date.now(),
+            error: response.payload?.message ?? 'Unknown error from service worker',
+          },
+          isExecuting: false,
+        });
+      } else {
+        set({
+          currentExecution: {
+            id: crypto.randomUUID(),
+            status: 'error',
+            rawOutput: '',
+            duration: 0,
+            startTime: Date.now(),
+            error: 'Unexpected response from execution service',
+          },
+          isExecuting: false,
+        });
+      }
+    } catch (error) {
+      set({
+        currentExecution: {
+          id: crypto.randomUUID(),
+          status: 'error',
+          rawOutput: '',
+          duration: 0,
+          startTime: Date.now(),
+          error: error instanceof Error ? error.message : 'Unknown error',
+        },
+        isExecuting: false,
+      });
+    }
+  },
+
+  cancelExecutionContextDialog: () => {
+    set({ 
+      executionContextDialogOpen: false, 
+      pendingExecution: null,
+    });
   },
 }));
 
