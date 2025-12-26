@@ -7,6 +7,7 @@ import type {
   DeviceContext,
   ExecuteScriptRequest,
   FetchModulesRequest,
+  FetchDevicesRequest,
 } from '@/shared/types';
 
 // Initialize managers
@@ -64,6 +65,15 @@ async function handleMessage(
         const collectors = await portalManager.getCollectors(portalId);
         console.log('GET_COLLECTORS response:', collectors.length, 'collectors');
         sendResponse({ type: 'COLLECTORS_UPDATE', payload: collectors });
+        break;
+      }
+
+      case 'GET_DEVICES': {
+        const { portalId, collectorId } = message.payload as FetchDevicesRequest;
+        console.log('GET_DEVICES request for collector:', collectorId);
+        const response = await portalManager.getDevices(portalId, collectorId);
+        console.log('GET_DEVICES response:', response.items.length, 'devices');
+        sendResponse({ type: 'DEVICES_UPDATE', payload: response });
         break;
       }
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { 
   Play, 
   RefreshCw, 
@@ -11,10 +11,13 @@ import {
   type LucideIcon,
   Target,
   FolderOpen,
+  Server,
+  History,
+  Save,
+  Loader2,
 } from 'lucide-react';
 import { useEditorStore } from '../stores/editor-store';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { 
   Select, 
@@ -23,6 +26,13 @@ import {
   SelectTrigger, 
   SelectValue 
 } from '@/components/ui/select';
+import {
+  Combobox,
+  ComboboxInput,
+  ComboboxContent,
+  ComboboxList,
+  ComboboxItem,
+} from '@/components/ui/combobox';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
@@ -60,6 +70,8 @@ export function Toolbar() {
     collectors,
     selectedCollectorId,
     setSelectedCollector,
+    devices,
+    isFetchingDevices,
     hostname,
     setHostname,
     language,
@@ -71,10 +83,26 @@ export function Toolbar() {
     refreshPortals,
     isDirty,
     setModuleBrowserOpen,
+    setSettingsDialogOpen,
+    setExecutionHistoryOpen,
+    saveToFile,
   } = useEditorStore();
 
   // State for language switch confirmation dialog
   const [pendingLanguage, setPendingLanguage] = useState<ScriptLanguage | null>(null);
+  
+  // State for device search filtering
+  const [deviceSearchQuery, setDeviceSearchQuery] = useState('');
+  
+  // Filter devices based on search query
+  const filteredDevices = useMemo(() => {
+    if (!deviceSearchQuery.trim()) return devices;
+    const query = deviceSearchQuery.toLowerCase();
+    return devices.filter(device => 
+      device.name.toLowerCase().includes(query) ||
+      device.displayName.toLowerCase().includes(query)
+    );
+  }, [devices, deviceSearchQuery]);
 
   // Handle language toggle click
   const handleLanguageClick = (newLanguage: ScriptLanguage) => {
@@ -244,14 +272,69 @@ export function Toolbar() {
           </SelectContent>
         </Select>
 
-        {/* Hostname Input */}
-        <Input
-          type="text"
+        {/* Device/Hostname Combobox */}
+        <Combobox
           value={hostname}
-          onChange={(e) => setHostname(e.target.value)}
-          placeholder="Enter system.hostname..."
-          className="w-[300px] h-8"
-        />
+          onValueChange={(value) => {
+            setHostname(value || '');
+            // Clear search query when a value is selected
+            if (value) setDeviceSearchQuery('');
+          }}
+          disabled={!selectedCollectorId}
+        >
+          <ComboboxInput
+            placeholder={
+              isFetchingDevices 
+                ? 'Loading devices...' 
+                : !selectedCollectorId 
+                  ? 'Select collector first...'
+                  : devices.length === 0 
+                    ? 'No devices on collector' 
+                    : 'Search devices...'
+            }
+            className="w-[260px] h-9"
+            disabled={!selectedCollectorId}
+            showClear={!!hostname}
+            onChange={(e) => setDeviceSearchQuery(e.target.value)}
+          />
+          <ComboboxContent>
+            <ComboboxList>
+              {isFetchingDevices ? (
+                <div className="flex items-center justify-center py-4 text-sm text-muted-foreground">
+                  <Loader2 className="size-4 animate-spin mr-2" />
+                  Loading devices...
+                </div>
+              ) : devices.length === 0 ? (
+                <div className="flex items-center justify-center py-4 text-sm text-muted-foreground">
+                  {selectedCollectorId 
+                    ? 'No devices found on this collector'
+                    : 'Select a collector first'}
+                </div>
+              ) : filteredDevices.length === 0 ? (
+                <div className="flex items-center justify-center py-4 text-sm text-muted-foreground">
+                  No devices match "{deviceSearchQuery}"
+                </div>
+              ) : (
+                filteredDevices.map((device) => (
+                  <ComboboxItem key={device.id} value={device.name}>
+                    <div className="flex items-center gap-2 w-full">
+                      <Server className={cn(
+                        "size-4 shrink-0",
+                        device.hostStatus === 'normal' 
+                          ? "text-emerald-500" 
+                          : "text-red-500"
+                      )} />
+                      <div className="flex flex-col min-w-0 flex-1">
+                        <span className="font-medium truncate">{device.displayName}</span>
+                        <span className="text-xs text-muted-foreground truncate">{device.name}</span>
+                      </div>
+                    </div>
+                  </ComboboxItem>
+                ))
+              )}
+            </ComboboxList>
+          </ComboboxContent>
+        </Combobox>
       </div>
 
       <Separator orientation="vertical" className="h-8 mx-1" />
@@ -368,6 +451,39 @@ export function Toolbar() {
               <Button 
                 variant="ghost" 
                 size="icon-sm"
+                onClick={saveToFile}
+                aria-label="Save to file"
+              >
+                <Save className="size-4" />
+              </Button>
+            }
+          />
+          <TooltipContent>Save script to file</TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button 
+                variant="ghost" 
+                size="icon-sm"
+                onClick={() => setExecutionHistoryOpen(true)}
+                aria-label="Execution history"
+              >
+                <History className="size-4" />
+              </Button>
+            }
+          />
+          <TooltipContent>Execution history</TooltipContent>
+        </Tooltip>
+
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button 
+                variant="ghost" 
+                size="icon-sm"
+                onClick={() => setSettingsDialogOpen(true)}
                 aria-label="Settings"
               >
                 <Settings className="size-4" />

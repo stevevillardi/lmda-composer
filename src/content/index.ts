@@ -57,6 +57,49 @@ function extractDeviceContext(): DeviceContext {
     context.collectorId = parseInt(collectorId, 10);
   }
 
+  // Try to extract hostname from the page content
+  // Look for common patterns in the LM UI
+  try {
+    // Look for the device header which often contains the hostname
+    const deviceHeader = document.querySelector('[data-testid="device-header"]');
+    if (deviceHeader) {
+      const hostnameEl = deviceHeader.querySelector('[data-testid="device-hostname"]');
+      if (hostnameEl?.textContent) {
+        context.hostname = hostnameEl.textContent.trim();
+      }
+    }
+    
+    // Alternative: Look in the properties panel
+    if (!context.hostname) {
+      const propsTable = document.querySelector('[data-testid="properties-table"]');
+      if (propsTable) {
+        const rows = propsTable.querySelectorAll('tr');
+        for (const row of rows) {
+          const cells = row.querySelectorAll('td');
+          if (cells.length >= 2) {
+            const propName = cells[0]?.textContent?.trim().toLowerCase();
+            if (propName === 'system.hostname' || propName === 'hostname') {
+              context.hostname = cells[1]?.textContent?.trim();
+              break;
+            }
+          }
+        }
+      }
+    }
+    
+    // Alternative: Try to extract from the selected resource tree node
+    if (!context.hostname) {
+      const selectedNode = document.querySelector('[class*="selected"] [class*="resourceName"]');
+      if (selectedNode?.textContent) {
+        // This might be the display name, not hostname
+        // But it's better than nothing
+        context.hostname = selectedNode.textContent.trim();
+      }
+    }
+  } catch (error) {
+    console.warn('LM IDE: Failed to extract hostname:', error);
+  }
+
   return context;
 }
 
@@ -67,9 +110,15 @@ function setupResourceTreeObserver() {
       for (const node of mutation.addedNodes) {
         if (node instanceof HTMLElement) {
           // Look for the popover/menu that appears on resource tree right-click
-          const menuItems = node.querySelectorAll('[role="menuitem"], [class*="MenuItem"]');
-          if (menuItems.length > 0 && !node.querySelector('.lm-ide-menu-item')) {
-            injectMenuItem(node);
+          // Target LM's MUI popover menus
+          const isPopover = node.classList.contains('MuiPopover-root') || 
+                           node.querySelector('.MuiPopover-paper') ||
+                           node.querySelector('[role="menu"]');
+          
+          const menuItems = node.querySelectorAll('[role="menuitem"], .MuiMenuItem-root, [class*="MenuItem"]');
+          if ((isPopover || menuItems.length > 0) && !node.querySelector('.lm-ide-menu-item')) {
+            // Small delay to let the menu fully render
+            setTimeout(() => injectMenuItem(node), 50);
           }
         }
       }
@@ -83,53 +132,70 @@ function setupResourceTreeObserver() {
 }
 
 function injectMenuItem(menuContainer: HTMLElement) {
-  // Find the menu list
-  const menuList = menuContainer.querySelector('[role="menu"], ul');
+  // Find the menu list - try various LM menu patterns
+  const menuList = menuContainer.querySelector('.MuiList-root, .MuiMenu-list, [role="menu"], ul');
   if (!menuList) return;
+  
+  // Don't add if already present
+  if (menuList.querySelector('.lm-ide-menu-item')) return;
 
+  // Try to match LM's existing menu item style
+  const existingMenuItem = menuList.querySelector('.MuiMenuItem-root, [role="menuitem"]');
+  const baseClasses = existingMenuItem?.className || '';
+  
   // Create our menu item
-  const menuItem = document.createElement('div');
-  menuItem.className = 'lm-ide-menu-item';
+  const menuItem = document.createElement('li');
+  menuItem.className = `lm-ide-menu-item ${baseClasses}`;
   menuItem.setAttribute('role', 'menuitem');
+  menuItem.setAttribute('tabindex', '-1');
   menuItem.style.cssText = `
-    padding: 8px 16px;
+    padding: 6px 16px;
     cursor: pointer;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 12px;
     font-size: 14px;
     color: inherit;
+    min-height: 36px;
+    transition: background-color 0.15s ease;
   `;
   menuItem.innerHTML = `
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <polyline points="16,18 22,12 16,6"></polyline>
       <polyline points="8,6 2,12 8,18"></polyline>
     </svg>
-    Open in LM IDE
+    <span>Open in LM IDE</span>
   `;
 
   menuItem.addEventListener('mouseenter', () => {
-    menuItem.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+    menuItem.style.backgroundColor = 'rgba(0, 0, 0, 0.04)';
   });
 
   menuItem.addEventListener('mouseleave', () => {
     menuItem.style.backgroundColor = 'transparent';
   });
 
-  menuItem.addEventListener('click', () => {
+  menuItem.addEventListener('click', (e) => {
+    e.stopPropagation();
+    
     const context = extractDeviceContext();
     const message: ContentToSWMessage = {
       type: 'OPEN_EDITOR',
       payload: context,
     };
     chrome.runtime.sendMessage(message);
+    
+    // Close the menu by clicking outside
+    document.body.click();
   });
 
-  // Add separator and menu item
-  const separator = document.createElement('div');
-  separator.style.cssText = 'height: 1px; background: rgba(255,255,255,0.1); margin: 4px 0;';
+  // Add a divider before our item
+  const divider = document.createElement('li');
+  divider.className = 'MuiDivider-root';
+  divider.setAttribute('role', 'separator');
+  divider.style.cssText = 'height: 1px; margin: 4px 0; background-color: rgba(0, 0, 0, 0.12); list-style: none;';
   
-  menuList.appendChild(separator);
+  menuList.appendChild(divider);
   menuList.appendChild(menuItem);
 }
 

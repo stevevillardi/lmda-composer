@@ -274,13 +274,14 @@ const selector = '[data-testid="LM_navigationMoreOptions24PxIcon"]';
 - [x] Auto-set language and execution mode when loading scripts
 - [x] "Open from LMX" button in toolbar (enabled when portal is selected)
 
-### Phase 5: Polish
-- [ ] Resource tree context menu injection
-- [ ] Command palette
-- [ ] Execution history
-- [ ] Settings/preferences
-- [ ] Retain last edited code on relaunch
-- [ ] Save edited code to file (.groovy/.ps1)
+### Phase 5: Polish ✅ COMPLETE
+- [x] Resource tree context menu injection
+- [x] Command palette (Cmd/Ctrl+K)
+- [x] Execution history with persistence
+- [x] Settings/preferences dialog
+- [x] Retain last edited code on relaunch (draft auto-save)
+- [x] Save edited code to file (.groovy/.ps1)
+- [x] Searchable device/hostname dropdown (populated from collector)
 
 ---
 

@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { 
   Portal, 
   Collector, 
+  DeviceInfo,
   ScriptLanguage, 
   ScriptMode,
   ExecutionResult,
@@ -9,7 +10,12 @@ import type {
   LogicModuleType,
   LogicModuleInfo,
   FetchModulesResponse,
+  FetchDevicesResponse,
+  UserPreferences,
+  ExecutionHistoryEntry,
+  DraftScript,
 } from '@/shared/types';
+import { DEFAULT_PREFERENCES } from '@/shared/types';
 import { parseOutput, type ParseResult } from '../utils/output-parser';
 
 interface EditorState {
@@ -20,6 +26,8 @@ interface EditorState {
   selectedCollectorId: number | null;
   
   // Device context
+  devices: DeviceInfo[];
+  isFetchingDevices: boolean;
   hostname: string;
   wildvalue: string;
   datasourceId: string;  // Datasource name or ID for batch collection
@@ -56,10 +64,23 @@ interface EditorState {
   
   // UI state
   outputTab: 'raw' | 'parsed' | 'validation';
+  commandPaletteOpen: boolean;
+  settingsDialogOpen: boolean;
+  executionHistoryOpen: boolean;
+  
+  // User preferences
+  preferences: UserPreferences;
+  
+  // Execution history
+  executionHistory: ExecutionHistoryEntry[];
+  
+  // Draft auto-save
+  hasSavedDraft: boolean;
   
   // Actions
   setSelectedPortal: (portalId: string | null) => void;
   setSelectedCollector: (collectorId: number | null) => void;
+  fetchDevices: () => Promise<void>;
   setHostname: (hostname: string) => void;
   setWildvalue: (wildvalue: string) => void;
   setDatasourceId: (datasourceId: string) => void;
@@ -89,6 +110,31 @@ interface EditorState {
   loadModuleScript: (script: string, language: ScriptLanguage, mode: ScriptMode) => void;
   confirmModuleLoad: () => void;
   cancelModuleLoad: () => void;
+  
+  // UI state actions
+  setCommandPaletteOpen: (open: boolean) => void;
+  setSettingsDialogOpen: (open: boolean) => void;
+  setExecutionHistoryOpen: (open: boolean) => void;
+  
+  // Preferences actions
+  setPreferences: (preferences: Partial<UserPreferences>) => void;
+  loadPreferences: () => Promise<void>;
+  savePreferences: () => Promise<void>;
+  
+  // Execution history actions
+  addToHistory: (entry: Omit<ExecutionHistoryEntry, 'id' | 'timestamp'>) => void;
+  clearHistory: () => void;
+  loadHistory: () => Promise<void>;
+  reloadFromHistory: (entry: ExecutionHistoryEntry) => void;
+  
+  // Draft actions
+  saveDraft: () => Promise<void>;
+  loadDraft: () => Promise<DraftScript | null>;
+  clearDraft: () => Promise<void>;
+  restoreDraft: (draft: DraftScript) => void;
+  
+  // File export action
+  saveToFile: () => Promise<void>;
 }
 
 export const DEFAULT_GROOVY_TEMPLATE = `import com.santaba.agent.groovyapi.expect.Expect;
@@ -113,12 +159,21 @@ $hostname = "##SYSTEM.HOSTNAME##"
 Exit 0
 `;
 
+// Storage keys
+const STORAGE_KEYS = {
+  PREFERENCES: 'lm-ide-preferences',
+  HISTORY: 'lm-ide-execution-history',
+  DRAFT: 'lm-ide-draft',
+} as const;
+
 export const useEditorStore = create<EditorState>((set, get) => ({
   // Initial state
   portals: [],
   selectedPortalId: null,
   collectors: [],
   selectedCollectorId: null,
+  devices: [],
+  isFetchingDevices: false,
   hostname: '',
   wildvalue: '',
   datasourceId: '',
@@ -146,6 +201,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   moduleSearchQuery: '',
   pendingModuleLoad: null,
   outputTab: 'raw',
+  commandPaletteOpen: false,
+  settingsDialogOpen: false,
+  executionHistoryOpen: false,
+  preferences: DEFAULT_PREFERENCES,
+  executionHistory: [],
+  hasSavedDraft: false,
 
   // Actions
   setSelectedPortal: (portalId) => {
@@ -153,6 +214,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       selectedPortalId: portalId, 
       selectedCollectorId: null, 
       collectors: [],
+      devices: [],
+      hostname: '',
       // Clear module cache when portal changes
       modulesCache: {
         datasource: [],
@@ -169,7 +232,43 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   setSelectedCollector: (collectorId) => {
-    set({ selectedCollectorId: collectorId });
+    set({ 
+      selectedCollectorId: collectorId,
+      devices: [],
+      hostname: '',
+    });
+    // Fetch devices when collector changes
+    if (collectorId) {
+      get().fetchDevices();
+    }
+  },
+
+  fetchDevices: async () => {
+    const { selectedPortalId, selectedCollectorId } = get();
+    if (!selectedPortalId || !selectedCollectorId) return;
+
+    set({ isFetchingDevices: true });
+
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: 'GET_DEVICES',
+        payload: { 
+          portalId: selectedPortalId, 
+          collectorId: selectedCollectorId 
+        },
+      });
+
+      if (response?.type === 'DEVICES_UPDATE') {
+        const fetchResponse = response.payload as FetchDevicesResponse;
+        set({ devices: fetchResponse.items, isFetchingDevices: false });
+      } else {
+        console.error('Failed to fetch devices:', response);
+        set({ devices: [], isFetchingDevices: false });
+      }
+    } catch (error) {
+      console.error('Error fetching devices:', error);
+      set({ devices: [], isFetchingDevices: false });
+    }
   },
 
   setHostname: (hostname) => {
@@ -294,6 +393,21 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       if (response?.type === 'EXECUTION_UPDATE') {
         const execution = response.payload as ExecutionResult;
         set({ currentExecution: execution, isExecuting: false });
+        
+        // Add to history
+        const selectedCollector = get().collectors.find(c => c.id === state.selectedCollectorId);
+        get().addToHistory({
+          portal: state.selectedPortalId,
+          collector: selectedCollector?.description || `Collector ${state.selectedCollectorId}`,
+          collectorId: state.selectedCollectorId,
+          hostname: state.hostname || undefined,
+          language: state.language,
+          mode: state.mode,
+          script: state.script,
+          output: execution.rawOutput,
+          status: execution.status === 'complete' ? 'success' : 'error',
+          duration: execution.duration,
+        });
         
         // Auto-parse output if not in freeform mode and execution succeeded
         if (state.mode !== 'freeform' && execution.status === 'complete' && execution.rawOutput) {
@@ -436,6 +550,21 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       if (response?.type === 'EXECUTION_UPDATE') {
         const execution = response.payload as ExecutionResult;
         set({ currentExecution: execution, isExecuting: false });
+        
+        // Add to history
+        const selectedCollector = get().collectors.find(c => c.id === pendingExecution.collectorId);
+        get().addToHistory({
+          portal: pendingExecution.portalId,
+          collector: selectedCollector?.description || `Collector ${pendingExecution.collectorId}`,
+          collectorId: pendingExecution.collectorId,
+          hostname: pendingExecution.hostname || undefined,
+          language: pendingExecution.language,
+          mode: pendingExecution.mode,
+          script: pendingExecution.script,
+          output: execution.rawOutput,
+          status: execution.status === 'complete' ? 'success' : 'error',
+          duration: execution.duration,
+        });
         
         // Auto-parse output
         if (execution.status === 'complete' && execution.rawOutput) {
@@ -594,6 +723,187 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   cancelModuleLoad: () => {
     set({ pendingModuleLoad: null });
+  },
+
+  // UI state actions
+  setCommandPaletteOpen: (open) => {
+    set({ commandPaletteOpen: open });
+  },
+
+  setSettingsDialogOpen: (open) => {
+    set({ settingsDialogOpen: open });
+  },
+
+  setExecutionHistoryOpen: (open) => {
+    set({ executionHistoryOpen: open });
+  },
+
+  // Preferences actions
+  setPreferences: (newPreferences) => {
+    set((state) => ({
+      preferences: { ...state.preferences, ...newPreferences },
+    }));
+    // Auto-save preferences
+    get().savePreferences();
+  },
+
+  loadPreferences: async () => {
+    try {
+      const result = await chrome.storage.local.get(STORAGE_KEYS.PREFERENCES);
+      const storedPrefs = result[STORAGE_KEYS.PREFERENCES] as Partial<UserPreferences> | undefined;
+      if (storedPrefs) {
+        set({ preferences: { ...DEFAULT_PREFERENCES, ...storedPrefs } });
+      }
+    } catch (error) {
+      console.error('Failed to load preferences:', error);
+    }
+  },
+
+  savePreferences: async () => {
+    try {
+      const { preferences } = get();
+      await chrome.storage.local.set({ [STORAGE_KEYS.PREFERENCES]: preferences });
+    } catch (error) {
+      console.error('Failed to save preferences:', error);
+    }
+  },
+
+  // Execution history actions
+  addToHistory: (entry) => {
+    const { executionHistory, preferences } = get();
+    const newEntry: ExecutionHistoryEntry = {
+      ...entry,
+      id: crypto.randomUUID(),
+      timestamp: Date.now(),
+    };
+    
+    // Add to beginning, limit to max size
+    const updatedHistory = [newEntry, ...executionHistory].slice(0, preferences.maxHistorySize);
+    set({ executionHistory: updatedHistory });
+    
+    // Persist to storage
+    chrome.storage.local.set({ [STORAGE_KEYS.HISTORY]: updatedHistory }).catch(console.error);
+  },
+
+  clearHistory: () => {
+    set({ executionHistory: [] });
+    chrome.storage.local.remove(STORAGE_KEYS.HISTORY).catch(console.error);
+  },
+
+  loadHistory: async () => {
+    try {
+      const result = await chrome.storage.local.get(STORAGE_KEYS.HISTORY);
+      const storedHistory = result[STORAGE_KEYS.HISTORY] as ExecutionHistoryEntry[] | undefined;
+      if (storedHistory) {
+        set({ executionHistory: storedHistory });
+      }
+    } catch (error) {
+      console.error('Failed to load execution history:', error);
+    }
+  },
+
+  reloadFromHistory: (entry) => {
+    set({
+      script: entry.script,
+      language: entry.language,
+      mode: entry.mode,
+      hostname: entry.hostname || '',
+      isDirty: false,
+      executionHistoryOpen: false,
+    });
+  },
+
+  // Draft actions
+  saveDraft: async () => {
+    try {
+      const { script, language, mode, hostname } = get();
+      const draft: DraftScript = {
+        script,
+        language,
+        mode,
+        hostname: hostname || undefined,
+        lastModified: Date.now(),
+      };
+      await chrome.storage.local.set({ [STORAGE_KEYS.DRAFT]: draft });
+    } catch (error) {
+      console.error('Failed to save draft:', error);
+    }
+  },
+
+  loadDraft: async () => {
+    try {
+      const result = await chrome.storage.local.get(STORAGE_KEYS.DRAFT);
+      if (result[STORAGE_KEYS.DRAFT]) {
+        set({ hasSavedDraft: true });
+        return result[STORAGE_KEYS.DRAFT] as DraftScript;
+      }
+      return null;
+    } catch (error) {
+      console.error('Failed to load draft:', error);
+      return null;
+    }
+  },
+
+  clearDraft: async () => {
+    try {
+      await chrome.storage.local.remove(STORAGE_KEYS.DRAFT);
+      set({ hasSavedDraft: false });
+    } catch (error) {
+      console.error('Failed to clear draft:', error);
+    }
+  },
+
+  restoreDraft: (draft) => {
+    set({
+      script: draft.script,
+      language: draft.language,
+      mode: draft.mode,
+      hostname: draft.hostname || '',
+      isDirty: false,
+      hasSavedDraft: false,
+    });
+    // Clear the draft after restoring
+    get().clearDraft();
+  },
+
+  // File export action
+  saveToFile: async () => {
+    const { script, language } = get();
+    const extension = language === 'groovy' ? '.groovy' : '.ps1';
+    const mimeType = 'text/plain';
+    const fileName = `script${extension}`;
+
+    try {
+      // Try File System Access API first (modern browsers)
+      if ('showSaveFilePicker' in window) {
+        const handle = await (window as unknown as { showSaveFilePicker: (options: { suggestedName: string; types: { description: string; accept: Record<string, string[]> }[] }) => Promise<FileSystemFileHandle> }).showSaveFilePicker({
+          suggestedName: fileName,
+          types: [{
+            description: language === 'groovy' ? 'Groovy Script' : 'PowerShell Script',
+            accept: { [mimeType]: [extension] },
+          }],
+        });
+        const writable = await handle.createWritable();
+        await writable.write(script);
+        await writable.close();
+      } else {
+        // Fallback to download
+        const blob = new Blob([script], { type: mimeType });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }
+    } catch (error) {
+      // User cancelled or error
+      if ((error as Error).name !== 'AbortError') {
+        console.error('Failed to save file:', error);
+      }
+    }
   },
 }));
 

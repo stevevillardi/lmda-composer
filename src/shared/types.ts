@@ -32,6 +32,82 @@ export interface Device {
   portalId: string;
 }
 
+// Lightweight device info for dropdown display
+export interface DeviceInfo {
+  id: number;
+  name: string;
+  displayName: string;
+  currentCollectorId: number;
+  hostStatus: string; // "normal" = online, anything else = offline/issue
+}
+
+export interface FetchDevicesRequest {
+  portalId: string;
+  collectorId: number;
+}
+
+export interface FetchDevicesResponse {
+  items: DeviceInfo[];
+  total: number;
+}
+
+// ============================================================================
+// User Preferences Types
+// ============================================================================
+
+export interface UserPreferences {
+  theme: 'dark' | 'light' | 'system';
+  fontSize: number;
+  tabSize: number;
+  wordWrap: boolean;
+  minimap: boolean;
+  defaultMode: ScriptMode;
+  defaultLanguage: ScriptLanguage;
+  maxHistorySize: number;
+}
+
+export const DEFAULT_PREFERENCES: UserPreferences = {
+  theme: 'dark',
+  fontSize: 14,
+  tabSize: 2,
+  wordWrap: true,
+  minimap: false,
+  defaultMode: 'freeform',
+  defaultLanguage: 'groovy',
+  maxHistorySize: 50,
+};
+
+// ============================================================================
+// Execution History Types
+// ============================================================================
+
+export interface ExecutionHistoryEntry {
+  id: string;
+  timestamp: number;
+  portal: string;
+  collector: string;
+  collectorId: number;
+  hostname?: string;
+  language: ScriptLanguage;
+  mode: ScriptMode;
+  script: string;
+  output: string;
+  status: 'success' | 'error';
+  duration: number;
+}
+
+// ============================================================================
+// Draft Types
+// ============================================================================
+
+export interface DraftScript {
+  script: string;
+  language: ScriptLanguage;
+  mode: ScriptMode;
+  hostname?: string;
+  lastModified: number;
+}
+
 // ============================================================================
 // Script Execution Types
 // ============================================================================
@@ -185,6 +261,7 @@ export interface FetchModulesResponse {
 export type EditorToSWMessage =
   | { type: 'DISCOVER_PORTALS' }
   | { type: 'GET_COLLECTORS'; payload: { portalId: string } }
+  | { type: 'GET_DEVICES'; payload: FetchDevicesRequest }
   | { type: 'EXECUTE_SCRIPT'; payload: ExecuteScriptRequest }
   | { type: 'CANCEL_EXECUTION'; payload: { executionId: string } }
   | { type: 'SEARCH_MODULES'; payload: { portalId: string; query: string } }
@@ -196,6 +273,7 @@ export type EditorToSWMessage =
 export type SWToEditorMessage =
   | { type: 'PORTALS_UPDATE'; payload: Portal[] }
   | { type: 'COLLECTORS_UPDATE'; payload: Collector[] }
+  | { type: 'DEVICES_UPDATE'; payload: FetchDevicesResponse }
   | { type: 'EXECUTION_UPDATE'; payload: ExecutionResult }
   | { type: 'MODULES_UPDATE'; payload: LogicModule[] }
   | { type: 'MODULE_LOADED'; payload: LogicModule }

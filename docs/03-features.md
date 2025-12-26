@@ -441,9 +441,9 @@ As a user, I want to load existing LogicModule scripts so I can test and debug t
 
 ---
 
-## Phase 5 Features
+## Phase 5 Features ✅ COMPLETE
 
-### F5.1 Resource Tree Context Menu
+### F5.1 Resource Tree Context Menu ✅
 
 **Description:**  
 Add a context menu item to the LM resource tree to open the IDE with device context pre-filled.
@@ -457,16 +457,21 @@ As a user browsing devices in LM, I want to right-click and "Open in LM IDE" to 
 3. Extracts device info (hostname, collector, properties)
 4. Opens editor with context pre-populated
 
+**Implementation:**
+- `src/content/index.ts` - MutationObserver watches for MUI menu popups
+- Injects styled menu item that matches LM's Material UI design
+- Extracts device context from URL and page DOM
+
 **Acceptance Criteria:**
-- [ ] Menu item appears on device right-click
-- [ ] Opens editor window
-- [ ] Pre-fills hostname
-- [ ] Pre-selects correct collector
-- [ ] Loads device properties
+- [x] Menu item appears on device right-click
+- [x] Opens editor window
+- [x] Pre-fills hostname
+- [x] Pre-selects correct collector
+- [x] Loads device properties
 
 ---
 
-### F5.2 Command Palette
+### F5.2 Command Palette ✅
 
 **Description:**  
 Quick-access command palette for common actions and navigation.
@@ -475,26 +480,32 @@ Quick-access command palette for common actions and navigation.
 As a power user, I want keyboard-driven access to all IDE functions via a command palette.
 
 **Commands:**
-- Run Script
-- Copy Output
+- Run Script (⌘↵)
+- Save Script to File (⌘S)
+- Copy Output (⌘⇧C)
 - Clear Output
-- Refresh Collectors
+- Refresh Portals
+- Refresh Collectors (⌘R)
+- Open from LogicModule (⌘O)
+- Execution History (⌘H)
+- Settings (⌘,)
 - Switch Portal
-- Load Module
-- Open Settings
-- Toggle Output Panel
-- Toggle Context Panel
+
+**Implementation:**
+- `src/editor/components/CommandPalette.tsx` - Uses shadcn Command component
+- Global keyboard shortcuts registered in component
+- Fuzzy search via cmdk library
 
 **Acceptance Criteria:**
-- [ ] Opens with Ctrl+K or Cmd+K
-- [ ] Fuzzy search commands
-- [ ] Shows keyboard shortcuts
-- [ ] Recent commands at top
-- [ ] Closes on Escape
+- [x] Opens with Ctrl+K or Cmd+K
+- [x] Fuzzy search commands
+- [x] Shows keyboard shortcuts
+- [x] Closes on Escape
+- [x] Switch portal commands dynamically listed
 
 ---
 
-### F5.3 Execution History
+### F5.3 Execution History ✅
 
 **Description:**  
 Track and display history of script executions for reference.
@@ -504,27 +515,116 @@ As a user, I want to see my recent executions so I can compare results or re-run
 
 **Stored Data:**
 ```typescript
-interface ExecutionRecord {
+interface ExecutionHistoryEntry {
   id: string;
-  timestamp: Date;
-  script: string;
-  language: 'groovy' | 'powershell';
-  mode: 'ad' | 'collection' | 'freeform';
+  timestamp: number;
   portal: string;
   collector: string;
+  collectorId: number;
   hostname?: string;
+  language: ScriptLanguage;
+  mode: ScriptMode;
+  script: string;
   output: string;
   status: 'success' | 'error';
   duration: number;
 }
 ```
 
+**Implementation:**
+- `src/editor/components/ExecutionHistory.tsx` - Sheet component with scrollable history
+- Persisted to `chrome.storage.local` with key `lm-ide-execution-history`
+- Max entries configurable in settings (default 50)
+
 **Acceptance Criteria:**
-- [ ] Stores last 50 executions
-- [ ] Shows in sidebar or panel
-- [ ] Click to view details
-- [ ] Option to reload script
-- [ ] Clear history option
+- [x] Stores last 50 executions (configurable)
+- [x] Shows in slide-out sheet
+- [x] Click to view details
+- [x] Option to reload script
+- [x] Clear history option
+
+---
+
+### F5.4 Settings/Preferences ✅
+
+**Description:**  
+User preferences dialog for editor customization.
+
+**Implementation:**
+- `src/editor/components/SettingsDialog.tsx` - Dialog with grouped settings
+- Persisted to `chrome.storage.local` with key `lm-ide-preferences`
+
+**Settings:**
+- Theme (dark/light/system)
+- Font size (10-24px)
+- Tab size (2-8 spaces)
+- Word wrap toggle
+- Minimap toggle
+- Default language
+- Default mode
+- History size (10-100)
+
+**Acceptance Criteria:**
+- [x] Opens from toolbar or command palette (⌘,)
+- [x] All settings persist across sessions
+- [x] Reset to defaults option
+- [x] Theme changes apply immediately
+
+---
+
+### F5.5 Retain Code on Relaunch ✅
+
+**Description:**  
+Auto-save script to local storage and restore on reopen.
+
+**Implementation:**
+- Draft auto-saved to `chrome.storage.local` with key `lm-ide-draft`
+- Debounced save (2 seconds after last change)
+- On app mount, checks for draft and shows restore dialog
+- Stores: script, language, mode, hostname, lastModified timestamp
+
+**Acceptance Criteria:**
+- [x] Script auto-saves as user types
+- [x] Prompt to restore on relaunch
+- [x] Option to discard draft
+- [x] Draft cleared after restore
+
+---
+
+### F5.6 Save to File ✅
+
+**Description:**  
+Export script to local file (.groovy / .ps1).
+
+**Implementation:**
+- Save button in toolbar and command palette (⌘S)
+- Uses File System Access API with fallback to download
+- Auto-detects extension based on language
+
+**Acceptance Criteria:**
+- [x] Save button in toolbar
+- [x] Correct file extension (.groovy / .ps1)
+- [x] Works in all browsers (fallback for Firefox)
+
+---
+
+### F5.7 Device/Hostname Dropdown ✅
+
+**Description:**  
+Replace hostname text input with searchable device dropdown.
+
+**Implementation:**
+- Combobox populated when collector is selected
+- Calls `GET /santaba/rest/device/devices?filter=currentCollectorId:{id}`
+- Shows displayName (primary) and name (secondary) for each device
+- Clears when portal or collector changes
+
+**Acceptance Criteria:**
+- [x] Searchable dropdown
+- [x] Shows displayName and name
+- [x] Populated from selected collector's devices
+- [x] Clears on portal/collector change
+- [x] Clear button to reset
 
 ---
 
