@@ -157,16 +157,6 @@ export type LogicModuleType =
   | 'logsource'
   | 'diagnosticsource';
 
-// API endpoint paths for each module type
-export const MODULE_ENDPOINTS: Record<LogicModuleType, string> = {
-  datasource: '/setting/datasources',
-  configsource: '/setting/configsources',
-  topologysource: '/setting/topologysources',
-  propertysource: '/setting/propertyrules',
-  logsource: '/setting/logsources',
-  diagnosticsource: '/setting/diagnosticsources',
-};
-
 // Lightweight module info for list display (before fetching full details)
 export interface LogicModuleInfo {
   id: number;
@@ -258,22 +248,35 @@ export interface FetchModulesResponse {
   hasMore: boolean;
 }
 
+export interface FetchDeviceByIdRequest {
+  portalId: string;
+  resourceId: number;
+}
+
+export interface FetchDeviceByIdResponse {
+  id: number;
+  name: string;
+  displayName: string;
+  currentCollectorId: number;
+}
+
 export type EditorToSWMessage =
   | { type: 'DISCOVER_PORTALS' }
   | { type: 'GET_COLLECTORS'; payload: { portalId: string } }
   | { type: 'GET_DEVICES'; payload: FetchDevicesRequest }
+  | { type: 'GET_DEVICE_BY_ID'; payload: FetchDeviceByIdRequest }
   | { type: 'EXECUTE_SCRIPT'; payload: ExecuteScriptRequest }
   | { type: 'CANCEL_EXECUTION'; payload: { executionId: string } }
   | { type: 'SEARCH_MODULES'; payload: { portalId: string; query: string } }
   | { type: 'LOAD_MODULE'; payload: { portalId: string; moduleId: number } }
   | { type: 'FETCH_MODULES'; payload: FetchModulesRequest }
-  | { type: 'GET_DEVICE'; payload: { portalId: string; hostname: string } }
   | { type: 'OPEN_EDITOR'; payload?: DeviceContext };
 
 export type SWToEditorMessage =
   | { type: 'PORTALS_UPDATE'; payload: Portal[] }
   | { type: 'COLLECTORS_UPDATE'; payload: Collector[] }
   | { type: 'DEVICES_UPDATE'; payload: FetchDevicesResponse }
+  | { type: 'DEVICE_BY_ID_LOADED'; payload: FetchDeviceByIdResponse }
   | { type: 'EXECUTION_UPDATE'; payload: ExecutionResult }
   | { type: 'MODULES_UPDATE'; payload: LogicModule[] }
   | { type: 'MODULE_LOADED'; payload: LogicModule }
@@ -287,9 +290,7 @@ export type ContentToSWMessage =
 
 export interface DeviceContext {
   portalId: string;
-  hostname?: string;
-  deviceId?: number;
-  collectorId?: number;
+  resourceId?: number;  // Resource ID extracted from URL, used to fetch device details via API
 }
 
 // ============================================================================

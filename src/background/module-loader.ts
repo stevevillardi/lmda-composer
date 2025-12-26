@@ -4,7 +4,7 @@ import type {
 } from '@/shared/types';
 import { PortalManager } from './portal-manager';
 
-// Re-import MODULE_ENDPOINTS at runtime
+// API endpoint paths for each module type
 const ENDPOINTS: Record<LogicModuleType, string> = {
   datasource: '/setting/datasources',
   configsource: '/setting/configsources',
@@ -33,12 +33,13 @@ export class ModuleLoader {
    * Fetch ALL modules of a specific type from a portal with automatic pagination.
    * Automatically re-discovers portals if the requested portal is not found
    * (handles service worker termination/restart)
+   * 
+   * Note: Always fetches all modules with automatic pagination. The offset/size
+   * parameters from FetchModulesRequest are ignored; we use internal PAGE_SIZE.
    */
   async fetchModules(
     portalId: string,
-    moduleType: LogicModuleType,
-    _offset: number = 0,  // Ignored - we always fetch all
-    _size: number = 1000  // Ignored - we use PAGE_SIZE
+    moduleType: LogicModuleType
   ): Promise<FetchModulesResponse> {
     let portal = this.portalManager.getPortal(portalId);
     

@@ -11,6 +11,7 @@ import type {
   LogicModuleInfo,
   FetchModulesResponse,
   FetchDevicesResponse,
+  FetchDeviceByIdResponse,
   UserPreferences,
   ExecutionHistoryEntry,
   DraftScript,
@@ -81,6 +82,7 @@ interface EditorState {
   setSelectedPortal: (portalId: string | null) => void;
   setSelectedCollector: (collectorId: number | null) => void;
   fetchDevices: () => Promise<void>;
+  fetchDeviceById: (portalId: string, resourceId: number) => Promise<void>;
   setHostname: (hostname: string) => void;
   setWildvalue: (wildvalue: string) => void;
   setDatasourceId: (datasourceId: string) => void;
@@ -268,6 +270,42 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     } catch (error) {
       console.error('Error fetching devices:', error);
       set({ devices: [], isFetchingDevices: false });
+    }
+  },
+
+  fetchDeviceById: async (portalId, resourceId) => {
+    console.log('Fetching device by ID:', resourceId, 'from portal:', portalId);
+    
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: 'GET_DEVICE_BY_ID',
+        payload: { portalId, resourceId },
+      });
+
+      if (response?.type === 'DEVICE_BY_ID_LOADED') {
+        const device = response.payload as FetchDeviceByIdResponse;
+        console.log('Device fetched:', device.name, 'collectorId:', device.currentCollectorId);
+        
+        // Set the hostname from the device name
+        set({ hostname: device.name });
+        
+        // Store the collector ID to be applied after collectors are loaded
+        // The setSelectedCollector will be called from App.tsx after collectors load
+        const { collectors } = get();
+        if (collectors.length > 0) {
+          // Collectors already loaded, set it directly
+          const matchingCollector = collectors.find(c => c.id === device.currentCollectorId);
+          if (matchingCollector) {
+            set({ selectedCollectorId: device.currentCollectorId });
+            // Fetch devices for this collector
+            get().fetchDevices();
+          }
+        }
+      } else if (response?.type === 'ERROR') {
+        console.warn('Failed to fetch device:', response.payload?.message);
+      }
+    } catch (error) {
+      console.error('Error fetching device by ID:', error);
     }
   },
 
@@ -478,6 +516,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     console.log('refreshCollectors called, selectedPortalId:', selectedPortalId);
     if (!selectedPortalId) return;
 
+    // Store which portal we're fetching collectors for
+    const fetchingForPortal = selectedPortalId;
+
     try {
       console.log('Sending GET_COLLECTORS message...');
       const response = await chrome.runtime.sendMessage({
@@ -485,6 +526,15 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         payload: { portalId: selectedPortalId },
       });
       console.log('GET_COLLECTORS response received:', response);
+      
+      // Only set collectors if we're still on the same portal
+      // This prevents race conditions when portal changes while fetching
+      const currentPortal = get().selectedPortalId;
+      if (currentPortal !== fetchingForPortal) {
+        console.log('Portal changed during fetch, discarding collectors for', fetchingForPortal);
+        return;
+      }
+      
       if (response?.payload) {
         console.log('Setting collectors:', response.payload.length);
         set({ collectors: response.payload });
@@ -839,7 +889,39 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   // Draft actions
   saveDraft: async () => {
     try {
-      const { script, language, mode, hostname } = get();
+      const { script, language, mode, hostname, hasSavedDraft } = get();
+      
+      // Normalize for comparison
+      const normalize = (s: string) => s.trim().replace(/\r\n/g, '\n');
+      const normalizedScript = normalize(script);
+      const isDefaultGroovy = normalizedScript === normalize(DEFAULT_GROOVY_TEMPLATE);
+      const isDefaultPowershell = normalizedScript === normalize(DEFAULT_POWERSHELL_TEMPLATE);
+      
+      // Skip saving if script is a default template
+      if (isDefaultGroovy || isDefaultPowershell) {
+        // If there was a saved draft, clear it since we're back to default
+        if (hasSavedDraft) {
+          await chrome.storage.local.remove(STORAGE_KEYS.DRAFT);
+          set({ hasSavedDraft: false });
+        }
+        return;
+      }
+      
+      // Check if the script differs from the previous draft to avoid unnecessary writes
+      const result = await chrome.storage.local.get(STORAGE_KEYS.DRAFT);
+      const existingDraft = result[STORAGE_KEYS.DRAFT] as DraftScript | undefined;
+      
+      if (existingDraft) {
+        const existingNormalized = normalize(existingDraft.script);
+        // Skip if script content hasn't changed
+        if (existingNormalized === normalizedScript && 
+            existingDraft.language === language && 
+            existingDraft.mode === mode &&
+            (existingDraft.hostname || '') === (hostname || '')) {
+          return;
+        }
+      }
+      
       const draft: DraftScript = {
         script,
         language,
@@ -848,6 +930,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         lastModified: Date.now(),
       };
       await chrome.storage.local.set({ [STORAGE_KEYS.DRAFT]: draft });
+      set({ hasSavedDraft: true });
     } catch (error) {
       console.error('Failed to save draft:', error);
     }

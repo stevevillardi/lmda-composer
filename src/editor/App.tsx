@@ -37,7 +37,20 @@ export function App() {
     loadPreferences,
     loadHistory,
     preferences,
+    portals,
+    collectors,
+    devices,
+    isFetchingDevices,
+    setSelectedPortal,
+    setSelectedCollector,
+    setHostname,
   } = useEditorStore();
+  
+  // Track URL params application state
+  const [urlParamsApplied, setUrlParamsApplied] = useState(false);
+  const [pendingCollectorId, setPendingCollectorId] = useState<number | null>(null);
+  const [pendingResourceId, setPendingResourceId] = useState<number | null>(null);
+  const [pendingHostname, setPendingHostname] = useState<string | null>(null);
 
   // Draft restore dialog state
   const [pendingDraft, setPendingDraft] = useState<DraftScript | null>(null);
@@ -85,6 +98,97 @@ export function App() {
   useEffect(() => {
     refreshPortals();
   }, [refreshPortals]);
+
+  // Apply URL parameters after portals are loaded
+  useEffect(() => {
+    // Only apply once, and only when we have portals
+    if (urlParamsApplied || portals.length === 0) return;
+    
+    const params = new URLSearchParams(window.location.search);
+    const portalParam = params.get('portal');
+    const resourceIdParam = params.get('resourceId');
+    
+    if (portalParam) {
+      // Find the portal that matches the URL param
+      const matchingPortal = portals.find(p => p.id === portalParam || p.hostname === portalParam);
+      if (matchingPortal) {
+        console.log('Applying URL param: portal =', matchingPortal.id);
+        setSelectedPortal(matchingPortal.id);
+        
+        // If we have a resourceId, store it for fetching after collectors load
+        if (resourceIdParam) {
+          const resourceId = parseInt(resourceIdParam, 10);
+          console.log('Storing pending resourceId:', resourceId);
+          setPendingResourceId(resourceId);
+        }
+      }
+    }
+    
+    // Mark as applied so we don't do this again
+    setUrlParamsApplied(true);
+    
+    // Clear URL params to avoid confusion on refresh
+    if (portalParam || resourceIdParam) {
+      window.history.replaceState({}, '', window.location.pathname);
+    }
+  }, [portals, urlParamsApplied, setSelectedPortal]);
+
+  // Fetch device details when we have a pending resourceId and collectors are loaded
+  useEffect(() => {
+    const fetchDevice = async () => {
+      if (pendingResourceId && collectors.length > 0) {
+        const { selectedPortalId } = useEditorStore.getState();
+        if (selectedPortalId) {
+          console.log('Fetching device details for resourceId:', pendingResourceId);
+          
+          // Fetch the device
+          const response = await chrome.runtime.sendMessage({
+            type: 'GET_DEVICE_BY_ID',
+            payload: { portalId: selectedPortalId, resourceId: pendingResourceId },
+          });
+          
+          if (response?.type === 'DEVICE_BY_ID_LOADED') {
+            const device = response.payload;
+            console.log('Device loaded:', device.name, 'collectorId:', device.currentCollectorId);
+            
+            // Store hostname for later - we'll set it after devices are loaded
+            // because setSelectedCollector clears the hostname
+            setPendingHostname(device.name);
+            
+            // Set the collector (this clears hostname and triggers fetchDevices)
+            const matchingCollector = collectors.find(c => c.id === device.currentCollectorId);
+            if (matchingCollector) {
+              setSelectedCollector(device.currentCollectorId);
+            }
+          }
+        }
+        setPendingResourceId(null);
+      }
+    };
+    
+    fetchDevice();
+  }, [collectors, pendingResourceId, setSelectedCollector]);
+
+  // Set pending hostname after devices are loaded (setSelectedCollector clears hostname)
+  useEffect(() => {
+    if (pendingHostname && !isFetchingDevices && devices.length > 0) {
+      console.log('Setting pending hostname:', pendingHostname);
+      setHostname(pendingHostname);
+      setPendingHostname(null);
+    }
+  }, [pendingHostname, isFetchingDevices, devices, setHostname]);
+
+  // Apply pending collector ID after collectors are loaded (for manual collector selection)
+  useEffect(() => {
+    if (pendingCollectorId && collectors.length > 0) {
+      const matchingCollector = collectors.find(c => c.id === pendingCollectorId);
+      if (matchingCollector) {
+        console.log('Applying pending collectorId:', pendingCollectorId);
+        setSelectedCollector(pendingCollectorId);
+      }
+      setPendingCollectorId(null);
+    }
+  }, [collectors, pendingCollectorId, setSelectedCollector]);
 
   // Update window title with character count
   useEffect(() => {

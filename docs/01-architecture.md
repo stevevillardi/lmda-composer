@@ -84,13 +84,13 @@ The service worker is the central coordinator. It:
 ```
 background/
 ├── service-worker.ts      # Entry point, message routing
-├── portal-manager.ts      # Multi-portal detection, CSRF tokens, collectors
-├── script-executor.ts     # Orchestrates script execution flow
-├── debug-api.ts           # Debug API client (execute/poll, command builders)
+├── portal-manager.ts      # Multi-portal detection, CSRF tokens, collectors, state persistence
+├── script-executor.ts     # Orchestrates script execution flow with cancellation support
+├── debug-api.ts           # Debug API client (execute/poll, command builders, rate limiting)
 ├── property-prefetcher.ts # Fetches device props via Groovy for PowerShell
 ├── token-substitutor.ts   # ##TOKEN## detection and replacement
-├── module-loader.ts       # LogicModule fetching (Phase 4)
-└── storage.ts             # chrome.storage wrapper (Phase 5)
+├── module-loader.ts       # LogicModule fetching with pagination
+└── rate-limiter.ts        # Rate limit detection and exponential backoff
 ```
 
 **Script Execution Architecture:**
@@ -151,10 +151,10 @@ const menuButton = document.querySelector(
 **Files:**
 ```
 content/
-├── index.ts               # Entry point
-├── resource-tree.ts       # Context menu injection
-├── context-extractor.ts   # Parse device info from page
-└── csrf-bridge.ts         # Token relay to service worker
+└── index.ts               # All content script functionality:
+                           #   - CSRF token relay to service worker
+                           #   - Context menu injection into resource tree
+                           #   - Device context extraction from page
 ```
 
 ### 3. Editor Window (`editor/`)
@@ -181,10 +181,25 @@ chrome.windows.create({
 editor/
 ├── index.html             # HTML entry
 ├── index.tsx              # React entry
-├── App.tsx                # Main layout
+├── App.tsx                # Main layout with resizable panels
+├── monaco-loader.ts       # Monaco Editor configuration (CSP compliance, Groovy lang)
 ├── components/            # UI components
-├── hooks/                 # React hooks
-└── stores/                # Zustand state
+│   ├── Toolbar.tsx        # Portal/Collector/Device selectors, actions
+│   ├── EditorPanel.tsx    # Monaco Editor integration
+│   ├── OutputPanel.tsx    # Raw/Parsed/Validation tabs
+│   ├── StatusBar.tsx      # Status info display
+│   ├── CommandPalette.tsx # Quick command access (Ctrl+K)
+│   ├── ExecutionContextDialog.tsx  # Wildvalue/DatasourceId prompts
+│   ├── ExecutionHistory.tsx        # History sheet
+│   ├── LogicModuleBrowser.tsx      # Module search and preview
+│   ├── SettingsDialog.tsx # User preferences
+│   ├── ModulePreview.tsx  # Script preview tabs
+│   ├── ParsedContent.tsx  # Parsed output display
+│   └── ValidationContent.tsx # Validation results
+├── stores/
+│   └── editor-store.ts    # Zustand state management
+└── utils/
+    └── output-parser.ts   # AD/Collection output parsing and validation
 ```
 
 ---

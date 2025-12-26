@@ -6,6 +6,7 @@
  */
 
 import { API_VERSION, EXECUTION_POLL_INTERVAL_MS, EXECUTION_MAX_ATTEMPTS } from '@/shared/types';
+import { fetchWithRetry, updateRateLimitState } from './rate-limiter';
 
 // ============================================================================
 // Types
@@ -42,17 +43,24 @@ export async function executeDebugCommand(
 ): Promise<string> {
   const url = `https://${portal}/santaba/rest/debug/?collectorId=${collectorId}`;
   
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-CSRF-Token': csrfToken,
-      'X-Requested-With': 'XMLHttpRequest',
-      'X-version': API_VERSION,
+  const response = await fetchWithRetry(
+    url,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrfToken,
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-version': API_VERSION,
+      },
+      credentials: 'include',
+      body: JSON.stringify({ cmdline }),
     },
-    credentials: 'include',
-    body: JSON.stringify({ cmdline }),
-  });
+    portal
+  );
+
+  // Update rate limit state
+  updateRateLimitState(portal, response);
 
   if (!response.ok) {
     if (response.status === 403) {
@@ -85,15 +93,22 @@ export async function pollDebugResult(
 ): Promise<PollResult> {
   const url = `https://${portal}/santaba/rest/debug/${sessionId}?collectorId=${collectorId}`;
   
-  const response = await fetch(url, {
-    method: 'GET',
-    headers: {
-      'X-CSRF-Token': csrfToken,
-      'X-Requested-With': 'XMLHttpRequest',
-      'X-version': API_VERSION,
+  const response = await fetchWithRetry(
+    url,
+    {
+      method: 'GET',
+      headers: {
+        'X-CSRF-Token': csrfToken,
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-version': API_VERSION,
+      },
+      credentials: 'include',
     },
-    credentials: 'include',
-  });
+    portal
+  );
+
+  // Update rate limit state
+  updateRateLimitState(portal, response);
 
   // 202 Accepted = still running
   if (response.status === 202) {
@@ -121,22 +136,40 @@ export async function pollDebugResult(
   };
 }
 
+export interface ExecuteAndPollOptions {
+  onProgress?: (attempt: number, maxAttempts: number) => void;
+  abortSignal?: AbortSignal;
+}
+
 /**
  * Execute a command and poll until complete or timeout.
  * Returns the final output or throws on error/timeout.
+ * Supports cancellation via AbortSignal.
  */
 export async function executeAndPoll(
   portal: string,
   collectorId: number,
   cmdline: string,
   csrfToken: string,
-  onProgress?: (attempt: number, maxAttempts: number) => void
+  options?: ExecuteAndPollOptions
 ): Promise<string> {
+  const { onProgress, abortSignal } = options ?? {};
+  
+  // Check if already aborted
+  if (abortSignal?.aborted) {
+    throw new Error('Execution cancelled');
+  }
+  
   // Execute the command
   const sessionId = await executeDebugCommand(portal, collectorId, cmdline, csrfToken);
 
   // Poll for results
   for (let attempt = 1; attempt <= EXECUTION_MAX_ATTEMPTS; attempt++) {
+    // Check for cancellation before each poll
+    if (abortSignal?.aborted) {
+      throw new Error('Execution cancelled');
+    }
+    
     onProgress?.(attempt, EXECUTION_MAX_ATTEMPTS);
     
     const result = await pollDebugResult(portal, collectorId, sessionId, csrfToken);
@@ -149,8 +182,8 @@ export async function executeAndPoll(
       throw new Error(result.errorMessage ?? 'Execution failed');
     }
     
-    // Still pending, wait before next poll
-    await sleep(EXECUTION_POLL_INTERVAL_MS);
+    // Still pending, wait before next poll (with cancellation support)
+    await sleepWithAbort(EXECUTION_POLL_INTERVAL_MS, abortSignal);
   }
 
   throw new Error(`Execution timed out after ${EXECUTION_MAX_ATTEMPTS} seconds`);
@@ -238,7 +271,25 @@ export function buildPowerShellCommand(script: string): string {
 // Helpers
 // ============================================================================
 
-function sleep(ms: number): Promise<void> {
-  return new Promise(resolve => setTimeout(resolve, ms));
+/**
+ * Sleep with support for AbortSignal cancellation.
+ * Throws if aborted during sleep.
+ */
+function sleepWithAbort(ms: number, abortSignal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (abortSignal?.aborted) {
+      reject(new Error('Execution cancelled'));
+      return;
+    }
+    
+    const timeoutId = setTimeout(resolve, ms);
+    
+    const abortHandler = () => {
+      clearTimeout(timeoutId);
+      reject(new Error('Execution cancelled'));
+    };
+    
+    abortSignal?.addEventListener('abort', abortHandler, { once: true });
+  });
 }
 

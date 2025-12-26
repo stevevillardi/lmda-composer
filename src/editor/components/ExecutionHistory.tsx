@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import {
   Clock,
   Play,
@@ -138,15 +137,11 @@ export function ExecutionHistory() {
     executionHistoryOpen,
     setExecutionHistoryOpen,
     executionHistory,
-    loadHistory,
     clearHistory,
     reloadFromHistory,
   } = useEditorStore();
 
-  // Load history on mount
-  useEffect(() => {
-    loadHistory();
-  }, [loadHistory]);
+  // Note: History is loaded once on app mount in App.tsx
 
   const handleReload = (entry: ExecutionHistoryEntry) => {
     reloadFromHistory(entry);

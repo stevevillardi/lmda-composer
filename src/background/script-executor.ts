@@ -29,23 +29,78 @@ interface ExecutionInternals {
   prefetchError?: string;
 }
 
+interface ActiveExecution {
+  abortController: AbortController;
+  startTime: number;
+}
+
 // ============================================================================
 // Script Executor Class
 // ============================================================================
 
 export class ScriptExecutor {
   private context: ExecutorContext;
+  private activeExecutions: Map<string, ActiveExecution> = new Map();
   
   constructor(context: ExecutorContext) {
     this.context = context;
   }
 
   /**
+   * Cancel a running execution by its ID.
+   * Returns true if the execution was found and cancelled, false otherwise.
+   */
+  cancelExecution(executionId: string): boolean {
+    const execution = this.activeExecutions.get(executionId);
+    if (execution) {
+      execution.abortController.abort();
+      this.activeExecutions.delete(executionId);
+      console.log(`Execution ${executionId} cancelled`);
+      return true;
+    }
+    console.warn(`No active execution found with ID ${executionId}`);
+    return false;
+  }
+
+  /**
+   * Check if an execution is currently running.
+   */
+  isExecutionActive(executionId: string): boolean {
+    return this.activeExecutions.has(executionId);
+  }
+
+  /**
+   * Get the ID of the currently running execution (if any).
+   * Returns null if no execution is running.
+   */
+  getActiveExecutionId(): string | null {
+    const entries = Array.from(this.activeExecutions.entries());
+    return entries.length > 0 ? entries[0][0] : null;
+  }
+
+  /**
    * Execute a script and return the result.
+   * Only one execution can run at a time - concurrent calls will be rejected.
    */
   async execute(request: ExecuteScriptRequest): Promise<ExecutionResult> {
     const startTime = Date.now();
     const executionId = crypto.randomUUID();
+    
+    // Check for concurrent execution
+    if (this.activeExecutions.size > 0) {
+      const activeId = this.getActiveExecutionId();
+      console.warn(`Concurrent execution rejected - execution ${activeId} already in progress`);
+      return this.errorResult(
+        executionId, 
+        startTime, 
+        'Another script is already running. Please wait for it to complete or cancel it first.'
+      );
+    }
+    
+    const abortController = new AbortController();
+    
+    // Register this execution
+    this.activeExecutions.set(executionId, { abortController, startTime });
     
     try {
       // Get CSRF token with multi-level fallback
@@ -61,11 +116,16 @@ export class ScriptExecutor {
       
       try {
         if (request.language === 'groovy') {
-          output = await this.executeGroovy(request, csrfToken);
+          output = await this.executeGroovy(request, csrfToken, abortController.signal);
         } else {
-          output = await this.executePowerShell(request, csrfToken, internals);
+          output = await this.executePowerShell(request, csrfToken, internals, abortController.signal);
         }
       } catch (error) {
+        // Check if cancelled
+        if (error instanceof Error && error.message.includes('cancelled')) {
+          return this.cancelledResult(executionId, startTime);
+        }
+        
         // Check if CSRF expired and retry once
         if (error instanceof Error && error.message.includes('CSRF')) {
           console.log('CSRF token expired, refreshing and retrying...');
@@ -77,9 +137,9 @@ export class ScriptExecutor {
           
           // Retry
           if (request.language === 'groovy') {
-            output = await this.executeGroovy(request, csrfToken);
+            output = await this.executeGroovy(request, csrfToken, abortController.signal);
           } else {
-            output = await this.executePowerShell(request, csrfToken, internals);
+            output = await this.executePowerShell(request, csrfToken, internals, abortController.signal);
           }
         } else {
           throw error;
@@ -108,8 +168,16 @@ export class ScriptExecutor {
         startTime,
       };
     } catch (error) {
+      // Check if cancelled
+      if (error instanceof Error && error.message.includes('cancelled')) {
+        return this.cancelledResult(executionId, startTime);
+      }
+      
       const errorMessage = error instanceof Error ? error.message : 'Unknown execution error';
       return this.errorResult(executionId, startTime, errorMessage);
+    } finally {
+      // Clean up
+      this.activeExecutions.delete(executionId);
     }
   }
 
@@ -120,7 +188,8 @@ export class ScriptExecutor {
    */
   private async executeGroovy(
     request: ExecuteScriptRequest,
-    csrfToken: string
+    csrfToken: string,
+    abortSignal: AbortSignal
   ): Promise<string> {
     // Build command - hostname enables hostProps via preamble, datasourceId enables batch collection
     const cmdline = buildGroovyCommand(
@@ -134,7 +203,8 @@ export class ScriptExecutor {
       request.portalId,
       request.collectorId,
       cmdline,
-      csrfToken
+      csrfToken,
+      { abortSignal }
     );
   }
 
@@ -145,7 +215,8 @@ export class ScriptExecutor {
   private async executePowerShell(
     request: ExecuteScriptRequest,
     csrfToken: string,
-    internals: ExecutionInternals
+    internals: ExecutionInternals,
+    abortSignal: AbortSignal
   ): Promise<string> {
     let scriptToExecute = request.script;
     
@@ -190,7 +261,8 @@ export class ScriptExecutor {
       request.portalId,
       request.collectorId,
       cmdline,
-      csrfToken
+      csrfToken,
+      { abortSignal }
     );
   }
 
@@ -242,6 +314,20 @@ export class ScriptExecutor {
       duration: Date.now() - startTime,
       startTime,
       error,
+    };
+  }
+
+  /**
+   * Create a cancelled result.
+   */
+  private cancelledResult(id: string, startTime: number): ExecutionResult {
+    return {
+      id,
+      status: 'cancelled',
+      rawOutput: '',
+      duration: Date.now() - startTime,
+      startTime,
+      error: 'Execution was cancelled by user',
     };
   }
 }

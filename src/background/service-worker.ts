@@ -8,6 +8,7 @@ import type {
   ExecuteScriptRequest,
   FetchModulesRequest,
   FetchDevicesRequest,
+  FetchDeviceByIdRequest,
 } from '@/shared/types';
 
 // Initialize managers
@@ -23,12 +24,53 @@ const executorContext: ExecutorContext = {
 
 const scriptExecutor = new ScriptExecutor(executorContext);
 
+/**
+ * Validate that a message sender is trusted.
+ * Only accept messages from:
+ * - Our own extension (editor window)
+ * - LogicMonitor pages (content scripts)
+ */
+function isValidSender(sender: chrome.runtime.MessageSender): boolean {
+  // Messages from our own extension (editor window)
+  if (sender.id === chrome.runtime.id) {
+    return true;
+  }
+  
+  // Messages from content scripts on LogicMonitor pages
+  if (sender.url) {
+    try {
+      const url = new URL(sender.url);
+      // Allow logicmonitor.com and our extension URLs
+      if (url.hostname.endsWith('logicmonitor.com') || 
+          url.protocol === 'chrome-extension:') {
+        return true;
+      }
+    } catch {
+      // Invalid URL, reject
+      return false;
+    }
+  }
+  
+  // Reject all other sources
+  console.warn('Rejected message from untrusted sender:', sender);
+  return false;
+}
+
 // Handle messages from content scripts and editor
 chrome.runtime.onMessage.addListener((
   message: EditorToSWMessage | ContentToSWMessage,
-  _sender,
+  sender,
   sendResponse
 ) => {
+  // Validate sender before processing
+  if (!isValidSender(sender)) {
+    sendResponse({ 
+      type: 'ERROR', 
+      payload: { code: 'UNAUTHORIZED', message: 'Message rejected: untrusted sender' } 
+    });
+    return true;
+  }
+  
   handleMessage(message, sendResponse);
   return true; // Keep the message channel open for async response
 });
@@ -77,6 +119,19 @@ async function handleMessage(
         break;
       }
 
+      case 'GET_DEVICE_BY_ID': {
+        const { portalId, resourceId } = message.payload as FetchDeviceByIdRequest;
+        console.log('GET_DEVICE_BY_ID request for resource:', resourceId);
+        const device = await portalManager.getDeviceById(portalId, resourceId);
+        if (device) {
+          console.log('GET_DEVICE_BY_ID response:', device.name, 'collectorId:', device.currentCollectorId);
+          sendResponse({ type: 'DEVICE_BY_ID_LOADED', payload: device });
+        } else {
+          sendResponse({ type: 'ERROR', payload: { code: 'DEVICE_NOT_FOUND', message: `Device ${resourceId} not found` } });
+        }
+        break;
+      }
+
       case 'EXECUTE_SCRIPT': {
         const request = message.payload as ExecuteScriptRequest;
         console.log('EXECUTE_SCRIPT request:', request.language, 'on collector', request.collectorId);
@@ -88,11 +143,20 @@ async function handleMessage(
         break;
       }
 
+      case 'CANCEL_EXECUTION': {
+        const { executionId } = message.payload;
+        console.log('CANCEL_EXECUTION request for:', executionId);
+        
+        const cancelled = scriptExecutor.cancelExecution(executionId);
+        sendResponse({ success: cancelled });
+        break;
+      }
+
       case 'FETCH_MODULES': {
-        const { portalId, moduleType, offset = 0, size = 1000 } = message.payload as FetchModulesRequest;
+        const { portalId, moduleType } = message.payload as FetchModulesRequest;
         console.log('FETCH_MODULES request:', moduleType, 'for portal', portalId);
         
-        const response = await moduleLoader.fetchModules(portalId, moduleType, offset, size);
+        const response = await moduleLoader.fetchModules(portalId, moduleType);
         console.log('FETCH_MODULES response:', response.items.length, 'modules, total:', response.total);
         
         sendResponse({ type: 'MODULES_FETCHED', payload: response });
@@ -121,9 +185,7 @@ async function openEditorWindow(context?: DeviceContext) {
   
   if (context) {
     if (context.portalId) url.searchParams.set('portal', context.portalId);
-    if (context.hostname) url.searchParams.set('host', context.hostname);
-    if (context.deviceId) url.searchParams.set('deviceId', context.deviceId.toString());
-    if (context.collectorId) url.searchParams.set('collectorId', context.collectorId.toString());
+    if (context.resourceId) url.searchParams.set('resourceId', context.resourceId.toString());
   }
 
   // Check if there's already an LM IDE tab open
@@ -132,8 +194,12 @@ async function openEditorWindow(context?: DeviceContext) {
   });
 
   if (existingTabs.length > 0 && existingTabs[0].id) {
-    // Focus the existing tab
-    await chrome.tabs.update(existingTabs[0].id, { active: true });
+    // Update the existing tab's URL with new context (this triggers re-read of params)
+    // Then focus it
+    await chrome.tabs.update(existingTabs[0].id, { 
+      url: url.toString(),
+      active: true 
+    });
     if (existingTabs[0].windowId) {
       await chrome.windows.update(existingTabs[0].windowId, { focused: true });
     }
@@ -156,6 +222,11 @@ chrome.tabs.onUpdated.addListener(async (_tabId, changeInfo, tab) => {
   if (changeInfo.status === 'complete' && tab.url?.includes('logicmonitor.com')) {
     await portalManager.discoverPortals();
   }
+});
+
+// Handle tab removal - clean up stale tab IDs from portals
+chrome.tabs.onRemoved.addListener((tabId) => {
+  portalManager.handleTabRemoved(tabId);
 });
 
 console.log('LM IDE Service Worker initialized');
