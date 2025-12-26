@@ -154,7 +154,7 @@ export function ExecutionHistory() {
 
   return (
     <Sheet open={executionHistoryOpen} onOpenChange={setExecutionHistoryOpen}>
-      <SheetContent className="w-[450px] sm:w-[540px]">
+      <SheetContent className="w-[450px] sm:w-[540px] px-2">
         <SheetHeader>
           <SheetTitle className="flex items-center gap-2">
             <FileCode className="size-5" />
@@ -184,9 +184,9 @@ export function ExecutionHistory() {
 
         <Separator />
 
-        <ScrollArea className="h-[calc(100vh-220px)] mt-4">
+        <ScrollArea className="h-[calc(100vh-220px)] mt-4 -ml-2">
           {executionHistory.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
+            <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground pl-2">
               <Clock className="size-12 mb-4 opacity-20" />
               <p className="text-sm font-medium">No execution history</p>
               <p className="text-xs mt-1">
@@ -194,7 +194,7 @@ export function ExecutionHistory() {
               </p>
             </div>
           ) : (
-            <div className="flex flex-col gap-2 pr-4">
+            <div className="flex flex-col gap-2 pl-2 pr-4">
               {executionHistory.map((entry) => (
                 <HistoryItem 
                   key={entry.id} 

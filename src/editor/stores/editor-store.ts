@@ -752,7 +752,30 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       const result = await chrome.storage.local.get(STORAGE_KEYS.PREFERENCES);
       const storedPrefs = result[STORAGE_KEYS.PREFERENCES] as Partial<UserPreferences> | undefined;
       if (storedPrefs) {
-        set({ preferences: { ...DEFAULT_PREFERENCES, ...storedPrefs } });
+        const mergedPrefs = { ...DEFAULT_PREFERENCES, ...storedPrefs };
+        
+        // Check if editor is in initial state (not dirty and using default template)
+        const { isDirty, script } = get();
+        const normalize = (s: string) => s.trim().replace(/\r\n/g, '\n');
+        const isDefaultGroovy = normalize(script) === normalize(DEFAULT_GROOVY_TEMPLATE);
+        const isDefaultPowershell = normalize(script) === normalize(DEFAULT_POWERSHELL_TEMPLATE);
+        const isInitialState = !isDirty && (isDefaultGroovy || isDefaultPowershell);
+        
+        // Apply default language/mode from preferences if in initial state
+        if (isInitialState) {
+          const newLanguage = mergedPrefs.defaultLanguage;
+          const newMode = mergedPrefs.defaultMode;
+          const newScript = newLanguage === 'groovy' ? DEFAULT_GROOVY_TEMPLATE : DEFAULT_POWERSHELL_TEMPLATE;
+          
+          set({ 
+            preferences: mergedPrefs,
+            language: newLanguage,
+            mode: newMode,
+            script: newScript,
+          });
+        } else {
+          set({ preferences: mergedPrefs });
+        }
       }
     } catch (error) {
       console.error('Failed to load preferences:', error);

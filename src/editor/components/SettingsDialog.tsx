@@ -32,7 +32,7 @@ interface SettingRowProps {
 
 function SettingRow({ label, description, children }: SettingRowProps) {
   return (
-    <div className="flex items-center justify-between gap-4 py-3">
+    <div className="flex items-center justify-between gap-4 py-2">
       <div className="space-y-0.5">
         <Label className="text-sm font-medium">{label}</Label>
         {description && (
@@ -82,7 +82,7 @@ export function SettingsDialog() {
 
   return (
     <Dialog open={settingsDialogOpen} onOpenChange={setSettingsDialogOpen}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Settings className="size-5" />
@@ -93,132 +93,136 @@ export function SettingsDialog() {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="py-4">
-          {/* Appearance Section */}
-          <div className="flex items-center gap-2 mb-2">
-            <Palette className="size-4 text-muted-foreground" />
-            <h3 className="text-sm font-semibold">Appearance</h3>
-          </div>
-          
-          <SettingRow label="Theme" description="Choose the color theme">
-            <Select
-              value={preferences.theme}
-              onValueChange={(value) => setPreferences({ theme: value as UserPreferences['theme'] })}
-              items={themeItems}
-            >
-              <SelectTrigger className="w-[120px] h-8">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {themeItems.map((item) => (
-                  <SelectItem key={item.value} value={item.value}>
-                    {item.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </SettingRow>
+        <div className="py-2 space-y-4">
+          {/* Appearance & Defaults Row */}
+          <div className="grid grid-cols-2 gap-6">
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Palette className="size-4 text-muted-foreground" />
+                <h3 className="text-sm font-semibold">Appearance</h3>
+              </div>
+              <SettingRow label="Theme">
+                <Select
+                  value={preferences.theme}
+                  onValueChange={(value) => setPreferences({ theme: value as UserPreferences['theme'] })}
+                  items={themeItems}
+                >
+                  <SelectTrigger className="w-[100px] h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {themeItems.map((item) => (
+                      <SelectItem key={item.value} value={item.value}>
+                        {item.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </SettingRow>
+            </div>
 
-          <Separator className="my-2" />
+            <div>
+              <div className="flex items-center gap-2 mb-2">
+                <Type className="size-4 text-muted-foreground" />
+                <h3 className="text-sm font-semibold">Defaults</h3>
+              </div>
+              <SettingRow label="Language">
+                <Select
+                  value={preferences.defaultLanguage}
+                  onValueChange={(value) => setPreferences({ defaultLanguage: value as ScriptLanguage })}
+                  items={languageItems}
+                >
+                  <SelectTrigger className="w-[110px] h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {languageItems.map((item) => (
+                      <SelectItem key={item.value} value={item.value}>
+                        {item.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </SettingRow>
+              <SettingRow label="Mode">
+                <Select
+                  value={preferences.defaultMode}
+                  onValueChange={(value) => setPreferences({ defaultMode: value as ScriptMode })}
+                  items={modeItems}
+                >
+                  <SelectTrigger className="w-[140px] h-8">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {modeItems.map((item) => (
+                      <SelectItem key={item.value} value={item.value}>
+                        {item.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </SettingRow>
+            </div>
+          </div>
+
+          <Separator />
 
           {/* Editor Section */}
-          <div className="flex items-center gap-2 mb-2 mt-4">
-            <Code className="size-4 text-muted-foreground" />
-            <h3 className="text-sm font-semibold">Editor</h3>
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Code className="size-4 text-muted-foreground" />
+              <h3 className="text-sm font-semibold">Editor</h3>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-x-6 gap-y-1">
+              <SettingRow label="Font Size" description={`${preferences.fontSize}px`}>
+                <Slider
+                  value={[preferences.fontSize]}
+                  onValueChange={(value) => setPreferences({ fontSize: Array.isArray(value) ? value[0] : value })}
+                  min={10}
+                  max={24}
+                  step={1}
+                  className="w-[100px]"
+                />
+              </SettingRow>
+
+              <SettingRow label="Tab Size" description={`${preferences.tabSize} spaces`}>
+                <Slider
+                  value={[preferences.tabSize]}
+                  onValueChange={(value) => setPreferences({ tabSize: Array.isArray(value) ? value[0] : value })}
+                  min={2}
+                  max={8}
+                  step={2}
+                  className="w-[100px]"
+                />
+              </SettingRow>
+
+              <SettingRow label="Word Wrap">
+                <Switch
+                  checked={preferences.wordWrap}
+                  onCheckedChange={(checked) => setPreferences({ wordWrap: checked })}
+                />
+              </SettingRow>
+
+              <SettingRow label="Minimap">
+                <Switch
+                  checked={preferences.minimap}
+                  onCheckedChange={(checked) => setPreferences({ minimap: checked })}
+                />
+              </SettingRow>
+
+              <SettingRow label="History Size" description={`${preferences.maxHistorySize} entries`}>
+                <Slider
+                  value={[preferences.maxHistorySize]}
+                  onValueChange={(value) => setPreferences({ maxHistorySize: Array.isArray(value) ? value[0] : value })}
+                  min={10}
+                  max={100}
+                  step={10}
+                  className="w-[100px]"
+                />
+              </SettingRow>
+            </div>
           </div>
-
-          <SettingRow label="Font Size" description={`${preferences.fontSize}px`}>
-            <Slider
-              value={[preferences.fontSize]}
-              onValueChange={(value) => setPreferences({ fontSize: Array.isArray(value) ? value[0] : value })}
-              min={10}
-              max={24}
-              step={1}
-              className="w-[120px]"
-            />
-          </SettingRow>
-
-          <SettingRow label="Tab Size" description={`${preferences.tabSize} spaces`}>
-            <Slider
-              value={[preferences.tabSize]}
-              onValueChange={(value) => setPreferences({ tabSize: Array.isArray(value) ? value[0] : value })}
-              min={2}
-              max={8}
-              step={2}
-              className="w-[120px]"
-            />
-          </SettingRow>
-
-          <SettingRow label="Word Wrap" description="Wrap long lines">
-            <Switch
-              checked={preferences.wordWrap}
-              onCheckedChange={(checked) => setPreferences({ wordWrap: checked })}
-            />
-          </SettingRow>
-
-          <SettingRow label="Minimap" description="Show code overview">
-            <Switch
-              checked={preferences.minimap}
-              onCheckedChange={(checked) => setPreferences({ minimap: checked })}
-            />
-          </SettingRow>
-
-          <Separator className="my-2" />
-
-          {/* Defaults Section */}
-          <div className="flex items-center gap-2 mb-2 mt-4">
-            <Type className="size-4 text-muted-foreground" />
-            <h3 className="text-sm font-semibold">Defaults</h3>
-          </div>
-
-          <SettingRow label="Default Language">
-            <Select
-              value={preferences.defaultLanguage}
-              onValueChange={(value) => setPreferences({ defaultLanguage: value as ScriptLanguage })}
-              items={languageItems}
-            >
-              <SelectTrigger className="w-[120px] h-8">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {languageItems.map((item) => (
-                  <SelectItem key={item.value} value={item.value}>
-                    {item.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </SettingRow>
-
-          <SettingRow label="Default Mode">
-            <Select
-              value={preferences.defaultMode}
-              onValueChange={(value) => setPreferences({ defaultMode: value as ScriptMode })}
-              items={modeItems}
-            >
-              <SelectTrigger className="w-[150px] h-8">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {modeItems.map((item) => (
-                  <SelectItem key={item.value} value={item.value}>
-                    {item.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </SettingRow>
-
-          <SettingRow label="History Size" description={`Keep ${preferences.maxHistorySize} entries`}>
-            <Slider
-              value={[preferences.maxHistorySize]}
-              onValueChange={(value) => setPreferences({ maxHistorySize: Array.isArray(value) ? value[0] : value })}
-              min={10}
-              max={100}
-              step={10}
-              className="w-[120px]"
-            />
-          </SettingRow>
         </div>
 
         <DialogFooter>
