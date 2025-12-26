@@ -2,19 +2,20 @@
 
 ## Feature Overview
 
-| Feature | Priority | Phase |
-|---------|----------|-------|
-| Multi-portal detection | P0 | 1 |
-| Multi-collector selection | P0 | 1 |
-| Monaco Editor with Groovy/PowerShell | P0 | 1 |
-| Script execution via Debug API | P0 | 2 |
-| PowerShell hostProps support | P0 | 2 |
-| Active Discovery mode with validation | P1 | 3 |
-| Collection mode with validation | P1 | 3 |
-| LogicModule browser (read-only) | P1 | 4 |
-| Resource tree context menu | P2 | 5 |
-| Command palette | P2 | 5 |
-| Execution history | P2 | 5 |
+| Feature | Priority | Phase | Status |
+|---------|----------|-------|--------|
+| Multi-portal detection | P0 | 1 | ✅ |
+| Multi-collector selection | P0 | 1 | ✅ |
+| Monaco Editor with Groovy/PowerShell | P0 | 1 | ✅ |
+| Script execution via Debug API | P0 | 2 | ✅ |
+| PowerShell hostProps support | P0 | 2 | ✅ |
+| Active Discovery mode with validation | P1 | 3 | ✅ |
+| Collection mode with validation | P1 | 3 | ✅ |
+| Batch Collection mode with validation | P1 | 3 | ✅ |
+| LogicModule browser (read-only) | P1 | 4 | |
+| Resource tree context menu | P2 | 5 | |
+| Command palette | P2 | 5 | |
+| Execution history | P2 | 5 | |
 
 ---
 
@@ -254,9 +255,9 @@ As a user, I want to be warned before losing my script changes when switching la
 
 ---
 
-## Phase 3 Features
+## Phase 3 Features ✅ COMPLETE
 
-### F3.1 Active Discovery Mode
+### F3.1 Active Discovery Mode ✅
 
 **Description:**  
 Parse and validate script output as Active Discovery format, showing instances in a table.
@@ -282,15 +283,15 @@ instance_id##instance_name##description####auto.prop=value&auto.prop2=value
 | Properties must be key=value format | Error |
 
 **Acceptance Criteria:**
-- [ ] Parses `##` delimited format
-- [ ] Displays instances in table
-- [ ] Shows validation errors inline
-- [ ] Counts valid/invalid instances
-- [ ] Explains errors clearly
+- [x] Parses `##` delimited format
+- [x] Displays instances in table
+- [x] Shows validation errors inline
+- [x] Counts valid/invalid instances
+- [x] Explains errors clearly
 
 ---
 
-### F3.2 Collection Mode
+### F3.2 Collection Mode ✅
 
 **Description:**  
 Parse and validate script output as Collection format, showing datapoints in a table.
@@ -326,15 +327,67 @@ eth1.OutOctets=22222222
 | Value must be numeric | Error |
 | Datapoint name valid chars | Warning |
 | Batchscript: wildvalue prefix required | Error (if batchscript mode) |
+| Batchscript: wildvalue no spaces, =, :, \, # | Error (same rules as instance ID) |
+| Batchscript: wildvalue max 1024 chars | Error |
 
 **Acceptance Criteria:**
-- [ ] Parses `=` delimited format
-- [ ] Displays datapoints in table
-- [ ] Validates numeric values
-- [ ] Shows errors for non-numeric
-- [ ] Ignores non-matching lines (with warning)
-- [ ] Supports batchscript format with wildvalue prefix
-- [ ] Groups by instance when in batchscript mode
+- [x] Parses `=` delimited format
+- [x] Displays datapoints in table
+- [x] Validates numeric values
+- [x] Shows errors for non-numeric
+- [x] Ignores non-matching lines (with warning)
+- [x] Supports batchscript format with wildvalue prefix
+- [x] Groups by instance when in batchscript mode
+- [x] Validates wildvalue with same rules as instance ID
+
+### F3.3 Execution Context Dialog ✅
+
+**Description:**  
+Prompt users for execution context (wildvalue or datasourceId) based on the selected mode.
+
+**User Story:**  
+As a user running collection scripts, I want to provide the correct context (wildvalue for single instance, datasourceId for batch) so my scripts execute properly.
+
+**Behavior:**
+1. **Collection Mode:** Prompts for wildvalue (the instance to collect data for)
+2. **Batch Collection Mode:** Prompts for datasourceId (to fetch datasourceinstanceProps)
+
+**Implementation:**
+- `ExecutionContextDialog` component renders based on `pendingExecution.mode`
+- Values are persisted and pre-filled on subsequent runs
+- Dialog always appears for collection/batchcollection modes
+
+**Acceptance Criteria:**
+- [x] Dialog prompts for wildvalue in collection mode
+- [x] Dialog prompts for datasourceId in batch collection mode
+- [x] Values are pre-filled from previous runs
+- [x] Dialog validates required fields
+- [x] Appropriate icons and descriptions per mode
+
+### F3.4 Groovy Preamble with Batch Collection Support ✅
+
+**Description:**  
+Enhanced Groovy preamble that provides `datasourceinstanceProps` for batch collection scripts.
+
+**User Story:**  
+As a developer running batch collection scripts, I want `datasourceinstanceProps` to be populated so my scripts can access instance properties.
+
+**Implementation:**
+Uses `CollectorDb.getInstance().getDatasourceInstanceProps(hostname, datasourceId)` to fetch instance properties:
+
+```groovy
+def dsId = new String("BASE64_DATASOURCEID".decodeBase64());
+if (dsId) {
+  def dsParam = dsId.isInteger() ? dsId.toInteger() : dsId;
+  datasourceinstanceProps = collectorDb.getDatasourceInstanceProps(hostname, dsParam);
+}
+```
+
+**Acceptance Criteria:**
+- [x] Preamble defines `datasourceinstanceProps` map
+- [x] Preamble defines `taskProps` with pollinterval
+- [x] datasourceId is base64-encoded to handle special chars
+- [x] Supports both numeric ID and string name for datasource
 
 ---
 

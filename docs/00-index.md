@@ -81,12 +81,33 @@ Options:
 import com.santaba.agent.collector3.CollectorDb;
 def hostProps = [:];
 def instanceProps = [:];
+def datasourceinstanceProps = [:];
+def taskProps = ["pollinterval": "180"];
 try {
-  hostProps = CollectorDb.getInstance().getHost(new String("BASE64_HOSTNAME".decodeBase64())).getProperties();
-  instanceProps["wildvalue"] = new String("BASE64_WILDVALUE".decodeBase64());
+  def collectorDb = CollectorDb.getInstance();
+  def hostname = new String("BASE64_HOSTNAME".decodeBase64());
+  def host = collectorDb.getHost(hostname);
+  if (host != null) {
+    hostProps = host.getProperties();
+    instanceProps["wildvalue"] = new String("BASE64_WILDVALUE".decodeBase64());
+    def dsId = new String("BASE64_DATASOURCEID".decodeBase64());
+    if (dsId) {
+      // Support both numeric ID and string name
+      def dsParam = dsId.isInteger() ? dsId.toInteger() : dsId;
+      datasourceinstanceProps = collectorDb.getDatasourceInstanceProps(hostname, dsParam);
+    }
+  }
 } catch(Exception e) {};
 // User's script follows...
 ```
+
+**Preamble Variables:**
+| Variable | Description |
+|----------|-------------|
+| `hostProps` | Device properties from collector cache |
+| `instanceProps` | Contains `wildvalue` for collection scripts |
+| `datasourceinstanceProps` | All instance properties for batch collection (keyed by wildvalue) |
+| `taskProps` | Contains `pollinterval` (defaults to "180") |
 
 #### CSRF Token
 Token is valid as long as the user session is valid. No separate expiry.
@@ -187,15 +208,26 @@ const selector = '[data-testid="LM_navigationMoreOptions24PxIcon"]';
 
 #### WildValue Handling by Collection Method
 
-| Collection Method | WildValue Behavior |
-|-------------------|-------------------|
-| `batchscript` | All instances run at once. Output format: `##WILDVALUE##.datapoint=value`. No runtime wildvalue needed. |
-| `script` | Each instance runs separately. Wildvalue provided as runtime context. User prompted for wildvalue input. |
+| Collection Method | WildValue Behavior | User Prompt |
+|-------------------|-------------------|-------------|
+| `script` | Each instance runs separately. Wildvalue provided as runtime context. | Wildvalue input |
+| `batchscript` | All instances run at once. Output format: `wildvalue.datapoint=value`. | DataSource ID input |
 
-The existing extension handles this by:
-1. Providing a WildValue input field
-2. For Groovy: Injecting `instanceProps["wildvalue"] = <input>` via the preamble
-3. For all scripts: Text replacement of `##WILDVALUE##` and `##WILDVALUEBASE64##` tokens
+**Implementation:**
+1. **Collection Mode:** 
+   - Prompts for wildvalue (instance identifier)
+   - Injects `instanceProps["wildvalue"] = <input>` via Groovy preamble
+   - Text replacement of `##WILDVALUE##` and `##WILDVALUEBASE64##` tokens
+
+2. **Batch Collection Mode:**
+   - Prompts for datasourceId (numeric ID or datasource name)
+   - Fetches `datasourceinstanceProps` via `CollectorDb.getInstance().getDatasourceInstanceProps(hostname, datasourceId)`
+   - Provides all instance properties keyed by wildvalue
+
+3. **Validation:**
+   - Wildvalue in batch collection output is validated with same rules as instance ID
+   - No spaces, =, :, \, # allowed in wildvalue prefix
+   - Max 1024 characters
 
 ---
 
@@ -220,11 +252,18 @@ The existing extension handles this by:
 - [x] Language switch confirmation dialog for dirty editors
 - [x] Raw output display with status badges
 
-### Phase 3: Validation & Modes
-- [ ] AD mode with instance parsing
-- [ ] Collection mode with datapoint parsing
-- [ ] Output validation UI
-- [ ] WildValue handling
+### Phase 3: Validation & Modes ✅ COMPLETE
+- [x] AD mode with instance parsing
+- [x] Collection mode with datapoint parsing  
+- [x] Batch Collection mode with wildvalue grouping
+- [x] Output validation UI (ParsedContent + ValidationContent components)
+- [x] WildValue handling (dialog prompts for collection mode)
+- [x] DatasourceId handling (dialog prompts for batch collection mode)
+- [x] Groovy preamble with datasourceinstanceProps via CollectorDb
+- [x] Validation rules for AD (ID format, length, invalid chars)
+- [x] Validation rules for Collection (key=value, numeric values)
+- [x] Validation rules for Batch Collection (wildvalue prefix, invalid chars)
+- [x] UX improvements (mode icons, execution mode label, disabled tabs for freeform)
 
 ### Phase 4: LogicModule Integration
 - [ ] Module search
@@ -236,6 +275,8 @@ The existing extension handles this by:
 - [ ] Command palette
 - [ ] Execution history
 - [ ] Settings/preferences
+- [ ] Retain last edited code on relaunch
+- [ ] Save edited code to file (.groovy/.ps1)
 
 ---
 

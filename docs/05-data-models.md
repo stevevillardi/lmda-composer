@@ -299,8 +299,11 @@ interface ExecuteScriptRequest {
   /** Device ID for hostId parameter (optional) */
   deviceId?: number;
   
-  /** WildValue for instance context (optional) */
+  /** WildValue for instance context - used in collection mode (optional) */
   wildvalue?: string;
+  
+  /** DataSource ID for batch collection - fetches datasourceinstanceProps (optional) */
+  datasourceId?: string;
 }
 
 type ScriptLanguage = 'groovy' | 'powershell';
@@ -357,18 +360,26 @@ type ExecutionStatus =
 ### Parsed Output
 
 ```typescript
-type ParsedOutput = 
-  | ADParsedOutput 
-  | CollectionParsedOutput;
+type ParseResult = ADParseResult | CollectionParseResult;
 
-interface ADParsedOutput {
+interface ParseSummary {
+  total: number;
+  valid: number;
+  errors: number;
+  warnings: number;
+}
+
+interface UnparsedLine {
+  lineNumber: number;
+  content: string;
+  reason: string;
+}
+
+interface ADParseResult {
   type: 'ad';
   instances: ADInstance[];
-  summary: {
-    total: number;
-    valid: number;
-    invalid: number;
-  };
+  unparsedLines: UnparsedLine[];
+  summary: ParseSummary;
 }
 
 interface ADInstance {
@@ -381,30 +392,24 @@ interface ADInstance {
   /** Instance description */
   description?: string;
   
-  /** Instance-level properties */
+  /** Instance-level auto-properties (auto.prop=value format) */
   properties?: Record<string, string>;
   
-  /** Raw line from output */
-  rawLine: string;
+  /** Validation issues for this instance */
+  issues: ValidationIssue[];
   
   /** Line number in output */
   lineNumber: number;
   
-  /** Whether this instance is valid */
-  isValid: boolean;
-  
-  /** Validation errors for this instance */
-  errors: ValidationError[];
+  /** Raw line from output */
+  rawLine: string;
 }
 
-interface CollectionParsedOutput {
-  type: 'collection';
+interface CollectionParseResult {
+  type: 'collection' | 'batchcollection';
   datapoints: CollectionDatapoint[];
-  summary: {
-    total: number;
-    valid: number;
-    invalid: number;
-  };
+  unparsedLines: UnparsedLine[];
+  summary: ParseSummary;
 }
 
 interface CollectionDatapoint {
@@ -426,8 +431,25 @@ interface CollectionDatapoint {
   /** Whether this datapoint is valid */
   isValid: boolean;
   
+  /** Wildvalue prefix for batch collection (instance ID) */
+  wildvalue?: string;
+  
   /** Validation errors */
-  errors: ValidationError[];
+  issues: ValidationIssue[];
+}
+
+interface ValidationIssue {
+  /** Severity level */
+  severity: 'error' | 'warning' | 'info';
+  
+  /** Human-readable message */
+  message: string;
+  
+  /** Line number in output */
+  lineNumber: number;
+  
+  /** Which field has the issue (id, name, value, wildvalue, properties) */
+  field: string;
 }
 ```
 
@@ -491,6 +513,7 @@ interface EditorStore {
   selectedCollectorId: number | null;
   hostname: string;
   wildvalue: string;
+  datasourceId: string;
   
   // === Editor State ===
   script: string;
@@ -502,6 +525,11 @@ interface EditorStore {
   isExecuting: boolean;
   currentExecution: ExecutionResult | null;
   executionHistory: ExecutionHistoryEntry[];
+  parsedOutput: ParseResult | null;
+  
+  // === Execution Context Dialog ===
+  executionContextDialogOpen: boolean;
+  pendingExecution: Omit<ExecuteScriptRequest, 'wildvalue' | 'datasourceId'> | null;
   
   // === Module Browser ===
   moduleSearchQuery: string;
@@ -520,6 +548,7 @@ interface EditorStore {
   setSelectedCollector: (collectorId: number) => void;
   setHostname: (hostname: string) => void;
   setWildvalue: (wildvalue: string) => void;
+  setDatasourceId: (datasourceId: string) => void;
   setScript: (script: string) => void;
   setLanguage: (language: ScriptLanguage) => void;
   setMode: (mode: ScriptMode) => void;
@@ -529,6 +558,10 @@ interface EditorStore {
   loadModule: (moduleId: number, scriptType: 'ad' | 'collection') => Promise<void>;
   refreshPortals: () => Promise<void>;
   refreshCollectors: () => Promise<void>;
+  parseCurrentOutput: () => void;
+  setExecutionContextDialogOpen: (open: boolean) => void;
+  confirmExecutionContext: (wildvalue: string, datasourceId: string) => void;
+  cancelExecutionContextDialog: () => void;
 }
 ```
 
@@ -692,6 +725,29 @@ const COLLECTION_VALIDATION_RULES = {
     severity: 'warning' as const,
     message: 'Datapoint name contains unusual characters',
     validate: (dp: CollectionDatapoint) => /^[\w.-]+$/.test(dp.name)
+  }
+};
+
+// Additional rules for batch collection mode
+const BATCHCOLLECTION_VALIDATION_RULES = {
+  WILDVALUE_REQUIRED: {
+    rule: 'WILDVALUE_REQUIRED',
+    severity: 'error' as const,
+    message: 'Batchscript output requires wildvalue prefix (format: wildvalue.datapoint=value)',
+    validate: (dp: CollectionDatapoint) => dp.wildvalue != null && dp.wildvalue.length > 0
+  },
+  WILDVALUE_INVALID_CHARS: {
+    rule: 'WILDVALUE_INVALID_CHARS',
+    severity: 'error' as const,
+    message: 'Wildvalue contains invalid characters (spaces, =, :, \\, or #)',
+    // Uses same regex as AD_INVALID_ID_CHARS: /[\s=:\\#]/
+    validate: (dp: CollectionDatapoint) => dp.wildvalue && !/[\s=:\\#]/.test(dp.wildvalue)
+  },
+  WILDVALUE_MAX_LENGTH: {
+    rule: 'WILDVALUE_MAX_LENGTH',
+    severity: 'error' as const,
+    message: 'Wildvalue exceeds 1024 character limit',
+    validate: (dp: CollectionDatapoint) => dp.wildvalue && dp.wildvalue.length <= 1024
   }
 };
 ```
