@@ -1,0 +1,45 @@
+{
+  "manifest_version": 3,
+  "name": "LM IDE - LogicMonitor Script Development",
+  "version": "1.0.0",
+  "description": "Enhanced script development and debugging experience for LogicMonitor power users",
+  "icons": {
+    "16": "src/assets/icon16.png",
+    "48": "src/assets/icon48.png",
+    "128": "src/assets/icon128.png"
+  },
+  "permissions": [
+    "storage",
+    "tabs",
+    "activeTab",
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://*.logicmonitor.com/*"
+  ],
+  "background": {
+    "service_worker": "src/background/service-worker.ts",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://*.logicmonitor.com/*"],
+      "js": ["src/content/index.ts"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "LM IDE",
+    "default_icon": {
+      "16": "src/assets/icon16.png",
+      "48": "src/assets/icon48.png"
+    }
+  },
+  "web_accessible_resources": [
+    {
+      "resources": ["src/editor/index.html"],
+      "matches": ["https://*.logicmonitor.com/*"]
+    }
+  ]
+}
+
