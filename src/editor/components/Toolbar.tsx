@@ -28,11 +28,18 @@ import {
 } from '@/components/ui/select';
 import {
   Combobox,
-  ComboboxInput,
   ComboboxContent,
   ComboboxList,
   ComboboxItem,
 } from '@/components/ui/combobox';
+import { Combobox as ComboboxPrimitive } from "@base-ui/react";
+import { 
+  InputGroup, 
+  InputGroupAddon, 
+  InputGroupInput,
+  InputGroupButton,
+} from '@/components/ui/input-group';
+import { ChevronDown, X } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import {
@@ -159,18 +166,31 @@ export function Toolbar() {
           onValueChange={(value) => setSelectedPortal(value || null)}
           items={portalItems}
         >
-          <SelectTrigger className="w-[300px] h-8">
+          <SelectTrigger className="w-[225px] h-8">
             <div className="flex items-center gap-2 overflow-hidden flex-1 min-w-0">
-              <Circle
-                className={cn(
-                  'size-2 shrink-0',
-                  selectedPortal?.status === 'active'
-                    ? 'fill-green-500 text-green-500'
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Circle
+                      className={cn(
+                        'size-2 shrink-0 cursor-help',
+                        selectedPortal?.status === 'active'
+                          ? 'fill-green-500 text-green-500'
+                          : selectedPortal
+                            ? 'fill-yellow-500 text-yellow-500'
+                            : 'fill-muted-foreground text-muted-foreground'
+                      )}
+                    />
+                  }
+                />
+                <TooltipContent>
+                  {selectedPortal?.status === 'active'
+                    ? 'Portal session is active'
                     : selectedPortal
-                      ? 'fill-yellow-500 text-yellow-500'
-                      : 'fill-muted-foreground text-muted-foreground'
-                )}
-              />
+                      ? 'Portal session may have expired'
+                      : 'No portal selected'}
+                </TooltipContent>
+              </Tooltip>
               <SelectValue className="truncate" />
             </div>
           </SelectTrigger>
@@ -183,14 +203,25 @@ export function Toolbar() {
               portals.map((portal) => (
                 <SelectItem key={portal.id} value={portal.id}>
                   <div className="flex items-center gap-2">
-                    <Circle
-                      className={cn(
-                        'size-2',
-                        portal.status === 'active'
-                          ? 'fill-green-500 text-green-500'
-                          : 'fill-yellow-500 text-yellow-500'
-                      )}
-                    />
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={
+                          <Circle
+                            className={cn(
+                              'size-2 cursor-help',
+                              portal.status === 'active'
+                                ? 'fill-green-500 text-green-500'
+                                : 'fill-yellow-500 text-yellow-500'
+                            )}
+                          />
+                        }
+                      />
+                      <TooltipContent>
+                        {portal.status === 'active'
+                          ? 'Session is active'
+                          : 'Session may have expired'}
+                      </TooltipContent>
+                    </Tooltip>
                     <span>{portal.hostname}</span>
                   </div>
                 </SelectItem>
@@ -222,22 +253,33 @@ export function Toolbar() {
           disabled={!selectedPortalId || collectors.length === 0}
           items={collectorItems}
         >
-          <SelectTrigger className="w-[300px] h-8">
+          <SelectTrigger className="w-[225px] h-8">
             <div className="flex items-center gap-2 overflow-hidden flex-1 min-w-0">
               {selectedCollector && (
-                <Circle
-                  className={cn(
-                    'size-2 shrink-0',
-                    selectedCollector.isDown 
-                      ? 'fill-red-500 text-red-500' 
-                      : 'fill-green-500 text-green-500'
-                  )}
-                />
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <Server
+                        className={cn(
+                          'size-4 shrink-0 cursor-help',
+                          selectedCollector.isDown 
+                            ? 'text-red-500' 
+                            : 'text-green-500'
+                        )}
+                      />
+                    }
+                  />
+                  <TooltipContent>
+                    {selectedCollector.isDown 
+                      ? 'Collector is offline' 
+                      : 'Collector is online'}
+                  </TooltipContent>
+                </Tooltip>
               )}
               <SelectValue className="truncate" />
             </div>
           </SelectTrigger>
-          <SelectContent align="start">
+          <SelectContent align="start" className="min-w-[320px]">
             {collectors.length === 0 ? (
               <div className="px-2 py-4 text-sm text-muted-foreground text-center">
                 {selectedPortalId ? 'No collectors found' : 'Select a portal first'}
@@ -249,22 +291,27 @@ export function Toolbar() {
                   value={collector.id.toString()}
                   disabled={collector.isDown}
                 >
-                  <div className="flex items-center gap-2">
-                    <Circle
+                  <div className="flex items-center gap-2 w-full">
+                    <Server
                       className={cn(
-                        'size-2 shrink-0',
+                        'size-4 shrink-0',
                         collector.isDown 
-                          ? 'fill-red-500 text-red-500' 
-                          : 'fill-green-500 text-green-500'
+                          ? 'text-red-500' 
+                          : 'text-green-500'
                       )}
                     />
-                    <span className="font-medium">{collector.description || collector.hostname}</span>
-                    <span className="text-muted-foreground text-xs">#{collector.id}</span>
-                    {collector.collectorGroupName && (
-                      <span className="text-muted-foreground text-xs">
-                        ({collector.collectorGroupName})
+                    <div className="flex flex-col min-w-0 flex-1">
+                      <span className="font-medium truncate">
+                        {collector.description || collector.hostname}
+                        {collector.isDown && (
+                          <span className="text-red-500 text-xs ml-1.5">(offline)</span>
+                        )}
                       </span>
-                    )}
+                      <span className="text-xs text-muted-foreground truncate">
+                        #{collector.id}
+                        {collector.collectorGroupName && ` · ${collector.collectorGroupName}`}
+                      </span>
+                    </div>
                   </div>
                 </SelectItem>
               ))
@@ -282,22 +329,63 @@ export function Toolbar() {
           }}
           disabled={!selectedCollectorId}
         >
-          <ComboboxInput
-            placeholder={
-              isFetchingDevices 
-                ? 'Loading devices...' 
-                : !selectedCollectorId 
-                  ? 'Select collector first...'
-                  : devices.length === 0 
-                    ? 'No devices on collector' 
-                    : 'Search devices...'
-            }
-            className="w-[260px] h-9"
-            disabled={!selectedCollectorId}
-            showClear={!!hostname}
-            onChange={(e) => setDeviceSearchQuery(e.target.value)}
-          />
-          <ComboboxContent>
+          <InputGroup className="w-[225px] h-9" data-disabled={!selectedCollectorId}>
+            {/* Device icon with tooltip when device is selected */}
+            {hostname && (
+              <InputGroupAddon align="inline-start">
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <Server className={cn(
+                        "size-4 shrink-0 cursor-help",
+                        devices.find(d => d.name === hostname)?.hostStatus === 'normal'
+                          ? "text-green-500"
+                          : "text-red-500"
+                      )} />
+                    }
+                  />
+                  <TooltipContent>
+                    {devices.find(d => d.name === hostname)?.hostStatus === 'normal'
+                      ? 'Device is online'
+                      : 'Device is offline'}
+                  </TooltipContent>
+                </Tooltip>
+              </InputGroupAddon>
+            )}
+            <ComboboxPrimitive.Input
+              render={<InputGroupInput disabled={!selectedCollectorId} />}
+              placeholder={
+                isFetchingDevices 
+                  ? 'Loading devices...' 
+                  : !selectedCollectorId 
+                    ? 'Select collector first...'
+                    : devices.length === 0 
+                      ? 'No devices on collector' 
+                      : 'Search devices...'
+              }
+              onChange={(e) => setDeviceSearchQuery(e.target.value)}
+            />
+            <InputGroupAddon align="inline-end">
+              {hostname ? (
+                <ComboboxPrimitive.Clear
+                  render={<InputGroupButton variant="ghost" size="icon-xs" />}
+                >
+                  <X className="size-3.5 pointer-events-none" />
+                </ComboboxPrimitive.Clear>
+              ) : (
+                <InputGroupButton
+                  size="icon-xs"
+                  variant="ghost"
+                  render={<ComboboxPrimitive.Trigger />}
+                  disabled={!selectedCollectorId}
+                  className="data-pressed:bg-transparent"
+                >
+                  <ChevronDown className="size-3.5 text-muted-foreground pointer-events-none" />
+                </InputGroupButton>
+              )}
+            </InputGroupAddon>
+          </InputGroup>
+          <ComboboxContent className="min-w-[320px]">
             <ComboboxList>
               {isFetchingDevices ? (
                 <div className="flex items-center justify-center py-4 text-sm text-muted-foreground">
@@ -321,11 +409,16 @@ export function Toolbar() {
                       <Server className={cn(
                         "size-4 shrink-0",
                         device.hostStatus === 'normal' 
-                          ? "text-emerald-500" 
+                          ? "text-green-500" 
                           : "text-red-500"
                       )} />
                       <div className="flex flex-col min-w-0 flex-1">
-                        <span className="font-medium truncate">{device.displayName}</span>
+                        <span className="font-medium truncate">
+                          {device.displayName}
+                          {device.hostStatus !== 'normal' && (
+                            <span className="text-red-500 text-xs ml-1.5">(offline)</span>
+                          )}
+                        </span>
                         <span className="text-xs text-muted-foreground truncate">{device.name}</span>
                       </div>
                     </div>

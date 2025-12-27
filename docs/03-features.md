@@ -1,4 +1,4 @@
-# LM IDE - Feature Specifications
+# LogicMonitor IDE - Feature Specifications
 
 ## Feature Overview
 
@@ -449,11 +449,11 @@ As a user, I want to load existing LogicModule scripts so I can test and debug t
 Add a context menu item to the LM resource tree to open the IDE with device context pre-filled.
 
 **User Story:**  
-As a user browsing devices in LM, I want to right-click and "Open in LM IDE" to quickly debug scripts for that device.
+As a user browsing devices in LM, I want to right-click and "Open in LogicMonitor IDE" to quickly debug scripts for that device.
 
 **Behavior:**
 1. Content script monitors for context menu opens
-2. Injects "Open in LM IDE" menu item
+2. Injects "Open in LogicMonitor IDE" menu item
 3. Extracts device info (hostname, collector, properties)
 4. Opens editor with context pre-populated
 

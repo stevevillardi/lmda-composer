@@ -89,7 +89,7 @@ export function SettingsDialog() {
             Settings
           </DialogTitle>
           <DialogDescription>
-            Customize your LM IDE experience.
+            Customize your LogicMonitor IDE experience.
           </DialogDescription>
         </DialogHeader>
 

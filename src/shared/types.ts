@@ -1,7 +1,3 @@
-// ============================================================================
-// Core Types
-// ============================================================================
-
 export interface Portal {
   id: string;
   hostname: string;
@@ -23,15 +19,6 @@ export interface Collector {
   collectorGroupName: string;
 }
 
-export interface Device {
-  id: number;
-  name: string;
-  displayName: string;
-  preferredCollectorId: number;
-  properties: Record<string, string>;
-  portalId: string;
-}
-
 // Lightweight device info for dropdown display
 export interface DeviceInfo {
   id: number;
@@ -51,9 +38,7 @@ export interface FetchDevicesResponse {
   total: number;
 }
 
-// ============================================================================
-// User Preferences Types
-// ============================================================================
+// User Preferences
 
 export interface UserPreferences {
   theme: 'dark' | 'light' | 'system';
@@ -77,9 +62,7 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   maxHistorySize: 50,
 };
 
-// ============================================================================
-// Execution History Types
-// ============================================================================
+// Execution History
 
 export interface ExecutionHistoryEntry {
   id: string;
@@ -96,9 +79,7 @@ export interface ExecutionHistoryEntry {
   duration: number;
 }
 
-// ============================================================================
-// Draft Types
-// ============================================================================
+// Draft Auto-save
 
 export interface DraftScript {
   script: string;
@@ -108,9 +89,7 @@ export interface DraftScript {
   lastModified: number;
 }
 
-// ============================================================================
-// Script Execution Types
-// ============================================================================
+// Script Execution
 
 export type ScriptLanguage = 'groovy' | 'powershell';
 
@@ -145,9 +124,7 @@ export interface ExecutionResult {
   error?: string;
 }
 
-// ============================================================================
-// LogicModule Types
-// ============================================================================
+// LogicModules
 
 export type LogicModuleType = 
   | 'datasource'
@@ -231,9 +208,7 @@ export interface LogicModule {
   dataPoints: DataPoint[];
 }
 
-// ============================================================================
 // Message Types
-// ============================================================================
 
 export interface FetchModulesRequest {
   portalId: string;
@@ -267,8 +242,6 @@ export type EditorToSWMessage =
   | { type: 'GET_DEVICE_BY_ID'; payload: FetchDeviceByIdRequest }
   | { type: 'EXECUTE_SCRIPT'; payload: ExecuteScriptRequest }
   | { type: 'CANCEL_EXECUTION'; payload: { executionId: string } }
-  | { type: 'SEARCH_MODULES'; payload: { portalId: string; query: string } }
-  | { type: 'LOAD_MODULE'; payload: { portalId: string; moduleId: number } }
   | { type: 'FETCH_MODULES'; payload: FetchModulesRequest }
   | { type: 'OPEN_EDITOR'; payload?: DeviceContext };
 
@@ -278,10 +251,7 @@ export type SWToEditorMessage =
   | { type: 'DEVICES_UPDATE'; payload: FetchDevicesResponse }
   | { type: 'DEVICE_BY_ID_LOADED'; payload: FetchDeviceByIdResponse }
   | { type: 'EXECUTION_UPDATE'; payload: ExecutionResult }
-  | { type: 'MODULES_UPDATE'; payload: LogicModule[] }
-  | { type: 'MODULE_LOADED'; payload: LogicModule }
   | { type: 'MODULES_FETCHED'; payload: FetchModulesResponse }
-  | { type: 'DEVICE_LOADED'; payload: Device }
   | { type: 'ERROR'; payload: { code: string; message: string } };
 
 export type ContentToSWMessage =
@@ -293,9 +263,7 @@ export interface DeviceContext {
   resourceId?: number;  // Resource ID extracted from URL, used to fetch device details via API
 }
 
-// ============================================================================
 // Constants
-// ============================================================================
 
 export const API_VERSION = '3';
 export const MAX_SCRIPT_LENGTH = 64000;

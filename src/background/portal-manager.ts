@@ -13,6 +13,8 @@ interface PersistedPortalData {
 export class PortalManager {
   private portals: Map<string, Portal> = new Map();
   private initialized = false;
+  private persistTimeout: ReturnType<typeof setTimeout> | null = null;
+  private static readonly PERSIST_DEBOUNCE_MS = 300;
 
   /**
    * Initialize the PortalManager by loading persisted state.
@@ -26,7 +28,6 @@ export class PortalManager {
       const persisted = result[STORAGE_KEY] as PersistedPortalData[] | undefined;
       
       if (persisted && Array.isArray(persisted)) {
-        // Restore portals with empty tabIds (will be populated by discoverPortals)
         for (const data of persisted) {
           this.portals.set(data.id, {
             id: data.id,
@@ -34,37 +35,42 @@ export class PortalManager {
             displayName: data.displayName,
             csrfToken: data.csrfToken,
             csrfTokenTimestamp: data.csrfTokenTimestamp,
-            tabIds: [], // Will be populated by discoverPortals
+            tabIds: [],
             status: data.csrfToken ? 'active' : 'unknown',
           });
         }
-        console.log(`Restored ${persisted.length} portals from storage`);
       }
-    } catch (error) {
-      console.warn('Failed to restore portal state:', error);
+    } catch {
+      // Storage may be unavailable in some contexts
     }
     
     this.initialized = true;
   }
 
   /**
-   * Persist current portal state to storage.
-   * Called after any state changes.
+   * Persist current portal state to storage with debouncing.
+   * Debouncing prevents storage thrashing when multiple tabs are active.
    */
-  private async persistState(): Promise<void> {
-    try {
-      const data: PersistedPortalData[] = Array.from(this.portals.values()).map(p => ({
-        id: p.id,
-        hostname: p.hostname,
-        displayName: p.displayName,
-        csrfToken: p.csrfToken,
-        csrfTokenTimestamp: p.csrfTokenTimestamp,
-      }));
-      
-      await chrome.storage.local.set({ [STORAGE_KEY]: data });
-    } catch (error) {
-      console.warn('Failed to persist portal state:', error);
+  private persistState(): void {
+    if (this.persistTimeout) {
+      clearTimeout(this.persistTimeout);
     }
+    
+    this.persistTimeout = setTimeout(async () => {
+      try {
+        const data: PersistedPortalData[] = Array.from(this.portals.values()).map(p => ({
+          id: p.id,
+          hostname: p.hostname,
+          displayName: p.displayName,
+          csrfToken: p.csrfToken,
+          csrfTokenTimestamp: p.csrfTokenTimestamp,
+        }));
+        
+        await chrome.storage.local.set({ [STORAGE_KEY]: data });
+      } catch {
+        // Storage may be unavailable in some contexts
+      }
+    }, PortalManager.PERSIST_DEBOUNCE_MS);
   }
 
   /**
@@ -78,13 +84,10 @@ export class PortalManager {
       const index = portal.tabIds.indexOf(tabId);
       if (index !== -1) {
         portal.tabIds.splice(index, 1);
-        console.log(`Removed tab ${tabId} from portal ${portal.hostname}, ${portal.tabIds.length} tabs remaining`);
         stateChanged = true;
         
-        // If no more tabs, remove the portal entirely
         if (portal.tabIds.length === 0) {
           this.portals.delete(portal.id);
-          console.log(`Portal ${portal.hostname} removed (no more tabs)`);
         }
       }
     }
@@ -113,17 +116,13 @@ export class PortalManager {
           return tabId;
         }
       } catch {
-        // Tab doesn't exist, remove it from the list
         portal.tabIds.splice(i, 1);
-        i--; // Adjust index since we removed an element
-        console.log(`Removed stale tab ${tabId} from portal ${portal.hostname}`);
+        i--;
       }
     }
     
-    // No valid tabs found
     if (portal.tabIds.length === 0) {
       this.portals.delete(portal.id);
-      console.log(`Portal ${portal.hostname} removed (all tabs stale)`);
     }
     
     return null;
@@ -145,12 +144,8 @@ export class PortalManager {
       for (const tab of tabs) {
         if (!tab.url || !tab.id) continue;
         
-        // Check if this tab has the LogicMonitor meta tag
         const isLMPortal = await this.verifyLogicMonitorPortal(tab.id);
-        if (!isLMPortal) {
-          console.log(`Tab ${tab.id} (${tab.url}) is not a LogicMonitor portal, skipping`);
-          continue;
-        }
+        if (!isLMPortal) continue;
         
         const url = new URL(tab.url);
         const hostname = url.hostname;
@@ -190,8 +185,8 @@ export class PortalManager {
       // Request CSRF tokens from content scripts
       await this.refreshAllCsrfTokens();
       
-      // Persist updated state
-      await this.persistState();
+      // Persist updated state (debounced)
+      this.persistState();
 
       return Array.from(this.portals.values());
     } catch (error) {
@@ -215,8 +210,7 @@ export class PortalManager {
         },
       });
       return results?.[0]?.result === true;
-    } catch (error) {
-      console.warn(`Failed to verify portal for tab ${tabId}:`, error);
+    } catch {
       return false;
     }
   }
@@ -246,7 +240,6 @@ export class PortalManager {
   private async refreshCsrfToken(portal: Portal): Promise<void> {
     const tabId = await this.getValidTabId(portal);
     if (!tabId) {
-      console.warn(`No valid tabs for portal ${portal.hostname} to refresh CSRF token`);
       portal.status = 'expired';
       return;
     }
@@ -261,8 +254,7 @@ export class PortalManager {
       if (results?.[0]?.result) {
         this.updateCsrfToken(portal.id, results[0].result);
       }
-    } catch (error) {
-      console.warn(`Failed to refresh CSRF token for ${portal.hostname}:`, error);
+    } catch {
       portal.status = 'expired';
     }
   }
@@ -283,16 +275,10 @@ export class PortalManager {
    */
   async getCollectors(portalId: string): Promise<Collector[]> {
     const portal = this.portals.get(portalId);
-    if (!portal || portal.tabIds.length === 0) {
-      console.warn(`No active tabs for portal ${portalId}`);
-      return [];
-    }
+    if (!portal || portal.tabIds.length === 0) return [];
 
     const tabId = await this.getValidTabId(portal);
-    if (!tabId) {
-      console.warn(`No valid tabs for portal ${portalId} to fetch collectors`);
-      return [];
-    }
+    if (!tabId) return [];
 
     try {
       const results = await chrome.scripting.executeScript({
@@ -301,12 +287,8 @@ export class PortalManager {
         args: [portal.csrfToken],
       });
 
-      if (results?.[0]?.result) {
-        return results[0].result;
-      }
-      return [];
-    } catch (error) {
-      console.error(`Failed to fetch collectors for ${portalId}:`, error);
+      return results?.[0]?.result ?? [];
+    } catch {
       return [];
     }
   }
@@ -316,16 +298,10 @@ export class PortalManager {
    */
   async getDevices(portalId: string, collectorId: number): Promise<{ items: DeviceInfo[]; total: number }> {
     const portal = this.portals.get(portalId);
-    if (!portal || portal.tabIds.length === 0) {
-      console.warn(`No active tabs for portal ${portalId}`);
-      return { items: [], total: 0 };
-    }
+    if (!portal || portal.tabIds.length === 0) return { items: [], total: 0 };
 
     const tabId = await this.getValidTabId(portal);
-    if (!tabId) {
-      console.warn(`No valid tabs for portal ${portalId} to fetch devices`);
-      return { items: [], total: 0 };
-    }
+    if (!tabId) return { items: [], total: 0 };
 
     try {
       const results = await chrome.scripting.executeScript({
@@ -334,12 +310,8 @@ export class PortalManager {
         args: [portal.csrfToken, collectorId],
       });
 
-      if (results?.[0]?.result) {
-        return results[0].result;
-      }
-      return { items: [], total: 0 };
-    } catch (error) {
-      console.error(`Failed to fetch devices for collector ${collectorId}:`, error);
+      return results?.[0]?.result ?? { items: [], total: 0 };
+    } catch {
       return { items: [], total: 0 };
     }
   }
@@ -354,16 +326,10 @@ export class PortalManager {
     currentCollectorId: number;
   } | null> {
     const portal = this.portals.get(portalId);
-    if (!portal || portal.tabIds.length === 0) {
-      console.warn(`No active tabs for portal ${portalId}`);
-      return null;
-    }
+    if (!portal || portal.tabIds.length === 0) return null;
 
     const tabId = await this.getValidTabId(portal);
-    if (!tabId) {
-      console.warn(`No valid tabs for portal ${portalId} to fetch device`);
-      return null;
-    }
+    if (!tabId) return null;
 
     try {
       const results = await chrome.scripting.executeScript({
@@ -372,12 +338,8 @@ export class PortalManager {
         args: [portal.csrfToken, resourceId],
       });
 
-      if (results?.[0]?.result) {
-        return results[0].result;
-      }
-      return null;
-    } catch (error) {
-      console.error(`Failed to fetch device ${resourceId} for ${portalId}:`, error);
+      return results?.[0]?.result ?? null;
+    } catch {
       return null;
     }
   }
@@ -400,10 +362,7 @@ export class PortalManager {
    */
   async refreshCsrfTokenForPortal(portalId: string): Promise<string | null> {
     const portal = this.portals.get(portalId);
-    if (!portal) {
-      console.warn(`Portal ${portalId} not found for CSRF refresh`);
-      return null;
-    }
+    if (!portal) return null;
 
     await this.refreshCsrfToken(portal);
     return portal.csrfToken;
@@ -452,12 +411,9 @@ function fetchCollectors(csrfToken: string | null): Promise<Array<{
     }
     
     xhr.onload = () => {
-      console.log('Collectors API response status:', xhr.status);
       if (xhr.status === 200) {
         try {
           const response = JSON.parse(xhr.responseText);
-          console.log('Collectors API response:', response);
-          // LM API returns items directly, not under data
           const items = response.items || response.data?.items || [];
           const collectors = items.map((c: {
             id: number;
@@ -474,22 +430,16 @@ function fetchCollectors(csrfToken: string | null): Promise<Array<{
             isDown: c.isDown,
             collectorGroupName: c.collectorGroupName,
           }));
-          console.log('Parsed collectors:', collectors.length);
           resolve(collectors);
-        } catch (e) {
-          console.error('Failed to parse collectors response:', e);
+        } catch {
           resolve([]);
         }
       } else {
-        console.error('Failed to fetch collectors:', xhr.status, xhr.statusText);
         resolve([]);
       }
     };
     
-    xhr.onerror = () => {
-      console.error('Network error fetching collectors');
-      resolve([]);
-    };
+    xhr.onerror = () => resolve([]);
     xhr.send();
   });
 }
@@ -516,11 +466,9 @@ function fetchDevices(csrfToken: string | null, collectorId: number): Promise<{
     }
     
     xhr.onload = () => {
-      console.log('Devices API response status:', xhr.status);
       if (xhr.status === 200) {
         try {
           const response = JSON.parse(xhr.responseText);
-          console.log('Devices API response:', response);
           const items = response.items || response.data?.items || [];
           const devices = items.map((d: {
             id: number;
@@ -535,22 +483,16 @@ function fetchDevices(csrfToken: string | null, collectorId: number): Promise<{
             currentCollectorId: d.currentCollectorId,
             hostStatus: d.hostStatus || 'unknown',
           }));
-          console.log('Parsed devices:', devices.length);
           resolve({ items: devices, total: response.total || devices.length });
-        } catch (e) {
-          console.error('Failed to parse devices response:', e);
+        } catch {
           resolve({ items: [], total: 0 });
         }
       } else {
-        console.error('Failed to fetch devices:', xhr.status, xhr.statusText);
         resolve({ items: [], total: 0 });
       }
     };
     
-    xhr.onerror = () => {
-      console.error('Network error fetching devices');
-      resolve({ items: [], total: 0 });
-    };
+    xhr.onerror = () => resolve({ items: [], total: 0 });
     xhr.send();
   });
 }
@@ -572,12 +514,9 @@ function fetchDeviceById(csrfToken: string | null, resourceId: number): Promise<
     }
     
     xhr.onload = () => {
-      console.log('Device by ID API response status:', xhr.status);
       if (xhr.status === 200) {
         try {
           const response = JSON.parse(xhr.responseText);
-          console.log('Device by ID API response:', response);
-          // API returns the device directly, not wrapped in items array
           const device = response.data || response;
           resolve({
             id: device.id,
@@ -585,20 +524,15 @@ function fetchDeviceById(csrfToken: string | null, resourceId: number): Promise<
             displayName: device.displayName || device.name,
             currentCollectorId: device.currentCollectorId,
           });
-        } catch (e) {
-          console.error('Failed to parse device response:', e);
+        } catch {
           resolve(null);
         }
       } else {
-        console.error('Failed to fetch device:', xhr.status, xhr.statusText);
         resolve(null);
       }
     };
     
-    xhr.onerror = () => {
-      console.error('Network error fetching device');
-      resolve(null);
-    };
+    xhr.onerror = () => resolve(null);
     xhr.send();
   });
 }

@@ -1,8 +1,8 @@
-# LM IDE - Data Models & Types
+# LogicMonitor IDE - Data Models & Types
 
 ## Overview
 
-This document defines all TypeScript interfaces and types used throughout the LM IDE extension. These serve as the contract between components.
+This document defines all TypeScript interfaces and types used throughout the LogicMonitor IDE extension. These serve as the contract between components.
 
 ---
 

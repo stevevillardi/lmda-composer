@@ -24,7 +24,7 @@ function isExtensionContextValid(): boolean {
  */
 function safeSendMessage(message: ContentToSWMessage): boolean {
   if (!isExtensionContextValid()) {
-    console.warn('LM IDE: Extension context invalidated. Please refresh the page.');
+    console.warn('LogicMonitor IDE: Extension context invalidated. Please refresh the page.');
     showRefreshNotification();
     return false;
   }
@@ -33,7 +33,7 @@ function safeSendMessage(message: ContentToSWMessage): boolean {
     chrome.runtime.sendMessage(message);
     return true;
   } catch (error) {
-    console.error('LM IDE: Failed to send message:', error);
+    console.error('LogicMonitor IDE: Failed to send message:', error);
     showRefreshNotification();
     return false;
   }
@@ -74,8 +74,8 @@ function showRefreshNotification() {
       <line x1="12" y1="16" x2="12.01" y2="16"></line>
     </svg>
     <div style="flex: 1;">
-      <div style="font-weight: 600; margin-bottom: 4px;">LM IDE Updated</div>
-      <div style="opacity: 0.8; font-size: 13px;">Please refresh the page to use LM IDE.</div>
+      <div style="font-weight: 600; margin-bottom: 4px;">LogicMonitor IDE Updated</div>
+      <div style="opacity: 0.8; font-size: 13px;">Please refresh the page to use LogicMonitor IDE.</div>
     </div>
     <button style="
       background: #3b82f6;
@@ -157,7 +157,7 @@ async function sendCsrfToken() {
     
     xhr.send();
   } catch (error) {
-    console.error('LM IDE: Failed to fetch CSRF token:', error);
+    console.error('LogicMonitor IDE: Failed to fetch CSRF token:', error);
   }
 }
 
@@ -201,7 +201,7 @@ function isResourceOptionsMenu(menuContainer: HTMLElement): boolean {
   return matchCount >= 2;
 }
 
-// Watch for resource tree menu and inject "Open in LM IDE" option
+// Watch for resource tree menu and inject "Open in LogicMonitor IDE" option
 function setupResourceTreeObserver() {
   const observer = new MutationObserver((mutations) => {
     for (const mutation of mutations) {

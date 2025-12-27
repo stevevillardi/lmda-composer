@@ -1,10 +1,11 @@
-import { Trash2, Copy, CheckCircle2, XCircle, Clock, Loader2 } from 'lucide-react';
+import { Trash2, Copy, CheckCircle2, XCircle, Clock, Loader2, Play } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useEditorStore } from '../stores/editor-store';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/components/ui/empty';
 import { cn } from '@/lib/utils';
 import { ParsedContent } from './ParsedContent';
 import { ValidationContent } from './ValidationContent';
@@ -116,9 +117,17 @@ export function OutputPanel() {
             ) : currentExecution ? (
               <RawOutputContent execution={currentExecution} />
             ) : (
-              <div className="text-muted-foreground">
-                Run a script to see output here.
-              </div>
+              <Empty className="border-none h-full">
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    <Play className="size-5" />
+                  </EmptyMedia>
+                  <EmptyTitle className="text-base">No output yet</EmptyTitle>
+                  <EmptyDescription>
+                    Run a script to see the output here
+                  </EmptyDescription>
+                </EmptyHeader>
+              </Empty>
             )}
           </TabsContent>
 

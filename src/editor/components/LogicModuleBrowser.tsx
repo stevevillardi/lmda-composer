@@ -9,6 +9,8 @@ import {
   Search,
   Loader2,
   AlertTriangle,
+  FolderSearch,
+  Eye,
 } from 'lucide-react';
 import { useEditorStore } from '../stores/editor-store';
 import {
@@ -31,6 +33,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Input } from '@/components/ui/input';
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/components/ui/empty';
 import { cn } from '@/lib/utils';
 import type { LogicModuleType, LogicModuleInfo } from '@/shared/types';
 import { ModulePreview } from './ModulePreview';
@@ -154,12 +157,21 @@ export function LogicModuleBrowser() {
                     <Loader2 className="size-6 animate-spin text-muted-foreground" />
                   </div>
                 ) : filteredModules.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center h-32 text-muted-foreground text-sm">
-                    <p>No modules found</p>
-                    {!selectedPortalId && (
-                      <p className="text-xs mt-1">Select a portal first</p>
-                    )}
-                  </div>
+                  <Empty className="border-none h-full py-8">
+                    <EmptyHeader>
+                      <EmptyMedia variant="icon">
+                        <FolderSearch className="size-5" />
+                      </EmptyMedia>
+                      <EmptyTitle className="text-base">No modules found</EmptyTitle>
+                      <EmptyDescription>
+                        {!selectedPortalId 
+                          ? 'Select a portal to browse modules'
+                          : moduleSearchQuery 
+                            ? 'Try a different search term or module type'
+                            : 'No script-based modules of this type exist'}
+                      </EmptyDescription>
+                    </EmptyHeader>
+                  </Empty>
                 ) : (
                   <div className="divide-y divide-border">
                     {filteredModules.map((module) => (
@@ -180,9 +192,17 @@ export function LogicModuleBrowser() {
               {selectedModule ? (
                 <ModulePreview module={selectedModule} />
               ) : (
-                <div className="flex-1 flex items-center justify-center text-muted-foreground">
-                  <p>Select a module to preview</p>
-                </div>
+                <Empty className="flex-1 border-none">
+                  <EmptyHeader>
+                    <EmptyMedia variant="icon">
+                      <Eye className="size-5" />
+                    </EmptyMedia>
+                    <EmptyTitle className="text-base">No module selected</EmptyTitle>
+                    <EmptyDescription>
+                      Select a module from the list to preview its scripts
+                    </EmptyDescription>
+                  </EmptyHeader>
+                </Empty>
               )}
             </div>
           </div>

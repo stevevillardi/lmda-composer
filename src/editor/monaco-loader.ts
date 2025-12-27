@@ -179,8 +179,6 @@ loader.init().then((monaco) => {
       }
     }
   });
-
-  console.log('Groovy language registered with Monaco');
 });
 
 export { monaco };

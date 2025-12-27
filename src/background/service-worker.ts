@@ -15,6 +15,11 @@ import type {
 const portalManager = new PortalManager();
 const moduleLoader = new ModuleLoader(portalManager);
 
+// Load persisted portal state on service worker startup
+portalManager.initialize().catch((err) => {
+  console.error('Failed to initialize PortalManager:', err);
+});
+
 // Create executor context that bridges to PortalManager
 const executorContext: ExecutorContext = {
   getCsrfToken: (portalId: string) => portalManager.getCsrfToken(portalId),
@@ -103,28 +108,22 @@ async function handleMessage(
 
       case 'GET_COLLECTORS': {
         const { portalId } = message.payload;
-        console.log('GET_COLLECTORS request for portal:', portalId);
         const collectors = await portalManager.getCollectors(portalId);
-        console.log('GET_COLLECTORS response:', collectors.length, 'collectors');
         sendResponse({ type: 'COLLECTORS_UPDATE', payload: collectors });
         break;
       }
 
       case 'GET_DEVICES': {
         const { portalId, collectorId } = message.payload as FetchDevicesRequest;
-        console.log('GET_DEVICES request for collector:', collectorId);
         const response = await portalManager.getDevices(portalId, collectorId);
-        console.log('GET_DEVICES response:', response.items.length, 'devices');
         sendResponse({ type: 'DEVICES_UPDATE', payload: response });
         break;
       }
 
       case 'GET_DEVICE_BY_ID': {
         const { portalId, resourceId } = message.payload as FetchDeviceByIdRequest;
-        console.log('GET_DEVICE_BY_ID request for resource:', resourceId);
         const device = await portalManager.getDeviceById(portalId, resourceId);
         if (device) {
-          console.log('GET_DEVICE_BY_ID response:', device.name, 'collectorId:', device.currentCollectorId);
           sendResponse({ type: 'DEVICE_BY_ID_LOADED', payload: device });
         } else {
           sendResponse({ type: 'ERROR', payload: { code: 'DEVICE_NOT_FOUND', message: `Device ${resourceId} not found` } });
@@ -134,19 +133,13 @@ async function handleMessage(
 
       case 'EXECUTE_SCRIPT': {
         const request = message.payload as ExecuteScriptRequest;
-        console.log('EXECUTE_SCRIPT request:', request.language, 'on collector', request.collectorId);
-        
         const result = await scriptExecutor.execute(request);
-        console.log('EXECUTE_SCRIPT result:', result.status, 'duration:', result.duration, 'ms');
-        
         sendResponse({ type: 'EXECUTION_UPDATE', payload: result });
         break;
       }
 
       case 'CANCEL_EXECUTION': {
         const { executionId } = message.payload;
-        console.log('CANCEL_EXECUTION request for:', executionId);
-        
         const cancelled = scriptExecutor.cancelExecution(executionId);
         sendResponse({ success: cancelled });
         break;
@@ -154,11 +147,7 @@ async function handleMessage(
 
       case 'FETCH_MODULES': {
         const { portalId, moduleType } = message.payload as FetchModulesRequest;
-        console.log('FETCH_MODULES request:', moduleType, 'for portal', portalId);
-        
         const response = await moduleLoader.fetchModules(portalId, moduleType);
-        console.log('FETCH_MODULES response:', response.items.length, 'modules, total:', response.total);
-        
         sendResponse({ type: 'MODULES_FETCHED', payload: response });
         break;
       }
@@ -188,7 +177,7 @@ async function openEditorWindow(context?: DeviceContext) {
     if (context.resourceId) url.searchParams.set('resourceId', context.resourceId.toString());
   }
 
-  // Check if there's already an LM IDE tab open
+  // Check if there's already an LogicMonitor IDE tab open
   const existingTabs = await chrome.tabs.query({ 
     url: chrome.runtime.getURL('src/editor/index.html') + '*' 
   });
@@ -228,5 +217,3 @@ chrome.tabs.onUpdated.addListener(async (_tabId, changeInfo, tab) => {
 chrome.tabs.onRemoved.addListener((tabId) => {
   portalManager.handleTabRemoved(tabId);
 });
-
-console.log('LM IDE Service Worker initialized');

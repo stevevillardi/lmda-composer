@@ -1,8 +1,8 @@
-# LM IDE - LogicMonitor API Reference
+# LogicMonitor IDE - LogicMonitor API Reference
 
 ## Overview
 
-This document covers the LogicMonitor REST API v3 endpoints required for the LM IDE extension. All endpoints are relative to the portal hostname (e.g., `https://acme.logicmonitor.com`).
+This document covers the LogicMonitor REST API v3 endpoints required for the LogicMonitor IDE extension. All endpoints are relative to the portal hostname (e.g., `https://acme.logicmonitor.com`).
 
 **Base URL:** `https://{portal}.logicmonitor.com/santaba/rest`
 

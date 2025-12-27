@@ -1,8 +1,9 @@
-import { CheckCircle2, XCircle, AlertTriangle, Info, FileText } from 'lucide-react';
+import { CheckCircle2, XCircle, AlertTriangle, Info, FileText, Play, Terminal } from 'lucide-react';
 import { useEditorStore } from '../stores/editor-store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/components/ui/empty';
 import { cn } from '@/lib/utils';
 import { 
   getAllIssues, 
@@ -17,9 +18,17 @@ export function ValidationContent() {
   // No execution yet
   if (!currentExecution) {
     return (
-      <div className="text-muted-foreground p-4">
-        Run a script to see validation results here.
-      </div>
+      <Empty className="border-none h-full">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <Play className="size-5" />
+          </EmptyMedia>
+          <EmptyTitle className="text-base">No validation yet</EmptyTitle>
+          <EmptyDescription>
+            Run a script to see validation results here
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
     );
   }
 
@@ -45,11 +54,21 @@ export function ValidationContent() {
   // No parsed output available
   if (!parsedOutput) {
     return (
-      <div className="text-muted-foreground p-4">
-        {mode === 'freeform' 
-          ? 'Validation is not available in Freeform mode.'
-          : 'No validation data available. Run a script to see results.'}
-      </div>
+      <Empty className="border-none h-full">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <Terminal className="size-5" />
+          </EmptyMedia>
+          <EmptyTitle className="text-base">
+            {mode === 'freeform' ? 'Validation unavailable' : 'No validation data'}
+          </EmptyTitle>
+          <EmptyDescription>
+            {mode === 'freeform' 
+              ? 'Switch to AD or Collection mode to validate output'
+              : 'Run a script to see validation results'}
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
     );
   }
 

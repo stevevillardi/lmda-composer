@@ -1,7 +1,7 @@
 {
   "name": "lm-ide",
   "version": "1.0.0",
-  "description": "LM IDE - Enhanced LogicMonitor script development environment",
+  "description": "LogicMonitor IDE - Enhanced LogicMonitor script development environment",
   "type": "module",
   "scripts": {
     "dev": "vite",

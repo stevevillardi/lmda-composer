@@ -8,10 +8,6 @@
 import { API_VERSION, EXECUTION_POLL_INTERVAL_MS, EXECUTION_MAX_ATTEMPTS } from '@/shared/types';
 import { fetchWithRetry, updateRateLimitState } from './rate-limiter';
 
-// ============================================================================
-// Types
-// ============================================================================
-
 export interface PollResult {
   status: 'pending' | 'complete' | 'error';
   output?: string;
@@ -26,10 +22,6 @@ interface DebugPollResponse {
   output?: string;
   sessionId?: string;
 }
-
-// ============================================================================
-// Debug API Functions
-// ============================================================================
 
 /**
  * Execute a debug command on a collector.
@@ -189,10 +181,6 @@ export async function executeAndPoll(
   throw new Error(`Execution timed out after ${EXECUTION_MAX_ATTEMPTS} seconds`);
 }
 
-// ============================================================================
-// Command Builders
-// ============================================================================
-
 /**
  * Groovy preamble that sets up hostProps, instanceProps, datasourceinstanceProps, and taskProps.
  * Uses base64-encoded values which are replaced before execution.
@@ -255,25 +243,18 @@ export function buildGroovyCommand(
     finalScript = preamble + script;
   }
   
-  // hostId is always null - we use the preamble approach instead
   return `!groovy hostId=null \n${finalScript}`;
 }
 
 /**
  * Build a PowerShell debug command line.
- * @param script The PowerShell script to execute
  */
 export function buildPowerShellCommand(script: string): string {
   return `!posh \n${script}`;
 }
 
-// ============================================================================
-// Helpers
-// ============================================================================
-
 /**
  * Sleep with support for AbortSignal cancellation.
- * Throws if aborted during sleep.
  */
 function sleepWithAbort(ms: number, abortSignal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -282,14 +263,18 @@ function sleepWithAbort(ms: number, abortSignal?: AbortSignal): Promise<void> {
       return;
     }
     
-    const timeoutId = setTimeout(resolve, ms);
-    
     const abortHandler = () => {
       clearTimeout(timeoutId);
+      abortSignal?.removeEventListener('abort', abortHandler);
       reject(new Error('Execution cancelled'));
     };
     
-    abortSignal?.addEventListener('abort', abortHandler, { once: true });
+    const timeoutId = setTimeout(() => {
+      abortSignal?.removeEventListener('abort', abortHandler);
+      resolve();
+    }, ms);
+    
+    abortSignal?.addEventListener('abort', abortHandler);
   });
 }
 

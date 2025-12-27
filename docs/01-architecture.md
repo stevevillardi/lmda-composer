@@ -1,8 +1,8 @@
-# LM IDE - Extension Architecture
+# LogicMonitor IDE - Extension Architecture
 
 ## Overview
 
-LM IDE is a Chrome Extension (Manifest V3) that provides an enhanced script development experience for LogicMonitor. It intercepts and replaces the native debug dialog with a full-featured Monaco-based editor.
+LogicMonitor IDE is a Chrome Extension (Manifest V3) that provides an enhanced script development experience for LogicMonitor. It intercepts and replaces the native debug dialog with a full-featured Monaco-based editor.
 
 ---
 

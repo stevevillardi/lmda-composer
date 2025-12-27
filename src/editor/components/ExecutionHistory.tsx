@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/components/ui/empty';
 import type { ExecutionHistoryEntry } from '@/shared/types';
 
 function formatTimestamp(timestamp: number): string {
@@ -181,13 +182,17 @@ export function ExecutionHistory() {
 
         <ScrollArea className="h-[calc(100vh-220px)] mt-4 -ml-2">
           {executionHistory.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground pl-2">
-              <Clock className="size-12 mb-4 opacity-20" />
-              <p className="text-sm font-medium">No execution history</p>
-              <p className="text-xs mt-1">
-                Run a script to see it appear here.
-              </p>
-            </div>
+            <Empty className="border-none py-12 pl-2">
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <Clock className="size-5" />
+                </EmptyMedia>
+                <EmptyTitle className="text-base">No execution history</EmptyTitle>
+                <EmptyDescription>
+                  Run a script to see it appear here
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
           ) : (
             <div className="flex flex-col gap-2 pl-2 pr-4">
               {executionHistory.map((entry) => (

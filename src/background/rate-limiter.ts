@@ -2,12 +2,7 @@
  * Rate Limiter Utility
  * 
  * Provides rate limit detection and exponential backoff for API calls.
- * Tracks rate limit headers and automatically retries with backoff when limits are hit.
  */
-
-// ============================================================================
-// Types
-// ============================================================================
 
 export interface RateLimitState {
   remaining: number | null;
@@ -27,11 +22,6 @@ const DEFAULT_RETRY_OPTIONS: Required<RetryOptions> = {
   maxDelayMs: 30000,
 };
 
-// ============================================================================
-// Rate Limit State
-// ============================================================================
-
-// Track rate limit state per portal
 const rateLimitStates: Map<string, RateLimitState> = new Map();
 
 /**
@@ -71,23 +61,15 @@ export function getWaitTime(portal: string): number {
   if (state.remaining !== null && state.remaining <= 2) {
     if (state.resetTime !== null) {
       const waitMs = state.resetTime - Date.now();
-      if (waitMs > 0) {
-        console.log(`Rate limit approaching for ${portal}, waiting ${waitMs}ms`);
-        return waitMs;
-      }
+      if (waitMs > 0) return waitMs;
     }
   }
   
   return 0;
 }
 
-// ============================================================================
-// Retry with Exponential Backoff
-// ============================================================================
-
 /**
  * Execute a fetch with exponential backoff on rate limit errors.
- * Automatically handles 429 responses and retries with increasing delays.
  */
 export async function fetchWithRetry(
   url: string,
@@ -130,7 +112,6 @@ export async function fetchWithRetry(
         }
         
         if (attempt < opts.maxRetries) {
-          console.log(`Rate limited (429), retrying in ${delayMs}ms (attempt ${attempt + 1}/${opts.maxRetries})`);
           await sleep(delayMs);
           continue;
         }
@@ -154,17 +135,12 @@ export async function fetchWithRetry(
       
       // Exponential backoff for other errors
       const delayMs = Math.min(opts.baseDelayMs * Math.pow(2, attempt), opts.maxDelayMs);
-      console.log(`Request failed, retrying in ${delayMs}ms (attempt ${attempt + 1}/${opts.maxRetries})`);
       await sleep(delayMs);
     }
   }
   
   throw lastError ?? new Error('Request failed after all retries');
 }
-
-// ============================================================================
-// Helpers
-// ============================================================================
 
 function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));

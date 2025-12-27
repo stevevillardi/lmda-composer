@@ -1,4 +1,4 @@
-import { CheckCircle2, XCircle, AlertTriangle, Info, ChevronDown, ChevronRight } from 'lucide-react';
+import { CheckCircle2, XCircle, AlertTriangle, Info, ChevronDown, ChevronRight, Play, Terminal, ListX } from 'lucide-react';
 import { useState } from 'react';
 import { useEditorStore } from '../stores/editor-store';
 import {
@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/components/ui/empty';
 import { cn } from '@/lib/utils';
 import type { 
   ADInstance, 
@@ -26,29 +27,55 @@ export function ParsedContent() {
   // No execution yet
   if (!currentExecution) {
     return (
-      <div className="text-muted-foreground p-4">
-        Run a script to see parsed output here.
-      </div>
+      <Empty className="border-none h-full">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <Play className="size-5" />
+          </EmptyMedia>
+          <EmptyTitle className="text-base">No parsed output yet</EmptyTitle>
+          <EmptyDescription>
+            Run a script to see parsed output here
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
     );
   }
 
   // Execution failed
   if (currentExecution.status === 'error') {
     return (
-      <div className="text-muted-foreground p-4">
-        Script execution failed. Check the Raw Output tab for details.
-      </div>
+      <Empty className="border-none h-full">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <XCircle className="size-5 text-red-500" />
+          </EmptyMedia>
+          <EmptyTitle className="text-base">Execution failed</EmptyTitle>
+          <EmptyDescription>
+            Check the Raw Output tab for error details
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
     );
   }
 
   // No parsed output available
   if (!parsedOutput) {
     return (
-      <div className="text-muted-foreground p-4">
-        {mode === 'freeform' 
-          ? 'Parsing is not available in Freeform mode.'
-          : 'No parsed output available. Run a script to see results.'}
-      </div>
+      <Empty className="border-none h-full">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <Terminal className="size-5" />
+          </EmptyMedia>
+          <EmptyTitle className="text-base">
+            {mode === 'freeform' ? 'Parsing unavailable' : 'No parsed output'}
+          </EmptyTitle>
+          <EmptyDescription>
+            {mode === 'freeform' 
+              ? 'Switch to AD or Collection mode to parse output'
+              : 'Run a script to see parsed results'}
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
     );
   }
 
@@ -73,9 +100,17 @@ function ADParseResultTable({ result }: ADParseResultTableProps) {
 
   if (instances.length === 0 && unparsedLines.length === 0) {
     return (
-      <div className="text-muted-foreground p-4">
-        No instances found in output.
-      </div>
+      <Empty className="border-none h-full py-8">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <ListX className="size-5" />
+          </EmptyMedia>
+          <EmptyTitle className="text-base">No instances found</EmptyTitle>
+          <EmptyDescription>
+            The script output didn't contain any valid AD instances
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
     );
   }
 
@@ -240,9 +275,17 @@ function CollectionParseResultTable({ result }: CollectionParseResultTableProps)
 
   if (datapoints.length === 0 && unparsedLines.length === 0) {
     return (
-      <div className="text-muted-foreground p-4">
-        No datapoints found in output.
-      </div>
+      <Empty className="border-none h-full py-8">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <ListX className="size-5" />
+          </EmptyMedia>
+          <EmptyTitle className="text-base">No datapoints found</EmptyTitle>
+          <EmptyDescription>
+            The script output didn't contain any valid datapoints
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
     );
   }
 

@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "LM IDE - LogicMonitor Script Development",
+  "name": "LogicMonitor IDE - LogicMonitor Script Development",
   "version": "1.0.0",
   "description": "Enhanced script development and debugging experience for LogicMonitor power users",
   "icons": {
@@ -29,7 +29,7 @@
     }
   ],
   "action": {
-    "default_title": "LM IDE",
+    "default_title": "LogicMonitor IDE",
     "default_icon": {
       "16": "src/assets/icon16.png",
       "48": "src/assets/icon48.png"

@@ -109,16 +109,12 @@ export function App() {
     const resourceIdParam = params.get('resourceId');
     
     if (portalParam) {
-      // Find the portal that matches the URL param
       const matchingPortal = portals.find(p => p.id === portalParam || p.hostname === portalParam);
       if (matchingPortal) {
-        console.log('Applying URL param: portal =', matchingPortal.id);
         setSelectedPortal(matchingPortal.id);
         
-        // If we have a resourceId, store it for fetching after collectors load
         if (resourceIdParam) {
           const resourceId = parseInt(resourceIdParam, 10);
-          console.log('Storing pending resourceId:', resourceId);
           setPendingResourceId(resourceId);
         }
       }
@@ -139,9 +135,6 @@ export function App() {
       if (pendingResourceId && collectors.length > 0) {
         const { selectedPortalId } = useEditorStore.getState();
         if (selectedPortalId) {
-          console.log('Fetching device details for resourceId:', pendingResourceId);
-          
-          // Fetch the device
           const response = await chrome.runtime.sendMessage({
             type: 'GET_DEVICE_BY_ID',
             payload: { portalId: selectedPortalId, resourceId: pendingResourceId },
@@ -149,13 +142,8 @@ export function App() {
           
           if (response?.type === 'DEVICE_BY_ID_LOADED') {
             const device = response.payload;
-            console.log('Device loaded:', device.name, 'collectorId:', device.currentCollectorId);
-            
-            // Store hostname for later - we'll set it after devices are loaded
-            // because setSelectedCollector clears the hostname
             setPendingHostname(device.name);
             
-            // Set the collector (this clears hostname and triggers fetchDevices)
             const matchingCollector = collectors.find(c => c.id === device.currentCollectorId);
             if (matchingCollector) {
               setSelectedCollector(device.currentCollectorId);
@@ -169,21 +157,19 @@ export function App() {
     fetchDevice();
   }, [collectors, pendingResourceId, setSelectedCollector]);
 
-  // Set pending hostname after devices are loaded (setSelectedCollector clears hostname)
+  // Set pending hostname after devices are loaded
   useEffect(() => {
     if (pendingHostname && !isFetchingDevices && devices.length > 0) {
-      console.log('Setting pending hostname:', pendingHostname);
       setHostname(pendingHostname);
       setPendingHostname(null);
     }
   }, [pendingHostname, isFetchingDevices, devices, setHostname]);
 
-  // Apply pending collector ID after collectors are loaded (for manual collector selection)
+  // Apply pending collector ID after collectors are loaded
   useEffect(() => {
     if (pendingCollectorId && collectors.length > 0) {
       const matchingCollector = collectors.find(c => c.id === pendingCollectorId);
       if (matchingCollector) {
-        console.log('Applying pending collectorId:', pendingCollectorId);
         setSelectedCollector(pendingCollectorId);
       }
       setPendingCollectorId(null);
@@ -194,7 +180,7 @@ export function App() {
   useEffect(() => {
     const charCount = script.length;
     const warning = charCount > 64000 ? ' ⚠️ LIMIT EXCEEDED' : '';
-    document.title = `LM IDE (${charCount.toLocaleString()} chars)${warning}`;
+    document.title = `LogicMonitor IDE (${charCount.toLocaleString()} chars)${warning}`;
   }, [script]);
 
   // Auto-save draft with debounce

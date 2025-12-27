@@ -45,13 +45,11 @@ export class ModuleLoader {
     
     // If portal not found (e.g., after service worker restart), try to rediscover
     if (!portal || portal.tabIds.length === 0) {
-      console.log(`Portal ${portalId} not found, attempting rediscovery...`);
       await this.portalManager.discoverPortals();
       portal = this.portalManager.getPortal(portalId);
     }
     
     if (!portal || portal.tabIds.length === 0) {
-      console.warn(`No active tabs for portal ${portalId} after rediscovery`);
       return { items: [], total: 0, hasMore: false };
     }
 
@@ -67,38 +65,27 @@ export class ModuleLoader {
       let hasMore = true;
 
       while (hasMore) {
-        console.log(`[${moduleType}] Fetching page at offset ${offset}...`);
-        
         const results = await chrome.scripting.executeScript({
           target: { tabId },
           func: fetchModulesFromAPI,
           args: [portal.csrfToken, endpoint, moduleType, needsFilter, offset, PAGE_SIZE],
         });
 
-        if (!results?.[0]?.result) {
-          console.warn(`[${moduleType}] No result from page at offset ${offset}`);
-          break;
-        }
+        if (!results?.[0]?.result) break;
 
         const pageResult = results[0].result as FetchModulesResponse;
         allItems = allItems.concat(pageResult.items);
         total = pageResult.total;
         
-        // Check if there are more pages
         offset += PAGE_SIZE;
         hasMore = offset < total;
-        
-        console.log(`[${moduleType}] Fetched ${pageResult.items.length} items (${allItems.length}/${total} total)`);
       }
 
       // Post-filter for LogSource: only include script-based modules
-      // The API doesn't support filtering by collectionMethod, so we filter client-side
       if (moduleType === 'logsource') {
-        const beforeCount = allItems.length;
         allItems = allItems.filter(item => 
           item.collectMethod === 'script' && item.collectionScript
         );
-        console.log(`[LogSource] Post-filtered from ${beforeCount} to ${allItems.length} script-based modules`);
       }
 
       return {
@@ -106,8 +93,7 @@ export class ModuleLoader {
         total: allItems.length,
         hasMore: false, // We fetched everything
       };
-    } catch (error) {
-      console.error(`Failed to fetch ${moduleType} modules for ${portalId}:`, error);
+    } catch {
       return { items: [], total: 0, hasMore: false };
     }
   }
@@ -281,20 +267,15 @@ function fetchModulesFromAPI(
             total,
             hasMore: offset + items.length < total,
           });
-        } catch (e) {
-          console.error('Failed to parse modules response:', e);
+        } catch {
           resolve({ items: [], total: 0, hasMore: false });
         }
       } else {
-        console.error('Failed to fetch modules:', xhr.status, xhr.statusText);
         resolve({ items: [], total: 0, hasMore: false });
       }
     };
 
-    xhr.onerror = () => {
-      console.error('Network error fetching modules');
-      resolve({ items: [], total: 0, hasMore: false });
-    };
+    xhr.onerror = () => resolve({ items: [], total: 0, hasMore: false });
 
     xhr.send();
   });

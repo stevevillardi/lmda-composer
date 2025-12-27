@@ -1,4 +1,4 @@
-# LM IDE - UI Layout & Design
+# LogicMonitor IDE - UI Layout & Design
 
 ## Design Philosophy
 
