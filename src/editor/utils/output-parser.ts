@@ -178,12 +178,18 @@ function parseADLine(line: string, lineNumber: number): ADInstance | null {
     instance.properties = {};
     const propPairs = propsPart.split('&');
     for (const pair of propPairs) {
+      // Skip empty pairs or pairs containing only # characters (e.g., trailing ######)
+      const trimmedPair = pair.trim();
+      if (!trimmedPair || /^#+$/.test(trimmedPair)) {
+        continue;
+      }
+      
       const eqIndex = pair.indexOf('=');
       if (eqIndex > 0) {
         const key = pair.substring(0, eqIndex);
         const value = pair.substring(eqIndex + 1);
         instance.properties[key] = value;
-      } else if (pair.trim()) {
+      } else {
         // Invalid property format
         instance.issues.push({
           severity: 'error',

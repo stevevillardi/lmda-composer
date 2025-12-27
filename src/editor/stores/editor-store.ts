@@ -520,6 +520,28 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   executeScript: async () => {
     const state = get();
     
+    // Get active tab data directly (getters don't work on state snapshots)
+    const activeTab = state.tabs.find(t => t.id === state.activeTabId);
+    if (!activeTab) {
+      set({
+        currentExecution: {
+          id: crypto.randomUUID(),
+          status: 'error',
+          rawOutput: '',
+          duration: 0,
+          startTime: Date.now(),
+          error: 'No active tab',
+        },
+        outputTab: 'raw',
+        parsedOutput: null,
+      });
+      return;
+    }
+    
+    const script = activeTab.content;
+    const language = activeTab.language;
+    const mode = activeTab.mode;
+    
     if (!state.selectedPortalId || !state.selectedCollectorId) {
       set({
         currentExecution: {
@@ -538,15 +560,15 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
     // For Collection or Batch Collection mode, always show the execution context dialog
     // This allows users to confirm/modify wildvalue or datasource ID before each run
-    if (state.mode === 'collection' || state.mode === 'batchcollection') {
+    if (mode === 'collection' || mode === 'batchcollection') {
       set({
         executionContextDialogOpen: true,
         pendingExecution: {
           portalId: state.selectedPortalId,
           collectorId: state.selectedCollectorId,
-          script: state.script,
-          language: state.language,
-          mode: state.mode,
+          script,
+          language,
+          mode,
           hostname: state.hostname || undefined,
         },
       });
@@ -571,9 +593,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         payload: {
           portalId: state.selectedPortalId,
           collectorId: state.selectedCollectorId,
-          script: state.script,
-          language: state.language,
-          mode: state.mode,
+          script,
+          language,
+          mode,
           hostname: state.hostname || undefined,
           wildvalue: state.wildvalue || undefined,
           datasourceId: state.datasourceId || undefined,
@@ -591,16 +613,16 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           collector: selectedCollector?.description || `Collector ${state.selectedCollectorId}`,
           collectorId: state.selectedCollectorId,
           hostname: state.hostname || undefined,
-          language: state.language,
-          mode: state.mode,
-          script: state.script,
+          language,
+          mode,
+          script,
           output: execution.rawOutput,
           status: execution.status === 'complete' ? 'success' : 'error',
           duration: execution.duration,
         });
         
         // Auto-parse output if not in freeform mode and execution succeeded
-        if (state.mode !== 'freeform' && execution.status === 'complete' && execution.rawOutput) {
+        if (mode !== 'freeform' && execution.status === 'complete' && execution.rawOutput) {
           get().parseCurrentOutput();
         }
       } else if (response?.type === 'ERROR') {
@@ -693,7 +715,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   // Parse the current execution output based on mode
   parseCurrentOutput: () => {
-    const { currentExecution, mode } = get();
+    const { currentExecution, tabs, activeTabId } = get();
+    const activeTab = tabs.find(t => t.id === activeTabId);
+    const mode = activeTab?.mode ?? 'freeform';
+    
     if (!currentExecution?.rawOutput || mode === 'freeform') {
       set({ parsedOutput: null });
       return;
@@ -977,23 +1002,36 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         const mergedPrefs = { ...DEFAULT_PREFERENCES, ...storedPrefs };
         
         // Check if editor is in initial state (using default template)
-        const { script } = get();
+        const { tabs, activeTabId } = get();
+        const activeTab = tabs.find(t => t.id === activeTabId);
+        const currentScript = activeTab?.content ?? '';
+        
         const normalize = (s: string) => s.trim().replace(/\r\n/g, '\n');
-        const isDefaultGroovy = normalize(script) === normalize(DEFAULT_GROOVY_TEMPLATE);
-        const isDefaultPowershell = normalize(script) === normalize(DEFAULT_POWERSHELL_TEMPLATE);
+        const isDefaultGroovy = normalize(currentScript) === normalize(DEFAULT_GROOVY_TEMPLATE);
+        const isDefaultPowershell = normalize(currentScript) === normalize(DEFAULT_POWERSHELL_TEMPLATE);
         const isInitialState = isDefaultGroovy || isDefaultPowershell;
         
         // Apply default language/mode from preferences if in initial state
-        if (isInitialState) {
+        if (isInitialState && activeTabId) {
           const newLanguage = mergedPrefs.defaultLanguage;
           const newMode = mergedPrefs.defaultMode;
           const newScript = newLanguage === 'groovy' ? DEFAULT_GROOVY_TEMPLATE : DEFAULT_POWERSHELL_TEMPLATE;
+          const extension = newLanguage === 'groovy' ? '.groovy' : '.ps1';
           
+          // Update the active tab with new language, mode, and content
           set({ 
             preferences: mergedPrefs,
-            language: newLanguage,
-            mode: newMode,
-            script: newScript,
+            tabs: tabs.map(t => 
+              t.id === activeTabId
+                ? { 
+                    ...t, 
+                    language: newLanguage, 
+                    mode: newMode, 
+                    content: newScript,
+                    displayName: t.displayName.replace(/\.(groovy|ps1)$/, extension),
+                  }
+                : t
+            ),
           });
         } else {
           set({ preferences: mergedPrefs });

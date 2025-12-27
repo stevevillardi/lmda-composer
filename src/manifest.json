@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "LogicMonitor IDE - LogicMonitor Script Development",
+  "name": "LogicMonitor IDE - Debug and test collector scripts with live execution",
   "version": "1.0.0",
   "description": "Enhanced script development and debugging experience for LogicMonitor power users",
   "icons": {

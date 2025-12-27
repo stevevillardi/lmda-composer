@@ -1,5 +1,5 @@
 import { Trash2, Copy, CheckCircle2, XCircle, Clock, Loader2, Play } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useEditorStore } from '../stores/editor-store';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -17,8 +17,15 @@ export function OutputPanel() {
     setOutputTab, 
     clearOutput,
     isExecuting,
-    mode,
+    tabs,
+    activeTabId,
   } = useEditorStore();
+
+  // Derive mode from active tab (getters are not reactive in Zustand)
+  const mode = useMemo(() => {
+    const activeTab = tabs.find(t => t.id === activeTabId);
+    return activeTab?.mode ?? 'freeform';
+  }, [tabs, activeTabId]);
 
   const isFreeformMode = mode === 'freeform';
   

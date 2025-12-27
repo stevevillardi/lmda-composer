@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Play, Activity, Database } from 'lucide-react';
 import { useEditorStore } from '../stores/editor-store';
 import {
@@ -20,8 +20,15 @@ export function ExecutionContextDialog() {
     confirmExecutionContext,
     wildvalue: storedWildvalue,
     datasourceId: storedDatasourceId,
-    mode,
+    tabs,
+    activeTabId,
   } = useEditorStore();
+
+  // Derive mode from active tab (getters are not reactive in Zustand)
+  const mode = useMemo(() => {
+    const activeTab = tabs.find(t => t.id === activeTabId);
+    return activeTab?.mode ?? 'freeform';
+  }, [tabs, activeTabId]);
 
   const [wildvalueInput, setWildvalueInput] = useState(storedWildvalue || '');
   const [datasourceInput, setDatasourceInput] = useState(storedDatasourceId || '');

@@ -1,4 +1,5 @@
 import { CheckCircle2, XCircle, AlertTriangle, Info, FileText, Play, Terminal } from 'lucide-react';
+import { useMemo } from 'react';
 import { useEditorStore } from '../stores/editor-store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -13,7 +14,13 @@ import {
 } from '../utils/output-parser';
 
 export function ValidationContent() {
-  const { parsedOutput, mode, currentExecution } = useEditorStore();
+  const { parsedOutput, currentExecution, tabs, activeTabId } = useEditorStore();
+
+  // Derive mode from active tab (getters are not reactive in Zustand)
+  const mode = useMemo(() => {
+    const activeTab = tabs.find(t => t.id === activeTabId);
+    return activeTab?.mode ?? 'freeform';
+  }, [tabs, activeTabId]);
 
   // No execution yet
   if (!currentExecution) {

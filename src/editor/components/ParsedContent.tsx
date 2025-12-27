@@ -1,5 +1,5 @@
 import { CheckCircle2, XCircle, AlertTriangle, Info, ChevronDown, ChevronRight, Play, Terminal, ListX } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useEditorStore } from '../stores/editor-store';
 import {
   Table,
@@ -22,7 +22,13 @@ import type {
 } from '../utils/output-parser';
 
 export function ParsedContent() {
-  const { parsedOutput, mode, currentExecution } = useEditorStore();
+  const { parsedOutput, currentExecution, tabs, activeTabId } = useEditorStore();
+
+  // Derive mode from active tab (getters are not reactive in Zustand)
+  const mode = useMemo(() => {
+    const activeTab = tabs.find(t => t.id === activeTabId);
+    return activeTab?.mode ?? 'freeform';
+  }, [tabs, activeTabId]);
 
   // No execution yet
   if (!currentExecution) {
