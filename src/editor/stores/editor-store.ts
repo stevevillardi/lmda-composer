@@ -1248,7 +1248,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     
     const accessor = activeTab.language === 'groovy' 
       ? `hostProps.get("${propertyName}")`
-      : `##${propertyName.toUpperCase()}##`;
+      : `"##${propertyName.toUpperCase()}##"`;
     
     // For now, append to the end of the script
     // In the future, this could insert at cursor position via Monaco API

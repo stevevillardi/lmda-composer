@@ -25,8 +25,15 @@ export function DevicePropertiesPanel() {
     propertiesSearchQuery,
     setPropertiesSearchQuery,
     insertPropertyAccess,
-    language,
+    tabs,
+    activeTabId,
   } = useEditorStore();
+
+  // Get language from active tab (ensures re-render when tab changes)
+  const language = useMemo(() => {
+    const activeTab = tabs.find(t => t.id === activeTabId);
+    return activeTab?.language ?? 'groovy';
+  }, [tabs, activeTabId]);
 
   // Find the selected device to show display name
   const selectedDevice = useMemo(() => {
@@ -203,7 +210,7 @@ export function DevicePropertiesPanel() {
                             <TooltipTrigger
                               render={
                                 <button
-                                  className="text-xs font-mono text-left text-foreground hover:text-primary transition-colors truncate block w-full"
+                                  className="text-xs font-mono text-left text-foreground hover:text-primary hover:underline transition-colors truncate block w-full cursor-pointer"
                                   onClick={() => handleInsert(prop.name)}
                                 >
                                   {prop.name}
@@ -211,10 +218,12 @@ export function DevicePropertiesPanel() {
                               }
                             />
                             <TooltipContent side="left">
-                              Click to insert{' '}
-                              {language === 'groovy'
-                                ? `hostProps.get("${prop.name}")`
-                                : `##${prop.name.toUpperCase()}##`}
+                              <code className="text-xs">
+                                {language === 'groovy'
+                                  ? `hostProps.get("${prop.name}")`
+                                  : `"##${prop.name.toUpperCase()}##"`}
+                              </code>
+                              <div className="text-[10px] text-muted-foreground mt-1">Click to insert</div>
                             </TooltipContent>
                           </Tooltip>
                           <p className="text-[10px] text-muted-foreground truncate mt-0.5 font-mono">
