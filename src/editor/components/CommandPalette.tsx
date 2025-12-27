@@ -8,7 +8,8 @@ import {
   FolderOpen,
   Settings,
   History,
-  Save,
+  Download,
+  PanelRight,
 } from 'lucide-react';
 import { useEditorStore } from '../stores/editor-store';
 import {
@@ -47,9 +48,10 @@ export function CommandPalette() {
     setModuleBrowserOpen,
     setSettingsDialogOpen,
     setExecutionHistoryOpen,
-    saveToFile,
     portals,
     setSelectedPortal,
+    toggleRightSidebar,
+    exportToFile,
   } = useEditorStore();
 
   // Copy output to clipboard
@@ -74,13 +76,13 @@ export function CommandPalette() {
       disabled: isExecuting || !selectedPortalId || !selectedCollectorId,
     },
     {
-      id: 'save-file',
-      label: 'Save Script to File',
-      icon: <Save className="size-4" />,
+      id: 'export-file',
+      label: 'Export to File',
+      icon: <Download className="size-4" />,
       shortcut: '⌘S',
       action: () => {
         setCommandPaletteOpen(false);
-        saveToFile();
+        exportToFile();
       },
     },
   ];
@@ -122,10 +124,19 @@ export function CommandPalette() {
       id: 'execution-history',
       label: 'Execution History',
       icon: <History className="size-4" />,
-      shortcut: '⌘H',
       action: () => {
         setCommandPaletteOpen(false);
         setExecutionHistoryOpen(true);
+      },
+    },
+    {
+      id: 'toggle-sidebar',
+      label: 'Toggle Sidebar',
+      icon: <PanelRight className="size-4" />,
+      shortcut: '⌘B',
+      action: () => {
+        setCommandPaletteOpen(false);
+        toggleRightSidebar();
       },
     },
     {
@@ -216,10 +227,10 @@ export function CommandPalette() {
         return;
       }
 
-      // Cmd/Ctrl + H to open execution history
-      if ((e.metaKey || e.ctrlKey) && e.key === 'h') {
+      // Cmd/Ctrl + B to toggle right sidebar
+      if ((e.metaKey || e.ctrlKey) && e.key === 'b') {
         e.preventDefault();
-        setExecutionHistoryOpen(true);
+        toggleRightSidebar();
         return;
       }
 
@@ -230,10 +241,10 @@ export function CommandPalette() {
         return;
       }
 
-      // Cmd/Ctrl + S to save file
+      // Cmd/Ctrl + S to export file
       if ((e.metaKey || e.ctrlKey) && e.key === 's') {
         e.preventDefault();
-        saveToFile();
+        exportToFile();
         return;
       }
 
@@ -258,10 +269,10 @@ export function CommandPalette() {
     selectedCollectorId,
     currentExecution,
     setModuleBrowserOpen,
-    setExecutionHistoryOpen,
     setSettingsDialogOpen,
-    saveToFile,
+    exportToFile,
     refreshCollectors,
+    toggleRightSidebar,
   ]);
 
   return (

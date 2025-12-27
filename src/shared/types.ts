@@ -109,6 +109,38 @@ export interface DraftScript {
   lastModified: number;
 }
 
+// Multi-file Editor Tabs
+
+export type EditorTabSourceType = 'module' | 'file' | 'new' | 'history';
+
+export interface EditorTabSource {
+  type: EditorTabSourceType;
+  moduleId?: number;
+  moduleName?: string;
+}
+
+export interface EditorTabContextOverride {
+  hostname?: string;
+  collectorId?: number;
+}
+
+export interface EditorTab {
+  id: string;
+  displayName: string;
+  content: string;
+  language: ScriptLanguage;
+  mode: ScriptMode;
+  source?: EditorTabSource;
+  contextOverride?: EditorTabContextOverride;
+}
+
+// Multi-tab Draft Auto-save
+export interface DraftTabs {
+  tabs: EditorTab[];
+  activeTabId: string | null;
+  lastModified: number;
+}
+
 // Script Execution
 
 export type ScriptLanguage = 'groovy' | 'powershell';

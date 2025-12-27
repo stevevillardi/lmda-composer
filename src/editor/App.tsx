@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react';
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { Toolbar } from './components/Toolbar';
 import { EditorPanel } from './components/EditorPanel';
 import { OutputPanel } from './components/OutputPanel';
@@ -24,14 +24,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import type { DraftScript } from '@/shared/types';
+import type { DraftScript, DraftTabs } from '@/shared/types';
 
 export function App() {
   const { 
     refreshPortals, 
-    script, 
+    tabs,
+    activeTabId,
     loadDraft, 
-    restoreDraft, 
+    restoreDraft,
+    restoreDraftTabs,
     clearDraft,
     saveDraft,
     loadPreferences,
@@ -48,6 +50,11 @@ export function App() {
     rightSidebarOpen,
   } = useEditorStore();
   
+  // Get active tab for auto-save trigger and window title
+  const activeTab = useMemo(() => {
+    return tabs.find(t => t.id === activeTabId) ?? null;
+  }, [tabs, activeTabId]);
+  
   // Track URL params application state
   const [urlParamsApplied, setUrlParamsApplied] = useState(false);
   const [pendingCollectorId, setPendingCollectorId] = useState<number | null>(null);
@@ -55,7 +62,7 @@ export function App() {
   const [pendingHostname, setPendingHostname] = useState<string | null>(null);
 
   // Draft restore dialog state
-  const [pendingDraft, setPendingDraft] = useState<DraftScript | null>(null);
+  const [pendingDraft, setPendingDraft] = useState<DraftScript | DraftTabs | null>(null);
   const [showDraftDialog, setShowDraftDialog] = useState(false);
   
   // Debounce timer for auto-save
@@ -179,14 +186,15 @@ export function App() {
     }
   }, [collectors, pendingCollectorId, setSelectedCollector]);
 
-  // Update window title with character count
+  // Update window title with character count and tab info
   useEffect(() => {
-    const charCount = script.length;
+    const charCount = activeTab?.content.length ?? 0;
     const warning = charCount > 64000 ? ' ⚠️ LIMIT EXCEEDED' : '';
-    document.title = `LogicMonitor IDE (${charCount.toLocaleString()} chars)${warning}`;
-  }, [script]);
+    const tabName = activeTab?.displayName ?? 'No file';
+    document.title = `${tabName} - LogicMonitor IDE (${charCount.toLocaleString()} chars)${warning}`;
+  }, [activeTab]);
 
-  // Auto-save draft with debounce
+  // Auto-save draft with debounce (watches all tabs)
   useEffect(() => {
     // Clear previous timeout
     if (saveTimeoutRef.current) {
@@ -203,16 +211,40 @@ export function App() {
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [script, saveDraft]);
+  }, [tabs, saveDraft]);
 
-  // Handle draft restore
+  // Save draft immediately when user leaves the page (beforeunload)
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      // Clear any pending debounce timer
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+      // Save immediately - use sync approach since async may not complete
+      saveDraft();
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [saveDraft]);
+
+  // Handle draft restore - supports both legacy single-file and multi-tab drafts
   const handleRestoreDraft = useCallback(() => {
     if (pendingDraft) {
-      restoreDraft(pendingDraft);
+      if ('tabs' in pendingDraft) {
+        // Multi-tab draft
+        restoreDraftTabs(pendingDraft);
+      } else {
+        // Legacy single-file draft
+        restoreDraft(pendingDraft);
+      }
+      // Save immediately after restore to persist the restored state
+      // This prevents data loss if user leaves before debounce timer
+      setTimeout(() => saveDraft(), 100);
     }
     setShowDraftDialog(false);
     setPendingDraft(null);
-  }, [pendingDraft, restoreDraft]);
+  }, [pendingDraft, restoreDraft, restoreDraftTabs, saveDraft]);
 
   // Handle discard draft
   const handleDiscardDraft = useCallback(() => {
@@ -279,18 +311,22 @@ export function App() {
           <AlertDialogHeader>
             <AlertDialogTitle>Restore Previous Session?</AlertDialogTitle>
             <AlertDialogDescription>
-              You have an unsaved script from a previous session
+              You have unsaved work from a previous session
               {pendingDraft?.lastModified && (
                 <span className="block mt-1 text-xs">
                   Last modified: {new Date(pendingDraft.lastModified).toLocaleString()}
                 </span>
               )}
-              {pendingDraft && (
+              {pendingDraft && 'tabs' in pendingDraft ? (
+                <span className="block mt-1 text-xs">
+                  {pendingDraft.tabs.length} open tab{pendingDraft.tabs.length !== 1 ? 's' : ''}
+                </span>
+              ) : pendingDraft ? (
                 <span className="block mt-1 text-xs">
                   Language: {pendingDraft.language === 'groovy' ? 'Groovy' : 'PowerShell'}
                   {pendingDraft.hostname && ` • Host: ${pendingDraft.hostname}`}
                 </span>
-              )}
+              ) : null}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

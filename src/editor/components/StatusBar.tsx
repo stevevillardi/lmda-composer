@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { AlertTriangle, HelpCircle } from 'lucide-react';
 import { useEditorStore } from '../stores/editor-store';
 import { Badge } from '@/components/ui/badge';
@@ -14,10 +15,10 @@ const KEYBOARD_SHORTCUTS = [
   { keys: ['⌘', 'Enter'], action: 'Run script' },
   { keys: ['⌘', 'K'], action: 'Command palette' },
   { keys: ['⌘', 'O'], action: 'Open from LogicModule' },
-  { keys: ['⌘', 'S'], action: 'Save to file' },
+  { keys: ['⌘', 'S'], action: 'Export to file' },
   { keys: ['⌘', '⇧', 'C'], action: 'Copy output' },
   { keys: ['⌘', ','], action: 'Settings' },
-  { keys: ['⌘', 'H'], action: 'Execution history' },
+  { keys: ['⌘', 'B'], action: 'Toggle sidebar' },
   { keys: ['⌘', 'R'], action: 'Refresh collectors' },
 ] as const;
 
@@ -27,9 +28,8 @@ const DANGER_THRESHOLD = 60000;   // 60K - show red warning
 
 export function StatusBar() {
   const { 
-    script, 
-    language, 
-    mode, 
+    tabs,
+    activeTabId,
     currentExecution, 
     isExecuting,
     portals,
@@ -37,6 +37,15 @@ export function StatusBar() {
     collectors,
     selectedCollectorId,
   } = useEditorStore();
+
+  // Get active tab data
+  const activeTab = useMemo(() => {
+    return tabs.find(t => t.id === activeTabId) ?? null;
+  }, [tabs, activeTabId]);
+
+  const script = activeTab?.content ?? '';
+  const language = activeTab?.language ?? 'groovy';
+  const mode = activeTab?.mode ?? 'freeform';
 
   // Get selected entities for display
   const selectedPortal = portals.find(p => p.id === selectedPortalId);

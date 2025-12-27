@@ -16,6 +16,8 @@ import type {
   UserPreferences,
   ExecutionHistoryEntry,
   DraftScript,
+  DraftTabs,
+  EditorTab,
 } from '@/shared/types';
 import { DEFAULT_PREFERENCES } from '@/shared/types';
 import { parseOutput, type ParseResult } from '../utils/output-parser';
@@ -27,18 +29,22 @@ interface EditorState {
   collectors: Collector[];
   selectedCollectorId: number | null;
   
-  // Device context
+  // Device context (global defaults)
   devices: DeviceInfo[];
   isFetchingDevices: boolean;
   hostname: string;
   wildvalue: string;
   datasourceId: string;  // Datasource name or ID for batch collection
   
-  // Editor state
+  // Multi-tab editor state
+  tabs: EditorTab[];
+  activeTabId: string | null;
+  
+  // Legacy single-script getters (computed from active tab)
+  // These are kept for backward compatibility
   script: string;
   language: ScriptLanguage;
   mode: ScriptMode;
-  isDirty: boolean;
   
   // Execution state
   isExecuting: boolean;
@@ -154,12 +160,13 @@ interface EditorState {
   
   // Draft actions
   saveDraft: () => Promise<void>;
-  loadDraft: () => Promise<DraftScript | null>;
+  loadDraft: () => Promise<DraftScript | DraftTabs | null>;
   clearDraft: () => Promise<void>;
   restoreDraft: (draft: DraftScript) => void;
+  restoreDraftTabs: (draftTabs: DraftTabs) => void;
   
-  // File export action
-  saveToFile: () => Promise<void>;
+  // File export action (uses download)
+  exportToFile: () => void;
   
   // Right sidebar actions
   setRightSidebarOpen: (open: boolean) => void;
@@ -187,6 +194,25 @@ interface EditorState {
   // Cancel execution actions
   setCancelDialogOpen: (open: boolean) => void;
   cancelExecution: () => Promise<void>;
+  
+  // Tab management actions
+  getActiveTab: () => EditorTab | null;
+  openTab: (tab: Omit<EditorTab, 'id'> & { id?: string }) => string;
+  closeTab: (tabId: string) => void;
+  closeOtherTabs: (tabId: string) => void;
+  closeAllTabs: () => void;
+  setActiveTab: (tabId: string) => void;
+  renameTab: (tabId: string, newName: string) => void;
+  updateTabContent: (tabId: string, content: string) => void;
+  updateActiveTabContent: (content: string) => void;
+  setActiveTabLanguage: (language: ScriptLanguage) => void;
+  setActiveTabMode: (mode: ScriptMode) => void;
+  setTabContextOverride: (tabId: string, override: EditorTab['contextOverride']) => void;
+  openModuleScripts: (module: LogicModuleInfo, scripts: Array<{ type: 'ad' | 'collection'; content: string }>) => void;
+  toggleRightSidebar: () => void;
+  
+  // File operations
+  openFileFromDisk: () => Promise<void>;
 }
 
 export const DEFAULT_GROOVY_TEMPLATE = `import com.santaba.agent.groovyapi.expect.Expect;
@@ -215,9 +241,24 @@ Exit 0
 const STORAGE_KEYS = {
   PREFERENCES: 'lm-ide-preferences',
   HISTORY: 'lm-ide-execution-history',
-  DRAFT: 'lm-ide-draft',
+  DRAFT: 'lm-ide-draft',           // Legacy single-file draft
+  DRAFT_TABS: 'lm-ide-draft-tabs', // Multi-tab draft
   USER_SNIPPETS: 'lm-ide-user-snippets',
 } as const;
+
+// Helper to create a default tab
+function createDefaultTab(language: ScriptLanguage = 'groovy', mode: ScriptMode = 'freeform'): EditorTab {
+  return {
+    id: crypto.randomUUID(),
+    displayName: `Untitled.${language === 'groovy' ? 'groovy' : 'ps1'}`,
+    content: language === 'groovy' ? DEFAULT_GROOVY_TEMPLATE : DEFAULT_POWERSHELL_TEMPLATE,
+    language,
+    mode,
+  };
+}
+
+// Initial default tab
+const initialTab = createDefaultTab('groovy', 'freeform');
 
 export const useEditorStore = create<EditorState>((set, get) => ({
   // Initial state
@@ -230,10 +271,24 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   hostname: '',
   wildvalue: '',
   datasourceId: '',
-  script: DEFAULT_GROOVY_TEMPLATE,
-  language: 'groovy',
-  mode: 'freeform',
-  isDirty: false,
+  
+  // Multi-tab state
+  tabs: [initialTab],
+  activeTabId: initialTab.id,
+  
+  // Computed getters from active tab (for backward compatibility)
+  get script() {
+    const activeTab = get().tabs.find(t => t.id === get().activeTabId);
+    return activeTab?.content ?? DEFAULT_GROOVY_TEMPLATE;
+  },
+  get language() {
+    const activeTab = get().tabs.find(t => t.id === get().activeTabId);
+    return activeTab?.language ?? 'groovy';
+  },
+  get mode() {
+    const activeTab = get().tabs.find(t => t.id === get().activeTabId);
+    return activeTab?.mode ?? 'freeform';
+  },
   isExecuting: false,
   currentExecution: null,
   parsedOutput: null,
@@ -382,47 +437,80 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   setScript: (newScript) => {
-    const { script: currentScript } = get();
-    // Only mark as dirty if the script actually changed
-    if (newScript !== currentScript) {
-      set({ script: newScript, isDirty: true });
+    const { tabs, activeTabId } = get();
+    const activeTab = tabs.find(t => t.id === activeTabId);
+    if (!activeTab) return;
+    
+    // Only update if the script actually changed
+    if (newScript !== activeTab.content) {
+      set({
+        tabs: tabs.map(t => 
+          t.id === activeTabId 
+            ? { ...t, content: newScript }
+            : t
+        ),
+      });
     }
   },
 
   setLanguage: (language, force = false) => {
-    const { script, isDirty, language: currentLanguage } = get();
+    const { tabs, activeTabId } = get();
+    const activeTab = tabs.find(t => t.id === activeTabId);
+    if (!activeTab) return;
     
     // If same language, do nothing
-    if (language === currentLanguage) return;
+    if (language === activeTab.language) return;
     
     // Normalize scripts for comparison (trim whitespace, normalize line endings)
     const normalize = (s: string) => s.trim().replace(/\r\n/g, '\n');
-    const isDefaultGroovy = normalize(script) === normalize(DEFAULT_GROOVY_TEMPLATE);
-    const isDefaultPowershell = normalize(script) === normalize(DEFAULT_POWERSHELL_TEMPLATE);
+    const isDefaultGroovy = normalize(activeTab.content) === normalize(DEFAULT_GROOVY_TEMPLATE);
+    const isDefaultPowershell = normalize(activeTab.content) === normalize(DEFAULT_POWERSHELL_TEMPLATE);
+    
+    // Determine new content
+    let newContent = activeTab.content;
+    let newDisplayName = activeTab.displayName;
     
     // Switch templates if:
     // - force is true (user confirmed reset)
-    // - script hasn't been modified from defaults
-    if (force || !isDirty || isDefaultGroovy || isDefaultPowershell) {
-      set({ 
-        language, 
-        script: language === 'groovy' ? DEFAULT_GROOVY_TEMPLATE : DEFAULT_POWERSHELL_TEMPLATE,
-        isDirty: false, // Reset dirty flag when switching to template
-      });
-    } else {
-      // Script has been modified - just change the language, keep the script
-      set({ language });
+    // - script is a default template
+    if (force || isDefaultGroovy || isDefaultPowershell) {
+      newContent = language === 'groovy' ? DEFAULT_GROOVY_TEMPLATE : DEFAULT_POWERSHELL_TEMPLATE;
+      // Update display name extension if it's an untitled file
+      // Match both "Untitled.ext" and "Untitled N.ext" patterns
+      const untitledMatch = activeTab.displayName.match(/^(Untitled(?:\s+\d+)?)\.(groovy|ps1)$/);
+      if (untitledMatch) {
+        newDisplayName = `${untitledMatch[1]}.${language === 'groovy' ? 'groovy' : 'ps1'}`;
+      }
     }
+    
+    set({
+      tabs: tabs.map(t => 
+        t.id === activeTabId 
+          ? { ...t, language, content: newContent, displayName: newDisplayName }
+          : t
+      ),
+    });
   },
 
   setMode: (mode) => {
-    const { outputTab } = get();
+    const { tabs, activeTabId, outputTab } = get();
+    const activeTab = tabs.find(t => t.id === activeTabId);
+    if (!activeTab) return;
+    
     // Clear parsed output and switch to raw tab if in freeform mode
-    const updates: Partial<EditorState> = { mode, parsedOutput: null };
+    const updates: Partial<EditorState> = { parsedOutput: null };
     if (mode === 'freeform' && (outputTab === 'parsed' || outputTab === 'validation')) {
       updates.outputTab = 'raw';
     }
-    set(updates);
+    
+    set({
+      ...updates,
+      tabs: tabs.map(t => 
+        t.id === activeTabId 
+          ? { ...t, mode }
+          : t
+      ),
+    });
   },
 
   setOutputTab: (tab) => {
@@ -789,34 +877,65 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   loadModuleScript: (script, language, mode) => {
-    const { isDirty } = get();
+    const { selectedModule } = get();
     
-    if (isDirty) {
-      // Store pending load and wait for confirmation
-      set({ pendingModuleLoad: { script, language, mode } });
-    } else {
-      // No unsaved changes, load directly
-      set({
-        script,
-        language,
-        mode,
-        isDirty: false,
-        moduleBrowserOpen: false,
-        selectedModule: null,
-        moduleSearchQuery: '',
-      });
-    }
+    // Create a new tab for the loaded script
+    const moduleName = selectedModule?.name || 'Module';
+    const extension = language === 'groovy' ? 'groovy' : 'ps1';
+    const modeLabel = mode === 'ad' ? 'ad' : mode === 'batchcollection' ? 'batch' : 'collection';
+    const displayName = `${moduleName}/${modeLabel}.${extension}`;
+    
+    const newTab: EditorTab = {
+      id: crypto.randomUUID(),
+      displayName,
+      content: script,
+      language,
+      mode,
+      source: selectedModule ? {
+        type: 'module',
+        moduleId: selectedModule.id,
+        moduleName: selectedModule.name,
+      } : undefined,
+    };
+    
+    const { tabs } = get();
+    set({
+      tabs: [...tabs, newTab],
+      activeTabId: newTab.id,
+      moduleBrowserOpen: false,
+      selectedModule: null,
+      moduleSearchQuery: '',
+      pendingModuleLoad: null,
+    });
   },
 
   confirmModuleLoad: () => {
-    const { pendingModuleLoad } = get();
+    const { pendingModuleLoad, selectedModule } = get();
     if (!pendingModuleLoad) return;
 
-    set({
-      script: pendingModuleLoad.script,
+    // Create a new tab for the loaded script
+    const moduleName = selectedModule?.name || 'Module';
+    const extension = pendingModuleLoad.language === 'groovy' ? 'groovy' : 'ps1';
+    const modeLabel = pendingModuleLoad.mode === 'ad' ? 'ad' : pendingModuleLoad.mode === 'batchcollection' ? 'batch' : 'collection';
+    const displayName = `${moduleName}/${modeLabel}.${extension}`;
+    
+    const newTab: EditorTab = {
+      id: crypto.randomUUID(),
+      displayName,
+      content: pendingModuleLoad.script,
       language: pendingModuleLoad.language,
       mode: pendingModuleLoad.mode,
-      isDirty: false,
+      source: selectedModule ? {
+        type: 'module',
+        moduleId: selectedModule.id,
+        moduleName: selectedModule.name,
+      } : undefined,
+    };
+    
+    const { tabs } = get();
+    set({
+      tabs: [...tabs, newTab],
+      activeTabId: newTab.id,
       pendingModuleLoad: null,
       moduleBrowserOpen: false,
       selectedModule: null,
@@ -857,12 +976,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       if (storedPrefs) {
         const mergedPrefs = { ...DEFAULT_PREFERENCES, ...storedPrefs };
         
-        // Check if editor is in initial state (not dirty and using default template)
-        const { isDirty, script } = get();
+        // Check if editor is in initial state (using default template)
+        const { script } = get();
         const normalize = (s: string) => s.trim().replace(/\r\n/g, '\n');
         const isDefaultGroovy = normalize(script) === normalize(DEFAULT_GROOVY_TEMPLATE);
         const isDefaultPowershell = normalize(script) === normalize(DEFAULT_POWERSHELL_TEMPLATE);
-        const isInitialState = !isDirty && (isDefaultGroovy || isDefaultPowershell);
+        const isInitialState = isDefaultGroovy || isDefaultPowershell;
         
         // Apply default language/mode from preferences if in initial state
         if (isInitialState) {
@@ -929,12 +1048,30 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   reloadFromHistory: (entry) => {
-    set({
-      script: entry.script,
+    const extension = entry.language === 'groovy' ? 'groovy' : 'ps1';
+    const timestamp = new Date(entry.timestamp).toLocaleTimeString();
+    const displayName = `History ${timestamp}.${extension}`;
+    
+    const newTab: EditorTab = {
+      id: crypto.randomUUID(),
+      displayName,
+      content: entry.script,
       language: entry.language,
       mode: entry.mode,
+      source: {
+        type: 'history',
+      },
+      contextOverride: entry.hostname ? {
+        hostname: entry.hostname,
+        collectorId: entry.collectorId,
+      } : undefined,
+    };
+    
+    const { tabs } = get();
+    set({
+      tabs: [...tabs, newTab],
+      activeTabId: newTab.id,
       hostname: entry.hostname || '',
-      isDirty: false,
       executionHistoryOpen: false,
     });
   },
@@ -942,47 +1079,36 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   // Draft actions
   saveDraft: async () => {
     try {
-      const { script, language, mode, hostname, hasSavedDraft } = get();
+      const { tabs, activeTabId, hasSavedDraft } = get();
       
       // Normalize for comparison
       const normalize = (s: string) => s.trim().replace(/\r\n/g, '\n');
-      const normalizedScript = normalize(script);
-      const isDefaultGroovy = normalizedScript === normalize(DEFAULT_GROOVY_TEMPLATE);
-      const isDefaultPowershell = normalizedScript === normalize(DEFAULT_POWERSHELL_TEMPLATE);
       
-      // Skip saving if script is a default template
-      if (isDefaultGroovy || isDefaultPowershell) {
+      // Check if all tabs are default templates (nothing to save)
+      const hasNonDefaultContent = tabs.some(tab => {
+        const normalizedContent = normalize(tab.content);
+        const isDefaultGroovy = normalizedContent === normalize(DEFAULT_GROOVY_TEMPLATE);
+        const isDefaultPowershell = normalizedContent === normalize(DEFAULT_POWERSHELL_TEMPLATE);
+        return !isDefaultGroovy && !isDefaultPowershell;
+      });
+      
+      // Skip saving if all tabs are default templates
+      if (!hasNonDefaultContent && tabs.length <= 1) {
         // If there was a saved draft, clear it since we're back to default
         if (hasSavedDraft) {
+          await chrome.storage.local.remove(STORAGE_KEYS.DRAFT_TABS);
           await chrome.storage.local.remove(STORAGE_KEYS.DRAFT);
           set({ hasSavedDraft: false });
         }
         return;
       }
       
-      // Check if the script differs from the previous draft to avoid unnecessary writes
-      const result = await chrome.storage.local.get(STORAGE_KEYS.DRAFT);
-      const existingDraft = result[STORAGE_KEYS.DRAFT] as DraftScript | undefined;
-      
-      if (existingDraft) {
-        const existingNormalized = normalize(existingDraft.script);
-        // Skip if script content hasn't changed
-        if (existingNormalized === normalizedScript && 
-            existingDraft.language === language && 
-            existingDraft.mode === mode &&
-            (existingDraft.hostname || '') === (hostname || '')) {
-          return;
-        }
-      }
-      
-      const draft: DraftScript = {
-        script,
-        language,
-        mode,
-        hostname: hostname || undefined,
+      const draftTabs: DraftTabs = {
+        tabs,
+        activeTabId,
         lastModified: Date.now(),
       };
-      await chrome.storage.local.set({ [STORAGE_KEYS.DRAFT]: draft });
+      await chrome.storage.local.set({ [STORAGE_KEYS.DRAFT_TABS]: draftTabs });
       set({ hasSavedDraft: true });
     } catch (error) {
       console.error('Failed to save draft:', error);
@@ -991,6 +1117,15 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   loadDraft: async () => {
     try {
+      // First try to load multi-tab draft
+      const tabsResult = await chrome.storage.local.get(STORAGE_KEYS.DRAFT_TABS);
+      if (tabsResult[STORAGE_KEYS.DRAFT_TABS]) {
+        const draftTabs = tabsResult[STORAGE_KEYS.DRAFT_TABS] as DraftTabs;
+        set({ hasSavedDraft: true });
+        return draftTabs; // Return for dialog, don't auto-restore
+      }
+      
+      // Fall back to legacy single-file draft
       const result = await chrome.storage.local.get(STORAGE_KEYS.DRAFT);
       if (result[STORAGE_KEYS.DRAFT]) {
         set({ hasSavedDraft: true });
@@ -1006,6 +1141,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   clearDraft: async () => {
     try {
       await chrome.storage.local.remove(STORAGE_KEYS.DRAFT);
+      await chrome.storage.local.remove(STORAGE_KEYS.DRAFT_TABS);
       set({ hasSavedDraft: false });
     } catch (error) {
       console.error('Failed to clear draft:', error);
@@ -1013,56 +1149,54 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   restoreDraft: (draft) => {
-    set({
-      script: draft.script,
+    // Create a tab from the legacy draft format
+    const extension = draft.language === 'groovy' ? 'groovy' : 'ps1';
+    const newTab: EditorTab = {
+      id: crypto.randomUUID(),
+      displayName: `Recovered.${extension}`,
+      content: draft.script,
       language: draft.language,
       mode: draft.mode,
+    };
+    
+    set({
+      tabs: [newTab],
+      activeTabId: newTab.id,
       hostname: draft.hostname || '',
-      isDirty: false,
-      hasSavedDraft: false,
+      hasSavedDraft: true, // Mark as having saved draft so auto-save will update it
     });
-    // Clear the draft after restoring
-    get().clearDraft();
+    // Don't call clearDraft here - let the auto-save overwrite instead
+    // This prevents race conditions where clear happens before save
+  },
+  
+  restoreDraftTabs: (draftTabs) => {
+    set({
+      tabs: draftTabs.tabs,
+      activeTabId: draftTabs.activeTabId,
+      hasSavedDraft: true, // Mark as having saved draft so auto-save will update it
+    });
+    // Don't call clearDraft here - let the auto-save overwrite instead
   },
 
-  // File export action
-  saveToFile: async () => {
-    const { script, language } = get();
-    const extension = language === 'groovy' ? '.groovy' : '.ps1';
-    const mimeType = 'text/plain';
-    const fileName = `script${extension}`;
+  // File export action (uses download)
+  exportToFile: () => {
+    const { tabs, activeTabId } = get();
+    const activeTab = tabs.find(t => t.id === activeTabId);
+    if (!activeTab) return;
+    
+    const extension = activeTab.language === 'groovy' ? '.groovy' : '.ps1';
+    const baseName = activeTab.displayName.replace(/\.(groovy|ps1)$/, '');
+    const fileName = `${baseName}${extension}`;
 
-    try {
-      // Try File System Access API first (modern browsers)
-      if ('showSaveFilePicker' in window) {
-        const handle = await (window as unknown as { showSaveFilePicker: (options: { suggestedName: string; types: { description: string; accept: Record<string, string[]> }[] }) => Promise<FileSystemFileHandle> }).showSaveFilePicker({
-          suggestedName: fileName,
-          types: [{
-            description: language === 'groovy' ? 'Groovy Script' : 'PowerShell Script',
-            accept: { [mimeType]: [extension] },
-          }],
-        });
-        const writable = await handle.createWritable();
-        await writable.write(script);
-        await writable.close();
-      } else {
-        // Fallback to download
-        const blob = new Blob([script], { type: mimeType });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-      }
-    } catch (error) {
-      // User cancelled or error
-      if ((error as Error).name !== 'AbortError') {
-        console.error('Failed to save file:', error);
-      }
-    }
+    const blob = new Blob([activeTab.content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   },
 
   // Right sidebar actions
@@ -1108,14 +1242,23 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   insertPropertyAccess: (propertyName) => {
-    const { script, language } = get();
-    const accessor = language === 'groovy' 
+    const { tabs, activeTabId } = get();
+    const activeTab = tabs.find(t => t.id === activeTabId);
+    if (!activeTab) return;
+    
+    const accessor = activeTab.language === 'groovy' 
       ? `hostProps.get("${propertyName}")`
       : `##${propertyName.toUpperCase()}##`;
     
     // For now, append to the end of the script
     // In the future, this could insert at cursor position via Monaco API
-    set({ script: script + '\n' + accessor, isDirty: true });
+    set({
+      tabs: tabs.map(t => 
+        t.id === activeTabId 
+          ? { ...t, content: t.content + '\n' + accessor }
+          : t
+      ),
+    });
   },
 
   // Snippet library actions
@@ -1136,18 +1279,29 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   insertSnippet: (snippet) => {
-    const { script } = get();
+    const { tabs, activeTabId } = get();
+    const activeTab = tabs.find(t => t.id === activeTabId);
+    if (!activeTab) return;
     
     if (snippet.category === 'template') {
       // Templates replace the entire script
-      set({ 
-        script: snippet.code, 
-        isDirty: true,
-        language: snippet.language === 'both' ? get().language : snippet.language as 'groovy' | 'powershell',
+      const newLanguage = snippet.language === 'both' ? activeTab.language : snippet.language as 'groovy' | 'powershell';
+      set({
+        tabs: tabs.map(t => 
+          t.id === activeTabId 
+            ? { ...t, content: snippet.code, language: newLanguage }
+            : t
+        ),
       });
     } else {
       // Patterns insert at end (could be at cursor in future)
-      set({ script: script + '\n\n' + snippet.code, isDirty: true });
+      set({
+        tabs: tabs.map(t => 
+          t.id === activeTabId 
+            ? { ...t, content: t.content + '\n\n' + snippet.code }
+            : t
+        ),
+      });
     }
   },
 
@@ -1242,6 +1396,242 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     }
     
     set({ cancelDialogOpen: false });
+  },
+
+  // Tab management actions
+  getActiveTab: () => {
+    const { tabs, activeTabId } = get();
+    return tabs.find(t => t.id === activeTabId) ?? null;
+  },
+
+  openTab: (tabData) => {
+    const id = tabData.id || crypto.randomUUID();
+    const newTab: EditorTab = {
+      id,
+      displayName: tabData.displayName,
+      content: tabData.content,
+      language: tabData.language,
+      mode: tabData.mode,
+      source: tabData.source,
+      contextOverride: tabData.contextOverride,
+    };
+    
+    const { tabs } = get();
+    set({
+      tabs: [...tabs, newTab],
+      activeTabId: id,
+    });
+    
+    return id;
+  },
+
+  closeTab: (tabId) => {
+    const { tabs, activeTabId } = get();
+    const tab = tabs.find(t => t.id === tabId);
+    if (!tab) return;
+    
+    const tabIndex = tabs.findIndex(t => t.id === tabId);
+    const newTabs = tabs.filter(t => t.id !== tabId);
+    
+    // If we're closing the active tab, switch to another one
+    let newActiveTabId = activeTabId;
+    if (tabId === activeTabId) {
+      if (newTabs.length === 0) {
+        // Create a new default tab if we're closing the last one
+        const defaultTab = createDefaultTab();
+        newTabs.push(defaultTab);
+        newActiveTabId = defaultTab.id;
+      } else {
+        // Switch to the tab to the left, or the first tab if we're at the start
+        const newIndex = Math.max(0, tabIndex - 1);
+        newActiveTabId = newTabs[newIndex].id;
+      }
+    }
+    
+    set({
+      tabs: newTabs,
+      activeTabId: newActiveTabId,
+    });
+  },
+
+  closeOtherTabs: (tabId) => {
+    const { tabs } = get();
+    const tabToKeep = tabs.find(t => t.id === tabId);
+    if (!tabToKeep) return;
+    
+    set({
+      tabs: [tabToKeep],
+      activeTabId: tabId,
+    });
+  },
+
+  closeAllTabs: () => {
+    const defaultTab = createDefaultTab();
+    set({
+      tabs: [defaultTab],
+      activeTabId: defaultTab.id,
+    });
+  },
+
+  setActiveTab: (tabId) => {
+    const { tabs } = get();
+    if (tabs.some(t => t.id === tabId)) {
+      set({ activeTabId: tabId });
+    }
+  },
+
+  renameTab: (tabId, newName) => {
+    const { tabs } = get();
+    const tab = tabs.find(t => t.id === tabId);
+    if (!tab) return;
+    
+    // Ensure name has appropriate extension
+    let displayName = newName.trim();
+    if (!displayName) return;
+    
+    // Add extension if missing
+    if (!displayName.endsWith('.groovy') && !displayName.endsWith('.ps1')) {
+      displayName += tab.language === 'groovy' ? '.groovy' : '.ps1';
+    }
+    
+    set({
+      tabs: tabs.map(t => 
+        t.id === tabId 
+          ? { ...t, displayName }
+          : t
+      ),
+    });
+  },
+
+  updateTabContent: (tabId, content) => {
+    const { tabs } = get();
+    set({
+      tabs: tabs.map(t => 
+        t.id === tabId 
+          ? { ...t, content }
+          : t
+      ),
+    });
+  },
+
+  updateActiveTabContent: (content) => {
+    const { tabs, activeTabId } = get();
+    if (!activeTabId) return;
+    
+    set({
+      tabs: tabs.map(t => 
+        t.id === activeTabId 
+          ? { ...t, content }
+          : t
+      ),
+    });
+  },
+
+  setActiveTabLanguage: (language) => {
+    const { tabs, activeTabId } = get();
+    if (!activeTabId) return;
+    
+    set({
+      tabs: tabs.map(t => 
+        t.id === activeTabId 
+          ? { ...t, language }
+          : t
+      ),
+    });
+  },
+
+  setActiveTabMode: (mode) => {
+    const { tabs, activeTabId } = get();
+    if (!activeTabId) return;
+    
+    set({
+      tabs: tabs.map(t => 
+        t.id === activeTabId 
+          ? { ...t, mode }
+          : t
+      ),
+    });
+  },
+
+  setTabContextOverride: (tabId, override) => {
+    const { tabs } = get();
+    set({
+      tabs: tabs.map(t => 
+        t.id === tabId 
+          ? { ...t, contextOverride: override }
+          : t
+      ),
+    });
+  },
+
+  openModuleScripts: (module, scripts) => {
+    const { tabs } = get();
+    const extension = module.scriptType === 'powerShell' ? 'ps1' : 'groovy';
+    const language: ScriptLanguage = module.scriptType === 'powerShell' ? 'powershell' : 'groovy';
+    
+    const newTabs: EditorTab[] = scripts.map(script => ({
+      id: crypto.randomUUID(),
+      displayName: `${module.name}/${script.type}.${extension}`,
+      content: script.content,
+      language,
+      mode: script.type === 'ad' ? 'ad' as ScriptMode : (module.collectMethod === 'batchscript' ? 'batchcollection' : 'collection') as ScriptMode,
+      source: {
+        type: 'module' as const,
+        moduleId: module.id,
+        moduleName: module.name,
+      },
+    }));
+    
+    // Add all new tabs and activate the first one
+    set({
+      tabs: [...tabs, ...newTabs],
+      activeTabId: newTabs[0]?.id ?? get().activeTabId,
+      moduleBrowserOpen: false,
+      selectedModule: null,
+      moduleSearchQuery: '',
+    });
+  },
+
+  toggleRightSidebar: () => {
+    set((state) => ({ rightSidebarOpen: !state.rightSidebarOpen }));
+  },
+
+  // File operations (uses hidden input element)
+  openFileFromDisk: async () => {
+    return new Promise<void>((resolve) => {
+      const fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.accept = '.groovy,.ps1,.txt';
+      
+      fileInput.onchange = async (e) => {
+        const file = (e.target as HTMLInputElement).files?.[0];
+        if (!file) {
+          resolve();
+          return;
+        }
+        
+        const content = await file.text();
+        const fileName = file.name;
+        const isGroovy = fileName.endsWith('.groovy');
+        
+        const newTab: EditorTab = {
+          id: crypto.randomUUID(),
+          displayName: fileName,
+          content,
+          language: isGroovy ? 'groovy' : 'powershell',
+          mode: 'freeform',
+          source: { type: 'file' },
+        };
+        
+        set({
+          tabs: [...get().tabs, newTab],
+          activeTabId: newTab.id,
+        });
+        resolve();
+      };
+      
+      fileInput.click();
+    });
   },
 }));
 

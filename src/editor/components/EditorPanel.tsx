@@ -2,13 +2,26 @@ import Editor from '@monaco-editor/react';
 import { useEditorStore } from '../stores/editor-store';
 import type { editor } from 'monaco-editor';
 import { useCallback, useRef, useMemo } from 'react';
+import { TabBar } from './TabBar';
 
 // Import the loader config to use bundled Monaco (CSP-safe)
 import '../monaco-loader';
 
 export function EditorPanel() {
-  const { script, setScript, language, executeScript, preferences } = useEditorStore();
+  const { 
+    tabs, 
+    activeTabId, 
+    updateActiveTabContent, 
+    executeScript, 
+    preferences 
+  } = useEditorStore();
+  
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+
+  // Get active tab
+  const activeTab = useMemo(() => {
+    return tabs.find(t => t.id === activeTabId) ?? null;
+  }, [tabs, activeTabId]);
 
   const handleEditorMount = useCallback((editor: editor.IStandaloneCodeEditor) => {
     editorRef.current = editor;
@@ -32,12 +45,12 @@ export function EditorPanel() {
 
   const handleEditorChange = useCallback((value: string | undefined) => {
     if (value !== undefined) {
-      setScript(value);
+      updateActiveTabContent(value);
     }
-  }, [setScript]);
+  }, [updateActiveTabContent]);
 
   // Map our language to Monaco language ID
-  const monacoLanguage = language === 'groovy' ? 'groovy' : 'powershell';
+  const monacoLanguage = activeTab?.language === 'groovy' ? 'groovy' : 'powershell';
 
   // Map theme preference to Monaco theme
   const monacoTheme = useMemo(() => {
@@ -73,21 +86,34 @@ export function EditorPanel() {
   }), [preferences.fontSize, preferences.tabSize, preferences.wordWrap, preferences.minimap]);
 
   return (
-    <div className="h-full w-full">
-      <Editor
-        height="100%"
-        language={monacoLanguage}
-        theme={monacoTheme}
-        value={script}
-        onChange={handleEditorChange}
-        onMount={handleEditorMount}
-        options={editorOptions}
-        loading={
-          <div className="flex items-center justify-center h-full">
-            <div className="text-muted-foreground">Loading editor...</div>
+    <div className="h-full w-full flex flex-col">
+      {/* Tab Bar */}
+      <TabBar />
+      
+      {/* Monaco Editor */}
+      <div className="flex-1 min-h-0">
+        {activeTab ? (
+          <Editor
+            key={activeTabId} // Re-mount editor when switching tabs for proper state isolation
+            height="100%"
+            language={monacoLanguage}
+            theme={monacoTheme}
+            value={activeTab.content}
+            onChange={handleEditorChange}
+            onMount={handleEditorMount}
+            options={editorOptions}
+            loading={
+              <div className="flex items-center justify-center h-full">
+                <div className="text-muted-foreground">Loading editor...</div>
+              </div>
+            }
+          />
+        ) : (
+          <div className="flex items-center justify-center h-full text-muted-foreground">
+            No file open
           </div>
-        }
-      />
+        )}
+      </div>
     </div>
   );
 }

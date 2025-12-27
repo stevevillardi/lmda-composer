@@ -1,9 +1,10 @@
 import Editor from '@monaco-editor/react';
-import { Download, Target, Activity, Database } from 'lucide-react';
+import { Download, Target, Activity, Database, Layers } from 'lucide-react';
 import { useEditorStore } from '../stores/editor-store';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import type { LogicModuleInfo, ScriptLanguage, ScriptMode } from '@/shared/types';
 
 // Import the loader config to use bundled Monaco (CSP-safe)
@@ -14,7 +15,7 @@ interface ModulePreviewProps {
 }
 
 export function ModulePreview({ module }: ModulePreviewProps) {
-  const { loadModuleScript } = useEditorStore();
+  const { loadModuleScript, openModuleScripts } = useEditorStore();
 
   // Determine script language based on scriptType
   const language: ScriptLanguage = module.scriptType === 'powerShell' ? 'powershell' : 'groovy';
@@ -44,6 +45,22 @@ export function ModulePreview({ module }: ModulePreviewProps) {
     }
   };
 
+  // Handle loading both scripts at once
+  const handleLoadBoth = () => {
+    const scripts: Array<{ type: 'ad' | 'collection'; content: string }> = [];
+    
+    if (module.adScript?.trim()) {
+      scripts.push({ type: 'ad', content: module.adScript });
+    }
+    if (module.collectionScript?.trim()) {
+      scripts.push({ type: 'collection', content: module.collectionScript });
+    }
+    
+    if (scripts.length > 0) {
+      openModuleScripts(module, scripts);
+    }
+  };
+
   // If both AD and Collection scripts exist, show dual-pane
   const showDualPane = hasADScript && hasCollectionScript;
 
@@ -67,6 +84,27 @@ export function ModulePreview({ module }: ModulePreviewProps) {
             <Badge variant="outline" className="text-xs">
               {language}
             </Badge>
+            {/* Load Both button - only for datasources with both AD and Collection */}
+            {showDualPane && module.moduleType === 'datasource' && (
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      size="sm"
+                      variant="default"
+                      onClick={handleLoadBoth}
+                      className="h-7 px-3 gap-1.5 text-xs"
+                    >
+                      <Layers className="size-3" />
+                      Load Both
+                    </Button>
+                  }
+                />
+                <TooltipContent>
+                  Open both AD and Collection scripts in separate tabs
+                </TooltipContent>
+              </Tooltip>
+            )}
           </div>
         </div>
         {module.appliesTo && (
