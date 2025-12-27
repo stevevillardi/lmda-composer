@@ -6,8 +6,8 @@ import { StatusBar } from './components/StatusBar';
 import { ExecutionContextDialog } from './components/ExecutionContextDialog';
 import { LogicModuleBrowser } from './components/LogicModuleBrowser';
 import { CommandPalette } from './components/CommandPalette';
-import { ExecutionHistory } from './components/ExecutionHistory';
 import { SettingsDialog } from './components/SettingsDialog';
+import { RightSidebar } from './components/RightSidebar';
 import { useEditorStore } from './stores/editor-store';
 import {
   ResizablePanelGroup,
@@ -36,6 +36,7 @@ export function App() {
     saveDraft,
     loadPreferences,
     loadHistory,
+    loadUserSnippets,
     preferences,
     portals,
     collectors,
@@ -44,6 +45,7 @@ export function App() {
     setSelectedPortal,
     setSelectedCollector,
     setHostname,
+    rightSidebarOpen,
   } = useEditorStore();
   
   // Track URL params application state
@@ -76,11 +78,12 @@ export function App() {
     }
   }, [preferences.theme]);
 
-  // Load preferences and history on mount
+  // Load preferences, history, and user snippets on mount
   useEffect(() => {
     loadPreferences();
     loadHistory();
-  }, [loadPreferences, loadHistory]);
+    loadUserSnippets();
+  }, [loadPreferences, loadHistory, loadUserSnippets]);
 
   // Check for saved draft on mount
   useEffect(() => {
@@ -223,22 +226,42 @@ export function App() {
       {/* Toolbar */}
       <Toolbar />
 
-      {/* Main Content Area - Resizable Panels */}
-      <ResizablePanelGroup direction="vertical" className="flex-1 min-h-0">
-        {/* Editor Panel */}
-        <ResizablePanel defaultSize={70} minSize={30}>
-          <EditorPanel />
+      {/* Main Content Area with Optional Right Sidebar */}
+      {/* Key forces re-mount when sidebar state changes so defaultSize applies correctly */}
+      <ResizablePanelGroup 
+        key={rightSidebarOpen ? 'with-sidebar' : 'without-sidebar'}
+        direction="horizontal" 
+        className="flex-1 min-h-0"
+      >
+        {/* Left side: Editor + Output (vertical split) */}
+        <ResizablePanel defaultSize={rightSidebarOpen ? "78.5%" : "100%"} minSize="50%">
+          <ResizablePanelGroup direction="vertical" className="h-full">
+            {/* Editor Panel */}
+            <ResizablePanel defaultSize="80%" minSize="20%">
+              <EditorPanel />
+            </ResizablePanel>
+
+            {/* Resize Handle */}
+            <ResizableHandle withHandle />
+
+            {/* Output Panel */}
+            <ResizablePanel defaultSize="30%" minSize="10%">
+              <div className="h-full border-t border-border">
+                <OutputPanel />
+              </div>
+            </ResizablePanel>
+          </ResizablePanelGroup>
         </ResizablePanel>
 
-        {/* Resize Handle */}
-        <ResizableHandle withHandle />
-
-        {/* Output Panel */}
-        <ResizablePanel defaultSize={30} minSize={10}>
-          <div className="h-full border-t border-border">
-            <OutputPanel />
-          </div>
-        </ResizablePanel>
+        {/* Right Sidebar */}
+        {rightSidebarOpen && (
+          <>
+            <ResizableHandle withVerticalHandle />
+            <ResizablePanel defaultSize="21.5%" minSize="21.5%" maxSize="40%">
+              <RightSidebar />
+            </ResizablePanel>
+          </>
+        )}
       </ResizablePanelGroup>
 
       {/* Status Bar */}
@@ -248,7 +271,6 @@ export function App() {
       <ExecutionContextDialog />
       <LogicModuleBrowser />
       <CommandPalette />
-      <ExecutionHistory />
       <SettingsDialog />
 
       {/* Draft Restore Dialog */}

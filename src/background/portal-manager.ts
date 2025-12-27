@@ -1,4 +1,4 @@
-import type { Portal, Collector, DeviceInfo } from '@/shared/types';
+import type { Portal, Collector, DeviceInfo, DeviceProperty } from '@/shared/types';
 
 const STORAGE_KEY = 'lm-ide-portals';
 
@@ -100,6 +100,7 @@ export class PortalManager {
   /**
    * Get a valid tab ID for a portal, trying alternatives if the first fails.
    * Returns null if no valid tabs remain.
+   * Note: Does NOT delete the portal if tabs are exhausted - caller should handle rediscovery.
    */
   private async getValidTabId(portal: Portal): Promise<number | null> {
     for (let i = 0; i < portal.tabIds.length; i++) {
@@ -121,10 +122,8 @@ export class PortalManager {
       }
     }
     
-    if (portal.tabIds.length === 0) {
-      this.portals.delete(portal.id);
-    }
-    
+    // Don't delete the portal here - let the caller handle rediscovery
+    // The portal might be refreshable with discoverPortals()
     return null;
   }
 
@@ -271,14 +270,37 @@ export class PortalManager {
   }
 
   /**
-   * Fetch collectors for a specific portal
+   * Fetch collectors for a specific portal.
+   * Includes auto-rediscovery if portal tabs are stale.
    */
   async getCollectors(portalId: string): Promise<Collector[]> {
-    const portal = this.portals.get(portalId);
-    if (!portal || portal.tabIds.length === 0) return [];
+    // First attempt: try with current portal state
+    let portal = this.portals.get(portalId);
+    
+    // If portal not found or has no tabs, try to rediscover
+    if (!portal || portal.tabIds.length === 0) {
+      await this.discoverPortals();
+      portal = this.portals.get(portalId);
+    }
+    
+    if (!portal || portal.tabIds.length === 0) {
+      return [];
+    }
 
-    const tabId = await this.getValidTabId(portal);
-    if (!tabId) return [];
+    let tabId = await this.getValidTabId(portal);
+    
+    // If no valid tab, try rediscovery once
+    if (!tabId) {
+      await this.discoverPortals();
+      portal = this.portals.get(portalId);
+      if (!portal) {
+        return [];
+      }
+      tabId = await this.getValidTabId(portal);
+      if (!tabId) {
+        return [];
+      }
+    }
 
     try {
       const results = await chrome.scripting.executeScript({
@@ -294,14 +316,37 @@ export class PortalManager {
   }
 
   /**
-   * Fetch devices for a specific collector
+   * Fetch devices for a specific collector.
+   * Includes auto-rediscovery if portal tabs are stale.
    */
-  async getDevices(portalId: string, collectorId: number): Promise<{ items: DeviceInfo[]; total: number }> {
-    const portal = this.portals.get(portalId);
-    if (!portal || portal.tabIds.length === 0) return { items: [], total: 0 };
+  async getDevices(portalId: string, collectorId: number): Promise<{ items: DeviceInfo[]; total: number; error?: string }> {
+    // First attempt: try with current portal state
+    let portal = this.portals.get(portalId);
+    
+    // If portal not found or has no tabs, try to rediscover
+    if (!portal || portal.tabIds.length === 0) {
+      await this.discoverPortals();
+      portal = this.portals.get(portalId);
+    }
+    
+    if (!portal || portal.tabIds.length === 0) {
+      return { items: [], total: 0, error: 'PORTAL_NOT_FOUND' };
+    }
 
-    const tabId = await this.getValidTabId(portal);
-    if (!tabId) return { items: [], total: 0 };
+    let tabId = await this.getValidTabId(portal);
+    
+    // If no valid tab, try rediscovery once
+    if (!tabId) {
+      await this.discoverPortals();
+      portal = this.portals.get(portalId);
+      if (!portal) {
+        return { items: [], total: 0, error: 'NO_VALID_TAB' };
+      }
+      tabId = await this.getValidTabId(portal);
+      if (!tabId) {
+        return { items: [], total: 0, error: 'NO_VALID_TAB' };
+      }
+    }
 
     try {
       const results = await chrome.scripting.executeScript({
@@ -312,12 +357,13 @@ export class PortalManager {
 
       return results?.[0]?.result ?? { items: [], total: 0 };
     } catch {
-      return { items: [], total: 0 };
+      return { items: [], total: 0, error: 'SCRIPT_EXECUTION_FAILED' };
     }
   }
 
   /**
-   * Fetch a single device by its resource ID
+   * Fetch a single device by its resource ID.
+   * Includes auto-rediscovery if portal tabs are stale.
    */
   async getDeviceById(portalId: string, resourceId: number): Promise<{
     id: number;
@@ -325,11 +371,33 @@ export class PortalManager {
     displayName: string;
     currentCollectorId: number;
   } | null> {
-    const portal = this.portals.get(portalId);
-    if (!portal || portal.tabIds.length === 0) return null;
+    // First attempt: try with current portal state
+    let portal = this.portals.get(portalId);
+    
+    // If portal not found or has no tabs, try to rediscover
+    if (!portal || portal.tabIds.length === 0) {
+      await this.discoverPortals();
+      portal = this.portals.get(portalId);
+    }
+    
+    if (!portal || portal.tabIds.length === 0) {
+      return null;
+    }
 
-    const tabId = await this.getValidTabId(portal);
-    if (!tabId) return null;
+    let tabId = await this.getValidTabId(portal);
+    
+    // If no valid tab, try rediscovery once
+    if (!tabId) {
+      await this.discoverPortals();
+      portal = this.portals.get(portalId);
+      if (!portal) {
+        return null;
+      }
+      tabId = await this.getValidTabId(portal);
+      if (!tabId) {
+        return null;
+      }
+    }
 
     try {
       const results = await chrome.scripting.executeScript({
@@ -341,6 +409,53 @@ export class PortalManager {
       return results?.[0]?.result ?? null;
     } catch {
       return null;
+    }
+  }
+
+  /**
+   * Fetch device properties by device ID.
+   * Returns all properties (system, custom, inherited, auto) with type labels.
+   * Includes auto-rediscovery if portal tabs are stale.
+   */
+  async getDeviceProperties(portalId: string, deviceId: number): Promise<DeviceProperty[]> {
+    // First attempt: try with current portal state
+    let portal = this.portals.get(portalId);
+    
+    // If portal not found or has no tabs, try to rediscover
+    if (!portal || portal.tabIds.length === 0) {
+      await this.discoverPortals();
+      portal = this.portals.get(portalId);
+    }
+    
+    if (!portal || portal.tabIds.length === 0) {
+      return [];
+    }
+
+    let tabId = await this.getValidTabId(portal);
+    
+    // If no valid tab, try rediscovery once
+    if (!tabId) {
+      await this.discoverPortals();
+      portal = this.portals.get(portalId);
+      if (!portal) {
+        return [];
+      }
+      tabId = await this.getValidTabId(portal);
+      if (!tabId) {
+        return [];
+      }
+    }
+
+    try {
+      const results = await chrome.scripting.executeScript({
+        target: { tabId },
+        func: fetchDeviceProperties,
+        args: [portal.csrfToken, deviceId],
+      });
+
+      return results?.[0]?.result ?? [];
+    } catch {
+      return [];
     }
   }
 
@@ -533,6 +648,95 @@ function fetchDeviceById(csrfToken: string | null, resourceId: number): Promise<
     };
     
     xhr.onerror = () => resolve(null);
+    xhr.send();
+  });
+}
+
+// Function to be injected into the page to fetch device properties
+function fetchDeviceProperties(csrfToken: string | null, deviceId: number): Promise<Array<{
+  name: string;
+  value: string;
+  type: 'system' | 'custom' | 'inherited' | 'auto';
+}>> {
+  return new Promise((resolve) => {
+    const xhr = new XMLHttpRequest();
+    // Fetch device with all property types
+    xhr.open('GET', `/santaba/rest/device/devices/${deviceId}?fields=systemProperties,customProperties,inheritedProperties,autoProperties`, true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.setRequestHeader('X-version', '3');
+    if (csrfToken) {
+      xhr.setRequestHeader('X-CSRF-Token', csrfToken);
+    }
+    
+    xhr.onload = () => {
+      if (xhr.status === 200) {
+        try {
+          const response = JSON.parse(xhr.responseText);
+          const device = response.data || response;
+          
+          const properties: Array<{
+            name: string;
+            value: string;
+            type: 'system' | 'custom' | 'inherited' | 'auto';
+          }> = [];
+          
+          // Process system properties
+          if (device.systemProperties && Array.isArray(device.systemProperties)) {
+            device.systemProperties.forEach((prop: { name: string; value: string }) => {
+              properties.push({
+                name: prop.name,
+                value: prop.value || '',
+                type: 'system',
+              });
+            });
+          }
+          
+          // Process custom properties
+          if (device.customProperties && Array.isArray(device.customProperties)) {
+            device.customProperties.forEach((prop: { name: string; value: string }) => {
+              properties.push({
+                name: prop.name,
+                value: prop.value || '',
+                type: 'custom',
+              });
+            });
+          }
+          
+          // Process inherited properties
+          if (device.inheritedProperties && Array.isArray(device.inheritedProperties)) {
+            device.inheritedProperties.forEach((prop: { name: string; value: string }) => {
+              properties.push({
+                name: prop.name,
+                value: prop.value || '',
+                type: 'inherited',
+              });
+            });
+          }
+          
+          // Process auto properties
+          if (device.autoProperties && Array.isArray(device.autoProperties)) {
+            device.autoProperties.forEach((prop: { name: string; value: string }) => {
+              properties.push({
+                name: prop.name,
+                value: prop.value || '',
+                type: 'auto',
+              });
+            });
+          }
+          
+          // Sort by name
+          properties.sort((a, b) => a.name.localeCompare(b.name));
+          
+          resolve(properties);
+        } catch {
+          resolve([]);
+        }
+      } else {
+        resolve([]);
+      }
+    };
+    
+    xhr.onerror = () => resolve([]);
     xhr.send();
   });
 }

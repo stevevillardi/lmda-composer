@@ -12,9 +12,11 @@ import {
   Target,
   FolderOpen,
   Server,
-  History,
   Save,
   Loader2,
+  StopCircle,
+  PanelRightClose,
+  PanelRightOpen,
 } from 'lucide-react';
 import { useEditorStore } from '../stores/editor-store';
 import { Button } from '@/components/ui/button';
@@ -91,8 +93,14 @@ export function Toolbar() {
     isDirty,
     setModuleBrowserOpen,
     setSettingsDialogOpen,
-    setExecutionHistoryOpen,
     saveToFile,
+    // Right sidebar
+    rightSidebarOpen,
+    setRightSidebarOpen,
+    // Cancel execution
+    cancelDialogOpen,
+    setCancelDialogOpen,
+    cancelExecution,
   } = useEditorStore();
 
   // State for language switch confirmation dialog
@@ -534,9 +542,33 @@ export function Toolbar() {
             "disabled:bg-green-600/50 disabled:text-white/70"
           )}
         >
-          <Play className="size-3.5" />
+          {isExecuting ? (
+            <Loader2 className="size-3.5 animate-spin" />
+          ) : (
+            <Play className="size-3.5" />
+          )}
           {isExecuting ? 'Running...' : 'Run'}
         </Button>
+
+        {/* Cancel button - only visible when executing */}
+        {isExecuting && (
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setCancelDialogOpen(true)}
+                  className="gap-1.5 h-8"
+                >
+                  <StopCircle className="size-3.5" />
+                  Cancel
+                </Button>
+              }
+            />
+            <TooltipContent>Cancel script execution</TooltipContent>
+          </Tooltip>
+        )}
 
         <Tooltip>
           <TooltipTrigger
@@ -560,22 +592,6 @@ export function Toolbar() {
               <Button 
                 variant="ghost" 
                 size="icon-sm"
-                onClick={() => setExecutionHistoryOpen(true)}
-                aria-label="Execution history"
-              >
-                <History className="size-4" />
-              </Button>
-            }
-          />
-          <TooltipContent>Execution history</TooltipContent>
-        </Tooltip>
-
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <Button 
-                variant="ghost" 
-                size="icon-sm"
                 onClick={() => setSettingsDialogOpen(true)}
                 aria-label="Settings"
               >
@@ -584,6 +600,31 @@ export function Toolbar() {
             }
           />
           <TooltipContent>Settings</TooltipContent>
+        </Tooltip>
+
+        <Separator orientation="vertical" className="h-8 mx-1" />
+
+        {/* Right Sidebar Toggle */}
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
+                variant={rightSidebarOpen ? 'secondary' : 'ghost'}
+                size="icon-sm"
+                onClick={() => setRightSidebarOpen(!rightSidebarOpen)}
+                aria-label={rightSidebarOpen ? 'Close sidebar' : 'Open sidebar'}
+              >
+                {rightSidebarOpen ? (
+                  <PanelRightClose className="size-4" />
+                ) : (
+                  <PanelRightOpen className="size-4" />
+                )}
+              </Button>
+            }
+          />
+          <TooltipContent>
+            {rightSidebarOpen ? 'Close sidebar' : 'Open sidebar (Properties & Snippets)'}
+          </TooltipContent>
         </Tooltip>
       </div>
 
@@ -612,6 +653,33 @@ export function Toolbar() {
               className="bg-amber-600 hover:bg-amber-500"
             >
               Switch & Reset
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Cancel Execution Confirmation Dialog */}
+      <AlertDialog open={cancelDialogOpen} onOpenChange={setCancelDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogMedia className="bg-destructive/10">
+              <StopCircle className="size-8 text-destructive" />
+            </AlertDialogMedia>
+            <AlertDialogTitle>Cancel Script Execution?</AlertDialogTitle>
+            <AlertDialogDescription>
+              The script is currently running. Cancelling will stop the execution 
+              immediately. Any partial results will be lost.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>
+              Continue Running
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={cancelExecution}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              Cancel Execution
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

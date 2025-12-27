@@ -3,9 +3,20 @@ import * as monaco from 'monaco-editor';
 
 // Configure Monaco environment to disable web workers
 // This is required for Chrome extensions due to CSP restrictions that block worker-src
+// We return a mock Worker object instead of null to prevent "postMessage on null" errors
 self.MonacoEnvironment = {
   getWorker: function () {
-    return null as unknown as Worker;
+    // Return a mock worker that satisfies Monaco's interface
+    // without triggering CSP errors or null reference errors
+    return {
+      postMessage: () => {},
+      onmessage: null,
+      onerror: null,
+      terminate: () => {},
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      dispatchEvent: () => true,
+    } as unknown as Worker;
   },
 };
 

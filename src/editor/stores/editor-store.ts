@@ -3,6 +3,8 @@ import type {
   Portal, 
   Collector, 
   DeviceInfo,
+  DeviceProperty,
+  Snippet,
   ScriptLanguage, 
   ScriptMode,
   ExecutionResult,
@@ -67,6 +69,29 @@ interface EditorState {
   commandPaletteOpen: boolean;
   settingsDialogOpen: boolean;
   executionHistoryOpen: boolean;
+  
+  // Right sidebar state
+  rightSidebarOpen: boolean;
+  rightSidebarTab: 'properties' | 'snippets' | 'history';
+  
+  // Device properties state
+  deviceProperties: DeviceProperty[];
+  isFetchingProperties: boolean;
+  propertiesSearchQuery: string;
+  selectedDeviceId: number | null;
+  
+  // Snippet library state
+  userSnippets: Snippet[];
+  snippetsSearchQuery: string;
+  snippetCategoryFilter: 'all' | 'template' | 'pattern';
+  snippetLanguageFilter: 'all' | 'groovy' | 'powershell';
+  snippetSourceFilter: 'all' | 'builtin' | 'user';
+  createSnippetDialogOpen: boolean;
+  editingSnippet: Snippet | null;
+  
+  // Cancel execution state
+  currentExecutionId: string | null;
+  cancelDialogOpen: boolean;
   
   // User preferences
   preferences: UserPreferences;
@@ -135,6 +160,33 @@ interface EditorState {
   
   // File export action
   saveToFile: () => Promise<void>;
+  
+  // Right sidebar actions
+  setRightSidebarOpen: (open: boolean) => void;
+  setRightSidebarTab: (tab: 'properties' | 'snippets' | 'history') => void;
+  
+  // Device properties actions
+  fetchDeviceProperties: (deviceId: number) => Promise<void>;
+  setPropertiesSearchQuery: (query: string) => void;
+  clearDeviceProperties: () => void;
+  insertPropertyAccess: (propertyName: string) => void;
+  
+  // Snippet library actions
+  setSnippetsSearchQuery: (query: string) => void;
+  setSnippetCategoryFilter: (filter: 'all' | 'template' | 'pattern') => void;
+  setSnippetLanguageFilter: (filter: 'all' | 'groovy' | 'powershell') => void;
+  setSnippetSourceFilter: (filter: 'all' | 'builtin' | 'user') => void;
+  insertSnippet: (snippet: Snippet) => void;
+  setCreateSnippetDialogOpen: (open: boolean) => void;
+  setEditingSnippet: (snippet: Snippet | null) => void;
+  createUserSnippet: (snippet: Omit<Snippet, 'id' | 'isBuiltIn'>) => void;
+  updateUserSnippet: (id: string, updates: Partial<Omit<Snippet, 'id' | 'isBuiltIn'>>) => void;
+  deleteUserSnippet: (id: string) => void;
+  loadUserSnippets: () => Promise<void>;
+  
+  // Cancel execution actions
+  setCancelDialogOpen: (open: boolean) => void;
+  cancelExecution: () => Promise<void>;
 }
 
 export const DEFAULT_GROOVY_TEMPLATE = `import com.santaba.agent.groovyapi.expect.Expect;
@@ -164,6 +216,7 @@ const STORAGE_KEYS = {
   PREFERENCES: 'lm-ide-preferences',
   HISTORY: 'lm-ide-execution-history',
   DRAFT: 'lm-ide-draft',
+  USER_SNIPPETS: 'lm-ide-user-snippets',
 } as const;
 
 export const useEditorStore = create<EditorState>((set, get) => ({
@@ -204,6 +257,30 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   commandPaletteOpen: false,
   settingsDialogOpen: false,
   executionHistoryOpen: false,
+  
+  // Right sidebar initial state
+  rightSidebarOpen: true,
+  rightSidebarTab: 'properties',
+  
+  // Device properties initial state
+  deviceProperties: [],
+  isFetchingProperties: false,
+  propertiesSearchQuery: '',
+  selectedDeviceId: null,
+  
+  // Snippet library initial state
+  userSnippets: [],
+  snippetsSearchQuery: '',
+  snippetCategoryFilter: 'all',
+  snippetLanguageFilter: 'all',
+  snippetSourceFilter: 'all',
+  createSnippetDialogOpen: false,
+  editingSnippet: null,
+  
+  // Cancel execution initial state
+  currentExecutionId: null,
+  cancelDialogOpen: false,
+  
   preferences: DEFAULT_PREFERENCES,
   executionHistory: [],
   hasSavedDraft: false,
@@ -260,6 +337,15 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
       if (response?.type === 'DEVICES_UPDATE') {
         const fetchResponse = response.payload as FetchDevicesResponse;
+        
+        // Check for error in response (portal tabs may be stale)
+        if (fetchResponse.error) {
+          console.warn('Device fetch returned error:', fetchResponse.error);
+          // Could show a toast notification here in the future
+          set({ devices: [], isFetchingDevices: false });
+          return;
+        }
+        
         set({ devices: fetchResponse.items, isFetchingDevices: false });
       } else {
         console.error('Failed to fetch devices:', response);
@@ -273,6 +359,18 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   setHostname: (hostname) => {
     set({ hostname });
+    
+    // Auto-fetch device properties when a device is selected
+    if (hostname) {
+      const { devices } = get();
+      const device = devices.find(d => d.name === hostname);
+      if (device) {
+        get().fetchDeviceProperties(device.id);
+      }
+    } else {
+      // Clear properties when hostname is cleared
+      get().clearDeviceProperties();
+    }
   },
 
   setWildvalue: (wildvalue) => {
@@ -367,10 +465,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       return;
     }
 
+    // Generate execution ID for tracking/cancellation
+    const executionId = crypto.randomUUID();
+    
     // Clear previous execution and switch to raw output tab
     set({ 
       isExecuting: true, 
       currentExecution: null,
+      currentExecutionId: executionId,
       parsedOutput: null,
       outputTab: 'raw',
     });
@@ -961,6 +1063,185 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         console.error('Failed to save file:', error);
       }
     }
+  },
+
+  // Right sidebar actions
+  setRightSidebarOpen: (open) => {
+    set({ rightSidebarOpen: open });
+  },
+
+  setRightSidebarTab: (tab) => {
+    set({ rightSidebarTab: tab });
+  },
+
+  // Device properties actions
+  fetchDeviceProperties: async (deviceId) => {
+    const { selectedPortalId } = get();
+    if (!selectedPortalId) return;
+
+    set({ isFetchingProperties: true, selectedDeviceId: deviceId });
+
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: 'GET_DEVICE_PROPERTIES',
+        payload: { portalId: selectedPortalId, deviceId },
+      });
+
+      if (response?.type === 'DEVICE_PROPERTIES_LOADED') {
+        set({ deviceProperties: response.payload, isFetchingProperties: false });
+      } else {
+        console.error('Failed to fetch device properties:', response);
+        set({ deviceProperties: [], isFetchingProperties: false });
+      }
+    } catch (error) {
+      console.error('Error fetching device properties:', error);
+      set({ deviceProperties: [], isFetchingProperties: false });
+    }
+  },
+
+  setPropertiesSearchQuery: (query) => {
+    set({ propertiesSearchQuery: query });
+  },
+
+  clearDeviceProperties: () => {
+    set({ deviceProperties: [], selectedDeviceId: null, propertiesSearchQuery: '' });
+  },
+
+  insertPropertyAccess: (propertyName) => {
+    const { script, language } = get();
+    const accessor = language === 'groovy' 
+      ? `hostProps.get("${propertyName}")`
+      : `##${propertyName.toUpperCase()}##`;
+    
+    // For now, append to the end of the script
+    // In the future, this could insert at cursor position via Monaco API
+    set({ script: script + '\n' + accessor, isDirty: true });
+  },
+
+  // Snippet library actions
+  setSnippetsSearchQuery: (query) => {
+    set({ snippetsSearchQuery: query });
+  },
+
+  setSnippetCategoryFilter: (filter) => {
+    set({ snippetCategoryFilter: filter });
+  },
+
+  setSnippetLanguageFilter: (filter) => {
+    set({ snippetLanguageFilter: filter });
+  },
+
+  setSnippetSourceFilter: (filter) => {
+    set({ snippetSourceFilter: filter });
+  },
+
+  insertSnippet: (snippet) => {
+    const { script } = get();
+    
+    if (snippet.category === 'template') {
+      // Templates replace the entire script
+      set({ 
+        script: snippet.code, 
+        isDirty: true,
+        language: snippet.language === 'both' ? get().language : snippet.language as 'groovy' | 'powershell',
+      });
+    } else {
+      // Patterns insert at end (could be at cursor in future)
+      set({ script: script + '\n\n' + snippet.code, isDirty: true });
+    }
+  },
+
+  setCreateSnippetDialogOpen: (open) => {
+    set({ createSnippetDialogOpen: open });
+    if (!open) {
+      set({ editingSnippet: null });
+    }
+  },
+
+  setEditingSnippet: (snippet) => {
+    set({ editingSnippet: snippet, createSnippetDialogOpen: snippet !== null });
+  },
+
+  createUserSnippet: (snippetData) => {
+    const { userSnippets } = get();
+    const newSnippet: Snippet = {
+      ...snippetData,
+      id: crypto.randomUUID(),
+      isBuiltIn: false,
+    };
+    const updatedSnippets = [...userSnippets, newSnippet];
+    set({ userSnippets: updatedSnippets, createSnippetDialogOpen: false });
+    
+    // Persist to storage
+    chrome.storage.local.set({ [STORAGE_KEYS.USER_SNIPPETS]: updatedSnippets }).catch(console.error);
+  },
+
+  updateUserSnippet: (id, updates) => {
+    const { userSnippets } = get();
+    const updatedSnippets = userSnippets.map(s => 
+      s.id === id ? { ...s, ...updates } : s
+    );
+    set({ userSnippets: updatedSnippets, createSnippetDialogOpen: false, editingSnippet: null });
+    
+    // Persist to storage
+    chrome.storage.local.set({ [STORAGE_KEYS.USER_SNIPPETS]: updatedSnippets }).catch(console.error);
+  },
+
+  deleteUserSnippet: (id) => {
+    const { userSnippets } = get();
+    const updatedSnippets = userSnippets.filter(s => s.id !== id);
+    set({ userSnippets: updatedSnippets });
+    
+    // Persist to storage
+    chrome.storage.local.set({ [STORAGE_KEYS.USER_SNIPPETS]: updatedSnippets }).catch(console.error);
+  },
+
+  loadUserSnippets: async () => {
+    try {
+      const result = await chrome.storage.local.get(STORAGE_KEYS.USER_SNIPPETS);
+      const storedSnippets = result[STORAGE_KEYS.USER_SNIPPETS] as Snippet[] | undefined;
+      if (storedSnippets) {
+        set({ userSnippets: storedSnippets });
+      }
+    } catch (error) {
+      console.error('Failed to load user snippets:', error);
+    }
+  },
+
+  // Cancel execution actions
+  setCancelDialogOpen: (open) => {
+    set({ cancelDialogOpen: open });
+  },
+
+  cancelExecution: async () => {
+    const { currentExecutionId } = get();
+    if (!currentExecutionId) return;
+
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: 'CANCEL_EXECUTION',
+        payload: { executionId: currentExecutionId },
+      });
+
+      if (response?.success) {
+        set({ 
+          isExecuting: false, 
+          cancelDialogOpen: false,
+          currentExecution: {
+            id: currentExecutionId,
+            status: 'cancelled',
+            rawOutput: '',
+            duration: 0,
+            startTime: Date.now(),
+            error: 'Execution cancelled by user',
+          },
+        });
+      }
+    } catch (error) {
+      console.error('Failed to cancel execution:', error);
+    }
+    
+    set({ cancelDialogOpen: false });
   },
 }));
 

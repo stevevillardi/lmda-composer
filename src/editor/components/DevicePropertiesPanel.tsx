@@ -1,0 +1,255 @@
+import { useMemo, useState } from 'react';
+import { Search, Copy, Check, ServerOff, Loader2, ChevronDown, ChevronRight, Monitor } from 'lucide-react';
+import { useEditorStore } from '../stores/editor-store';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
+import { Empty, EmptyMedia, EmptyHeader, EmptyTitle, EmptyDescription } from '@/components/ui/empty';
+import { cn } from '@/lib/utils';
+
+const TYPE_COLORS: Record<string, string> = {
+  system: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
+  custom: 'bg-green-500/10 text-green-500 border-green-500/20',
+  inherited: 'bg-purple-500/10 text-purple-500 border-purple-500/20',
+  auto: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
+};
+
+export function DevicePropertiesPanel() {
+  const {
+    hostname,
+    devices,
+    deviceProperties,
+    isFetchingProperties,
+    propertiesSearchQuery,
+    setPropertiesSearchQuery,
+    insertPropertyAccess,
+    language,
+  } = useEditorStore();
+
+  // Find the selected device to show display name
+  const selectedDevice = useMemo(() => {
+    return devices.find(d => d.name === hostname);
+  }, [devices, hostname]);
+
+  const [copiedProperty, setCopiedProperty] = useState<string | null>(null);
+
+  // Filter properties based on search query
+  const filteredProperties = useMemo(() => {
+    if (!propertiesSearchQuery.trim()) return deviceProperties;
+    const query = propertiesSearchQuery.toLowerCase();
+    return deviceProperties.filter(
+      (prop) =>
+        prop.name.toLowerCase().includes(query) ||
+        prop.value.toLowerCase().includes(query)
+    );
+  }, [deviceProperties, propertiesSearchQuery]);
+
+  // Group properties by type
+  const groupedProperties = useMemo(() => {
+    const groups: Record<string, typeof deviceProperties> = {
+      system: [],
+      custom: [],
+      inherited: [],
+      auto: [],
+    };
+    filteredProperties.forEach((prop) => {
+      if (groups[prop.type]) {
+        groups[prop.type].push(prop);
+      }
+    });
+    return groups;
+  }, [filteredProperties]);
+
+  const handleCopy = async (value: string, propertyName: string) => {
+    await navigator.clipboard.writeText(value);
+    setCopiedProperty(propertyName);
+    setTimeout(() => setCopiedProperty(null), 2000);
+  };
+
+  const handleInsert = (propertyName: string) => {
+    insertPropertyAccess(propertyName);
+  };
+
+  // State for collapsible groups (default all expanded)
+  const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({
+    system: true,
+    custom: true,
+    inherited: true,
+    auto: true,
+  });
+
+  const toggleGroup = (type: string) => {
+    setExpandedGroups((prev) => ({ ...prev, [type]: !prev[type] }));
+  };
+
+  // Empty state - no device selected
+  if (!hostname) {
+    return (
+      <Empty className="h-full border-0">
+        <EmptyMedia variant="icon">
+          <ServerOff />
+        </EmptyMedia>
+        <EmptyHeader>
+          <EmptyTitle>No Device Selected</EmptyTitle>
+          <EmptyDescription>
+            Select a device from the dropdown to view its properties
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    );
+  }
+
+  // Loading state
+  if (isFetchingProperties) {
+    return (
+      <Empty className="h-full border-0">
+        <EmptyMedia variant="icon">
+          <Loader2 className="animate-spin" />
+        </EmptyMedia>
+        <EmptyHeader>
+          <EmptyTitle>Loading Properties</EmptyTitle>
+          <EmptyDescription>Fetching device properties...</EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    );
+  }
+
+  // No properties found
+  if (deviceProperties.length === 0) {
+    return (
+      <Empty className="h-full border-0">
+        <EmptyMedia variant="icon">
+          <ServerOff />
+        </EmptyMedia>
+        <EmptyHeader>
+          <EmptyTitle>No Properties Found</EmptyTitle>
+          <EmptyDescription>
+            This device has no accessible properties
+          </EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    );
+  }
+
+  return (
+    <div className="flex flex-col h-full">
+      {/* Device Info Header */}
+      {selectedDevice && (
+        <div className="px-3 py-2 border-b border-border bg-secondary/20 flex-shrink-0">
+          <div className="flex items-center gap-2">
+            <Monitor className="size-4 text-muted-foreground" />
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium truncate">{selectedDevice.displayName}</p>
+              <p className="text-[10px] text-muted-foreground truncate">{hostname}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Search */}
+      <div className="p-2 border-b border-border flex-shrink-0">
+        <div className="relative">
+          <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Filter properties..."
+            value={propertiesSearchQuery}
+            onChange={(e) => setPropertiesSearchQuery(e.target.value)}
+            className="pl-8 h-8 text-xs"
+          />
+        </div>
+        <p className="text-[10px] text-muted-foreground mt-1.5 px-1">
+          {filteredProperties.length} of {deviceProperties.length} properties
+        </p>
+      </div>
+
+      {/* Properties list - scrollable */}
+      <div className="flex-1 min-h-0 overflow-auto">
+        <div className="p-2 space-y-2">
+          {Object.entries(groupedProperties).map(([type, props]) => {
+            if (props.length === 0) return null;
+            return (
+              <Collapsible
+                key={type}
+                open={expandedGroups[type]}
+                onOpenChange={() => toggleGroup(type)}
+              >
+                <CollapsibleTrigger className="flex items-center gap-2 w-full px-1 py-1.5 hover:bg-secondary/50 rounded-md transition-colors">
+                  {expandedGroups[type] ? (
+                    <ChevronDown className="size-3 text-muted-foreground" />
+                  ) : (
+                    <ChevronRight className="size-3 text-muted-foreground" />
+                  )}
+                  <Badge
+                    variant="outline"
+                    className={cn('text-[10px] capitalize', TYPE_COLORS[type])}
+                  >
+                    {type}
+                  </Badge>
+                  <span className="text-[10px] text-muted-foreground">
+                    ({props.length})
+                  </span>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="space-y-1 mt-1">
+                    {props.map((prop) => (
+                      <div
+                        key={prop.name}
+                        className="group flex items-start gap-2 p-2 rounded-md hover:bg-secondary/50 transition-colors"
+                      >
+                        <div className="flex-1 min-w-0">
+                          <Tooltip>
+                            <TooltipTrigger
+                              render={
+                                <button
+                                  className="text-xs font-mono text-left text-foreground hover:text-primary transition-colors truncate block w-full"
+                                  onClick={() => handleInsert(prop.name)}
+                                >
+                                  {prop.name}
+                                </button>
+                              }
+                            />
+                            <TooltipContent side="left">
+                              Click to insert{' '}
+                              {language === 'groovy'
+                                ? `hostProps.get("${prop.name}")`
+                                : `##${prop.name.toUpperCase()}##`}
+                            </TooltipContent>
+                          </Tooltip>
+                          <p className="text-[10px] text-muted-foreground truncate mt-0.5 font-mono">
+                            {prop.value || '(empty)'}
+                          </p>
+                        </div>
+                        <Tooltip>
+                          <TooltipTrigger
+                            render={
+                              <Button
+                                variant="ghost"
+                                size="icon-xs"
+                                className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                                onClick={() => handleCopy(prop.value, prop.name)}
+                              >
+                                {copiedProperty === prop.name ? (
+                                  <Check className="size-3 text-green-500" />
+                                ) : (
+                                  <Copy className="size-3" />
+                                )}
+                              </Button>
+                            }
+                          />
+                          <TooltipContent>Copy value</TooltipContent>
+                        </Tooltip>
+                      </div>
+                    ))}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+

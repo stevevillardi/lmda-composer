@@ -28,6 +28,25 @@ export interface DeviceInfo {
   hostStatus: string; // "normal" = online, anything else = offline/issue
 }
 
+// Device property for the properties panel
+export interface DeviceProperty {
+  name: string;
+  value: string;
+  type: 'system' | 'custom' | 'inherited' | 'auto';
+}
+
+// Snippet for the snippet library
+export interface Snippet {
+  id: string;
+  name: string;
+  description: string;
+  language: 'groovy' | 'powershell' | 'both';
+  category: 'template' | 'pattern';
+  tags: string[];
+  code: string;
+  isBuiltIn: boolean;
+}
+
 export interface FetchDevicesRequest {
   portalId: string;
   collectorId: number;
@@ -36,6 +55,7 @@ export interface FetchDevicesRequest {
 export interface FetchDevicesResponse {
   items: DeviceInfo[];
   total: number;
+  error?: string;
 }
 
 // User Preferences
@@ -235,11 +255,17 @@ export interface FetchDeviceByIdResponse {
   currentCollectorId: number;
 }
 
+export interface FetchDevicePropertiesRequest {
+  portalId: string;
+  deviceId: number;
+}
+
 export type EditorToSWMessage =
   | { type: 'DISCOVER_PORTALS' }
   | { type: 'GET_COLLECTORS'; payload: { portalId: string } }
   | { type: 'GET_DEVICES'; payload: FetchDevicesRequest }
   | { type: 'GET_DEVICE_BY_ID'; payload: FetchDeviceByIdRequest }
+  | { type: 'GET_DEVICE_PROPERTIES'; payload: FetchDevicePropertiesRequest }
   | { type: 'EXECUTE_SCRIPT'; payload: ExecuteScriptRequest }
   | { type: 'CANCEL_EXECUTION'; payload: { executionId: string } }
   | { type: 'FETCH_MODULES'; payload: FetchModulesRequest }
@@ -250,6 +276,7 @@ export type SWToEditorMessage =
   | { type: 'COLLECTORS_UPDATE'; payload: Collector[] }
   | { type: 'DEVICES_UPDATE'; payload: FetchDevicesResponse }
   | { type: 'DEVICE_BY_ID_LOADED'; payload: FetchDeviceByIdResponse }
+  | { type: 'DEVICE_PROPERTIES_LOADED'; payload: DeviceProperty[] }
   | { type: 'EXECUTION_UPDATE'; payload: ExecutionResult }
   | { type: 'MODULES_FETCHED'; payload: FetchModulesResponse }
   | { type: 'ERROR'; payload: { code: string; message: string } };

@@ -9,6 +9,7 @@ import type {
   FetchModulesRequest,
   FetchDevicesRequest,
   FetchDeviceByIdRequest,
+  FetchDevicePropertiesRequest,
 } from '@/shared/types';
 
 // Initialize managers
@@ -128,6 +129,13 @@ async function handleMessage(
         } else {
           sendResponse({ type: 'ERROR', payload: { code: 'DEVICE_NOT_FOUND', message: `Device ${resourceId} not found` } });
         }
+        break;
+      }
+
+      case 'GET_DEVICE_PROPERTIES': {
+        const { portalId, deviceId } = message.payload as FetchDevicePropertiesRequest;
+        const properties = await portalManager.getDeviceProperties(portalId, deviceId);
+        sendResponse({ type: 'DEVICE_PROPERTIES_LOADED', payload: properties });
         break;
       }
 

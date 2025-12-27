@@ -4,72 +4,127 @@ This document tracks usability improvements, new features, and production polish
 
 ---
 
-## Usability Improvements
+## Current Implementation: Phase 1
 
-### Cancel Button During Script Execution
+### Overview
 
-When a script is running, users can only wait. Add a "Cancel" button next to the "Running..." state in the toolbar.
+Phase 1 introduces a hybrid layout approach with a collapsible right sidebar for device properties and snippets, while reserving the left side for future multi-file support.
 
-**Priority:** High  
-**Effort:** Medium  
-**Files:** `Toolbar.tsx`, `editor-store.ts`
-
-### Device Dropdown Pagination
-
-Currently loads all devices for a collector (up to 1000). For collectors with thousands of devices, this could be slow.
-
-**Improvements:**
-- Pagination or virtual scrolling
-- Show loading count ("Loading 1,234 devices...")
-
-**Priority:** Medium  
-**Effort:** Medium
-
-### Server-Side Module Browser Search
-
-Search is client-side after fetching all modules. For portals with thousands of modules, consider server-side filtering via the API `filter` parameter.
-
-**Priority:** Medium  
-**Effort:** Low
-
-### Keyboard Shortcut Help
-
-Users must know shortcuts (Cmd+K opens palette). Add a small "?" help button or tooltip showing common shortcuts.
-
-**Priority:** Low  
-**Effort:** Low
-
-### Enhanced Script Character Limit Warning
-
-The status bar shows character count but no prominent warning as users approach the 64K limit. Add a yellow/red indicator earlier (e.g., at 50K and 60K).
-
-**Priority:** Low  
-**Effort:** Low
-
-### Collector Status Tooltips
-
-Collectors show a colored dot but no explanation of what red/green means. Add tooltip explaining "Collector is offline" vs "Collector is online".
-
-**Priority:** Low  
-**Effort:** Low
-
-### Better Empty States
-
-When no modules match search, show helpful text like "Try a different search term" instead of just "No modules found".
-
-**Priority:** Low  
-**Effort:** Low
+**Layout Structure:**
+```
+┌────────────────────────────────────────────────────────────────────┐
+│ Toolbar                                                             │
+├────────────────────────────────────────────┬───────────────────────┤
+│                                            │ [Props] [Snippets]    │
+│  Monaco Editor                             │                       │
+│                                            │ Right Sidebar         │
+│                                            │ (collapsible)         │
+├────────────────────────────────────────────┤                       │
+│  Output Panel                              │                       │
+├────────────────────────────────────────────┴───────────────────────┤
+│ Status Bar                                                          │
+└────────────────────────────────────────────────────────────────────┘
+```
 
 ---
 
-## New Features
+### Phase 1A: Cancel Button During Script Execution - IN PROGRESS
 
-### Quick Re-run Last Execution
+When a script is running, users can only wait. Add a "Cancel" button adjacent to the disabled Run button with a confirmation dialog.
 
-Add a "Re-run" button that executes the same script with same parameters (portal, collector, device, mode).
+**Status:** 🔄 In Progress  
+**Priority:** High  
+**Effort:** Low
+
+**Implementation:**
+- Create reusable `ConfirmationDialog` component (extracted from draft restore pattern)
+- Track `currentExecutionId` in editor store for cancellation
+- Show Cancel button adjacent to disabled Run button when executing
+- Cancel with confirmation dialog to prevent accidental cancellation
+- Wire up to existing `CANCEL_EXECUTION` message handler in service worker
+
+**Files:** `Toolbar.tsx`, `editor-store.ts`, `ConfirmationDialog.tsx` (new)
+
+---
+
+### Phase 1B: Device Property Viewer Panel - IN PROGRESS
+
+Show device properties in a collapsible right sidebar panel. Properties are fetched from the LM API with sensitive values masked.
+
+**Status:** 🔄 In Progress  
+**Priority:** Medium  
+**Effort:** Medium
+
+**Implementation:**
+- Add `getDeviceProperties()` to portal-manager.ts using `/device/devices/{id}` endpoint
+- Auto-fetch properties when device is selected from dropdown
+- Display in toggleable right sidebar panel with:
+  - Property table with type badges (system/custom/inherited/auto)
+  - Search/filter input
+  - Click-to-copy values
+  - Click property name to insert `hostProps.get("name")` into editor
+
+**Files:** `portal-manager.ts`, `service-worker.ts`, `editor-store.ts`, `DevicePropertiesPanel.tsx` (new), `App.tsx`
+
+---
+
+### Phase 1C: Snippet Library - IN PROGRESS
+
+Add ability to save/load code snippets with both built-in and user-defined snippets.
+
+**Status:** 🔄 In Progress  
+**Priority:** Medium  
+**Effort:** Medium
+
+**Snippet Types:**
+- **Templates:** Full script templates (SNMP Walk, HTTP API collector, SSH execution, WMI query, AD/Collection boilerplate)
+- **Patterns:** Code fragments (property access, error handling, JSON parsing, credential retrieval, debug logging)
+
+**Implementation:**
+- Create `built-in-snippets.ts` with categorized snippets
+- Persist user snippets to `chrome.storage.local` (key: `lm-ide-user-snippets`)
+- Display in right sidebar panel with:
+  - Category tabs (Templates / Patterns)
+  - Language filter (Groovy / PowerShell / Both)
+  - Built-in vs User snippets toggle
+  - Insert button (replaces content for templates, inserts at cursor for patterns)
+  - CRUD for user snippets
+
+**Files:** `built-in-snippets.ts` (new), `editor-store.ts`, `SnippetLibraryPanel.tsx` (new), `CreateSnippetDialog.tsx` (new)
+
+---
+
+### Phase 1D: Right Sidebar Layout - IN PROGRESS
+
+Enable hybrid layout with collapsible right sidebar.
+
+**Status:** 🔄 In Progress  
+**Priority:** High (enables 1B and 1C)  
+**Effort:** Low
+
+**Implementation:**
+- Add horizontal `ResizablePanelGroup` to App.tsx wrapping editor area
+- Create `RightSidebar` component with tabs for Device Properties and Snippets
+- Add toggle button to Toolbar
+- Persist sidebar open/closed state in preferences
+
+---
+
+## Future Features (Phase 2+)
+
+### Multi-File Support
+
+Support multiple open files like a true IDE (e.g., AD script and Collection script side by side).
+
+**Considerations:**
+- Left sidebar reserved for file tree
+- Tab bar above editor for switching between open files
+- Track multiple file states with dirty flags
 
 **Priority:** Medium  
-**Effort:** Low
+**Effort:** High
+
+---
 
 ### Output Diff Comparison
 
@@ -77,34 +132,6 @@ When re-running, optionally show diff between current and previous output to hig
 
 **Priority:** Low  
 **Effort:** Medium
-
-### Snippet Library
-
-Add ability to save/load code snippets (e.g., "SNMP Walk template", "WMI Query template"). Store in `chrome.storage.local`.
-
-**Priority:** Medium  
-**Effort:** Medium
-
-### Device Property Viewer Sidebar
-
-The docs mention a "Device Context Panel" but it's not implemented. Show fetched `hostProps` in a collapsible sidebar panel.
-
-**Priority:** Low  
-**Effort:** Medium
-
-### Export Execution Context to File
-
-Save the full execution context (script + output + metadata) as JSON for debugging/sharing.
-
-**Priority:** Low  
-**Effort:** Low
-
-### Quick Theme Toggle in Toolbar
-
-Currently requires opening Settings dialog. Add a quick light/dark toggle button in the toolbar.
-
-**Priority:** Low  
-**Effort:** Low
 
 ---
 
@@ -117,12 +144,16 @@ Add error boundaries to main components (`App.tsx`, `EditorPanel.tsx`, `OutputPa
 **Priority:** High  
 **Effort:** Medium
 
+---
+
 ### Version Number Display
 
 Display the extension version (from manifest) in the Settings dialog or status bar.
 
 **Priority:** Medium  
 **Effort:** Low
+
+---
 
 ### JSDoc Documentation
 
@@ -132,8 +163,3 @@ Add JSDoc documentation to exported store methods in `editor-store.ts` for bette
 **Effort:** Medium
 
 ---
-
-## Implementation Notes
-
-These items were identified during the v1.0 final review and deferred to keep the initial release focused on core functionality. They should be prioritized based on user feedback after the initial release.
-

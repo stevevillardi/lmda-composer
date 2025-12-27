@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import * as ResizablePrimitive from "react-resizable-panels"
-import { GripHorizontal } from "lucide-react"
+import { GripHorizontal, GripVertical } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
@@ -34,10 +34,12 @@ function ResizablePanel({
 
 function ResizableHandle({
   withHandle,
+  withVerticalHandle,
   className,
   ...props
 }: React.ComponentProps<typeof ResizablePrimitive.Separator> & {
   withHandle?: boolean
+  withVerticalHandle?: boolean
 }) {
   return (
     <ResizablePrimitive.Separator
@@ -54,8 +56,13 @@ function ResizableHandle({
       {...props}
     >
       {withHandle && (
-        <div className="absolute left-1/2 top-1/2 z-10 flex h-4 w-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-sm border bg-muted/80 hover:bg-muted transition-colors">
+        <div className="absolute left-1/2 top-1/2 z-10 flex h-2 w-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-sm border bg-muted/80 hover:bg-muted transition-colors">
           <GripHorizontal className="size-2.5 text-muted-foreground" />
+        </div>
+      )}
+      {withVerticalHandle && (
+        <div className="absolute left-1/2 top-1/2 z-10 flex h-6 w-2 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-sm border bg-muted/80 hover:bg-muted transition-colors">
+          <GripVertical className="size-2.5 text-muted-foreground" />
         </div>
       )}
     </ResizablePrimitive.Separator>
