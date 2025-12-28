@@ -6,6 +6,7 @@ import {
   CommandIcon,
   PanelRight,
   CloudDownload,
+  Hammer,
 } from 'lucide-react';
 import { useEditorStore } from '../stores/editor-store';
 import { Button } from '@/components/ui/button';
@@ -24,6 +25,7 @@ export function ActionsDropdown() {
     selectedPortalId,
     setModuleBrowserOpen,
     setSettingsDialogOpen,
+    setAppliesToTesterOpen,
     rightSidebarOpen,
     toggleRightSidebar,
     openFileFromDisk,
@@ -67,6 +69,15 @@ export function ActionsDropdown() {
         >
           <CloudDownload className="size-4 mr-2" />
           <span className="flex-1">Import from LogicModule Exchange</span>
+        </DropdownMenuItem>
+
+        <DropdownMenuItem 
+          onClick={() => setAppliesToTesterOpen(true)}
+          disabled={!selectedPortalId}
+        >
+          <Hammer className="size-4 mr-2" />
+          <span className="flex-1">AppliesTo Toolbox</span>
+          <Kbd className="ml-auto">⌘⇧A</Kbd>
         </DropdownMenuItem>
 
         <DropdownMenuSeparator />

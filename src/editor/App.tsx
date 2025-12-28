@@ -10,6 +10,7 @@ import { CommandPalette } from './components/CommandPalette';
 import { SettingsDialog } from './components/SettingsDialog';
 import { RightSidebar } from './components/RightSidebar';
 import { BraveFileSystemWarning } from './components/BraveFileSystemWarning';
+import { AppliesToTester } from './components/AppliesToTester';
 import { useEditorStore } from './stores/editor-store';
 import { isFileSystemAccessSupported } from './utils/file-handle-store';
 import { isBraveBrowser } from './utils/browser-detection';
@@ -373,6 +374,7 @@ export function App() {
       <LogicModuleBrowser />
       <CommandPalette />
       <SettingsDialog />
+      <AppliesToTester />
       <BraveFileSystemWarning
         open={showBraveWarning}
         onOpenChange={setShowBraveWarning}

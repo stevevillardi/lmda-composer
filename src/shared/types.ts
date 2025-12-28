@@ -329,6 +329,7 @@ export type EditorToSWMessage =
   | { type: 'EXECUTE_SCRIPT'; payload: ExecuteScriptRequest }
   | { type: 'CANCEL_EXECUTION'; payload: { executionId: string } }
   | { type: 'FETCH_MODULES'; payload: FetchModulesRequest }
+  | { type: 'TEST_APPLIES_TO'; payload: TestAppliesToRequest }
   | { type: 'OPEN_EDITOR'; payload?: DeviceContext };
 
 export type SWToEditorMessage =
@@ -339,6 +340,8 @@ export type SWToEditorMessage =
   | { type: 'DEVICE_PROPERTIES_LOADED'; payload: DeviceProperty[] }
   | { type: 'EXECUTION_UPDATE'; payload: ExecutionResult }
   | { type: 'MODULES_FETCHED'; payload: FetchModulesResponse }
+  | { type: 'APPLIES_TO_RESULT'; payload: AppliesToTestResult }
+  | { type: 'APPLIES_TO_ERROR'; payload: AppliesToTestError }
   | { type: 'ERROR'; payload: { code: string; message: string } };
 
 export type ContentToSWMessage =
@@ -348,6 +351,44 @@ export type ContentToSWMessage =
 export interface DeviceContext {
   portalId: string;
   resourceId?: number;  // Resource ID extracted from URL, used to fetch device details via API
+}
+
+// AppliesTo Tester
+
+export interface AppliesToMatch {
+  type: string;
+  id: number;
+  name: string;
+}
+
+export interface AppliesToTestResult {
+  originalAppliesTo: string;
+  currentAppliesTo: string;
+  originalMatches: AppliesToMatch[];
+  currentMatches: AppliesToMatch[];
+  warnMessage: string;
+}
+
+export interface AppliesToTestError {
+  errorMessage: string;
+  errorCode: number;
+  errorDetail: string | null;
+}
+
+export interface AppliesToFunction {
+  name: string;
+  syntax: string;
+  parameters: string;
+  description: string;
+  example?: string;
+}
+
+export type AppliesToTestFrom = 'devicesGroup' | 'websiteGroup';
+
+export interface TestAppliesToRequest {
+  portalId: string;
+  currentAppliesTo: string;
+  testFrom: AppliesToTestFrom;
 }
 
 // Constants

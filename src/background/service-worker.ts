@@ -10,6 +10,7 @@ import type {
   FetchDevicesRequest,
   FetchDeviceByIdRequest,
   FetchDevicePropertiesRequest,
+  TestAppliesToRequest,
 } from '@/shared/types';
 
 // Initialize managers
@@ -157,6 +158,19 @@ async function handleMessage(
         const { portalId, moduleType } = message.payload as FetchModulesRequest;
         const response = await moduleLoader.fetchModules(portalId, moduleType);
         sendResponse({ type: 'MODULES_FETCHED', payload: response });
+        break;
+      }
+
+      case 'TEST_APPLIES_TO': {
+        const { portalId, currentAppliesTo, testFrom } = message.payload as TestAppliesToRequest;
+        const response = await portalManager.testAppliesTo(portalId, currentAppliesTo, testFrom);
+        if (response.result) {
+          sendResponse({ type: 'APPLIES_TO_RESULT', payload: response.result });
+        } else if (response.error) {
+          sendResponse({ type: 'APPLIES_TO_ERROR', payload: response.error });
+        } else {
+          sendResponse({ type: 'ERROR', payload: { code: 'UNKNOWN', message: 'Unknown error testing AppliesTo' } });
+        }
         break;
       }
 

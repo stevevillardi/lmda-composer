@@ -1,4 +1,4 @@
-import type { Portal, Collector, DeviceInfo, DeviceProperty } from '@/shared/types';
+import type { Portal, Collector, DeviceInfo, DeviceProperty, AppliesToTestResult, AppliesToTestError, AppliesToTestFrom } from '@/shared/types';
 
 const STORAGE_KEY = 'lm-ide-portals';
 
@@ -482,6 +482,56 @@ export class PortalManager {
     await this.refreshCsrfToken(portal);
     return portal.csrfToken;
   }
+
+  /**
+   * Test an AppliesTo expression against resources in the portal.
+   * Includes auto-rediscovery if portal tabs are stale.
+   */
+  async testAppliesTo(
+    portalId: string, 
+    currentAppliesTo: string, 
+    testFrom: AppliesToTestFrom
+  ): Promise<{ result?: AppliesToTestResult; error?: AppliesToTestError }> {
+    // First attempt: try with current portal state
+    let portal = this.portals.get(portalId);
+    
+    // If portal not found or has no tabs, try to rediscover
+    if (!portal || portal.tabIds.length === 0) {
+      await this.discoverPortals();
+      portal = this.portals.get(portalId);
+    }
+    
+    if (!portal || portal.tabIds.length === 0) {
+      return { error: { errorMessage: 'Portal not found', errorCode: 404, errorDetail: null } };
+    }
+
+    let tabId = await this.getValidTabId(portal);
+    
+    // If no valid tab, try rediscovery once
+    if (!tabId) {
+      await this.discoverPortals();
+      portal = this.portals.get(portalId);
+      if (!portal) {
+        return { error: { errorMessage: 'No valid tab', errorCode: 404, errorDetail: null } };
+      }
+      tabId = await this.getValidTabId(portal);
+      if (!tabId) {
+        return { error: { errorMessage: 'No valid tab', errorCode: 404, errorDetail: null } };
+      }
+    }
+
+    try {
+      const results = await chrome.scripting.executeScript({
+        target: { tabId },
+        func: testAppliesToExpression,
+        args: [portal.csrfToken, currentAppliesTo, testFrom],
+      });
+
+      return results?.[0]?.result ?? { error: { errorMessage: 'Script execution failed', errorCode: 500, errorDetail: null } };
+    } catch {
+      return { error: { errorMessage: 'Script execution failed', errorCode: 500, errorDetail: null } };
+    }
+  }
 }
 
 // Function to be injected into the page to fetch CSRF token
@@ -738,6 +788,89 @@ function fetchDeviceProperties(csrfToken: string | null, deviceId: number): Prom
     
     xhr.onerror = () => resolve([]);
     xhr.send();
+  });
+}
+
+// Function to be injected into the page to test AppliesTo expressions
+function testAppliesToExpression(
+  csrfToken: string | null, 
+  currentAppliesTo: string, 
+  testFrom: 'devicesGroup' | 'websiteGroup'
+): Promise<{
+  result?: {
+    originalAppliesTo: string;
+    currentAppliesTo: string;
+    originalMatches: Array<{ type: string; id: number; name: string }>;
+    currentMatches: Array<{ type: string; id: number; name: string }>;
+    warnMessage: string;
+  };
+  error?: {
+    errorMessage: string;
+    errorCode: number;
+    errorDetail: string | null;
+  };
+}> {
+  return new Promise((resolve) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', '/santaba/rest/functions', true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.setRequestHeader('X-version', '3');
+    if (csrfToken) {
+      xhr.setRequestHeader('X-CSRF-Token', csrfToken);
+    }
+    
+    const payload = {
+      currentAppliesTo,
+      originalAppliesTo: '',
+      type: 'testAppliesTo',
+      needInheritProps: false,
+      testFrom,
+    };
+    
+    xhr.onload = () => {
+      try {
+        const response = JSON.parse(xhr.responseText);
+        
+        if (xhr.status === 200) {
+          resolve({
+            result: {
+              originalAppliesTo: response.originalAppliesTo || '',
+              currentAppliesTo: response.currentAppliesTo || currentAppliesTo,
+              originalMatches: response.originalMatches || [],
+              currentMatches: response.currentMatches || [],
+              warnMessage: response.warnMessage || '',
+            },
+          });
+        } else {
+          // API returned an error (e.g., 400 for syntax errors)
+          resolve({
+            error: {
+              errorMessage: response.errorMessage || response.message || 'Unknown error',
+              errorCode: response.errorCode || xhr.status,
+              errorDetail: response.errorDetail || null,
+            },
+          });
+        }
+      } catch {
+        resolve({
+          error: {
+            errorMessage: 'Failed to parse response',
+            errorCode: 500,
+            errorDetail: null,
+          },
+        });
+      }
+    };
+    
+    xhr.onerror = () => resolve({
+      error: {
+        errorMessage: 'Network error',
+        errorCode: 0,
+        errorDetail: null,
+      },
+    });
+    
+    xhr.send(JSON.stringify(payload));
   });
 }
 

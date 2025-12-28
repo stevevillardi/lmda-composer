@@ -6,6 +6,7 @@ import {
   FileCode,
   Clock,
   Loader2,
+  Hammer,
 } from 'lucide-react';
 import { useEditorStore } from '../stores/editor-store';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -34,8 +35,8 @@ function ActionCard({
       onClick={disabled ? undefined : onClick}
       disabled={disabled}
       className={cn(
-        "flex flex-col items-center gap-3 p-6 rounded-lg border transition-all duration-200",
-        "min-w-[160px] max-w-[200px]",
+        "flex flex-col items-center justify-center gap-3 p-5 rounded-lg border transition-all duration-200",
+        "w-[160px] h-[140px]",
         disabled
           ? "border-border/50 bg-muted/20 cursor-not-allowed opacity-50"
           : "border-border bg-card hover:bg-accent hover:border-primary/50 hover:shadow-md cursor-pointer"
@@ -120,6 +121,7 @@ export function WelcomeScreen() {
     createNewFile,
     openFileFromDisk,
     setModuleBrowserOpen,
+    setAppliesToTesterOpen,
   } = useEditorStore();
 
   // Load recent files on mount
@@ -130,8 +132,8 @@ export function WelcomeScreen() {
   const hasRecentFiles = recentFiles.length > 0;
 
   return (
-    <div className="flex-1 flex items-center justify-center bg-background overflow-auto p-8">
-      <div className="max-w-2xl w-full space-y-10">
+    <div className="flex-1 flex items-center justify-center bg-background overflow-hidden p-6">
+      <div className="max-w-3xl w-full space-y-8">
         {/* Header */}
         <div className="text-center space-y-3">
           <div className="flex items-center justify-center gap-3">
@@ -150,7 +152,7 @@ export function WelcomeScreen() {
         </div>
 
         {/* Action Cards */}
-        <div className="flex items-center justify-center gap-4 flex-wrap">
+        <div className="flex items-center justify-center gap-3">
           <ActionCard
             icon={<FilePlus className="size-6" />}
             title="New File"
@@ -170,6 +172,14 @@ export function WelcomeScreen() {
             onClick={() => setModuleBrowserOpen(true)}
             disabled={!selectedPortalId}
             disabledReason="Connect to a portal first to browse LogicModules"
+          />
+          <ActionCard
+            icon={<Hammer className="size-6" />}
+            title="AppliesTo Toolbox"
+            description="Test expressions"
+            onClick={() => setAppliesToTesterOpen(true)}
+            disabled={!selectedPortalId}
+            disabledReason="Connect to a portal first to test AppliesTo expressions"
           />
         </div>
 

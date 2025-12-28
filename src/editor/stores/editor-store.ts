@@ -114,6 +114,15 @@ interface EditorState {
   tabsNeedingPermission: FilePermissionStatus[];
   isRestoringFileHandles: boolean;
   
+  // AppliesTo tester state
+  appliesToTesterOpen: boolean;
+  appliesToExpression: string;
+  appliesToResults: Array<{ type: string; id: number; name: string }>;
+  appliesToError: string | null;
+  appliesToTestFrom: 'devicesGroup' | 'websiteGroup';
+  isTestingAppliesTo: boolean;
+  appliesToFunctionSearch: string;
+  
   // Actions
   setSelectedPortal: (portalId: string | null) => void;
   setSelectedCollector: (collectorId: number | null) => void;
@@ -232,6 +241,14 @@ interface EditorState {
   loadRecentFiles: () => Promise<void>;
   openRecentFile: (tabId: string) => Promise<void>;
   createNewFile: () => void;
+  
+  // AppliesTo tester actions
+  setAppliesToTesterOpen: (open: boolean) => void;
+  setAppliesToExpression: (expression: string) => void;
+  setAppliesToTestFrom: (testFrom: 'devicesGroup' | 'websiteGroup') => void;
+  testAppliesTo: () => Promise<void>;
+  clearAppliesToResults: () => void;
+  setAppliesToFunctionSearch: (query: string) => void;
 }
 
 export const DEFAULT_GROOVY_TEMPLATE = `import com.santaba.agent.groovyapi.expect.Expect;
@@ -361,6 +378,15 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   // File system initial state
   tabsNeedingPermission: [],
   isRestoringFileHandles: false,
+  
+  // AppliesTo tester initial state
+  appliesToTesterOpen: false,
+  appliesToExpression: '',
+  appliesToResults: [],
+  appliesToError: null,
+  appliesToTestFrom: 'devicesGroup',
+  isTestingAppliesTo: false,
+  appliesToFunctionSearch: '',
   
   // Welcome screen / Recent files state
   recentFiles: [],
@@ -2077,6 +2103,85 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       tabs: [...get().tabs, newTab],
       activeTabId: newTab.id,
     });
+  },
+  
+  // AppliesTo tester actions
+  setAppliesToTesterOpen: (open: boolean) => {
+    set({ appliesToTesterOpen: open });
+    // Clear error when opening
+    if (open) {
+      set({ appliesToError: null });
+    }
+  },
+  
+  setAppliesToExpression: (expression: string) => {
+    set({ appliesToExpression: expression });
+  },
+  
+  setAppliesToTestFrom: (testFrom: 'devicesGroup' | 'websiteGroup') => {
+    set({ appliesToTestFrom: testFrom });
+  },
+  
+  testAppliesTo: async () => {
+    const { selectedPortalId, appliesToExpression, appliesToTestFrom } = get();
+    
+    if (!selectedPortalId) {
+      set({ appliesToError: 'Please select a portal first' });
+      return;
+    }
+    
+    if (!appliesToExpression.trim()) {
+      set({ appliesToError: 'Please enter an AppliesTo expression' });
+      return;
+    }
+    
+    set({ isTestingAppliesTo: true, appliesToError: null, appliesToResults: [] });
+    
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: 'TEST_APPLIES_TO',
+        payload: {
+          portalId: selectedPortalId,
+          currentAppliesTo: appliesToExpression,
+          testFrom: appliesToTestFrom,
+        },
+      });
+      
+      if (response?.type === 'APPLIES_TO_RESULT') {
+        set({ 
+          appliesToResults: response.payload.currentMatches || [],
+          appliesToError: response.payload.warnMessage || null,
+          isTestingAppliesTo: false,
+        });
+      } else if (response?.type === 'APPLIES_TO_ERROR') {
+        set({ 
+          appliesToError: response.payload.errorMessage,
+          appliesToResults: [],
+          isTestingAppliesTo: false,
+        });
+      } else {
+        set({ 
+          appliesToError: 'Unknown error occurred',
+          isTestingAppliesTo: false,
+        });
+      }
+    } catch (error) {
+      set({ 
+        appliesToError: error instanceof Error ? error.message : 'Failed to test AppliesTo',
+        isTestingAppliesTo: false,
+      });
+    }
+  },
+  
+  clearAppliesToResults: () => {
+    set({ 
+      appliesToResults: [],
+      appliesToError: null,
+    });
+  },
+  
+  setAppliesToFunctionSearch: (query: string) => {
+    set({ appliesToFunctionSearch: query });
   },
 }));
 

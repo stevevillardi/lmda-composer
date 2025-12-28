@@ -12,6 +12,7 @@ import {
   FileUp,
   PanelRight,
   CloudDownload,
+  Hammer,
 } from 'lucide-react';
 import { useEditorStore } from '../stores/editor-store';
 import {
@@ -49,7 +50,9 @@ export function CommandPalette() {
     selectedCollectorId,
     setModuleBrowserOpen,
     setSettingsDialogOpen,
-    setExecutionHistoryOpen,
+    setAppliesToTesterOpen,
+    setRightSidebarOpen,
+    setRightSidebarTab,
     portals,
     setSelectedPortal,
     toggleRightSidebar,
@@ -154,12 +157,24 @@ export function CommandPalette() {
       disabled: !selectedPortalId,
     },
     {
+      id: 'applies-to-tester',
+      label: 'AppliesTo Toolbox',
+      icon: <Hammer className="size-4" />,
+      shortcut: '⌘⇧A',
+      action: () => {
+        setCommandPaletteOpen(false);
+        setAppliesToTesterOpen(true);
+      },
+      disabled: !selectedPortalId,
+    },
+    {
       id: 'execution-history',
       label: 'Execution History',
       icon: <History className="size-4" />,
       action: () => {
         setCommandPaletteOpen(false);
-        setExecutionHistoryOpen(true);
+        setRightSidebarOpen(true);
+        setRightSidebarTab('history');
       },
     },
     {
@@ -294,6 +309,15 @@ export function CommandPalette() {
         }
         return;
       }
+
+      // Cmd/Ctrl + Shift + A to open AppliesTo tester
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'a') {
+        e.preventDefault();
+        if (selectedPortalId) {
+          setAppliesToTesterOpen(true);
+        }
+        return;
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -308,6 +332,7 @@ export function CommandPalette() {
     currentExecution,
     setModuleBrowserOpen,
     setSettingsDialogOpen,
+    setAppliesToTesterOpen,
     saveFile,
     saveFileAs,
     openFileFromDisk,
