@@ -250,7 +250,7 @@ function RawOutputContent({ execution }: RawOutputContentProps) {
         </div>
         {execution.rawOutput && (
           <div className="pt-2 border-t border-border">
-            <pre className="whitespace-pre-wrap break-words text-muted-foreground">
+            <pre className="whitespace-pre-wrap wrap-break-word text-muted-foreground">
               {execution.rawOutput}
             </pre>
           </div>
@@ -286,7 +286,7 @@ function RawOutputContent({ execution }: RawOutputContentProps) {
           ))}
         </div>
       )}
-      <pre className="whitespace-pre-wrap break-words">
+      <pre className="whitespace-pre-wrap wrap-break-word">
         {outputLines.join('\n') || 'No output'}
       </pre>
     </div>

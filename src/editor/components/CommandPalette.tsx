@@ -10,6 +10,7 @@ import {
   Download,
   Save,
   FileUp,
+  FilePlus,
   PanelRight,
   CloudDownload,
   Hammer,
@@ -63,6 +64,7 @@ export function CommandPalette() {
     saveFile,
     saveFileAs,
     openFileFromDisk,
+    createNewFile,
   } = useEditorStore();
 
   // Copy output to clipboard
@@ -82,6 +84,16 @@ export function CommandPalette() {
 
   // Define command groups
   const scriptCommands: CommandAction[] = [
+    {
+      id: 'new-file',
+      label: 'New File',
+      icon: <FilePlus className="size-4" />,
+      shortcut: '⌘N',
+      action: () => {
+        setCommandPaletteOpen(false);
+        createNewFile();
+      },
+    },
     {
       id: 'run-script',
       label: 'Run Script',
@@ -287,6 +299,13 @@ export function CommandPalette() {
         return;
       }
 
+      // Cmd/Ctrl + N to create new file
+      if ((e.metaKey || e.ctrlKey) && e.key === 'n') {
+        e.preventDefault();
+        createNewFile();
+        return;
+      }
+
       // Cmd/Ctrl + O to open file from disk
       if ((e.metaKey || e.ctrlKey) && e.key === 'o') {
         e.preventDefault();
@@ -392,6 +411,7 @@ export function CommandPalette() {
     setSettingsDialogOpen,
     setAppliesToTesterOpen,
     setDebugCommandsDialogOpen,
+    createNewFile,
     saveFile,
     saveFileAs,
     openFileFromDisk,

@@ -1,6 +1,7 @@
 import {  
   Download,
   FileInput,
+  FilePlus,
   Save,
   Settings,
   CommandIcon,
@@ -25,6 +26,7 @@ import { Kbd } from '@/components/ui/kbd';
 
 export function ActionsDropdown() {
   const {
+    tabs,
     selectedPortalId,
     setModuleBrowserOpen,
     setSettingsDialogOpen,
@@ -32,11 +34,14 @@ export function ActionsDropdown() {
     setDebugCommandsDialogOpen,
     rightSidebarOpen,
     toggleRightSidebar,
+    createNewFile,
     openFileFromDisk,
     saveFile,
     saveFileAs,
     exportToFile,
   } = useEditorStore();
+
+  const hasOpenTabs = tabs.length > 0;
 
   return (
     <DropdownMenu>
@@ -70,6 +75,15 @@ export function ActionsDropdown() {
             <Separator className="flex-1" />
           </div>
           <DropdownMenuItem onClick={() => {
+            createNewFile();
+            toast.info('New file created');
+          }}>
+            <FilePlus className="size-4 mr-2" />
+            <span className="flex-1">New File</span>
+            <Kbd className="ml-auto">⌘N</Kbd>
+          </DropdownMenuItem>
+
+          <DropdownMenuItem onClick={() => {
             openFileFromDisk();
             toast.info('Opening file...');
           }}>
@@ -78,42 +92,51 @@ export function ActionsDropdown() {
             <Kbd className="ml-auto">⌘O</Kbd>
           </DropdownMenuItem>
 
-          <DropdownMenuItem onClick={async () => {
-            try {
-              await saveFile();
-              toast.success('File saved');
-            } catch (error) {
-              toast.error('Failed to save file', {
-                description: error instanceof Error ? error.message : 'Unknown error',
-              });
-            }
-          }}>
+          <DropdownMenuItem 
+            onClick={async () => {
+              try {
+                await saveFile();
+                toast.success('File saved');
+              } catch (error) {
+                toast.error('Failed to save file', {
+                  description: error instanceof Error ? error.message : 'Unknown error',
+                });
+              }
+            }}
+            disabled={!hasOpenTabs}
+          >
             <Save className="size-4 mr-2" />
             <span className="flex-1">Save</span>
             <Kbd className="ml-auto">⌘S</Kbd>
           </DropdownMenuItem>
 
-          <DropdownMenuItem onClick={async () => {
-            try {
-              await saveFileAs();
-              toast.success('File saved');
-            } catch (error) {
-              toast.error('Failed to save file', {
-                description: error instanceof Error ? error.message : 'Unknown error',
-              });
-            }
-          }}>
+          <DropdownMenuItem 
+            onClick={async () => {
+              try {
+                await saveFileAs();
+                toast.success('File saved');
+              } catch (error) {
+                toast.error('Failed to save file', {
+                  description: error instanceof Error ? error.message : 'Unknown error',
+                });
+              }
+            }}
+            disabled={!hasOpenTabs}
+          >
             <Download className="size-4 mr-2" />
             <span className="flex-1">Save As...</span>
             <Kbd className="ml-auto">⌘⇧S</Kbd>
           </DropdownMenuItem>
 
-          <DropdownMenuItem onClick={() => {
-            exportToFile();
-            toast.success('File exported', {
-              description: 'Download started',
-            });
-          }}>
+          <DropdownMenuItem 
+            onClick={() => {
+              exportToFile();
+              toast.success('File exported', {
+                description: 'Download started',
+              });
+            }}
+            disabled={!hasOpenTabs}
+          >
             <Download className="size-4 mr-2" />
             <span className="flex-1">Export (Download)</span>
             <Kbd className="ml-auto">⌘⇧E</Kbd>
@@ -194,10 +217,13 @@ export function ActionsDropdown() {
         </div>
 
         <DropdownMenuGroup>
-          <DropdownMenuItem onClick={() => {
-            toggleRightSidebar();
-            toast.info(rightSidebarOpen ? 'Sidebar hidden' : 'Sidebar shown');
-          }}>
+          <DropdownMenuItem 
+            onClick={() => {
+              toggleRightSidebar();
+              toast.info(rightSidebarOpen ? 'Sidebar hidden' : 'Sidebar shown');
+            }}
+            disabled={!hasOpenTabs}
+          >
             <PanelRight className="size-4 mr-2" />
             <span className="flex-1">{rightSidebarOpen ? 'Hide' : 'Show'} Sidebar</span>
             <Kbd className="ml-auto">⌘B</Kbd>

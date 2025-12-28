@@ -1967,13 +1967,15 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       const storedHandles = await fileHandleStore.getAllHandles();
       const needsPermission: FilePermissionStatus[] = [];
       
-      // Check permission for each handle
+      // Check permission for each handle that matches a currently open tab
+      // NOTE: We do NOT delete handles for tabs that don't exist - those are
+      // needed for the recent files list. Cleanup is handled by cleanupOldHandles()
+      // in file-handle-store.ts based on age and count limits.
       for (const [tabId, record] of storedHandles) {
-        // Only process handles for tabs that still exist
+        // Only process handles for tabs that are currently open
         const tabExists = tabs.some(t => t.id === tabId);
         if (!tabExists) {
-          // Clean up orphaned handle
-          await fileHandleStore.deleteHandle(tabId);
+          // Skip handles for closed tabs - keep them for recent files
           continue;
         }
         

@@ -23,6 +23,7 @@ const getExtensionVersion = (): string => {
 const KEYBOARD_SHORTCUTS = [
   { keys: ['⌘', 'Enter'], action: 'Run script' },
   { keys: ['⌘', 'K'], action: 'Command palette' },
+  { keys: ['⌘', 'N'], action: 'New file' },
   { keys: ['⌘', 'O'], action: 'Open file' },
   { keys: ['⌘', 'S'], action: 'Save' },
   { keys: ['⌘', '⇧', 'S'], action: 'Save As...' },
@@ -144,52 +145,57 @@ export function StatusBar() {
 
       {/* Right side */}
       <div className="flex items-center gap-3 text-muted-foreground">
-        {/* Mode */}
-        <Badge variant="outline" className="capitalize font-normal" aria-label={`Script mode: ${mode}`}>
-          {mode}
-        </Badge>
+        {/* Only show script info when tabs are open */}
+        {tabs.length > 0 && (
+          <>
+            {/* Mode */}
+            <Badge variant="outline" className="capitalize font-normal" aria-label={`Script mode: ${mode}`}>
+              {mode}
+            </Badge>
 
-        {/* Language */}
-        <Badge variant="outline" className="capitalize font-normal" aria-label={`Script language: ${language}`}>
-          {language}
-        </Badge>
+            {/* Language */}
+            <Badge variant="outline" className="capitalize font-normal" aria-label={`Script language: ${language}`}>
+              {language}
+            </Badge>
 
-        <Separator orientation="vertical" className="h-5" aria-hidden="true" />
+            <Separator orientation="vertical" className="h-5" aria-hidden="true" />
 
-        {/* Line count */}
-        <span aria-label={`${lineCount} lines`}>{lineCount} lines</span>
+            {/* Line count */}
+            <span aria-label={`${lineCount} lines`}>{lineCount} lines</span>
 
-        <Separator orientation="vertical" className="h-5" aria-hidden="true" />
+            <Separator orientation="vertical" className="h-5" aria-hidden="true" />
 
-        {/* Character count */}
-        {charCountStatus.showIcon ? (
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <span 
-                  className={cn(
-                    'flex items-center gap-1 font-medium cursor-help',
-                    charCountStatus.color
-                  )}
-                  role="alert"
-                  aria-label={`Character count: ${charCount.toLocaleString()} of ${MAX_SCRIPT_LENGTH.toLocaleString()}. ${charCountStatus.label}`}
-                >
-                  <AlertTriangle className="size-3" aria-hidden="true" />
-                  {charCount.toLocaleString()} / {MAX_SCRIPT_LENGTH.toLocaleString()}
-                </span>
-              }
-            />
-            <TooltipContent>
-              {charCountStatus.label}
-            </TooltipContent>
-          </Tooltip>
-        ) : (
-          <span aria-label={`Character count: ${charCount.toLocaleString()} of ${MAX_SCRIPT_LENGTH.toLocaleString()}`}>
-            {charCount.toLocaleString()} / {MAX_SCRIPT_LENGTH.toLocaleString()}
-          </span>
+            {/* Character count */}
+            {charCountStatus.showIcon ? (
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <span 
+                      className={cn(
+                        'flex items-center gap-1 font-medium cursor-help',
+                        charCountStatus.color
+                      )}
+                      role="alert"
+                      aria-label={`Character count: ${charCount.toLocaleString()} of ${MAX_SCRIPT_LENGTH.toLocaleString()}. ${charCountStatus.label}`}
+                    >
+                      <AlertTriangle className="size-3" aria-hidden="true" />
+                      {charCount.toLocaleString()} / {MAX_SCRIPT_LENGTH.toLocaleString()}
+                    </span>
+                  }
+                />
+                <TooltipContent>
+                  {charCountStatus.label}
+                </TooltipContent>
+              </Tooltip>
+            ) : (
+              <span aria-label={`Character count: ${charCount.toLocaleString()} of ${MAX_SCRIPT_LENGTH.toLocaleString()}`}>
+                {charCount.toLocaleString()} / {MAX_SCRIPT_LENGTH.toLocaleString()}
+              </span>
+            )}
+
+            <Separator orientation="vertical" className="h-5" aria-hidden="true" />
+          </>
         )}
-
-        <Separator orientation="vertical" className="h-5" aria-hidden="true" />
 
         {/* Keyboard Shortcuts Help & Version */}
         <Popover>

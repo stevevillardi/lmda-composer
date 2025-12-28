@@ -265,6 +265,7 @@ const MAX_RECENT_FILE_AGE_MS = 30 * 24 * 60 * 60 * 1000;
  * Get recent file handles sorted by lastAccessed (most recent first).
  * Returns metadata only; use getHandle() to retrieve the actual handle.
  * Also cleans up old handles that exceed limits.
+ * Deduplicates by fileName - only the most recent entry for each file is returned.
  */
 export async function getRecentHandles(limit: number = 10): Promise<RecentFileInfo[]> {
   const db = await openDatabase();
@@ -278,6 +279,7 @@ export async function getRecentHandles(limit: number = 10): Promise<RecentFileIn
     const request = index.openCursor(null, 'prev');
     const results: RecentFileInfo[] = [];
     const allRecords: RecentFileInfo[] = [];
+    const seenFileNames = new Set<string>();
     
     request.onsuccess = () => {
       const cursor = request.result;
@@ -289,8 +291,10 @@ export async function getRecentHandles(limit: number = 10): Promise<RecentFileIn
           lastAccessed: record.lastAccessed,
         });
         
-        // Only add to results if within limit
-        if (results.length < limit) {
+        // Dedupe by fileName - only add if we haven't seen this file before
+        // Since we're iterating newest first, this keeps the most recent entry
+        if (!seenFileNames.has(record.fileName) && results.length < limit) {
+          seenFileNames.add(record.fileName);
           results.push({
             tabId: record.tabId,
             fileName: record.fileName,

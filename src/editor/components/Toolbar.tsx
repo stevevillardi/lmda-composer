@@ -170,6 +170,7 @@ Exit 0
             variant={language === 'groovy' ? 'default' : 'ghost'}
             size="sm"
             onClick={() => handleLanguageClick('groovy')}
+            disabled={tabs.length === 0}
             className={cn(
               SIZES.BUTTON_SIDEBAR,
               "px-3 text-xs font-medium",
@@ -184,6 +185,7 @@ Exit 0
             variant={language === 'powershell' ? 'default' : 'ghost'}
             size="sm"
             onClick={() => handleLanguageClick('powershell')}
+            disabled={tabs.length === 0}
             className={cn(
               SIZES.BUTTON_SIDEBAR,
               "px-3 text-xs font-medium",
@@ -205,8 +207,9 @@ Exit 0
             value={mode} 
             onValueChange={(value) => setMode(value as ScriptMode)}
             items={MODE_ITEMS}
+            disabled={tabs.length === 0}
           >
-            <SelectTrigger className="w-[180px] h-8" aria-label="Script execution mode">
+            <SelectTrigger className="w-[180px] h-8" disabled={tabs.length === 0} aria-label="Script execution mode">
               <div className="flex items-center gap-2">
                 {(() => {
                   const selectedMode = MODE_ITEMS.find(m => m.value === mode);
@@ -296,6 +299,7 @@ Exit 0
                   setRightSidebarOpen(!rightSidebarOpen);
                   toast.info(rightSidebarOpen ? 'Sidebar closed' : 'Sidebar opened');
                 }}
+                disabled={tabs.length === 0}
                 aria-label={rightSidebarOpen ? 'Close sidebar' : 'Open sidebar'}
                 aria-pressed={rightSidebarOpen}
               >
@@ -308,7 +312,11 @@ Exit 0
             }
           />
           <TooltipContent>
-            {rightSidebarOpen ? 'Close sidebar' : 'Open sidebar (Properties & Snippets)'}
+            {tabs.length === 0 
+              ? 'Open a file to access sidebar' 
+              : rightSidebarOpen 
+                ? 'Close sidebar' 
+                : 'Open sidebar (Properties & Snippets)'}
           </TooltipContent>
         </Tooltip>
       </div>

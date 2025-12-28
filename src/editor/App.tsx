@@ -329,43 +329,51 @@ export function App() {
         </div>
       )}
 
-      {/* Main Content Area with Optional Right Sidebar */}
-      {/* Key forces re-mount when sidebar state changes so defaultSize applies correctly */}
-      <ResizablePanelGroup 
-        key={rightSidebarOpen ? 'with-sidebar' : 'without-sidebar'}
-        direction="horizontal" 
-        className="flex-1 min-h-0"
-      >
-        {/* Left side: Editor + Output (vertical split) */}
-        <ResizablePanel defaultSize={rightSidebarOpen ? "78.5%" : "100%"} minSize="50%">
-          <ResizablePanelGroup direction="vertical" className="h-full">
-            {/* Editor Panel */}
-            <ResizablePanel defaultSize="80%" minSize="20%">
-              <EditorPanel />
-            </ResizablePanel>
+      {/* Main Content Area */}
+      {/* When no tabs are open, show WelcomeScreen full-height without OutputPanel */}
+      {tabs.length === 0 ? (
+        <div className="flex-1 min-h-0">
+          <EditorPanel />
+        </div>
+      ) : (
+        /* With tabs open: Editor + Output (vertical split) with optional Right Sidebar */
+        /* Key forces re-mount when sidebar state changes so defaultSize applies correctly */
+        <ResizablePanelGroup 
+          key={rightSidebarOpen ? 'with-sidebar' : 'without-sidebar'}
+          direction="horizontal" 
+          className="flex-1 min-h-0"
+        >
+          {/* Left side: Editor + Output (vertical split) */}
+          <ResizablePanel defaultSize={rightSidebarOpen ? "78.5%" : "100%"} minSize="50%">
+            <ResizablePanelGroup direction="vertical" className="h-full">
+              {/* Editor Panel */}
+              <ResizablePanel defaultSize="80%" minSize="20%">
+                <EditorPanel />
+              </ResizablePanel>
 
-            {/* Resize Handle */}
-            <ResizableHandle withHandle />
+              {/* Resize Handle */}
+              <ResizableHandle withHandle />
 
-            {/* Output Panel */}
-            <ResizablePanel defaultSize="30%" minSize="10%">
-              <div className="h-full border-t border-border">
-                <OutputPanel />
-              </div>
-            </ResizablePanel>
-          </ResizablePanelGroup>
-        </ResizablePanel>
+              {/* Output Panel */}
+              <ResizablePanel defaultSize="40%" minSize="20%">
+                <div className="h-full border-t border-border">
+                  <OutputPanel />
+                </div>
+              </ResizablePanel>
+            </ResizablePanelGroup>
+          </ResizablePanel>
 
-        {/* Right Sidebar */}
-        {rightSidebarOpen && (
-          <>
-            <ResizableHandle withVerticalHandle />
-            <ResizablePanel defaultSize="21.5%" minSize="21.5%" maxSize="40%">
-              <RightSidebar />
-            </ResizablePanel>
-          </>
-        )}
-      </ResizablePanelGroup>
+          {/* Right Sidebar */}
+          {rightSidebarOpen && (
+            <>
+              <ResizableHandle withVerticalHandle />
+              <ResizablePanel defaultSize="21.5%" minSize="21.5%" maxSize="40%">
+                <RightSidebar />
+              </ResizablePanel>
+            </>
+          )}
+        </ResizablePanelGroup>
+      )}
 
       {/* Status Bar */}
       <StatusBar />
