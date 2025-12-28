@@ -57,6 +57,7 @@ export function ContextDropdown() {
 
   const [isOpen, setIsOpen] = useState(false);
   const [deviceSearchQuery, setDeviceSearchQuery] = useState('');
+  const [isRefreshingPortals, setIsRefreshingPortals] = useState(false);
 
   // Filter devices based on search query
   const filteredDevices = useMemo(() => {
@@ -88,10 +89,23 @@ export function ContextDropdown() {
 
   // Build summary text for dropdown trigger
   const getSummaryText = () => {
-    if (!selectedPortal) return 'No context';
+    if (!selectedPortal) return 'No connected portal';
     if (!selectedCollector) return selectedPortal.hostname;
     const device = hostname ? ` → ${hostname}` : '';
     return `${selectedPortal.hostname} → ${selectedCollector.description || selectedCollector.hostname}${device}`;
+  };
+
+  // Handle portal refresh with loading state
+  const handleRefreshPortals = async () => {
+    setIsRefreshingPortals(true);
+    try {
+      await refreshPortals();
+    } finally {
+      // Add a small delay to ensure the animation is visible
+      setTimeout(() => {
+        setIsRefreshingPortals(false);
+      }, 300);
+    }
   };
 
   return (
@@ -147,14 +161,32 @@ export function ContextDropdown() {
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <Label className="text-xs">Portal</Label>
-              <Button
-                variant="ghost"
-                size="icon-xs"
-                onClick={refreshPortals}
-                className="size-5"
-              >
-                <RefreshCw className="size-3" />
-              </Button>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="icon-xs"
+                      onClick={handleRefreshPortals}
+                      disabled={isRefreshingPortals}
+                      className={cn(
+                        "size-5 transition-all duration-200",
+                        isRefreshingPortals && "opacity-70"
+                      )}
+                    >
+                      <RefreshCw 
+                        className={cn(
+                          "size-3 transition-transform duration-200",
+                          isRefreshingPortals && "animate-spin"
+                        )} 
+                      />
+                    </Button>
+                  }
+                />
+                <TooltipContent>
+                  {isRefreshingPortals ? 'Refreshing portals...' : 'Refresh portals'}
+                </TooltipContent>
+              </Tooltip>
             </div>
             <Select 
               value={selectedPortalId} 

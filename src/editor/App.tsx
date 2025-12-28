@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
+import { FileWarning } from 'lucide-react';
 import { Toolbar } from './components/Toolbar';
 import { EditorPanel } from './components/EditorPanel';
 import { OutputPanel } from './components/OutputPanel';
@@ -9,6 +10,7 @@ import { CommandPalette } from './components/CommandPalette';
 import { SettingsDialog } from './components/SettingsDialog';
 import { RightSidebar } from './components/RightSidebar';
 import { useEditorStore } from './stores/editor-store';
+import { Button } from '@/components/ui/button';
 import {
   ResizablePanelGroup,
   ResizablePanel,
@@ -48,6 +50,9 @@ export function App() {
     setSelectedCollector,
     setHostname,
     rightSidebarOpen,
+    tabsNeedingPermission,
+    restoreFileHandles,
+    requestFilePermissions,
   } = useEditorStore();
   
   // Get active tab for auto-save trigger and window title
@@ -103,6 +108,14 @@ export function App() {
     };
     checkDraft();
   }, [loadDraft]);
+
+  // Restore file handles after draft is restored or on mount
+  useEffect(() => {
+    // Wait until draft dialog is closed (user has made a choice)
+    if (!showDraftDialog && tabs.length > 0) {
+      restoreFileHandles();
+    }
+  }, [showDraftDialog, tabs.length, restoreFileHandles]);
 
   // Discover portals on mount
   useEffect(() => {
@@ -191,7 +204,7 @@ export function App() {
     const charCount = activeTab?.content.length ?? 0;
     const warning = charCount > 64000 ? ' ⚠️ LIMIT EXCEEDED' : '';
     const tabName = activeTab?.displayName ?? 'No file';
-    document.title = `${tabName} - LogicMonitor IDE (${charCount.toLocaleString()} chars)${warning}`;
+    document.title = `${tabName} - LMDA Composer (${charCount.toLocaleString()} chars)${warning}`;
   }, [activeTab]);
 
   // Auto-save draft with debounce (watches all tabs)
@@ -257,6 +270,24 @@ export function App() {
     <div className="flex flex-col h-screen bg-background text-foreground overflow-hidden">
       {/* Toolbar */}
       <Toolbar />
+
+      {/* File Permission Banner - shown when files need permission re-request */}
+      {tabsNeedingPermission.length > 0 && (
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 border-b border-amber-500/20">
+          <FileWarning className="size-4 text-amber-500 shrink-0" />
+          <span className="text-sm text-amber-500 flex-1">
+            {tabsNeedingPermission.length} file{tabsNeedingPermission.length !== 1 ? 's' : ''} need permission to save directly
+          </span>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={requestFilePermissions}
+            className="border-amber-500/30 text-amber-500 hover:bg-amber-500/10"
+          >
+            Restore Access
+          </Button>
+        </div>
+      )}
 
       {/* Main Content Area with Optional Right Sidebar */}
       {/* Key forces re-mount when sidebar state changes so defaultSize applies correctly */}

@@ -15,6 +15,7 @@ LogicMonitor IDE is a Chrome Extension that provides an enhanced script developm
 | [03-features.md](./03-features.md) | Feature specifications, user stories, acceptance criteria |
 | [04-api-reference.md](./04-api-reference.md) | LogicMonitor REST API endpoints and usage |
 | [05-data-models.md](./05-data-models.md) | TypeScript interfaces, types, and constants |
+| [06-local-file-system.md](./06-local-file-system.md) | Local file system support implementation spec |
 
 ---
 
@@ -282,6 +283,15 @@ const selector = '[data-testid="LM_navigationMoreOptions24PxIcon"]';
 - [x] Retain last edited code on relaunch (draft auto-save)
 - [x] Save edited code to file (.groovy/.ps1)
 - [x] Searchable device/hostname dropdown (populated from collector)
+
+### Phase 6: Local File System Support 🚧 IN PROGRESS
+- [ ] Open files from disk using File System Access API
+- [ ] Save files directly to disk (Ctrl+S)
+- [ ] Save As functionality (Ctrl+Shift+S)
+- [ ] Persist file handles in IndexedDB across sessions
+- [ ] VS Code-like unsaved changes indicator (dot in tab)
+- [ ] Permission re-request flow after browser restart
+- [ ] Dirty state tracking per tab
 
 ---
 

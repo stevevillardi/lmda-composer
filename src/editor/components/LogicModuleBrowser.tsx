@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { 
   Database, 
   FileText, 
@@ -11,6 +11,7 @@ import {
   AlertTriangle,
   FolderSearch,
   Eye,
+  RefreshCw,
 } from 'lucide-react';
 import { useEditorStore } from '../stores/editor-store';
 import {
@@ -34,6 +35,8 @@ import {
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { Input } from '@/components/ui/input';
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/components/ui/empty';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import type { LogicModuleType, LogicModuleInfo } from '@/shared/types';
 import { ModulePreview } from './ModulePreview';
@@ -101,7 +104,7 @@ export function LogicModuleBrowser() {
         <DialogContent className="!w-[90vw] !max-w-[90vw] h-[90vh] flex flex-col gap-4 p-0" showCloseButton>
           {/* Header */}
           <DialogHeader className="px-6 pt-6 pb-0">
-            <DialogTitle>Open from LogicModule</DialogTitle>
+            <DialogTitle>Import from LogicModule Exchange</DialogTitle>
             <DialogDescription>
               Browse and load scripts from existing LogicModules in your portal
             </DialogDescription>

@@ -144,13 +144,21 @@ Exit 0
   return (
     <div className="flex items-center gap-2 px-3 py-2 bg-secondary/30 border-b border-border">
       {/* Context Dropdown (Portal/Collector/Device) */}
-      <ContextDropdown />
+      <div className="flex items-center gap-2">
+        <Label className="text-xs text-muted-foreground whitespace-nowrap hidden lg:block">
+          Context:
+        </Label>
+        <ContextDropdown />
+      </div>
 
       <Separator orientation="vertical" className="h-8 mx-1" />
 
       {/* Script Config Group */}
       <div className="flex items-center gap-2">
         {/* Language Toggle */}
+        <Label className="text-xs text-muted-foreground whitespace-nowrap hidden lg:block">
+          Language:
+        </Label>
         <div className="flex items-center rounded-md border border-input bg-background/50 p-0.5 gap-0.5">
           <Button
             variant={language === 'groovy' ? 'default' : 'ghost'}

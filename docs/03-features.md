@@ -628,6 +628,142 @@ Replace hostname text input with searchable device dropdown.
 
 ---
 
+## Phase 6 Features 🚧 IN PROGRESS
+
+### F6.1 Open File from Disk
+
+**Description:**  
+Open local script files using the File System Access API.
+
+**User Story:**  
+As a user, I want to open script files from my local file system so I can edit and test existing scripts.
+
+**Implementation:**
+- Use `window.showOpenFilePicker()` for file selection
+- Support `.groovy`, `.ps1`, and `.txt` files
+- Create new tab with file content
+- Store `FileSystemFileHandle` in IndexedDB for future saves
+- Track `originalContent` for dirty state detection
+
+**Acceptance Criteria:**
+- [ ] Ctrl+O opens file picker dialog
+- [ ] Selected file opens in new tab
+- [ ] File name displayed in tab
+- [ ] Language auto-detected from extension
+- [ ] File handle persisted for direct save
+
+---
+
+### F6.2 Save File Directly
+
+**Description:**  
+Save files directly to disk without download dialog.
+
+**User Story:**  
+As a user, I want to press Ctrl+S to save my changes directly to the original file.
+
+**Implementation:**
+- Check for existing `FileSystemFileHandle` in IndexedDB
+- If handle exists: write directly using `handle.createWritable()`
+- If no handle: trigger Save As flow
+- Update `originalContent` after successful save
+
+**Acceptance Criteria:**
+- [ ] Ctrl+S saves to existing file location
+- [ ] No download dialog for files with handles
+- [ ] Unsaved indicator disappears after save
+- [ ] New files trigger Save As dialog
+
+---
+
+### F6.3 Save As
+
+**Description:**  
+Save file to a new location with file picker.
+
+**User Story:**  
+As a user, I want to save my script to a specific location on disk.
+
+**Implementation:**
+- Use `window.showSaveFilePicker()` for location selection
+- Suggest file name based on current tab name
+- Store new handle in IndexedDB
+- Update tab with new file name
+
+**Acceptance Criteria:**
+- [ ] Ctrl+Shift+S always shows save picker
+- [ ] Suggested name matches tab name
+- [ ] Correct extension based on language
+- [ ] Tab name updates to new file name
+
+---
+
+### F6.4 Unsaved Changes Indicator
+
+**Description:**  
+VS Code-like visual indicator for unsaved changes in tabs.
+
+**User Story:**  
+As a user, I want to see which files have unsaved changes so I don't lose my work.
+
+**Implementation:**
+- Track `originalContent` per tab (content when opened/saved)
+- Compute dirty state: `content !== originalContent`
+- Show filled dot (●) for dirty tabs
+- On hover, dot transitions to X for closing
+
+**Acceptance Criteria:**
+- [ ] Dot appears when content differs from saved
+- [ ] New files always show dot
+- [ ] Dot disappears after save
+- [ ] Hover shows X for closing
+
+---
+
+### F6.5 File Handle Persistence
+
+**Description:**  
+Persist file handles across browser sessions using IndexedDB.
+
+**User Story:**  
+As a user, I want my open files to remain accessible after closing and reopening the browser.
+
+**Implementation:**
+- Store handles in IndexedDB (`lm-ide-files` database)
+- Key by tabId for matching to restored tabs
+- Check permissions on app mount
+- Show "Restore Access" button if permission needed
+
+**Acceptance Criteria:**
+- [ ] Handles saved to IndexedDB on file open
+- [ ] Handles loaded on app mount
+- [ ] Permission status checked per handle
+- [ ] User can re-grant permission with single click
+
+---
+
+### F6.6 Permission Re-request Flow
+
+**Description:**  
+Handle permission re-request after browser restart.
+
+**User Story:**  
+As a user, I want to easily restore access to my files after the browser forgets permissions.
+
+**Implementation:**
+- Query permission status: `handle.queryPermission()`
+- If status is 'prompt', show banner with "Restore Access" button
+- On click, request permission (requires user gesture)
+- Re-read file content if permission granted
+
+**Acceptance Criteria:**
+- [ ] Banner appears when permission needed
+- [ ] Single click restores all file access
+- [ ] Files remain editable even without permission (content in draft)
+- [ ] Graceful degradation if permission denied
+
+---
+
 ## Future Features (Backlog)
 
 ### Script Templates
@@ -645,8 +781,4 @@ Replace hostname text input with searchable device dropdown.
 ### Collaboration
 - Share scripts via URL
 - Import/export scripts
-
-### Local File System
-- Save scripts to local files
-- Open from file system
 

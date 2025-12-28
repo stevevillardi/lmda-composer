@@ -90,6 +90,39 @@
   - Warns that switching will reset to default template
   - Options: Cancel (keep current) or Switch & Reset (confirm)
 
+### 1.5. Tab Bar
+
+**Location:** Below toolbar, above editor
+
+**Features:**
+- Multi-tab support for editing multiple scripts
+- Tabs can be opened from modules, files, history, or created new
+- Tab context menu (right-click): Rename, Close, Close Others, Close All
+
+**Tab Components:**
+
+| Element | Description |
+|---------|-------------|
+| Language Badge | GR (Groovy) or PS (PowerShell) indicator |
+| File Name | Display name (truncated if too long) |
+| Unsaved Indicator | Dot (●) when file has unsaved changes |
+| Close Button | X button to close tab |
+
+**Unsaved Changes Indicator (VS Code-like):**
+
+| Tab State | Default View | On Hover |
+|-----------|--------------|----------|
+| New file (never saved) | ● (dot) | X (close) |
+| Local file (clean) | X (close) | X (close) |
+| Local file (dirty) | ● (dot) | X (close) |
+| Module script | X (close) | X (close) |
+
+**Behavior:**
+- Dot indicator (●) appears when `content !== originalContent`
+- New files without `originalContent` always show dot (never been saved)
+- On hover, dot smoothly transitions to X for closing
+- Closing a dirty tab shows confirmation dialog
+
 ### 2. Monaco Editor Panel
 
 **Location:** Main content area, left side (resizable)
@@ -259,8 +292,9 @@
 |----------|--------|
 | `Ctrl+Enter` / `F5` | Run script |
 | `Ctrl+K` | Open command palette |
-| `Ctrl+O` | Open module browser |
-| `Ctrl+S` | Save to local storage (draft) |
+| `Ctrl+O` | Open file from disk |
+| `Ctrl+S` | Save file (to existing location or Save As) |
+| `Ctrl+Shift+S` | Save As (always prompt for location) |
 | `Ctrl+Shift+C` | Copy output to clipboard |
 | `Ctrl+,` | Open settings |
 | `Ctrl+\`` | Toggle output panel |

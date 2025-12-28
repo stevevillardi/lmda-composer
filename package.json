@@ -1,7 +1,7 @@
 {
-  "name": "lm-ide",
+  "name": "lmda-composer",
   "version": "1.0.0",
-  "description": "LogicMonitor IDE - Debug and test collector scripts with live execution",
+  "description": "LMDA Composer - LogicModule Composer for LogicMonitor",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -13,6 +13,9 @@
     "logicmonitor",
     "chrome-extension",
     "ide",
+    "lmda",
+    "composer",
+    "logicmodule",
     "groovy",
     "powershell"
   ],

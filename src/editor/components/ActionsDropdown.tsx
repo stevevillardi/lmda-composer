@@ -1,10 +1,11 @@
-import { 
-  FolderOpen, 
+import {  
   Download,
   FileInput,
+  Save,
   Settings,
-  MoreHorizontal,
+  CommandIcon,
   PanelRight,
+  CloudDownload,
 } from 'lucide-react';
 import { useEditorStore } from '../stores/editor-store';
 import { Button } from '@/components/ui/button';
@@ -26,6 +27,8 @@ export function ActionsDropdown() {
     rightSidebarOpen,
     toggleRightSidebar,
     openFileFromDisk,
+    saveFile,
+    saveFileAs,
     exportToFile,
   } = useEditorStore();
 
@@ -41,7 +44,7 @@ export function ActionsDropdown() {
                   size="sm"
                   className="h-8 gap-1.5"
                 >
-                  <MoreHorizontal className="size-4" />
+                  <CommandIcon className="size-4" />
                   <span className="hidden sm:inline text-xs">Actions</span>
                 </Button>
               }
@@ -55,23 +58,34 @@ export function ActionsDropdown() {
         <DropdownMenuItem onClick={openFileFromDisk}>
           <FileInput className="size-4 mr-2" />
           <span className="flex-1">Open File...</span>
+          <Kbd className="ml-auto">⌘O</Kbd>
         </DropdownMenuItem>
 
         <DropdownMenuItem 
           onClick={() => setModuleBrowserOpen(true)}
           disabled={!selectedPortalId}
         >
-          <FolderOpen className="size-4 mr-2" />
-          <span className="flex-1">Open from LMX Exchange</span>
-          <Kbd className="ml-auto">⌘O</Kbd>
+          <CloudDownload className="size-4 mr-2" />
+          <span className="flex-1">Import from LogicModule Exchange</span>
         </DropdownMenuItem>
 
         <DropdownMenuSeparator />
 
+        <DropdownMenuItem onClick={() => saveFile()}>
+          <Save className="size-4 mr-2" />
+          <span className="flex-1">Save</span>
+          <Kbd className="ml-auto">⌘S</Kbd>
+        </DropdownMenuItem>
+
+        <DropdownMenuItem onClick={() => saveFileAs()}>
+          <Download className="size-4 mr-2" />
+          <span className="flex-1">Save As...</span>
+          <Kbd className="ml-auto">⌘⇧S</Kbd>
+        </DropdownMenuItem>
+
         <DropdownMenuItem onClick={exportToFile}>
           <Download className="size-4 mr-2" />
-          <span className="flex-1">Export to File</span>
-          <Kbd className="ml-auto">⌘S</Kbd>
+          <span className="flex-1">Export (Download)</span>
         </DropdownMenuItem>
 
         <DropdownMenuSeparator />

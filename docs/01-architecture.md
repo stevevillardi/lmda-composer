@@ -377,6 +377,81 @@ interface APIError {
 
 ---
 
+## Local File System Architecture
+
+### Overview
+
+LogicMonitor IDE supports opening and saving local files using the File System Access API. Due to Chrome Extension limitations, file operations occur in the editor UI context, not the service worker.
+
+### Technology Stack
+
+| Layer | Technology | Purpose |
+|-------|------------|---------|
+| Editor UI | File System Access API | Open/save files to disk |
+| Editor UI | IndexedDB | Persist file handles across sessions |
+| Service Worker | `chrome.storage.local` | Autosave backup (fallback) |
+
+### Data Flow
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                            Editor UI Context                                 │
+│                                                                              │
+│  ┌─────────────────┐    ┌─────────────────┐    ┌──────────────────────────┐ │
+│  │   TabBar +      │    │  File System    │    │       IndexedDB          │ │
+│  │   Editor        │◄──►│  Access API     │◄──►│   (file-handles store)   │ │
+│  └────────┬────────┘    └─────────────────┘    └──────────────────────────┘ │
+│           │                                                                  │
+│           │ auto-save                                                        │
+│           ▼                                                                  │
+│  ┌─────────────────────────────────────────────────────────────────────────┐│
+│  │                     Zustand Editor Store                                 ││
+│  │  - tabs[] with originalContent, hasFileHandle                           ││
+│  │  - file operations (open, save, saveAs)                                 ││
+│  │  - dirty state computation                                              ││
+│  └────────────────────────────────────────────────────────────────────────┘│
+│                                    │                                         │
+└────────────────────────────────────┼─────────────────────────────────────────┘
+                                     │ chrome.storage.local
+                                     ▼
+                    ┌───────────────────────────────┐
+                    │     Service Worker Context    │
+                    │   (autosave backup storage)   │
+                    └───────────────────────────────┘
+```
+
+### Key Constraints
+
+1. **File System Access API** is NOT available in service workers
+2. **FileSystemFileHandle** objects stored in IndexedDB require permission re-request after browser restart
+3. **User gesture required** to request file permissions (can't auto-prompt on load)
+
+### File Handle Persistence
+
+File handles are stored in IndexedDB to persist across sessions:
+
+**Database:** `lm-ide-files`
+**Object Store:** `file-handles`
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `tabId` | string (key) | Matches EditorTab.id |
+| `handle` | FileSystemFileHandle | The file handle object |
+| `fileName` | string | Display name |
+| `lastAccessed` | number | Timestamp |
+
+### Permission Flow After Restart
+
+```
+App Mount → Load handles from IndexedDB
+         → For each handle: queryPermission()
+         → If 'prompt': Show "Restore Access" button
+         → User clicks → requestPermission()
+         → If granted: Handle ready to use
+```
+
+---
+
 ## Future Extensibility
 
 ### Potential Features

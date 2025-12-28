@@ -18,9 +18,11 @@ import type {
   DraftScript,
   DraftTabs,
   EditorTab,
+  FilePermissionStatus,
 } from '@/shared/types';
 import { DEFAULT_PREFERENCES } from '@/shared/types';
 import { parseOutput, type ParseResult } from '../utils/output-parser';
+import * as fileHandleStore from '../utils/file-handle-store';
 
 interface EditorState {
   // Portal/Collector selection
@@ -107,6 +109,10 @@ interface EditorState {
   
   // Draft auto-save
   hasSavedDraft: boolean;
+  
+  // File system state (Phase 6)
+  tabsNeedingPermission: FilePermissionStatus[];
+  isRestoringFileHandles: boolean;
   
   // Actions
   setSelectedPortal: (portalId: string | null) => void;
@@ -211,8 +217,21 @@ interface EditorState {
   openModuleScripts: (module: LogicModuleInfo, scripts: Array<{ type: 'ad' | 'collection'; content: string }>) => void;
   toggleRightSidebar: () => void;
   
-  // File operations
+  // File operations (Phase 6 - File System Access API)
   openFileFromDisk: () => Promise<void>;
+  saveFile: (tabId?: string) => Promise<boolean>;
+  saveFileAs: (tabId?: string) => Promise<boolean>;
+  restoreFileHandles: () => Promise<void>;
+  requestFilePermissions: () => Promise<void>;
+  isTabDirty: (tabId: string) => boolean;
+  getTabDirtyState: (tab: EditorTab) => boolean;
+  
+  // Welcome screen / Recent files
+  recentFiles: Array<{ tabId: string; fileName: string; lastAccessed: number }>;
+  isLoadingRecentFiles: boolean;
+  loadRecentFiles: () => Promise<void>;
+  openRecentFile: (tabId: string) => Promise<void>;
+  createNewFile: () => void;
 }
 
 export const DEFAULT_GROOVY_TEMPLATE = `import com.santaba.agent.groovyapi.expect.Expect;
@@ -257,8 +276,7 @@ function createDefaultTab(language: ScriptLanguage = 'groovy', mode: ScriptMode 
   };
 }
 
-// Initial default tab
-const initialTab = createDefaultTab('groovy', 'freeform');
+// No initial tab - WelcomeScreen will show instead
 
 export const useEditorStore = create<EditorState>((set, get) => ({
   // Initial state
@@ -272,9 +290,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   wildvalue: '',
   datasourceId: '',
   
-  // Multi-tab state
-  tabs: [initialTab],
-  activeTabId: initialTab.id,
+  // Multi-tab state - starts empty, WelcomeScreen shows when no tabs
+  tabs: [],
+  activeTabId: null,
   
   // Computed getters from active tab (for backward compatibility)
   get script() {
@@ -339,6 +357,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   preferences: DEFAULT_PREFERENCES,
   executionHistory: [],
   hasSavedDraft: false,
+  
+  // File system initial state
+  tabsNeedingPermission: [],
+  isRestoringFileHandles: false,
+  
+  // Welcome screen / Recent files state
+  recentFiles: [],
+  isLoadingRecentFiles: false,
 
   // Actions
   setSelectedPortal: (portalId) => {
@@ -1464,21 +1490,27 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   closeTab: (tabId) => {
-    const { tabs, activeTabId } = get();
+    const { tabs, activeTabId, tabsNeedingPermission } = get();
     const tab = tabs.find(t => t.id === tabId);
     if (!tab) return;
     
     const tabIndex = tabs.findIndex(t => t.id === tabId);
     const newTabs = tabs.filter(t => t.id !== tabId);
     
+    // Clean up file handle from IndexedDB
+    if (tab.hasFileHandle) {
+      fileHandleStore.deleteHandle(tabId).catch(console.error);
+    }
+    
+    // Remove from permission-needed list if present
+    const newTabsNeedingPermission = tabsNeedingPermission.filter(t => t.tabId !== tabId);
+    
     // If we're closing the active tab, switch to another one
-    let newActiveTabId = activeTabId;
+    let newActiveTabId: string | null = activeTabId;
     if (tabId === activeTabId) {
       if (newTabs.length === 0) {
-        // Create a new default tab if we're closing the last one
-        const defaultTab = createDefaultTab();
-        newTabs.push(defaultTab);
-        newActiveTabId = defaultTab.id;
+        // No tabs left - WelcomeScreen will show
+        newActiveTabId = null;
       } else {
         // Switch to the tab to the left, or the first tab if we're at the start
         const newIndex = Math.max(0, tabIndex - 1);
@@ -1489,6 +1521,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     set({
       tabs: newTabs,
       activeTabId: newActiveTabId,
+      tabsNeedingPermission: newTabsNeedingPermission,
     });
   },
 
@@ -1504,10 +1537,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   closeAllTabs: () => {
-    const defaultTab = createDefaultTab();
+    // Clear all tabs - WelcomeScreen will show
     set({
-      tabs: [defaultTab],
-      activeTabId: defaultTab.id,
+      tabs: [],
+      activeTabId: null,
     });
   },
 
@@ -1634,41 +1667,416 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     set((state) => ({ rightSidebarOpen: !state.rightSidebarOpen }));
   },
 
-  // File operations (uses hidden input element)
+  // File operations (Phase 6 - File System Access API)
   openFileFromDisk: async () => {
-    return new Promise<void>((resolve) => {
-      const fileInput = document.createElement('input');
-      fileInput.type = 'file';
-      fileInput.accept = '.groovy,.ps1,.txt';
-      
-      fileInput.onchange = async (e) => {
-        const file = (e.target as HTMLInputElement).files?.[0];
-        if (!file) {
+    // Check if File System Access API is supported
+    if (!fileHandleStore.isFileSystemAccessSupported()) {
+      // Fallback to input element for unsupported browsers
+      return new Promise<void>((resolve) => {
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.groovy,.ps1,.txt';
+        
+        fileInput.onchange = async (e) => {
+          const file = (e.target as HTMLInputElement).files?.[0];
+          if (!file) {
+            resolve();
+            return;
+          }
+          
+          const content = await file.text();
+          const fileName = file.name;
+          const isGroovy = fileName.endsWith('.groovy');
+          
+          const newTab: EditorTab = {
+            id: crypto.randomUUID(),
+            displayName: fileName,
+            content,
+            language: isGroovy ? 'groovy' : 'powershell',
+            mode: 'freeform',
+            originalContent: content,
+            hasFileHandle: false,
+            isLocalFile: true,
+            source: { type: 'file' },
+          };
+          
+          set({
+            tabs: [...get().tabs, newTab],
+            activeTabId: newTab.id,
+          });
           resolve();
-          return;
-        }
-        
-        const content = await file.text();
-        const fileName = file.name;
-        const isGroovy = fileName.endsWith('.groovy');
-        
-        const newTab: EditorTab = {
-          id: crypto.randomUUID(),
-          displayName: fileName,
-          content,
-          language: isGroovy ? 'groovy' : 'powershell',
-          mode: 'freeform',
-          source: { type: 'file' },
         };
         
-        set({
-          tabs: [...get().tabs, newTab],
-          activeTabId: newTab.id,
-        });
-        resolve();
+        fileInput.click();
+      });
+    }
+
+    try {
+      // Use File System Access API
+      const [handle] = await window.showOpenFilePicker({
+        types: [
+          {
+            description: 'Script Files',
+            accept: {
+              'text/plain': ['.groovy', '.ps1', '.txt'],
+            },
+          },
+        ],
+        multiple: false,
+      });
+      
+      // Read file content
+      const file = await handle.getFile();
+      const content = await file.text();
+      const fileName = file.name;
+      const isGroovy = fileName.endsWith('.groovy');
+      
+      // Generate tab ID
+      const tabId = crypto.randomUUID();
+      
+      // Store handle in IndexedDB
+      await fileHandleStore.saveHandle(tabId, handle, fileName);
+      
+      // Create new tab
+      const newTab: EditorTab = {
+        id: tabId,
+        displayName: fileName,
+        content,
+        language: isGroovy ? 'groovy' : 'powershell',
+        mode: 'freeform',
+        originalContent: content,
+        hasFileHandle: true,
+        isLocalFile: true,
+        source: { type: 'file' },
       };
       
-      fileInput.click();
+      set({
+        tabs: [...get().tabs, newTab],
+        activeTabId: tabId,
+      });
+    } catch (error) {
+      // User cancelled or error occurred
+      if ((error as Error).name !== 'AbortError') {
+        console.error('Error opening file:', error);
+      }
+    }
+  },
+
+  saveFile: async (tabId?: string) => {
+    const { tabs, activeTabId } = get();
+    const targetTabId = tabId ?? activeTabId;
+    if (!targetTabId) return false;
+    
+    const tab = tabs.find(t => t.id === targetTabId);
+    if (!tab) return false;
+
+    try {
+      // Check for existing handle
+      const handle = await fileHandleStore.getHandle(targetTabId);
+      
+      if (handle) {
+        // Check permission
+        const permission = await fileHandleStore.queryPermission(handle);
+        
+        if (permission === 'granted') {
+          // Direct save to existing file
+          await fileHandleStore.writeToHandle(handle, tab.content);
+          
+          // Update originalContent to mark as clean
+          set({
+            tabs: tabs.map(t => 
+              t.id === targetTabId 
+                ? { ...t, originalContent: tab.content }
+                : t
+            ),
+          });
+          return true;
+        } else if (permission === 'prompt') {
+          // Need to request permission
+          const granted = await fileHandleStore.requestPermission(handle);
+          if (granted) {
+            await fileHandleStore.writeToHandle(handle, tab.content);
+            set({
+              tabs: tabs.map(t => 
+                t.id === targetTabId 
+                  ? { ...t, originalContent: tab.content }
+                  : t
+              ),
+            });
+            return true;
+          }
+        }
+        
+        // Permission denied - fall through to Save As
+      }
+      
+      // No handle or permission denied - trigger Save As
+      return await get().saveFileAs(targetTabId);
+    } catch (error) {
+      console.error('Error saving file:', error);
+      // Fall back to Save As on error
+      return await get().saveFileAs(targetTabId);
+    }
+  },
+
+  saveFileAs: async (tabId?: string) => {
+    const { tabs, activeTabId } = get();
+    const targetTabId = tabId ?? activeTabId;
+    if (!targetTabId) return false;
+    
+    const tab = tabs.find(t => t.id === targetTabId);
+    if (!tab) return false;
+
+    // Check if File System Access API is supported
+    if (!fileHandleStore.isFileSystemAccessSupported()) {
+      // Fallback to download
+      get().exportToFile();
+      return true;
+    }
+
+    try {
+      const extension = tab.language === 'groovy' ? '.groovy' : '.ps1';
+      const baseName = tab.displayName.replace(/\.(groovy|ps1)$/, '');
+      const suggestedName = baseName + extension;
+      
+      // Show save picker
+      const handle = await window.showSaveFilePicker({
+        suggestedName,
+        types: [
+          {
+            description: 'Script Files',
+            accept: tab.language === 'groovy' 
+              ? { 'text/plain': ['.groovy'] }
+              : { 'text/plain': ['.ps1'] },
+          },
+        ],
+      });
+      
+      // Write content
+      await fileHandleStore.writeToHandle(handle, tab.content);
+      
+      // Store new handle in IndexedDB
+      await fileHandleStore.saveHandle(targetTabId, handle, handle.name);
+      
+      // Update tab state
+      set({
+        tabs: tabs.map(t => 
+          t.id === targetTabId 
+            ? { 
+                ...t, 
+                displayName: handle.name,
+                originalContent: tab.content,
+                hasFileHandle: true,
+                isLocalFile: true,
+              }
+            : t
+        ),
+      });
+      
+      return true;
+    } catch (error) {
+      if ((error as Error).name !== 'AbortError') {
+        console.error('Error in Save As:', error);
+      }
+      return false;
+    }
+  },
+
+  restoreFileHandles: async () => {
+    set({ isRestoringFileHandles: true });
+    
+    try {
+      const { tabs } = get();
+      const storedHandles = await fileHandleStore.getAllHandles();
+      const needsPermission: FilePermissionStatus[] = [];
+      
+      // Check permission for each handle
+      for (const [tabId, record] of storedHandles) {
+        // Only process handles for tabs that still exist
+        const tabExists = tabs.some(t => t.id === tabId);
+        if (!tabExists) {
+          // Clean up orphaned handle
+          await fileHandleStore.deleteHandle(tabId);
+          continue;
+        }
+        
+        const permission = await fileHandleStore.queryPermission(record.handle);
+        
+        if (permission === 'prompt') {
+          needsPermission.push({
+            tabId,
+            fileName: record.fileName,
+            state: 'prompt',
+          });
+        } else if (permission === 'denied') {
+          // Update tab to reflect no handle access
+          set({
+            tabs: get().tabs.map(t => 
+              t.id === tabId 
+                ? { ...t, hasFileHandle: false }
+                : t
+            ),
+          });
+        }
+        // If granted, handle is ready to use - no action needed
+      }
+      
+      set({ 
+        tabsNeedingPermission: needsPermission,
+        isRestoringFileHandles: false,
+      });
+    } catch (error) {
+      console.error('Error restoring file handles:', error);
+      set({ isRestoringFileHandles: false });
+    }
+  },
+
+  requestFilePermissions: async () => {
+    const { tabsNeedingPermission, tabs } = get();
+    const stillNeedsPermission: FilePermissionStatus[] = [];
+    
+    for (const status of tabsNeedingPermission) {
+      try {
+        const handle = await fileHandleStore.getHandle(status.tabId);
+        if (!handle) continue;
+        
+        const granted = await fileHandleStore.requestPermission(handle);
+        
+        if (granted) {
+          // Optionally re-read file content to check for external changes
+          try {
+            const newContent = await fileHandleStore.readFromHandle(handle);
+            const tab = tabs.find(t => t.id === status.tabId);
+            
+            if (tab && tab.originalContent !== newContent) {
+              // File was modified externally - update originalContent
+              // Keep user's current edits, but update the baseline
+              set({
+                tabs: get().tabs.map(t => 
+                  t.id === status.tabId 
+                    ? { ...t, originalContent: newContent, hasFileHandle: true }
+                    : t
+                ),
+              });
+            } else {
+              // Just mark as having handle
+              set({
+                tabs: get().tabs.map(t => 
+                  t.id === status.tabId 
+                    ? { ...t, hasFileHandle: true }
+                    : t
+                ),
+              });
+            }
+          } catch {
+            // File might have been deleted - just mark handle as available
+            set({
+              tabs: get().tabs.map(t => 
+                t.id === status.tabId 
+                  ? { ...t, hasFileHandle: true }
+                  : t
+              ),
+            });
+          }
+        } else {
+          stillNeedsPermission.push(status);
+        }
+      } catch {
+        stillNeedsPermission.push(status);
+      }
+    }
+    
+    set({ tabsNeedingPermission: stillNeedsPermission });
+  },
+
+  isTabDirty: (tabId: string) => {
+    const tab = get().tabs.find(t => t.id === tabId);
+    if (!tab) return false;
+    return get().getTabDirtyState(tab);
+  },
+
+  getTabDirtyState: (tab: EditorTab) => {
+    // New file without originalContent is always "dirty" (never saved)
+    if (tab.originalContent === undefined) {
+      return true;
+    }
+    
+    // Compare current content to original
+    return tab.content !== tab.originalContent;
+  },
+
+  // Welcome screen actions
+  loadRecentFiles: async () => {
+    set({ isLoadingRecentFiles: true });
+    try {
+      const recentFiles = await fileHandleStore.getRecentHandles(10);
+      set({ recentFiles, isLoadingRecentFiles: false });
+    } catch (error) {
+      console.error('Failed to load recent files:', error);
+      set({ recentFiles: [], isLoadingRecentFiles: false });
+    }
+  },
+
+  openRecentFile: async (tabId: string) => {
+    try {
+      const handle = await fileHandleStore.getHandle(tabId);
+      if (!handle) {
+        console.warn('File handle not found for tabId:', tabId);
+        // Remove from recent files since handle is gone
+        await fileHandleStore.deleteHandle(tabId);
+        get().loadRecentFiles();
+        return;
+      }
+
+      // Check permission
+      let permission = await fileHandleStore.queryPermission(handle);
+      if (permission !== 'granted') {
+        permission = (await fileHandleStore.requestPermission(handle)) ? 'granted' : 'denied';
+      }
+
+      if (permission !== 'granted') {
+        console.warn('Permission denied for file:', handle.name);
+        return;
+      }
+
+      // Read file content
+      const content = await fileHandleStore.readFromHandle(handle);
+      const fileName = handle.name;
+      const language: ScriptLanguage = fileName.endsWith('.ps1') ? 'powershell' : 'groovy';
+
+      // Update lastAccessed
+      await fileHandleStore.saveHandle(tabId, handle, fileName);
+
+      // Create new tab with the file content
+      const newTab: EditorTab = {
+        id: tabId, // Reuse the same tabId so handle mapping is preserved
+        displayName: fileName,
+        content,
+        language,
+        mode: 'freeform',
+        originalContent: content,
+        hasFileHandle: true,
+        isLocalFile: true,
+      };
+
+      set({
+        tabs: [...get().tabs, newTab],
+        activeTabId: tabId,
+      });
+    } catch (error) {
+      console.error('Failed to open recent file:', error);
+    }
+  },
+
+  createNewFile: () => {
+    const { preferences } = get();
+    const language = preferences.defaultLanguage || 'groovy';
+    const mode = preferences.defaultMode || 'freeform';
+    const newTab = createDefaultTab(language, mode);
+    
+    set({
+      tabs: [...get().tabs, newTab],
+      activeTabId: newTab.id,
     });
   },
 }));

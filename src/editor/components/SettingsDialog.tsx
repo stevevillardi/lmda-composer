@@ -89,7 +89,7 @@ export function SettingsDialog() {
             Settings
           </DialogTitle>
           <DialogDescription>
-            Customize your LogicMonitor IDE experience.
+            Customize your LMDA Composer experience.
           </DialogDescription>
         </DialogHeader>
 

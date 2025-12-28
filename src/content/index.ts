@@ -74,8 +74,8 @@ function showRefreshNotification() {
       <line x1="12" y1="16" x2="12.01" y2="16"></line>
     </svg>
     <div style="flex: 1;">
-      <div style="font-weight: 600; margin-bottom: 4px;">LogicMonitor IDE Updated</div>
-      <div style="opacity: 0.8; font-size: 13px;">Please refresh the page to use LogicMonitor IDE.</div>
+      <div style="font-weight: 600; margin-bottom: 4px;">LMDA Composer Updated</div>
+      <div style="opacity: 0.8; font-size: 13px;">Please refresh the page to use LMDA Composer.</div>
     </div>
     <button style="
       background: #3b82f6;
@@ -267,7 +267,7 @@ function injectMenuItem(menuContainer: HTMLElement) {
       <polyline points="16,18 22,12 16,6"></polyline>
       <polyline points="8,6 2,12 8,18"></polyline>
     </svg>
-    <span>Open in LogicMonitor IDE</span>
+    <span>Open in LMDA Composer</span>
   `;
 
   menuItem.addEventListener('mouseenter', () => {

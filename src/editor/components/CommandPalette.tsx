@@ -5,11 +5,13 @@ import {
   Trash2,
   RefreshCw,
   Globe,
-  FolderOpen,
   Settings,
   History,
   Download,
+  Save,
+  FileUp,
   PanelRight,
+  CloudDownload,
 } from 'lucide-react';
 import { useEditorStore } from '../stores/editor-store';
 import {
@@ -52,6 +54,9 @@ export function CommandPalette() {
     setSelectedPortal,
     toggleRightSidebar,
     exportToFile,
+    saveFile,
+    saveFileAs,
+    openFileFromDisk,
   } = useEditorStore();
 
   // Copy output to clipboard
@@ -76,10 +81,39 @@ export function CommandPalette() {
       disabled: isExecuting || !selectedPortalId || !selectedCollectorId,
     },
     {
-      id: 'export-file',
-      label: 'Export to File',
-      icon: <Download className="size-4" />,
+      id: 'save-file',
+      label: 'Save',
+      icon: <Save className="size-4" />,
       shortcut: '⌘S',
+      action: () => {
+        setCommandPaletteOpen(false);
+        saveFile();
+      },
+    },
+    {
+      id: 'save-file-as',
+      label: 'Save As...',
+      icon: <Download className="size-4" />,
+      shortcut: '⌘⇧S',
+      action: () => {
+        setCommandPaletteOpen(false);
+        saveFileAs();
+      },
+    },
+    {
+      id: 'open-file',
+      label: 'Open File...',
+      icon: <FileUp className="size-4" />,
+      shortcut: '⌘O',
+      action: () => {
+        setCommandPaletteOpen(false);
+        openFileFromDisk();
+      },
+    },
+    {
+      id: 'export-file',
+      label: 'Export (Download)',
+      icon: <Download className="size-4" />,
       action: () => {
         setCommandPaletteOpen(false);
         exportToFile();
@@ -111,9 +145,8 @@ export function CommandPalette() {
   const navigationCommands: CommandAction[] = [
     {
       id: 'open-module-browser',
-      label: 'Open from LogicModule',
-      icon: <FolderOpen className="size-4" />,
-      shortcut: '⌘O',
+      label: 'Import from LogicModule Exchange',
+      icon: <CloudDownload className="size-4" />,
       action: () => {
         setCommandPaletteOpen(false);
         setModuleBrowserOpen(true);
@@ -210,7 +243,7 @@ export function CommandPalette() {
       }
 
       // Cmd/Ctrl + Shift + C to copy output
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'c') {
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'c') {
         e.preventDefault();
         if (currentExecution?.rawOutput) {
           navigator.clipboard.writeText(currentExecution.rawOutput);
@@ -218,12 +251,10 @@ export function CommandPalette() {
         return;
       }
 
-      // Cmd/Ctrl + O to open module browser
+      // Cmd/Ctrl + O to open file from disk
       if ((e.metaKey || e.ctrlKey) && e.key === 'o') {
         e.preventDefault();
-        if (selectedPortalId) {
-          setModuleBrowserOpen(true);
-        }
+        openFileFromDisk();
         return;
       }
 
@@ -241,10 +272,17 @@ export function CommandPalette() {
         return;
       }
 
-      // Cmd/Ctrl + S to export file
-      if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+      // Cmd/Ctrl + S to save file (check lowercase for non-shift)
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === 's') {
         e.preventDefault();
-        exportToFile();
+        saveFile();
+        return;
+      }
+
+      // Cmd/Ctrl + Shift + S to save as (check lowercase since shift modifies the key)
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        saveFileAs();
         return;
       }
 
@@ -270,7 +308,9 @@ export function CommandPalette() {
     currentExecution,
     setModuleBrowserOpen,
     setSettingsDialogOpen,
-    exportToFile,
+    saveFile,
+    saveFileAs,
+    openFileFromDisk,
     refreshCollectors,
     toggleRightSidebar,
   ]);

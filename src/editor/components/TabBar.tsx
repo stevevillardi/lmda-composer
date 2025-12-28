@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState, useCallback } from 'react';
-import { X, Plus, Pencil } from 'lucide-react';
+import { X, Plus, Pencil, Circle } from 'lucide-react';
 import { useEditorStore } from '../stores/editor-store';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -57,6 +57,8 @@ interface TabItemProps {
   tab: EditorTab;
   isActive: boolean;
   isRenaming: boolean;
+  isDirty: boolean;
+  canRename: boolean;
   onActivate: () => void;
   onClose: () => void;
   onCloseOthers: () => void;
@@ -70,6 +72,8 @@ function TabItem({
   tab, 
   isActive, 
   isRenaming,
+  isDirty,
+  canRename,
   onActivate, 
   onClose, 
   onCloseOthers, 
@@ -81,6 +85,7 @@ function TabItem({
   const tabRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [renameValue, setRenameValue] = useState(tab.displayName);
+  const [isCloseHovered, setIsCloseHovered] = useState(false);
   
   // Scroll active tab into view
   useEffect(() => {
@@ -162,10 +167,10 @@ function TabItem({
                 <button
                   ref={tabRef}
                   onClick={onActivate}
-                  onDoubleClick={onStartRename}
+                  onDoubleClick={canRename ? onStartRename : undefined}
                   className={cn(
                     "group flex items-center gap-1.5 px-3 py-1.5 text-sm border-r border-border",
-                    "min-w-[120px] max-w-[200px] shrink-0",
+                    "min-w-[120px] max-w-[250px] shrink-0",
                     "transition-colors duration-100",
                     isActive 
                       ? "bg-background text-foreground border-b-2 border-b-primary" 
@@ -178,20 +183,39 @@ function TabItem({
                   {/* Tab name */}
                   <span className="truncate flex-1 text-left">
                     {tab.displayName}
+                    {tab.hasFileHandle && (
+                      <span className="text-[10px] text-muted-foreground ml-1 opacity-70">(local)</span>
+                    )}
                   </span>
                   
-                  {/* Close button - show on tab hover or when active */}
+                  {/* Close/Dirty indicator */}
                   <div 
                     className="flex items-center justify-center size-4 rounded hover:bg-destructive/20"
                     onClick={(e) => {
                       e.stopPropagation();
                       onClose();
                     }}
+                    onMouseEnter={() => setIsCloseHovered(true)}
+                    onMouseLeave={() => setIsCloseHovered(false)}
                   >
-                    <X className={cn(
-                      "size-3 opacity-0 group-hover:opacity-100 hover:text-destructive",
-                      isActive && "opacity-100"
-                    )} />
+                    {/* Show X when: hovered on close area, OR (active/group-hover AND not dirty) */}
+                    {/* Show dot when: dirty AND not hovered on close area */}
+                    {isDirty && !isCloseHovered ? (
+                      <Circle className={cn(
+                        "size-2.5 fill-current",
+                        isActive ? "text-amber-400" : "text-muted-foreground"
+                      )} />
+                    ) : (
+                      <X className={cn(
+                        "size-3 hover:text-destructive",
+                        isDirty 
+                          ? "opacity-100" // Always show X when hovering over dirty indicator
+                          : cn(
+                              "opacity-0 group-hover:opacity-100",
+                              isActive && "opacity-100"
+                            )
+                      )} />
+                    )}
                   </div>
                 </button>
               }
@@ -199,7 +223,11 @@ function TabItem({
           }
         />
         <ContextMenuContent>
-          <ContextMenuItem onClick={onStartRename}>
+          <ContextMenuItem 
+            onClick={onStartRename}
+            disabled={!canRename}
+            title={!canRename ? "Cannot rename local files (name matches filesystem)" : undefined}
+          >
             <Pencil className="size-4 mr-2" />
             Rename
           </ContextMenuItem>
@@ -223,7 +251,11 @@ function TabItem({
       </ContextMenu>
       <TooltipContent side="bottom" className="max-w-xs">
         <div className="text-xs">{tooltipContent}</div>
-        <div className="text-[10px] text-muted-foreground mt-0.5">Double-click to rename</div>
+        <div className="text-[10px] text-muted-foreground mt-0.5">
+          {tab.hasFileHandle 
+            ? "Local file • Saved to disk" 
+            : "Double-click to rename"}
+        </div>
       </TooltipContent>
     </Tooltip>
   );
@@ -240,6 +272,7 @@ export function TabBar() {
     openTab,
     renameTab,
     preferences,
+    getTabDirtyState,
   } = useEditorStore();
   
   // Track which tab is being renamed
@@ -296,6 +329,8 @@ Exit 0
             tab={tab}
             isActive={tab.id === activeTabId}
             isRenaming={renamingTabId === tab.id}
+            isDirty={getTabDirtyState(tab)}
+            canRename={!tab.hasFileHandle}
             onActivate={() => setActiveTab(tab.id)}
             onClose={() => closeTab(tab.id)}
             onCloseOthers={() => closeOtherTabs(tab.id)}
@@ -317,15 +352,16 @@ Exit 0
             render={
               <Button
                 variant="ghost"
-                size="icon-sm"
+                size="sm"
                 onClick={handleNewTab}
-                className="size-6"
+                className="h-6 px-2 gap-1 text-xs"
               >
                 <Plus className="size-3.5" />
+                <span>New File</span>
               </Button>
             }
           />
-          <TooltipContent>New Tab</TooltipContent>
+          <TooltipContent>Create a new file tab</TooltipContent>
         </Tooltip>
       </div>
       

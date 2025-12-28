@@ -14,8 +14,9 @@ import { MAX_SCRIPT_LENGTH } from '@/shared/types';
 const KEYBOARD_SHORTCUTS = [
   { keys: ['⌘', 'Enter'], action: 'Run script' },
   { keys: ['⌘', 'K'], action: 'Command palette' },
-  { keys: ['⌘', 'O'], action: 'Open from LogicModule' },
-  { keys: ['⌘', 'S'], action: 'Export to file' },
+  { keys: ['⌘', 'O'], action: 'Open file' },
+  { keys: ['⌘', 'S'], action: 'Save' },
+  { keys: ['⌘', '⇧', 'S'], action: 'Save As...' },
   { keys: ['⌘', '⇧', 'C'], action: 'Copy output' },
   { keys: ['⌘', ','], action: 'Settings' },
   { keys: ['⌘', 'B'], action: 'Toggle sidebar' },

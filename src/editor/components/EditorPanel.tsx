@@ -3,6 +3,7 @@ import { useEditorStore } from '../stores/editor-store';
 import type { editor } from 'monaco-editor';
 import { useCallback, useRef, useMemo } from 'react';
 import { TabBar } from './TabBar';
+import { WelcomeScreen } from './WelcomeScreen';
 
 // Import the loader config to use bundled Monaco (CSP-safe)
 import '../monaco-loader';
@@ -84,6 +85,15 @@ export function EditorPanel() {
       indentation: true,
     },
   }), [preferences.fontSize, preferences.tabSize, preferences.wordWrap, preferences.minimap]);
+
+  // Show WelcomeScreen when no tabs are open
+  if (tabs.length === 0) {
+    return (
+      <div className="h-full w-full flex flex-col">
+        <WelcomeScreen />
+      </div>
+    );
+  }
 
   return (
     <div className="h-full w-full flex flex-col">

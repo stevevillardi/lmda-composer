@@ -132,6 +132,14 @@ export interface EditorTab {
   mode: ScriptMode;
   source?: EditorTabSource;
   contextOverride?: EditorTabContextOverride;
+  
+  // File system support (Phase 6)
+  /** Content when file was opened or last saved (for dirty detection) */
+  originalContent?: string;
+  /** Whether this tab has a persisted file handle in IndexedDB */
+  hasFileHandle?: boolean;
+  /** Distinguishes local files from modules, new files, history entries */
+  isLocalFile?: boolean;
 }
 
 // Multi-tab Draft Auto-save
@@ -139,6 +147,26 @@ export interface DraftTabs {
   tabs: EditorTab[];
   activeTabId: string | null;
   lastModified: number;
+}
+
+// File Handle Persistence (Phase 6)
+export interface FileHandleRecord {
+  /** Tab ID (primary key) */
+  tabId: string;
+  /** The FileSystemFileHandle object - stored in IndexedDB */
+  handle: FileSystemFileHandle;
+  /** Display name of the file */
+  fileName: string;
+  /** Last access timestamp */
+  lastAccessed: number;
+}
+
+export type FilePermissionState = 'granted' | 'denied' | 'prompt';
+
+export interface FilePermissionStatus {
+  tabId: string;
+  fileName: string;
+  state: FilePermissionState;
 }
 
 // Script Execution

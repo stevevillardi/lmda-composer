@@ -671,6 +671,84 @@ interface DraftScript {
 
 ---
 
+## File System Types (Phase 6)
+
+### EditorTab Extensions
+
+```typescript
+interface EditorTab {
+  // ... existing fields ...
+  
+  /** Content when file was opened or last saved (for dirty detection) */
+  originalContent?: string;
+  
+  /** Whether this tab has a persisted file handle in IndexedDB */
+  hasFileHandle?: boolean;
+  
+  /** Distinguishes local files from modules, new files, history entries */
+  isLocalFile?: boolean;
+}
+```
+
+### Dirty State Computation
+
+```typescript
+function isTabDirty(tab: EditorTab): boolean {
+  // New file without originalContent is always "dirty" (never saved)
+  if (tab.originalContent === undefined) {
+    return true;
+  }
+  
+  // Compare current content to original
+  return tab.content !== tab.originalContent;
+}
+```
+
+### IndexedDB File Handle Store
+
+```typescript
+// Database: lm-ide-files
+// Object Store: file-handles
+
+interface FileHandleRecord {
+  /** Tab ID (primary key) */
+  tabId: string;
+  
+  /** The FileSystemFileHandle object */
+  handle: FileSystemFileHandle;
+  
+  /** Display name of the file */
+  fileName: string;
+  
+  /** Last access timestamp */
+  lastAccessed: number;
+}
+
+// File Handle Store API
+interface FileHandleStore {
+  saveHandle(tabId: string, handle: FileSystemFileHandle, fileName: string): Promise<void>;
+  getHandle(tabId: string): Promise<FileSystemFileHandle | undefined>;
+  deleteHandle(tabId: string): Promise<void>;
+  getAllHandles(): Promise<Map<string, FileSystemFileHandle>>;
+  clearAll(): Promise<void>;
+}
+```
+
+### Permission States
+
+```typescript
+type PermissionState = 'granted' | 'denied' | 'prompt';
+
+interface FilePermissionStatus {
+  tabId: string;
+  fileName: string;
+  state: PermissionState;
+  handle: FileSystemFileHandle;
+}
+```
+
+---
+
 ## Validation Rules
 
 ### AD Instance Validation Rules
