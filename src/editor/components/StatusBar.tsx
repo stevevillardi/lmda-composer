@@ -107,22 +107,31 @@ export function StatusBar() {
   }
 
   return (
-    <div className="flex items-center justify-between px-3 py-1.5 bg-secondary/30 border-t border-border text-xs">
+    <div 
+      className="flex items-center justify-between px-3 py-1.5 bg-secondary/30 border-t border-border text-xs"
+      role="status"
+      aria-label="Editor status bar"
+    >
       {/* Left side */}
       <div className="flex items-center gap-3">
         {/* Status Badge */}
-        <Badge variant={statusVariant} className={cn(
-          isExecuting && 'animate-pulse'
-        )}>
+        <Badge 
+          variant={statusVariant} 
+          className={cn(
+            isExecuting && 'animate-pulse'
+          )}
+          aria-live="polite"
+          aria-atomic="true"
+        >
           {statusText}
         </Badge>
 
         {/* Connection status */}
         {selectedPortalId && selectedCollectorId && (
           <>
-            <Separator orientation="vertical" className="h-5" />
-            <span className="text-muted-foreground flex items-center gap-1.5">
-              <span className="size-1.5 rounded-full bg-green-500" />
+            <Separator orientation="vertical" className="h-5" aria-hidden="true" />
+            <span className="text-muted-foreground flex items-center gap-1.5" aria-label="Connection status">
+              <span className="size-1.5 rounded-full bg-green-500" aria-hidden="true" />
               Connected to {selectedPortal?.hostname} via {selectedCollector?.description || selectedCollector?.hostname}
             </span>
           </>
@@ -132,32 +141,36 @@ export function StatusBar() {
       {/* Right side */}
       <div className="flex items-center gap-3 text-muted-foreground">
         {/* Mode */}
-        <Badge variant="outline" className="capitalize font-normal">
+        <Badge variant="outline" className="capitalize font-normal" aria-label={`Script mode: ${mode}`}>
           {mode}
         </Badge>
 
         {/* Language */}
-        <Badge variant="outline" className="capitalize font-normal">
+        <Badge variant="outline" className="capitalize font-normal" aria-label={`Script language: ${language}`}>
           {language}
         </Badge>
 
-        <Separator orientation="vertical" className="h-5" />
+        <Separator orientation="vertical" className="h-5" aria-hidden="true" />
 
         {/* Line count */}
-        <span>{lineCount} lines</span>
+        <span aria-label={`${lineCount} lines`}>{lineCount} lines</span>
 
-        <Separator orientation="vertical" className="h-5" />
+        <Separator orientation="vertical" className="h-5" aria-hidden="true" />
 
         {/* Character count */}
         {charCountStatus.showIcon ? (
           <Tooltip>
             <TooltipTrigger
               render={
-                <span className={cn(
-                  'flex items-center gap-1 font-medium cursor-help',
-                  charCountStatus.color
-                )}>
-                  <AlertTriangle className="size-3" />
+                <span 
+                  className={cn(
+                    'flex items-center gap-1 font-medium cursor-help',
+                    charCountStatus.color
+                  )}
+                  role="alert"
+                  aria-label={`Character count: ${charCount.toLocaleString()} of ${MAX_SCRIPT_LENGTH.toLocaleString()}. ${charCountStatus.label}`}
+                >
+                  <AlertTriangle className="size-3" aria-hidden="true" />
                   {charCount.toLocaleString()} / {MAX_SCRIPT_LENGTH.toLocaleString()}
                 </span>
               }
@@ -167,12 +180,12 @@ export function StatusBar() {
             </TooltipContent>
           </Tooltip>
         ) : (
-          <span>
+          <span aria-label={`Character count: ${charCount.toLocaleString()} of ${MAX_SCRIPT_LENGTH.toLocaleString()}`}>
             {charCount.toLocaleString()} / {MAX_SCRIPT_LENGTH.toLocaleString()}
           </span>
         )}
 
-        <Separator orientation="vertical" className="h-5" />
+        <Separator orientation="vertical" className="h-5" aria-hidden="true" />
 
         {/* Keyboard Shortcuts Help & Version */}
         <Popover>

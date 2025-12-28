@@ -8,6 +8,7 @@ import {
   CloudDownload,
   Hammer,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { useEditorStore } from '../stores/editor-store';
 import { Button } from '@/components/ui/button';
 import {
@@ -57,14 +58,20 @@ export function ActionsDropdown() {
       </Tooltip>
 
       <DropdownMenuContent align="end" className="w-56">
-        <DropdownMenuItem onClick={openFileFromDisk}>
+        <DropdownMenuItem onClick={() => {
+          openFileFromDisk();
+          toast.info('Opening file...');
+        }}>
           <FileInput className="size-4 mr-2" />
           <span className="flex-1">Open File...</span>
           <Kbd className="ml-auto">⌘O</Kbd>
         </DropdownMenuItem>
 
         <DropdownMenuItem 
-          onClick={() => setModuleBrowserOpen(true)}
+          onClick={() => {
+            setModuleBrowserOpen(true);
+            toast.info('Opening LogicModule Exchange...');
+          }}
           disabled={!selectedPortalId}
         >
           <CloudDownload className="size-4 mr-2" />
@@ -72,7 +79,10 @@ export function ActionsDropdown() {
         </DropdownMenuItem>
 
         <DropdownMenuItem 
-          onClick={() => setAppliesToTesterOpen(true)}
+          onClick={() => {
+            setAppliesToTesterOpen(true);
+            toast.info('Opening AppliesTo Toolbox...');
+          }}
           disabled={!selectedPortalId}
         >
           <Hammer className="size-4 mr-2" />
@@ -82,32 +92,61 @@ export function ActionsDropdown() {
 
         <DropdownMenuSeparator />
 
-        <DropdownMenuItem onClick={() => saveFile()}>
+        <DropdownMenuItem onClick={async () => {
+          try {
+            await saveFile();
+            toast.success('File saved');
+          } catch (error) {
+            toast.error('Failed to save file', {
+              description: error instanceof Error ? error.message : 'Unknown error',
+            });
+          }
+        }}>
           <Save className="size-4 mr-2" />
           <span className="flex-1">Save</span>
           <Kbd className="ml-auto">⌘S</Kbd>
         </DropdownMenuItem>
 
-        <DropdownMenuItem onClick={() => saveFileAs()}>
+        <DropdownMenuItem onClick={async () => {
+          try {
+            await saveFileAs();
+            toast.success('File saved');
+          } catch (error) {
+            toast.error('Failed to save file', {
+              description: error instanceof Error ? error.message : 'Unknown error',
+            });
+          }
+        }}>
           <Download className="size-4 mr-2" />
           <span className="flex-1">Save As...</span>
           <Kbd className="ml-auto">⌘⇧S</Kbd>
         </DropdownMenuItem>
 
-        <DropdownMenuItem onClick={exportToFile}>
+        <DropdownMenuItem onClick={() => {
+          exportToFile();
+          toast.success('File exported', {
+            description: 'Download started',
+          });
+        }}>
           <Download className="size-4 mr-2" />
           <span className="flex-1">Export (Download)</span>
         </DropdownMenuItem>
 
         <DropdownMenuSeparator />
 
-        <DropdownMenuItem onClick={toggleRightSidebar}>
+        <DropdownMenuItem onClick={() => {
+          toggleRightSidebar();
+          toast.info(rightSidebarOpen ? 'Sidebar hidden' : 'Sidebar shown');
+        }}>
           <PanelRight className="size-4 mr-2" />
           <span className="flex-1">{rightSidebarOpen ? 'Hide' : 'Show'} Sidebar</span>
           <Kbd className="ml-auto">⌘B</Kbd>
         </DropdownMenuItem>
 
-        <DropdownMenuItem onClick={() => setSettingsDialogOpen(true)}>
+        <DropdownMenuItem onClick={() => {
+          setSettingsDialogOpen(true);
+          toast.info('Opening settings...');
+        }}>
           <Settings className="size-4 mr-2" />
           <span className="flex-1">Settings</span>
           <Kbd className="ml-auto">⌘,</Kbd>

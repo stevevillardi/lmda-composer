@@ -1,5 +1,6 @@
-import { Trash2, Copy, CheckCircle2, XCircle, Clock, Loader2, Play } from 'lucide-react';
-import { useState, useEffect, useMemo } from 'react';
+import { Trash2, XCircle, Clock, Loader2, Play, CheckCircle2 } from 'lucide-react';
+import { useEffect, useMemo } from 'react';
+import { toast } from 'sonner';
 import { useEditorStore } from '../stores/editor-store';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -9,6 +10,7 @@ import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/
 import { cn } from '@/lib/utils';
 import { ParsedContent } from './ParsedContent';
 import { ValidationContent } from './ValidationContent';
+import { CopyButton } from './shared/CopyButton';
 
 export function OutputPanel() {
   const { 
@@ -47,7 +49,7 @@ export function OutputPanel() {
         <div className="flex items-center justify-between px-2 py-1 bg-secondary/30 border-b border-border">
           <div className="flex items-center gap-3">
             <TabsList variant="line">
-              <TabsTrigger value="raw">Raw Output</TabsTrigger>
+              <TabsTrigger value="raw" id="output-tab-raw" aria-controls="output-panel-raw">Raw Output</TabsTrigger>
               {isFreeformMode ? (
                 <Tooltip>
                   <TooltipTrigger
@@ -66,7 +68,7 @@ export function OutputPanel() {
                   </TooltipContent>
                 </Tooltip>
               ) : (
-                <TabsTrigger value="parsed">Parsed</TabsTrigger>
+                <TabsTrigger value="parsed" id="output-tab-parsed" aria-controls="output-panel-parsed">Parsed</TabsTrigger>
               )}
               {isFreeformMode ? (
                 <Tooltip>
@@ -76,6 +78,8 @@ export function OutputPanel() {
                         className="px-2 py-1 text-sm font-medium text-muted-foreground/50 cursor-not-allowed"
                         tabIndex={0}
                         aria-disabled="true"
+                        role="tab"
+                        aria-selected="false"
                       >
                         Validation
                       </span>
@@ -86,7 +90,7 @@ export function OutputPanel() {
                   </TooltipContent>
                 </Tooltip>
               ) : (
-                <TabsTrigger value="validation">Validation</TabsTrigger>
+                <TabsTrigger value="validation" id="output-tab-validation" aria-controls="output-panel-validation">Validation</TabsTrigger>
               )}
             </TabsList>
             
@@ -99,13 +103,23 @@ export function OutputPanel() {
           
           <div className="flex items-center gap-1">
             {currentExecution?.rawOutput && (
-              <CopyButton text={currentExecution.rawOutput} />
+              <CopyButton 
+                text={currentExecution.rawOutput}
+                size="sm"
+                onCopy={() => {
+                  toast.success('Output copied to clipboard');
+                }}
+              />
             )}
             <Button
               variant="ghost"
               size="sm"
-              onClick={clearOutput}
+              onClick={() => {
+                clearOutput();
+                toast.info('Output cleared');
+              }}
               className="gap-1.5 h-7 px-2 text-xs"
+              aria-label="Clear output"
             >
               <Trash2 className="size-3.5" />
               Clear
@@ -115,7 +129,12 @@ export function OutputPanel() {
 
         {/* Output Content */}
         <div className="flex-1 overflow-auto">
-          <TabsContent value="raw" className="h-full p-3 font-mono text-sm">
+          <TabsContent 
+            value="raw" 
+            className="h-full p-3 font-mono text-sm"
+            role="tabpanel"
+            aria-labelledby="output-tab-raw"
+          >
             {isExecuting ? (
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Loader2 className="size-4 animate-spin" />
@@ -138,11 +157,21 @@ export function OutputPanel() {
             )}
           </TabsContent>
 
-          <TabsContent value="parsed" className="h-full overflow-auto">
+          <TabsContent 
+            value="parsed" 
+            className="h-full overflow-auto"
+            role="tabpanel"
+            aria-labelledby="output-tab-parsed"
+          >
             <ParsedContent />
           </TabsContent>
 
-          <TabsContent value="validation" className="h-full overflow-auto">
+          <TabsContent 
+            value="validation" 
+            className="h-full overflow-auto"
+            role="tabpanel"
+            aria-labelledby="output-tab-validation"
+          >
             <ValidationContent />
           </TabsContent>
         </div>
@@ -198,30 +227,6 @@ function ExecutionStatus({ isExecuting, execution }: ExecutionStatusProps) {
   );
 }
 
-function CopyButton({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = async () => {
-    await navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  return (
-    <Button
-      variant="ghost"
-      size="icon-sm"
-      onClick={handleCopy}
-      title="Copy output"
-    >
-      {copied ? (
-        <CheckCircle2 className="size-4 text-green-500" />
-      ) : (
-        <Copy className="size-4" />
-      )}
-    </Button>
-  );
-}
 
 function formatDuration(ms: number): string {
   if (ms < 1000) {

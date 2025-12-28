@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Search, Plus, Code2, FileText, Edit2, Trash2, Play, Eye } from 'lucide-react';
+import { toast } from 'sonner';
 import { useEditorStore } from '../stores/editor-store';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -19,6 +20,7 @@ import { BUILT_IN_SNIPPETS } from '../data/built-in-snippets';
 import type { Snippet } from '@/shared/types';
 import { CreateSnippetDialog } from './CreateSnippetDialog';
 import { SnippetPreviewDialog } from './SnippetPreviewDialog';
+import { ConfirmationDialog } from './ConfirmationDialog';
 
 const LANGUAGE_COLORS: Record<string, string> = {
   groovy: 'bg-orange-500/10 text-orange-500 border-orange-500/20',
@@ -88,10 +90,17 @@ export function SnippetLibraryPanel() {
 
   // Preview state
   const [previewSnippet, setPreviewSnippet] = useState<Snippet | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [snippetToDelete, setSnippetToDelete] = useState<Snippet | null>(null);
 
   const handleInsert = (snippet: Snippet) => {
     insertSnippet(snippet);
     setPreviewSnippet(null); // Close preview if open
+    toast.success('Snippet inserted', {
+      description: snippet.category === 'template' 
+        ? 'Template applied to editor'
+        : 'Pattern inserted at cursor',
+    });
   };
 
   const handlePreview = (snippet: Snippet) => {
@@ -102,9 +111,18 @@ export function SnippetLibraryPanel() {
     setEditingSnippet(snippet);
   };
 
-  const handleDelete = (snippet: Snippet) => {
-    if (confirm(`Delete snippet "${snippet.name}"?`)) {
-      deleteUserSnippet(snippet.id);
+  const handleDeleteClick = (snippet: Snippet) => {
+    setSnippetToDelete(snippet);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDeleteConfirm = () => {
+    if (snippetToDelete) {
+      deleteUserSnippet(snippetToDelete.id);
+      toast.success('Snippet deleted', {
+        description: `"${snippetToDelete.name}" has been removed`,
+      });
+      setSnippetToDelete(null);
     }
   };
 
@@ -112,15 +130,29 @@ export function SnippetLibraryPanel() {
     const isCompatible =
       snippet.language === 'both' || snippet.language === currentLanguage;
 
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        if (isCompatible) {
+          handleInsert(snippet);
+        }
+      }
+    };
+
     return (
       <div
         key={snippet.id}
         className={cn(
           'group p-3 rounded-lg border transition-colors',
           isCompatible
-            ? 'border-border hover:border-primary/50 hover:bg-secondary/30'
+            ? 'border-border hover:border-primary/50 hover:bg-secondary/30 focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-1'
             : 'border-border/50 opacity-60'
         )}
+        tabIndex={isCompatible ? 0 : -1}
+        onKeyDown={handleKeyDown}
+        role="button"
+        aria-label={`${snippet.name} snippet${isCompatible ? '' : ' (incompatible language)'}`}
+        aria-disabled={!isCompatible}
       >
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
@@ -174,7 +206,8 @@ export function SnippetLibraryPanel() {
                         variant="ghost"
                         size="icon-xs"
                         className="opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive"
-                        onClick={() => handleDelete(snippet)}
+                        onClick={() => handleDeleteClick(snippet)}
+                        aria-label={`Delete snippet ${snippet.name}`}
                       >
                         <Trash2 className="size-3" />
                       </Button>
@@ -215,6 +248,9 @@ export function SnippetLibraryPanel() {
                     )}
                     onClick={() => isCompatible && handleInsert(snippet)}
                     disabled={!isCompatible}
+                    aria-label={isCompatible 
+                      ? (snippet.category === 'template' ? 'Use as template' : 'Insert pattern')
+                      : `This snippet is for ${snippet.language === 'groovy' ? 'Groovy' : 'PowerShell'} only`}
                   >
                     <Play className="size-3" />
                   </Button>
@@ -377,6 +413,22 @@ export function SnippetLibraryPanel() {
         snippet={previewSnippet}
         onClose={() => setPreviewSnippet(null)}
         onInsert={handleInsert}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <ConfirmationDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Delete snippet?"
+        description={
+          snippetToDelete 
+            ? `Are you sure you want to delete "${snippetToDelete.name}"? This action cannot be undone.`
+            : ''
+        }
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        onConfirm={handleDeleteConfirm}
+        variant="destructive"
       />
     </div>
   );

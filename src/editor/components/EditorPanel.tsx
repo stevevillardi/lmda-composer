@@ -101,7 +101,7 @@ export function EditorPanel() {
       <TabBar />
       
       {/* Monaco Editor */}
-      <div className="flex-1 min-h-0">
+      <div className="flex-1 min-h-0" role="region" aria-label="Code editor">
         {activeTab ? (
           <Editor
             key={activeTabId} // Re-mount editor when switching tabs for proper state isolation
@@ -113,13 +113,13 @@ export function EditorPanel() {
             onMount={handleEditorMount}
             options={editorOptions}
             loading={
-              <div className="flex items-center justify-center h-full">
+              <div className="flex items-center justify-center h-full" role="status" aria-label="Loading editor">
                 <div className="text-muted-foreground">Loading editor...</div>
               </div>
             }
           />
         ) : (
-          <div className="flex items-center justify-center h-full text-muted-foreground">
+          <div className="flex items-center justify-center h-full text-muted-foreground" role="status" aria-label="No file open">
             No file open
           </div>
         )}

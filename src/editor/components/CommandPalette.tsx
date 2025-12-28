@@ -14,6 +14,7 @@ import {
   CloudDownload,
   Hammer,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { useEditorStore } from '../stores/editor-store';
 import {
   Command,
@@ -63,9 +64,16 @@ export function CommandPalette() {
   } = useEditorStore();
 
   // Copy output to clipboard
-  const copyOutput = useCallback(() => {
+  const copyOutput = useCallback(async () => {
     if (currentExecution?.rawOutput) {
-      navigator.clipboard.writeText(currentExecution.rawOutput);
+      try {
+        await navigator.clipboard.writeText(currentExecution.rawOutput);
+        toast.success('Output copied to clipboard');
+      } catch (error) {
+        toast.error('Failed to copy output', {
+          description: 'Could not copy to clipboard',
+        });
+      }
     }
     setCommandPaletteOpen(false);
   }, [currentExecution, setCommandPaletteOpen]);
@@ -260,9 +268,7 @@ export function CommandPalette() {
       // Cmd/Ctrl + Shift + C to copy output
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'c') {
         e.preventDefault();
-        if (currentExecution?.rawOutput) {
-          navigator.clipboard.writeText(currentExecution.rawOutput);
-        }
+        copyOutput();
         return;
       }
 
@@ -290,14 +296,26 @@ export function CommandPalette() {
       // Cmd/Ctrl + S to save file (check lowercase for non-shift)
       if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === 's') {
         e.preventDefault();
-        saveFile();
+        saveFile().then(() => {
+          toast.success('File saved');
+        }).catch((error) => {
+          toast.error('Failed to save file', {
+            description: error instanceof Error ? error.message : 'Unknown error',
+          });
+        });
         return;
       }
 
       // Cmd/Ctrl + Shift + S to save as (check lowercase since shift modifies the key)
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 's') {
         e.preventDefault();
-        saveFileAs();
+        saveFileAs().then(() => {
+          toast.success('File saved');
+        }).catch((error) => {
+          toast.error('Failed to save file', {
+            description: error instanceof Error ? error.message : 'Unknown error',
+          });
+        });
         return;
       }
 

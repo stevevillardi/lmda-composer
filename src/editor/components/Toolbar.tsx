@@ -12,6 +12,7 @@ import {
   PanelRightClose,
   PanelRightOpen,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { useEditorStore } from '../stores/editor-store';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -36,6 +37,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
+import { SIZES } from '../constants/sizes';
 import type { ScriptLanguage, ScriptMode } from '@/shared/types';
 import { ContextDropdown } from './ContextDropdown';
 import { ActionsDropdown } from './ActionsDropdown';
@@ -159,15 +161,22 @@ Exit 0
         <Label className="text-xs text-muted-foreground whitespace-nowrap hidden lg:block">
           Language:
         </Label>
-        <div className="flex items-center rounded-md border border-input bg-background/50 p-0.5 gap-0.5">
+        <div 
+          className="flex items-center rounded-md border border-input bg-background/50 p-0.5 gap-0.5"
+          role="group"
+          aria-label="Script language selector"
+        >
           <Button
             variant={language === 'groovy' ? 'default' : 'ghost'}
             size="sm"
             onClick={() => handleLanguageClick('groovy')}
             className={cn(
-              "h-7 px-3 text-xs font-medium",
+              SIZES.BUTTON_SIDEBAR,
+              "px-3 text-xs font-medium",
               language === 'groovy' && "shadow-sm"
             )}
+            aria-pressed={language === 'groovy'}
+            aria-label="Groovy language"
           >
             Groovy
           </Button>
@@ -176,9 +185,12 @@ Exit 0
             size="sm"
             onClick={() => handleLanguageClick('powershell')}
             className={cn(
-              "h-7 px-3 text-xs font-medium",
+              SIZES.BUTTON_SIDEBAR,
+              "px-3 text-xs font-medium",
               language === 'powershell' && "shadow-sm"
             )}
+            aria-pressed={language === 'powershell'}
+            aria-label="PowerShell language"
           >
             PowerShell
           </Button>
@@ -194,7 +206,7 @@ Exit 0
             onValueChange={(value) => setMode(value as ScriptMode)}
             items={MODE_ITEMS}
           >
-            <SelectTrigger className="w-[180px] h-8">
+            <SelectTrigger className="w-[180px] h-8" aria-label="Script execution mode">
               <div className="flex items-center gap-2">
                 {(() => {
                   const selectedMode = MODE_ITEMS.find(m => m.value === mode);
@@ -234,15 +246,18 @@ Exit 0
           disabled={!canExecute}
           size="sm"
           className={cn(
-            "gap-1.5 h-8 px-4 font-medium",
+            "gap-1.5",
+            SIZES.BUTTON_TOOLBAR,
+            "px-4 font-medium",
             "bg-green-600 hover:bg-green-500 text-white",
             "disabled:bg-green-600/50 disabled:text-white/70"
           )}
+          aria-label={isExecuting ? 'Running script' : 'Run script'}
         >
           {isExecuting ? (
-            <Loader2 className="size-3.5 animate-spin" />
+            <Loader2 className={SIZES.ICON_MEDIUM} animate-spin />
           ) : (
-            <Play className="size-3.5" />
+            <Play className={SIZES.ICON_MEDIUM} />
           )}
           {isExecuting ? 'Running...' : 'Run'}
         </Button>
@@ -256,9 +271,10 @@ Exit 0
                   variant="destructive"
                   size="sm"
                   onClick={() => setCancelDialogOpen(true)}
-                  className="gap-1.5 h-8"
+                  className={cn("gap-1.5", SIZES.BUTTON_TOOLBAR)}
+                  aria-label="Cancel script execution"
                 >
-                  <StopCircle className="size-3.5" />
+                  <StopCircle className={SIZES.ICON_MEDIUM} />
                   Cancel
                 </Button>
               }
@@ -267,7 +283,7 @@ Exit 0
           </Tooltip>
         )}
 
-        <Separator orientation="vertical" className="h-8 mx-1" />
+        <Separator orientation="vertical" className="h-8 mx-1" aria-hidden="true" />
 
         {/* Right Sidebar Toggle */}
         <Tooltip>
@@ -276,13 +292,17 @@ Exit 0
               <Button
                 variant={rightSidebarOpen ? 'secondary' : 'ghost'}
                 size="icon-sm"
-                onClick={() => setRightSidebarOpen(!rightSidebarOpen)}
+                onClick={() => {
+                  setRightSidebarOpen(!rightSidebarOpen);
+                  toast.info(rightSidebarOpen ? 'Sidebar closed' : 'Sidebar opened');
+                }}
                 aria-label={rightSidebarOpen ? 'Close sidebar' : 'Open sidebar'}
+                aria-pressed={rightSidebarOpen}
               >
                 {rightSidebarOpen ? (
-                  <PanelRightClose className="size-4" />
+                  <PanelRightClose className={SIZES.ICON_MEDIUM} />
                 ) : (
-                  <PanelRightOpen className="size-4" />
+                  <PanelRightOpen className={SIZES.ICON_MEDIUM} />
                 )}
               </Button>
             }

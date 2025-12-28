@@ -1,13 +1,15 @@
-import { useMemo, useState } from 'react';
-import { Search, Copy, Check, ServerOff, Loader2, ChevronDown, ChevronRight, Monitor } from 'lucide-react';
+import { useMemo, useState, KeyboardEvent } from 'react';
+import { Search, ServerOff, ChevronDown, ChevronRight, Monitor } from 'lucide-react';
+import { toast } from 'sonner';
 import { useEditorStore } from '../stores/editor-store';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { Empty, EmptyMedia, EmptyHeader, EmptyTitle, EmptyDescription } from '@/components/ui/empty';
 import { cn } from '@/lib/utils';
+import { LoadingState } from './shared/LoadingState';
+import { CopyButton } from './shared/CopyButton';
 
 const TYPE_COLORS: Record<string, string> = {
   system: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
@@ -40,8 +42,6 @@ export function DevicePropertiesPanel() {
     return devices.find(d => d.name === hostname);
   }, [devices, hostname]);
 
-  const [copiedProperty, setCopiedProperty] = useState<string | null>(null);
-
   // Filter properties based on search query
   const filteredProperties = useMemo(() => {
     if (!propertiesSearchQuery.trim()) return deviceProperties;
@@ -70,13 +70,30 @@ export function DevicePropertiesPanel() {
   }, [filteredProperties]);
 
   const handleCopy = async (value: string, propertyName: string) => {
-    await navigator.clipboard.writeText(value);
-    setCopiedProperty(propertyName);
-    setTimeout(() => setCopiedProperty(null), 2000);
+    try {
+      await navigator.clipboard.writeText(value);
+      toast.success('Property value copied', {
+        description: propertyName,
+      });
+    } catch (error) {
+      toast.error('Failed to copy', {
+        description: 'Could not copy property value to clipboard',
+      });
+    }
   };
 
   const handleInsert = (propertyName: string) => {
     insertPropertyAccess(propertyName);
+    toast.success('Property access inserted', {
+      description: propertyName,
+    });
+  };
+
+  const handlePropertyKeyDown = (e: KeyboardEvent<HTMLButtonElement>, propertyName: string) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleInsert(propertyName);
+    }
   };
 
   // State for collapsible groups (default all expanded)
@@ -111,15 +128,10 @@ export function DevicePropertiesPanel() {
   // Loading state
   if (isFetchingProperties) {
     return (
-      <Empty className="h-full border-0">
-        <EmptyMedia variant="icon">
-          <Loader2 className="animate-spin" />
-        </EmptyMedia>
-        <EmptyHeader>
-          <EmptyTitle>Loading Properties</EmptyTitle>
-          <EmptyDescription>Fetching device properties...</EmptyDescription>
-        </EmptyHeader>
-      </Empty>
+      <LoadingState 
+        title="Loading Properties"
+        description="Fetching device properties..."
+      />
     );
   }
 
@@ -210,8 +222,11 @@ export function DevicePropertiesPanel() {
                             <TooltipTrigger
                               render={
                                 <button
-                                  className="text-xs font-mono text-left text-foreground hover:text-primary hover:underline transition-colors truncate block w-full cursor-pointer"
+                                  className="text-xs font-mono text-left text-foreground hover:text-primary hover:underline transition-colors truncate block w-full cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 rounded"
                                   onClick={() => handleInsert(prop.name)}
+                                  onKeyDown={(e) => handlePropertyKeyDown(e, prop.name)}
+                                  tabIndex={0}
+                                  aria-label={`Insert property access for ${prop.name}`}
                                 >
                                   {prop.name}
                                 </button>
@@ -223,32 +238,19 @@ export function DevicePropertiesPanel() {
                                   ? `hostProps.get("${prop.name}")`
                                   : `"##${prop.name.toUpperCase()}##"`}
                               </code>
-                              <div className="text-[10px] text-muted-foreground mt-1">Click to insert</div>
+                              <div className="text-[10px] text-muted-foreground mt-1">Click or press Enter to insert</div>
                             </TooltipContent>
                           </Tooltip>
                           <p className="text-[10px] text-muted-foreground truncate mt-0.5 font-mono">
                             {prop.value || '(empty)'}
                           </p>
                         </div>
-                        <Tooltip>
-                          <TooltipTrigger
-                            render={
-                              <Button
-                                variant="ghost"
-                                size="icon-xs"
-                                className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                                onClick={() => handleCopy(prop.value, prop.name)}
-                              >
-                                {copiedProperty === prop.name ? (
-                                  <Check className="size-3 text-green-500" />
-                                ) : (
-                                  <Copy className="size-3" />
-                                )}
-                              </Button>
-                            }
-                          />
-                          <TooltipContent>Copy value</TooltipContent>
-                        </Tooltip>
+                        <CopyButton
+                          text={prop.value}
+                          size="sm"
+                          onCopy={() => handleCopy(prop.value, prop.name)}
+                          tooltip="Copy value"
+                        />
                       </div>
                     ))}
                   </div>

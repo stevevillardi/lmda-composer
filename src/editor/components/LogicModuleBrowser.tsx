@@ -7,13 +7,14 @@ import {
   FileCode, 
   Stethoscope,
   Search,
-  Loader2,
   AlertTriangle,
   FolderSearch,
   Eye,
   RefreshCw,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { useEditorStore } from '../stores/editor-store';
+import { LoadingState } from './shared/LoadingState';
 import {
   Dialog,
   DialogContent,
@@ -109,6 +110,13 @@ export function LogicModuleBrowser() {
     setIsRefreshingModules(true);
     try {
       await fetchModules(selectedModuleType);
+      toast.success('Modules refreshed', {
+        description: `Loaded ${modulesCache[selectedModuleType]?.length || 0} modules`,
+      });
+    } catch (error) {
+      toast.error('Failed to refresh modules', {
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
     } finally {
       // Add a small delay to ensure the animation is visible
       setTimeout(() => {
@@ -133,7 +141,7 @@ export function LogicModuleBrowser() {
           <DialogHeader className="px-6 pt-6 pb-0">
             <DialogTitle>Import from LogicModule Exchange</DialogTitle>
             <DialogDescription>
-              Browse and load scripts from existing LogicModules in your portal
+              Browse and load scripts from existing LogicModules in your portal 
             </DialogDescription>
           </DialogHeader>
 
@@ -209,11 +217,13 @@ export function LogicModuleBrowser() {
               </div>
 
               {/* Module List */}
-              <div className="flex-1 overflow-y-auto">
+              <div className="flex-1 overflow-y-auto flex flex-col">
                 {isFetchingModules ? (
-                  <div className="flex items-center justify-center h-32">
-                    <Loader2 className="size-6 animate-spin text-muted-foreground" />
-                  </div>
+                  <LoadingState 
+                    title="Loading modules..."
+                    description="Fetching LogicModules from portal"
+                    className="border-0"
+                  />
                 ) : filteredModules.length === 0 ? (
                   <Empty className="border-none h-full py-8">
                     <EmptyHeader>

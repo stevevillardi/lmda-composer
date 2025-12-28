@@ -1,5 +1,6 @@
-import { useRef, useEffect, useState, useCallback } from 'react';
+import { useRef, useEffect, useState, useCallback, KeyboardEvent } from 'react';
 import { X, Plus, Pencil, Circle } from 'lucide-react';
+import { toast } from 'sonner';
 import { useEditorStore } from '../stores/editor-store';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -168,10 +169,15 @@ function TabItem({
                   ref={tabRef}
                   onClick={onActivate}
                   onDoubleClick={canRename ? onStartRename : undefined}
+                  role="tab"
+                  aria-selected={isActive}
+                  aria-controls={`tabpanel-${tab.id}`}
+                  tabIndex={isActive ? 0 : -1}
                   className={cn(
                     "group flex items-center gap-1.5 px-3 py-1.5 text-sm border-r border-border",
                     "min-w-[120px] max-w-[250px] shrink-0",
                     "transition-colors duration-100",
+                    "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1",
                     isActive 
                       ? "bg-background text-foreground border-b-2 border-b-primary" 
                       : "bg-secondary/30 text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
@@ -189,14 +195,17 @@ function TabItem({
                   </span>
                   
                   {/* Close/Dirty indicator */}
-                  <div 
-                    className="flex items-center justify-center size-4 rounded hover:bg-destructive/20"
+                  <button
+                    type="button"
+                    className="flex items-center justify-center size-4 rounded hover:bg-destructive/20 focus:outline-none focus:ring-2 focus:ring-destructive focus:ring-offset-1"
                     onClick={(e) => {
                       e.stopPropagation();
                       onClose();
                     }}
                     onMouseEnter={() => setIsCloseHovered(true)}
                     onMouseLeave={() => setIsCloseHovered(false)}
+                    aria-label={`Close ${tab.displayName}`}
+                    tabIndex={-1}
                   >
                     {/* Show X when: hovered on close area, OR (active/group-hover AND not dirty) */}
                     {/* Show dot when: dirty AND not hovered on close area */}
@@ -216,7 +225,7 @@ function TabItem({
                             )
                       )} />
                     )}
-                  </div>
+                  </button>
                 </button>
               }
             />
@@ -242,8 +251,17 @@ function TabItem({
             Close All
           </ContextMenuItem>
           <ContextMenuSeparator />
-          <ContextMenuItem onClick={() => {
-            navigator.clipboard.writeText(tab.displayName);
+          <ContextMenuItem onClick={async () => {
+            try {
+              await navigator.clipboard.writeText(tab.displayName);
+              toast.success('Copied to clipboard', {
+                description: tab.displayName,
+              });
+            } catch (error) {
+              toast.error('Failed to copy', {
+                description: 'Could not copy tab name to clipboard',
+              });
+            }
           }}>
             Copy Name
           </ContextMenuItem>
@@ -277,6 +295,47 @@ export function TabBar() {
   
   // Track which tab is being renamed
   const [renamingTabId, setRenamingTabId] = useState<string | null>(null);
+  const tabListRef = useRef<HTMLDivElement>(null);
+  
+  // Handle keyboard navigation
+  const handleKeyDown = useCallback((e: KeyboardEvent<HTMLDivElement>) => {
+    if (!tabListRef.current) return;
+    
+    const currentIndex = tabs.findIndex(t => t.id === activeTabId);
+    if (currentIndex === -1) return;
+    
+    let targetIndex = currentIndex;
+    
+    switch (e.key) {
+      case 'ArrowLeft':
+        e.preventDefault();
+        targetIndex = Math.max(0, currentIndex - 1);
+        break;
+      case 'ArrowRight':
+        e.preventDefault();
+        targetIndex = Math.min(tabs.length - 1, currentIndex + 1);
+        break;
+      case 'Home':
+        e.preventDefault();
+        targetIndex = 0;
+        break;
+      case 'End':
+        e.preventDefault();
+        targetIndex = tabs.length - 1;
+        break;
+      default:
+        return;
+    }
+    
+    if (targetIndex !== currentIndex) {
+      setActiveTab(tabs[targetIndex].id);
+      // Focus the tab button
+      const tabButton = tabListRef.current.querySelector(
+        `button[role="tab"][aria-controls="tabpanel-${tabs[targetIndex].id}"]`
+      ) as HTMLButtonElement;
+      tabButton?.focus();
+    }
+  }, [tabs, activeTabId, setActiveTab]);
   
   // Create a new untitled tab
   const handleNewTab = () => {
@@ -320,7 +379,13 @@ Exit 0
   };
   
   return (
-    <div className="flex items-center bg-secondary/20 border-b border-border overflow-hidden">
+    <div 
+      className="flex items-center bg-secondary/20 border-b border-border overflow-hidden"
+      role="tablist"
+      aria-label="Editor tabs"
+      onKeyDown={handleKeyDown}
+      ref={tabListRef}
+    >
       {/* Scrollable tab list */}
       <div className="flex-1 flex items-center overflow-x-auto scrollbar-thin scrollbar-thumb-border">
         {tabs.map((tab) => (

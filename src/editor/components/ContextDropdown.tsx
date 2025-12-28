@@ -193,7 +193,7 @@ export function ContextDropdown() {
               onValueChange={(value) => setSelectedPortal(value || null)}
               items={portalItems}
             >
-              <SelectTrigger className="w-full h-8">
+              <SelectTrigger className="w-full h-8" aria-label="Select portal">
                 <div className="flex items-center gap-2 overflow-hidden flex-1 min-w-0">
                   <Circle
                     className={cn(
@@ -245,7 +245,7 @@ export function ContextDropdown() {
               disabled={!selectedPortalId || collectors.length === 0}
               items={collectorItems}
             >
-              <SelectTrigger className="w-full h-8">
+              <SelectTrigger className="w-full h-8" aria-label="Select collector">
                 <div className="flex items-center gap-2 overflow-hidden flex-1 min-w-0">
                   {selectedCollector && (
                     <Server
