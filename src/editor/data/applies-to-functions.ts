@@ -312,3 +312,4 @@ export function getAppliesToFunctionNames(): string[] {
   return APPLIES_TO_FUNCTIONS.map(f => f.name);
 }
 
+

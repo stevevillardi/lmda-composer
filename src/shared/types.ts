@@ -330,6 +330,10 @@ export type EditorToSWMessage =
   | { type: 'CANCEL_EXECUTION'; payload: { executionId: string } }
   | { type: 'FETCH_MODULES'; payload: FetchModulesRequest }
   | { type: 'TEST_APPLIES_TO'; payload: TestAppliesToRequest }
+  | { type: 'FETCH_CUSTOM_FUNCTIONS'; payload: { portalId: string } }
+  | { type: 'CREATE_CUSTOM_FUNCTION'; payload: { portalId: string; name: string; code: string; description?: string } }
+  | { type: 'UPDATE_CUSTOM_FUNCTION'; payload: { portalId: string; functionId: number; name: string; code: string; description?: string } }
+  | { type: 'DELETE_CUSTOM_FUNCTION'; payload: { portalId: string; functionId: number } }
   | { type: 'OPEN_EDITOR'; payload?: DeviceContext };
 
 export type SWToEditorMessage =
@@ -342,6 +346,11 @@ export type SWToEditorMessage =
   | { type: 'MODULES_FETCHED'; payload: FetchModulesResponse }
   | { type: 'APPLIES_TO_RESULT'; payload: AppliesToTestResult }
   | { type: 'APPLIES_TO_ERROR'; payload: AppliesToTestError }
+  | { type: 'CUSTOM_FUNCTIONS_LOADED'; payload: CustomAppliesToFunction[] }
+  | { type: 'CUSTOM_FUNCTION_CREATED'; payload: CustomAppliesToFunction }
+  | { type: 'CUSTOM_FUNCTION_UPDATED'; payload: CustomAppliesToFunction }
+  | { type: 'CUSTOM_FUNCTION_DELETED'; payload: { functionId: number } }
+  | { type: 'CUSTOM_FUNCTION_ERROR'; payload: { error: string; code?: number } }
   | { type: 'ERROR'; payload: { code: string; message: string } };
 
 export type ContentToSWMessage =
@@ -381,6 +390,25 @@ export interface AppliesToFunction {
   parameters: string;
   description: string;
   example?: string;
+}
+
+export interface CustomAppliesToFunction {
+  id: number;
+  name: string;
+  code: string;  // The AppliesTo expression
+  description?: string;
+  createdBy?: string;
+  updatedBy?: string;
+  createdAt?: number;
+  updatedAt?: number;
+}
+
+// Extended function type that can be built-in or custom
+export type AppliesToFunctionSource = 'builtin' | 'custom';
+
+export interface AppliesToFunctionWithSource extends AppliesToFunction {
+  source: AppliesToFunctionSource;
+  customId?: number;  // ID if custom function
 }
 
 export type AppliesToTestFrom = 'devicesGroup' | 'websiteGroup';

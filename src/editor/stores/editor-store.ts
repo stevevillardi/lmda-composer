@@ -19,10 +19,12 @@ import type {
   DraftTabs,
   EditorTab,
   FilePermissionStatus,
+  CustomAppliesToFunction,
 } from '@/shared/types';
 import { DEFAULT_PREFERENCES } from '@/shared/types';
 import { parseOutput, type ParseResult } from '../utils/output-parser';
 import * as fileHandleStore from '../utils/file-handle-store';
+import { APPLIES_TO_FUNCTIONS } from '../data/applies-to-functions';
 
 interface EditorState {
   // Portal/Collector selection
@@ -122,6 +124,14 @@ interface EditorState {
   appliesToTestFrom: 'devicesGroup' | 'websiteGroup';
   isTestingAppliesTo: boolean;
   appliesToFunctionSearch: string;
+  
+  // Custom AppliesTo functions state
+  customFunctions: CustomAppliesToFunction[];
+  isLoadingCustomFunctions: boolean;
+  customFunctionError: string | null;
+  isCreatingFunction: boolean;
+  isUpdatingFunction: boolean;
+  isDeletingFunction: boolean;
   
   // Actions
   setSelectedPortal: (portalId: string | null) => void;
@@ -249,6 +259,13 @@ interface EditorState {
   testAppliesTo: () => Promise<void>;
   clearAppliesToResults: () => void;
   setAppliesToFunctionSearch: (query: string) => void;
+  
+  // Custom AppliesTo functions actions
+  fetchCustomFunctions: () => Promise<void>;
+  createCustomFunction: (name: string, code: string, description?: string) => Promise<void>;
+  updateCustomFunction: (id: number, name: string, code: string, description?: string) => Promise<void>;
+  deleteCustomFunction: (id: number) => Promise<void>;
+  getAllFunctions: () => Array<{ name: string; syntax: string; parameters: string; description: string; example?: string; source: 'builtin' | 'custom'; customId?: number }>;
 }
 
 export const DEFAULT_GROOVY_TEMPLATE = `import com.santaba.agent.groovyapi.expect.Expect;
@@ -387,6 +404,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   appliesToTestFrom: 'devicesGroup',
   isTestingAppliesTo: false,
   appliesToFunctionSearch: '',
+  
+  // Custom AppliesTo functions initial state
+  customFunctions: [],
+  isLoadingCustomFunctions: false,
+  customFunctionError: null,
+  isCreatingFunction: false,
+  isUpdatingFunction: false,
+  isDeletingFunction: false,
   
   // Welcome screen / Recent files state
   recentFiles: [],
@@ -2182,6 +2207,196 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   
   setAppliesToFunctionSearch: (query: string) => {
     set({ appliesToFunctionSearch: query });
+  },
+  
+  // Custom AppliesTo functions actions
+  fetchCustomFunctions: async () => {
+    const { selectedPortalId } = get();
+    
+    if (!selectedPortalId) {
+      set({ customFunctionError: 'Please select a portal first' });
+      return;
+    }
+    
+    set({ isLoadingCustomFunctions: true, customFunctionError: null });
+    
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: 'FETCH_CUSTOM_FUNCTIONS',
+        payload: { portalId: selectedPortalId },
+      });
+      
+      if (response?.type === 'CUSTOM_FUNCTIONS_LOADED') {
+        set({ 
+          customFunctions: response.payload,
+          isLoadingCustomFunctions: false,
+        });
+      } else if (response?.type === 'CUSTOM_FUNCTION_ERROR') {
+        set({ 
+          customFunctionError: response.payload.error,
+          isLoadingCustomFunctions: false,
+        });
+      } else {
+        set({ 
+          customFunctionError: 'Unknown error occurred',
+          isLoadingCustomFunctions: false,
+        });
+      }
+    } catch (error) {
+      set({ 
+        customFunctionError: error instanceof Error ? error.message : 'Failed to fetch custom functions',
+        isLoadingCustomFunctions: false,
+      });
+    }
+  },
+  
+  createCustomFunction: async (name: string, code: string, description?: string) => {
+    const { selectedPortalId } = get();
+    
+    if (!selectedPortalId) {
+      throw new Error('Please select a portal first');
+    }
+    
+    set({ isCreatingFunction: true, customFunctionError: null });
+    
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: 'CREATE_CUSTOM_FUNCTION',
+        payload: { portalId: selectedPortalId, name, code, description },
+      });
+      
+      if (response?.type === 'CUSTOM_FUNCTION_CREATED') {
+        set({ 
+          customFunctions: [...get().customFunctions, response.payload],
+          isCreatingFunction: false,
+        });
+      } else if (response?.type === 'CUSTOM_FUNCTION_ERROR') {
+        const error = response.payload.error;
+        set({ 
+          customFunctionError: error,
+          isCreatingFunction: false,
+        });
+        throw new Error(error);
+      } else {
+        const error = 'Unknown error occurred';
+        set({ 
+          customFunctionError: error,
+          isCreatingFunction: false,
+        });
+        throw new Error(error);
+      }
+    } catch (error) {
+      set({ isCreatingFunction: false });
+      throw error;
+    }
+  },
+  
+  updateCustomFunction: async (id: number, name: string, code: string, description?: string) => {
+    const { selectedPortalId } = get();
+    
+    if (!selectedPortalId) {
+      throw new Error('Please select a portal first');
+    }
+    
+    set({ isUpdatingFunction: true, customFunctionError: null });
+    
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: 'UPDATE_CUSTOM_FUNCTION',
+        payload: { portalId: selectedPortalId, functionId: id, name, code, description },
+      });
+      
+      if (response?.type === 'CUSTOM_FUNCTION_UPDATED') {
+        set({ 
+          customFunctions: get().customFunctions.map(f => 
+            f.id === id ? response.payload : f
+          ),
+          isUpdatingFunction: false,
+        });
+      } else if (response?.type === 'CUSTOM_FUNCTION_ERROR') {
+        const error = response.payload.error;
+        set({ 
+          customFunctionError: error,
+          isUpdatingFunction: false,
+        });
+        throw new Error(error);
+      } else {
+        const error = 'Unknown error occurred';
+        set({ 
+          customFunctionError: error,
+          isUpdatingFunction: false,
+        });
+        throw new Error(error);
+      }
+    } catch (error) {
+      set({ isUpdatingFunction: false });
+      throw error;
+    }
+  },
+  
+  deleteCustomFunction: async (id: number) => {
+    const { selectedPortalId } = get();
+    
+    if (!selectedPortalId) {
+      throw new Error('Please select a portal first');
+    }
+    
+    set({ isDeletingFunction: true, customFunctionError: null });
+    
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: 'DELETE_CUSTOM_FUNCTION',
+        payload: { portalId: selectedPortalId, functionId: id },
+      });
+      
+      if (response?.type === 'CUSTOM_FUNCTION_DELETED') {
+        set({ 
+          customFunctions: get().customFunctions.filter(f => f.id !== id),
+          isDeletingFunction: false,
+        });
+      } else if (response?.type === 'CUSTOM_FUNCTION_ERROR') {
+        const error = response.payload.error;
+        set({ 
+          customFunctionError: error,
+          isDeletingFunction: false,
+        });
+        throw new Error(error);
+      } else {
+        const error = 'Unknown error occurred';
+        set({ 
+          customFunctionError: error,
+          isDeletingFunction: false,
+        });
+        throw new Error(error);
+      }
+    } catch (error) {
+      set({ isDeletingFunction: false });
+      throw error;
+    }
+  },
+  
+  getAllFunctions: () => {
+    const { customFunctions } = get();
+    
+    // Convert custom functions to AppliesToFunction format
+    const customAsFunctions = customFunctions.map(cf => ({
+      name: cf.name,
+      syntax: `${cf.name}()`, // Custom functions are called like built-in functions
+      parameters: '', // Custom functions don't have documented parameters
+      description: cf.description || `Custom function: ${cf.name}`,
+      example: undefined,
+      source: 'custom' as const,
+      customId: cf.id,
+    }));
+    
+    // Convert built-in functions to include source
+    const builtinAsFunctions = APPLIES_TO_FUNCTIONS.map((bf: { name: string; syntax: string; parameters: string; description: string; example?: string }) => ({
+      ...bf,
+      source: 'builtin' as const,
+      customId: undefined,
+    }));
+    
+    return [...builtinAsFunctions, ...customAsFunctions];
   },
 }));
 

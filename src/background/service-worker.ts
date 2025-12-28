@@ -1,6 +1,12 @@
 import { PortalManager } from './portal-manager';
 import { ScriptExecutor, type ExecutorContext } from './script-executor';
 import { ModuleLoader } from './module-loader';
+import {
+  fetchCustomFunctions,
+  createCustomFunction,
+  updateCustomFunction,
+  deleteCustomFunction,
+} from './applies-to-functions-api';
 import type { 
   EditorToSWMessage, 
   ContentToSWMessage,
@@ -170,6 +176,121 @@ async function handleMessage(
           sendResponse({ type: 'APPLIES_TO_ERROR', payload: response.error });
         } else {
           sendResponse({ type: 'ERROR', payload: { code: 'UNKNOWN', message: 'Unknown error testing AppliesTo' } });
+        }
+        break;
+      }
+
+      case 'FETCH_CUSTOM_FUNCTIONS': {
+        const { portalId } = message.payload as { portalId: string };
+        try {
+          const portal = portalManager.getPortal(portalId);
+          if (!portal) {
+            sendResponse({ 
+              type: 'CUSTOM_FUNCTION_ERROR', 
+              payload: { error: 'Portal not found', code: 404 } 
+            });
+            break;
+          }
+          const csrfToken = await portalManager.getCsrfToken(portalId);
+          const functions = await fetchCustomFunctions(portal.hostname, csrfToken);
+          sendResponse({ type: 'CUSTOM_FUNCTIONS_LOADED', payload: functions });
+        } catch (error) {
+          sendResponse({ 
+            type: 'CUSTOM_FUNCTION_ERROR', 
+            payload: { 
+              error: error instanceof Error ? error.message : 'Failed to fetch custom functions',
+              code: 500
+            } 
+          });
+        }
+        break;
+      }
+
+      case 'CREATE_CUSTOM_FUNCTION': {
+        const { portalId, name, code, description } = message.payload as { 
+          portalId: string; 
+          name: string; 
+          code: string; 
+          description?: string;
+        };
+        try {
+          const portal = portalManager.getPortal(portalId);
+          if (!portal) {
+            sendResponse({ 
+              type: 'CUSTOM_FUNCTION_ERROR', 
+              payload: { error: 'Portal not found', code: 404 } 
+            });
+            break;
+          }
+          const csrfToken = await portalManager.getCsrfToken(portalId);
+          const createdFunction = await createCustomFunction(portal.hostname, csrfToken, { name, code, description });
+          sendResponse({ type: 'CUSTOM_FUNCTION_CREATED', payload: createdFunction });
+        } catch (error) {
+          sendResponse({ 
+            type: 'CUSTOM_FUNCTION_ERROR', 
+            payload: { 
+              error: error instanceof Error ? error.message : 'Failed to create custom function',
+              code: 500
+            } 
+          });
+        }
+        break;
+      }
+
+      case 'UPDATE_CUSTOM_FUNCTION': {
+        const { portalId, functionId, name, code, description } = message.payload as { 
+          portalId: string; 
+          functionId: number; 
+          name: string; 
+          code: string; 
+          description?: string;
+        };
+        try {
+          const portal = portalManager.getPortal(portalId);
+          if (!portal) {
+            sendResponse({ 
+              type: 'CUSTOM_FUNCTION_ERROR', 
+              payload: { error: 'Portal not found', code: 404 } 
+            });
+            break;
+          }
+          const csrfToken = await portalManager.getCsrfToken(portalId);
+          const updatedFunction = await updateCustomFunction(portal.hostname, csrfToken, functionId, { name, code, description });
+          sendResponse({ type: 'CUSTOM_FUNCTION_UPDATED', payload: updatedFunction });
+        } catch (error) {
+          sendResponse({ 
+            type: 'CUSTOM_FUNCTION_ERROR', 
+            payload: { 
+              error: error instanceof Error ? error.message : 'Failed to update custom function',
+              code: 500
+            } 
+          });
+        }
+        break;
+      }
+
+      case 'DELETE_CUSTOM_FUNCTION': {
+        const { portalId, functionId } = message.payload as { portalId: string; functionId: number };
+        try {
+          const portal = portalManager.getPortal(portalId);
+          if (!portal) {
+            sendResponse({ 
+              type: 'CUSTOM_FUNCTION_ERROR', 
+              payload: { error: 'Portal not found', code: 404 } 
+            });
+            break;
+          }
+          const csrfToken = await portalManager.getCsrfToken(portalId);
+          await deleteCustomFunction(portal.hostname, csrfToken, functionId);
+          sendResponse({ type: 'CUSTOM_FUNCTION_DELETED', payload: { functionId } });
+        } catch (error) {
+          sendResponse({ 
+            type: 'CUSTOM_FUNCTION_ERROR', 
+            payload: { 
+              error: error instanceof Error ? error.message : 'Failed to delete custom function',
+              code: 500
+            } 
+          });
         }
         break;
       }
