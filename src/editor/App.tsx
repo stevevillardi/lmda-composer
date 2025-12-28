@@ -12,6 +12,7 @@ import { RightSidebar } from './components/RightSidebar';
 import { BraveFileSystemWarning } from './components/BraveFileSystemWarning';
 import { AppliesToTester } from './components/AppliesToTester';
 import { DebugCommandsDialog } from './components/DebugCommandsDialog';
+import { ModuleCommitConfirmationDialog } from './components/ModuleCommitConfirmationDialog';
 import { useEditorStore } from './stores/editor-store';
 import { isFileSystemAccessSupported } from './utils/file-handle-store';
 import { isBraveBrowser } from './utils/browser-detection';
@@ -60,6 +61,11 @@ export function App() {
     restoreFileHandles,
     requestFilePermissions,
     handlePortalDisconnected,
+    moduleCommitConfirmationOpen,
+    setModuleCommitConfirmationOpen,
+    loadedModuleForCommit,
+    commitModuleScript,
+    isCommittingModule,
   } = useEditorStore();
   
   // Get active tab for auto-save trigger and window title
@@ -404,6 +410,24 @@ export function App() {
       <SettingsDialog />
       <AppliesToTester />
       <DebugCommandsDialog />
+      {activeTab && activeTab.source?.type === 'module' && loadedModuleForCommit && (
+        <ModuleCommitConfirmationDialog
+          open={moduleCommitConfirmationOpen}
+          onOpenChange={setModuleCommitConfirmationOpen}
+          onConfirm={async () => {
+            if (activeTabId) {
+              await commitModuleScript(activeTabId);
+            }
+          }}
+          moduleName={loadedModuleForCommit.name}
+          moduleType={loadedModuleForCommit.moduleType}
+          scriptType={activeTab.source.scriptType || 'collection'}
+          originalScript={activeTab.originalContent || ''}
+          newScript={activeTab.content}
+          hasConflict={false}
+          isCommitting={isCommittingModule}
+        />
+      )}
       <BraveFileSystemWarning
         open={showBraveWarning}
         onOpenChange={setShowBraveWarning}

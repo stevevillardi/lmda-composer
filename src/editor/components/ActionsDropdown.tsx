@@ -9,6 +9,7 @@ import {
   CloudDownload,
   Hammer,
   Wrench,
+  Upload,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEditorStore } from '../stores/editor-store';
@@ -27,6 +28,7 @@ import { Kbd } from '@/components/ui/kbd';
 export function ActionsDropdown() {
   const {
     tabs,
+    activeTabId,
     selectedPortalId,
     setModuleBrowserOpen,
     setSettingsDialogOpen,
@@ -39,9 +41,15 @@ export function ActionsDropdown() {
     saveFile,
     saveFileAs,
     exportToFile,
+    canCommitModule,
+    fetchModuleForCommit,
+    setModuleCommitConfirmationOpen,
   } = useEditorStore();
 
   const hasOpenTabs = tabs.length > 0;
+  const activeTab = tabs.find(t => t.id === activeTabId);
+  const isModuleTab = activeTab?.source?.type === 'module';
+  const canCommit = activeTabId && isModuleTab && canCommitModule(activeTabId);
 
   return (
     <DropdownMenu>
@@ -206,6 +214,39 @@ export function ActionsDropdown() {
             <span className="flex-1">Debug Commands</span>
             <Kbd className="ml-auto">⌘D</Kbd>
           </DropdownMenuItem>
+
+          {isModuleTab && (
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <DropdownMenuItem 
+                    onClick={async () => {
+                      if (!activeTabId) return;
+                      try {
+                        await fetchModuleForCommit(activeTabId);
+                        setModuleCommitConfirmationOpen(true);
+                      } catch (error) {
+                        toast.error('Failed to prepare commit', {
+                          description: error instanceof Error ? error.message : 'Unknown error',
+                        });
+                      }
+                    }}
+                    disabled={!selectedPortalId || !canCommit}
+                  >
+                    <Upload className="size-4 mr-2" />
+                    <span className="flex-1">Commit to Module</span>
+                  </DropdownMenuItem>
+                }
+              />
+              {(!selectedPortalId || !canCommit) && (
+                <TooltipContent>
+                  {selectedPortalId && !canCommit 
+                    ? 'No changes detected' 
+                    : 'Portal connection required'}
+                </TooltipContent>
+              )}
+            </Tooltip>
+          )}
         </DropdownMenuGroup>
 
         <div className="relative flex items-center gap-2 my-2">

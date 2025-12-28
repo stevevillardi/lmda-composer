@@ -178,7 +178,7 @@ export function DebugCommandsDialog() {
 
   return (
     <Dialog open={debugCommandsDialogOpen} onOpenChange={setDebugCommandsDialogOpen}>
-      <DialogContent className="!w-[95vw] !max-w-[95vw] h-[90vh] flex flex-col gap-0 p-0" showCloseButton>
+      <DialogContent className="w-[95vw]! max-w-[95vw]! h-[90vh] flex flex-col gap-0 p-0" showCloseButton>
         <DialogHeader className="px-6 pt-6 pb-4 border-b">
           <DialogTitle className="flex items-center gap-2">
             <Terminal className="size-5" />

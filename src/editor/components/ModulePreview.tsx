@@ -94,8 +94,8 @@ export function ModulePreview({ module }: ModulePreviewProps) {
             <Badge variant="outline" className="text-xs">
               {language}
             </Badge>
-            {/* Load Both button - only for datasources with both AD and Collection */}
-            {showDualPane && module.moduleType === 'datasource' && (
+            {/* Load Both button - only for datasources and configsources with both AD and Collection */}
+            {showDualPane && (module.moduleType === 'datasource' || module.moduleType === 'configsource') && (
               <Tooltip>
                 <TooltipTrigger
                   render={

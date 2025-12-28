@@ -281,6 +281,18 @@ interface EditorState {
   executeDebugCommand: (portalId: string, collectorIds: number[], command: string, parameters?: Record<string, string>) => Promise<void>;
   cancelDebugCommandExecution: () => Promise<void>;
   debugCommandExecutionId: string | null;
+  
+  // Module commit state
+  isCommittingModule: boolean;
+  moduleCommitError: string | null;
+  moduleCommitConfirmationOpen: boolean;
+  loadedModuleForCommit: LogicModuleInfo | null;
+  
+  // Module commit actions
+  fetchModuleForCommit: (tabId: string) => Promise<void>;
+  commitModuleScript: (tabId: string) => Promise<void>;
+  canCommitModule: (tabId: string) => boolean;
+  setModuleCommitConfirmationOpen: (open: boolean) => void;
 }
 
 export const DEFAULT_GROOVY_TEMPLATE = `import com.santaba.agent.groovyapi.expect.Expect;
@@ -427,6 +439,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   isCreatingFunction: false,
   isUpdatingFunction: false,
   isDeletingFunction: false,
+  
+  // Module commit initial state
+  isCommittingModule: false,
+  moduleCommitError: null,
+  moduleCommitConfirmationOpen: false,
+  loadedModuleForCommit: null,
   
   // Debug commands initial state
   debugCommandsDialogOpen: false,
@@ -1050,16 +1068,22 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const modeLabel = mode === 'ad' ? 'ad' : mode === 'batchcollection' ? 'batch' : 'collection';
     const displayName = `${moduleName}/${modeLabel}.${extension}`;
     
+    // Determine script type from mode
+    const scriptType: 'collection' | 'ad' = mode === 'ad' ? 'ad' : 'collection';
+    
     const newTab: EditorTab = {
       id: crypto.randomUUID(),
       displayName,
       content: script,
       language,
       mode,
+      originalContent: script, // Store original content for dirty detection
       source: selectedModule ? {
         type: 'module',
         moduleId: selectedModule.id,
         moduleName: selectedModule.name,
+        moduleType: selectedModule.moduleType,
+        scriptType,
       } : undefined,
     };
     
@@ -1084,16 +1108,22 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const modeLabel = pendingModuleLoad.mode === 'ad' ? 'ad' : pendingModuleLoad.mode === 'batchcollection' ? 'batch' : 'collection';
     const displayName = `${moduleName}/${modeLabel}.${extension}`;
     
+    // Determine script type from mode
+    const scriptType: 'collection' | 'ad' = pendingModuleLoad.mode === 'ad' ? 'ad' : 'collection';
+    
     const newTab: EditorTab = {
       id: crypto.randomUUID(),
       displayName,
       content: pendingModuleLoad.script,
       language: pendingModuleLoad.language,
       mode: pendingModuleLoad.mode,
+      originalContent: pendingModuleLoad.script, // Store original content for dirty detection
       source: selectedModule ? {
         type: 'module',
         moduleId: selectedModule.id,
         moduleName: selectedModule.name,
+        moduleType: selectedModule.moduleType,
+        scriptType,
       } : undefined,
     };
     
@@ -1753,18 +1783,24 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const extension = module.scriptType === 'powerShell' ? 'ps1' : 'groovy';
     const language: ScriptLanguage = module.scriptType === 'powerShell' ? 'powershell' : 'groovy';
     
-    const newTabs: EditorTab[] = scripts.map(script => ({
-      id: crypto.randomUUID(),
-      displayName: `${module.name}/${script.type}.${extension}`,
-      content: script.content,
-      language,
-      mode: script.type === 'ad' ? 'ad' as ScriptMode : (module.collectMethod === 'batchscript' ? 'batchcollection' : 'collection') as ScriptMode,
-      source: {
-        type: 'module' as const,
-        moduleId: module.id,
-        moduleName: module.name,
-      },
-    }));
+    const newTabs: EditorTab[] = scripts.map(script => {
+      const scriptType: 'collection' | 'ad' = script.type === 'ad' ? 'ad' : 'collection';
+      return {
+        id: crypto.randomUUID(),
+        displayName: `${module.name}/${script.type}.${extension}`,
+        content: script.content,
+        language,
+        mode: script.type === 'ad' ? 'ad' as ScriptMode : (module.collectMethod === 'batchscript' ? 'batchcollection' : 'collection') as ScriptMode,
+        originalContent: script.content, // Store original content for dirty detection
+        source: {
+          type: 'module' as const,
+          moduleId: module.id,
+          moduleName: module.name,
+          moduleType: module.moduleType,
+          scriptType,
+        },
+      };
+    });
     
     // Add all new tabs and activate the first one
     set({
@@ -2447,6 +2483,190 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     }
   },
   
+  setModuleCommitConfirmationOpen: (open: boolean) => {
+    set({ moduleCommitConfirmationOpen: open });
+    if (!open) {
+      set({ loadedModuleForCommit: null, moduleCommitError: null });
+    }
+  },
+
+  canCommitModule: (tabId: string) => {
+    const tab = get().tabs.find(t => t.id === tabId);
+    if (!tab) return false;
+    if (tab.source?.type !== 'module') return false;
+    if (!get().selectedPortalId) return false;
+    return get().getTabDirtyState(tab);
+  },
+
+  fetchModuleForCommit: async (tabId: string) => {
+    const { tabs, selectedPortalId } = get();
+    const tab = tabs.find(t => t.id === tabId);
+    
+    if (!tab || !selectedPortalId) {
+      throw new Error('Tab not found or portal not selected');
+    }
+    
+    if (tab.source?.type !== 'module' || !tab.source.moduleId || !tab.source.moduleType || !tab.source.scriptType) {
+      throw new Error('Tab is not a module tab');
+    }
+    
+    set({ moduleCommitError: null });
+    
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: 'FETCH_MODULE',
+        payload: {
+          portalId: selectedPortalId,
+          moduleType: tab.source.moduleType,
+          moduleId: tab.source.moduleId,
+        },
+      });
+      
+      if (response?.type === 'MODULE_FETCHED') {
+        // Extract module info from the fetched module
+        const module = response.payload;
+        
+        // Extract the current script from the module based on type and script type
+        let currentScript = '';
+        if (tab.source.scriptType === 'ad') {
+          currentScript = module.autoDiscoveryConfig?.method?.groovyScript || '';
+        } else {
+          // Collection script
+          if (tab.source.moduleType === 'propertysource' || tab.source.moduleType === 'diagnosticsource') {
+            currentScript = module.groovyScript || '';
+          } else if (tab.source.moduleType === 'logsource') {
+            currentScript = module.collectionAttribute?.script?.embeddedContent
+              || module.collectionAttribute?.groovyScript
+              || '';
+          } else {
+            // DataSource, ConfigSource, TopologySource
+            currentScript = module.collectorAttribute?.groovyScript || '';
+          }
+        }
+        
+        // Check for conflicts: compare fetched script with original content
+        const originalContent = tab.originalContent || '';
+        const hasConflict = originalContent.trim() !== currentScript.trim();
+        
+        const moduleInfo: LogicModuleInfo = {
+          id: module.id,
+          name: module.name,
+          displayName: module.displayName || module.name,
+          moduleType: tab.source.moduleType!,
+          appliesTo: module.appliesTo || '',
+          collectMethod: module.collectMethod || 'script',
+          hasAutoDiscovery: !!module.enableAutoDiscovery,
+          scriptType: module.scriptType === 'powerShell' ? 'powerShell' : 'embed',
+        };
+        
+        // Store conflict info in a way that can be accessed by the dialog
+        // We'll pass this through the moduleInfo or a separate state
+        set({ 
+          loadedModuleForCommit: moduleInfo,
+          // Store conflict info - we'll need to extend LogicModuleInfo or use a separate state
+        });
+        
+        // If there's a conflict, update the originalContent to the current server state
+        // so the user can see what changed
+        if (hasConflict && currentScript !== originalContent) {
+          // Update the tab's originalContent to reflect server state
+          set({
+            tabs: tabs.map(t =>
+              t.id === tabId
+                ? { ...t, originalContent: currentScript }
+                : t
+            ),
+          });
+        }
+      } else if (response?.type === 'MODULE_ERROR') {
+        const error = response.payload.error || 'Failed to fetch module';
+        const errorCode = response.payload.code;
+        
+        // Handle specific error cases
+        if (errorCode === 404) {
+          throw new Error('Module not found. It may have been deleted.');
+        } else if (errorCode === 403) {
+          throw new Error('CSRF token expired. Please refresh the page.');
+        } else if (errorCode === 401) {
+          throw new Error('Session expired. Please log in to LogicMonitor.');
+        }
+        
+        set({ moduleCommitError: error });
+        throw new Error(error);
+      } else {
+        throw new Error('Unknown error occurred');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch module';
+      set({ moduleCommitError: errorMessage });
+      throw error;
+    }
+  },
+
+  commitModuleScript: async (tabId: string) => {
+    const { tabs, selectedPortalId } = get();
+    const tab = tabs.find(t => t.id === tabId);
+    
+    if (!tab || !selectedPortalId) {
+      throw new Error('Tab not found or portal not selected');
+    }
+    
+    if (tab.source?.type !== 'module' || !tab.source.moduleId || !tab.source.moduleType || !tab.source.scriptType) {
+      throw new Error('Tab is not a module tab');
+    }
+    
+    set({ isCommittingModule: true, moduleCommitError: null });
+    
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: 'COMMIT_MODULE_SCRIPT',
+        payload: {
+          portalId: selectedPortalId,
+          moduleType: tab.source.moduleType,
+          moduleId: tab.source.moduleId,
+          scriptType: tab.source.scriptType,
+          newScript: tab.content,
+        },
+      });
+      
+      if (response?.type === 'MODULE_COMMITTED') {
+        // Update originalContent to reflect the committed state
+        set({
+          tabs: tabs.map(t => 
+            t.id === tabId 
+              ? { ...t, originalContent: t.content }
+              : t
+          ),
+          isCommittingModule: false,
+          moduleCommitConfirmationOpen: false,
+          loadedModuleForCommit: null,
+        });
+        toast.success('Changes committed to module successfully');
+      } else if (response?.type === 'MODULE_ERROR') {
+        const error = response.payload.error || 'Failed to commit module script';
+        set({ 
+          moduleCommitError: error,
+          isCommittingModule: false,
+        });
+        throw new Error(error);
+      } else {
+        const error = 'Unknown error occurred';
+        set({ 
+          moduleCommitError: error,
+          isCommittingModule: false,
+        });
+        throw new Error(error);
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to commit module script';
+      set({ 
+        moduleCommitError: errorMessage,
+        isCommittingModule: false,
+      });
+      throw error;
+    }
+  },
+
   getAllFunctions: () => {
     const { customFunctions } = get();
     

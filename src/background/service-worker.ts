@@ -7,6 +7,10 @@ import {
   updateCustomFunction,
   deleteCustomFunction,
 } from './applies-to-functions-api';
+import {
+  fetchModuleById,
+  commitModuleScript,
+} from './module-api';
 import type { 
   EditorToSWMessage, 
   ContentToSWMessage,
@@ -18,6 +22,7 @@ import type {
   FetchDevicePropertiesRequest,
   TestAppliesToRequest,
   ExecuteDebugCommandRequest,
+  LogicModuleType,
 } from '@/shared/types';
 
 // Initialize managers
@@ -346,6 +351,99 @@ async function handleMessage(
         const { executionId } = message.payload as { executionId: string };
         const cancelled = scriptExecutor.cancelDebugExecution(executionId);
         sendResponse({ success: cancelled });
+        break;
+      }
+
+      case 'FETCH_MODULE': {
+        const { portalId, moduleType, moduleId } = message.payload as { 
+          portalId: string; 
+          moduleType: LogicModuleType; 
+          moduleId: number;
+        };
+        try {
+          const portal = portalManager.getPortal(portalId);
+          if (!portal || portal.tabIds.length === 0) {
+            sendResponse({ 
+              type: 'MODULE_ERROR', 
+              payload: { error: 'Portal not found or no tabs available', code: 404 } 
+            });
+            break;
+          }
+          const csrfToken = await portalManager.getCsrfToken(portalId);
+          const module = await fetchModuleById(portal.hostname, csrfToken, moduleType, moduleId, portal.tabIds[0]);
+          if (module) {
+            sendResponse({ type: 'MODULE_FETCHED', payload: module });
+          } else {
+            sendResponse({ 
+              type: 'MODULE_ERROR', 
+              payload: { error: 'Module not found', code: 404 } 
+            });
+          }
+        } catch (error) {
+          sendResponse({ 
+            type: 'MODULE_ERROR', 
+            payload: { 
+              error: error instanceof Error ? error.message : 'Failed to fetch module',
+              code: 500
+            } 
+          });
+        }
+        break;
+      }
+
+      case 'COMMIT_MODULE_SCRIPT': {
+        const { portalId, moduleType, moduleId, scriptType, newScript } = message.payload as { 
+          portalId: string; 
+          moduleType: LogicModuleType; 
+          moduleId: number;
+          scriptType: 'collection' | 'ad';
+          newScript: string;
+        };
+        console.log(`[SW] COMMIT_MODULE_SCRIPT: portalId=${portalId}, moduleType=${moduleType}, moduleId=${moduleId}, scriptType=${scriptType}`);
+        try {
+          const portal = portalManager.getPortal(portalId);
+          if (!portal || portal.tabIds.length === 0) {
+            console.error(`[SW] Portal not found or no tabs: portalId=${portalId}, tabIds=${portal?.tabIds.length || 0}`);
+            sendResponse({ 
+              type: 'MODULE_ERROR', 
+              payload: { error: 'Portal not found or no tabs available', code: 404 } 
+            });
+            break;
+          }
+          console.log(`[SW] Portal found, tabIds:`, portal.tabIds);
+          const csrfToken = await portalManager.getCsrfToken(portalId);
+          console.log(`[SW] CSRF token:`, csrfToken ? 'present' : 'missing');
+          const result = await commitModuleScript(
+            portal.hostname, 
+            csrfToken, 
+            moduleType, 
+            moduleId, 
+            scriptType, 
+            newScript,
+            portal.tabIds[0]
+          );
+          console.log(`[SW] Commit result:`, result);
+          if (result.success) {
+            sendResponse({ type: 'MODULE_COMMITTED', payload: { moduleId, moduleType } });
+          } else {
+            sendResponse({ 
+              type: 'MODULE_ERROR', 
+              payload: { 
+                error: result.error || 'Failed to commit module script',
+                code: 500
+              } 
+            });
+          }
+        } catch (error) {
+          console.error(`[SW] Error in COMMIT_MODULE_SCRIPT:`, error);
+          sendResponse({ 
+            type: 'MODULE_ERROR', 
+            payload: { 
+              error: error instanceof Error ? error.message : 'Failed to commit module script',
+              code: 500
+            } 
+          });
+        }
         break;
       }
 

@@ -117,6 +117,8 @@ export interface EditorTabSource {
   type: EditorTabSourceType;
   moduleId?: number;
   moduleName?: string;
+  moduleType?: LogicModuleType;
+  scriptType?: 'collection' | 'ad';
 }
 
 export interface EditorTabContextOverride {
@@ -336,6 +338,8 @@ export type EditorToSWMessage =
   | { type: 'DELETE_CUSTOM_FUNCTION'; payload: { portalId: string; functionId: number } }
   | { type: 'EXECUTE_DEBUG_COMMAND'; payload: ExecuteDebugCommandRequest & { executionId?: string } }
   | { type: 'CANCEL_DEBUG_COMMAND'; payload: { executionId: string } }
+  | { type: 'FETCH_MODULE'; payload: { portalId: string; moduleType: LogicModuleType; moduleId: number } }
+  | { type: 'COMMIT_MODULE_SCRIPT'; payload: { portalId: string; moduleType: LogicModuleType; moduleId: number; scriptType: 'collection' | 'ad'; newScript: string } }
   | { type: 'OPEN_EDITOR'; payload?: DeviceContext };
 
 export type SWToEditorMessage =
@@ -355,6 +359,9 @@ export type SWToEditorMessage =
   | { type: 'CUSTOM_FUNCTION_ERROR'; payload: { error: string; code?: number } }
   | { type: 'DEBUG_COMMAND_UPDATE'; payload: DebugCommandProgress }
   | { type: 'DEBUG_COMMAND_COMPLETE'; payload: DebugCommandComplete }
+  | { type: 'MODULE_FETCHED'; payload: any } // Full module object from API
+  | { type: 'MODULE_COMMITTED'; payload: { moduleId: number; moduleType: LogicModuleType } }
+  | { type: 'MODULE_ERROR'; payload: { error: string; code?: number } }
   | { type: 'PORTAL_DISCONNECTED'; payload: { portalId: string; hostname: string } }
   | { type: 'ERROR'; payload: { code: string; message: string } };
 
