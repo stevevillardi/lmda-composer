@@ -13,6 +13,7 @@ import {
   Check,
   Save,
   Download,
+  Hammer,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEditorStore } from '../stores/editor-store';
@@ -41,6 +42,7 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
+  AlertDialogMedia,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
@@ -583,7 +585,10 @@ export function AppliesToTester() {
       <DialogContent className="w-[90vw]! max-w-[90vw]! h-[90vh] flex flex-col gap-0 p-0" showCloseButton>
         {/* Header */}
         <DialogHeader className="px-6 pt-6 pb-4 shrink-0">
-          <DialogTitle>AppliesTo Toolbox</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <Hammer className="size-5" />
+            AppliesTo Toolbox
+          </DialogTitle>
           <DialogDescription>
             Test AppliesTo expressions against resources in your portal
           </DialogDescription>
@@ -1065,6 +1070,9 @@ export function AppliesToTester() {
       <AlertDialog open={deletingFunctionId !== null} onOpenChange={(open) => !open && setDeletingFunctionId(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
+            <AlertDialogMedia className="bg-destructive/10">
+              <Trash2 className="size-8 text-destructive" />
+            </AlertDialogMedia>
             <AlertDialogTitle>Delete Custom Function?</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to delete this custom function? This action cannot be undone.

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Save, Loader2 } from 'lucide-react';
+import { Save, Loader2, Edit } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -88,7 +88,10 @@ export function UpdateFunctionConfirmationDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[900px]">
         <DialogHeader>
-          <DialogTitle>Confirm Function Update</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <Edit className="size-5" />
+            Confirm Function Update
+          </DialogTitle>
           <DialogDescription>
             Review the changes and update the function name and description if needed.
           </DialogDescription>

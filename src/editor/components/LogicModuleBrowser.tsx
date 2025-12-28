@@ -11,6 +11,7 @@ import {
   FolderSearch,
   Eye,
   RefreshCw,
+  CloudDownload,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEditorStore } from '../stores/editor-store';
@@ -139,7 +140,10 @@ export function LogicModuleBrowser() {
         <DialogContent className="!w-[90vw] !max-w-[90vw] h-[90vh] flex flex-col gap-4 p-0" showCloseButton>
           {/* Header */}
           <DialogHeader className="px-6 pt-6 pb-0">
-            <DialogTitle>Import from LogicModule Exchange</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <CloudDownload className="size-5" />
+              Import from LogicModule Exchange
+            </DialogTitle>
             <DialogDescription>
               Browse and load scripts from existing LogicModules in your portal 
             </DialogDescription>

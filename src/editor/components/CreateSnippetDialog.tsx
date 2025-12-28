@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { FilePlus, Code2 } from 'lucide-react';
 import { useEditorStore } from '../stores/editor-store';
 import {
   Dialog,
@@ -88,8 +89,18 @@ export function CreateSnippetDialog() {
     <Dialog open={createSnippetDialogOpen} onOpenChange={setCreateSnippetDialogOpen}>
       <DialogContent className="!max-w-2xl">
         <DialogHeader>
-          <DialogTitle>
-            {editingSnippet ? 'Edit Snippet' : 'Create Snippet'}
+          <DialogTitle className="flex items-center gap-2">
+            {editingSnippet ? (
+              <>
+                <Code2 className="size-5" />
+                Edit Snippet
+              </>
+            ) : (
+              <>
+                <FilePlus className="size-5" />
+                Create Snippet
+              </>
+            )}
           </DialogTitle>
           <DialogDescription>
             {editingSnippet

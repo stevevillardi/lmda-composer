@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
-import { FileWarning } from 'lucide-react';
+import { FileWarning, RotateCcw } from 'lucide-react';
 import { Toolbar } from './components/Toolbar';
 import { EditorPanel } from './components/EditorPanel';
 import { OutputPanel } from './components/OutputPanel';
@@ -29,6 +29,7 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
+  AlertDialogMedia,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import type { DraftScript, DraftTabs } from '@/shared/types';
@@ -413,6 +414,9 @@ export function App() {
       <AlertDialog open={showDraftDialog} onOpenChange={setShowDraftDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
+            <AlertDialogMedia className="bg-primary/10">
+              <RotateCcw className="size-8 text-primary" />
+            </AlertDialogMedia>
             <AlertDialogTitle>Restore Previous Session?</AlertDialogTitle>
             <AlertDialogDescription>
               You have unsaved work from a previous session

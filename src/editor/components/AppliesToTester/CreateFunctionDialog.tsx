@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Save, X } from 'lucide-react';
+import { Save, X, Plus, Code } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -119,8 +119,18 @@ export function CreateFunctionDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <DialogTitle>
-            {editingFunction ? 'Edit Custom Function' : 'Create Custom Function'}
+          <DialogTitle className="flex items-center gap-2">
+            {editingFunction ? (
+              <>
+                <Code className="size-5" />
+                Edit Custom Function
+              </>
+            ) : (
+              <>
+                <Plus className="size-5" />
+                Create Custom Function
+              </>
+            )}
           </DialogTitle>
           <DialogDescription>
             {editingFunction
