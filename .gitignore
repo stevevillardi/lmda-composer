@@ -3,3 +3,4 @@ dist
 lm-ide-extension-1.0.0.zip
 *.png
 .DS_Store
+*.zip

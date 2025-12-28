@@ -137,7 +137,7 @@ export function LogicModuleBrowser() {
   return (
     <>
       <Dialog open={moduleBrowserOpen} onOpenChange={setModuleBrowserOpen}>
-        <DialogContent className="!w-[90vw] !max-w-[90vw] h-[90vh] flex flex-col gap-4 p-0" showCloseButton>
+        <DialogContent className="w-[90vw]! max-w-[90vw]! h-[90vh] flex flex-col gap-4 p-0" showCloseButton>
           {/* Header */}
           <DialogHeader className="px-6 pt-6 pb-0">
             <DialogTitle className="flex items-center gap-2">
@@ -177,7 +177,7 @@ export function LogicModuleBrowser() {
           {/* Main Content Area */}
           <div className="flex-1 flex min-h-0 border-t border-border">
             {/* Left Panel - Module List */}
-            <div className="w-80 flex-shrink-0 border-r border-border flex flex-col">
+            <div className="w-80 shrink-0 border-r border-border flex flex-col">
               {/* Search */}
               <div className="p-3 border-b border-border">
                 <div className="flex items-center gap-2">

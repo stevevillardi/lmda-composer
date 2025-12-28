@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { Save, Loader2, Edit } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
+import { Upload, Loader2 } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -12,6 +12,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { DiffEditor } from '../DiffEditor';
+import { useEditorStore } from '../../stores/editor-store';
 import { cn } from '@/lib/utils';
 import type { CustomAppliesToFunction } from '@/shared/types';
 
@@ -36,6 +38,18 @@ export function UpdateFunctionConfirmationDialog({
   const [description, setDescription] = useState('');
   const [nameError, setNameError] = useState<string | null>(null);
   const [updateError, setUpdateError] = useState<string | null>(null);
+  const { preferences } = useEditorStore();
+
+  // Map theme preference to Monaco theme
+  const monacoTheme = useMemo(() => {
+    if (preferences.theme === 'light') return 'vs';
+    if (preferences.theme === 'dark') return 'vs-dark';
+    // System: check prefers-color-scheme
+    if (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches) {
+      return 'vs';
+    }
+    return 'vs-dark';
+  }, [preferences.theme]);
 
   // Reset form when dialog opens
   useEffect(() => {
@@ -74,7 +88,7 @@ export function UpdateFunctionConfirmationDialog({
     try {
       await onConfirm(name.trim(), newCode.trim(), description.trim() || undefined);
     } catch (error) {
-      setUpdateError(error instanceof Error ? error.message : 'Failed to update function');
+      setUpdateError(error instanceof Error ? error.message : 'Failed to commit function');
     }
   };
 
@@ -86,18 +100,19 @@ export function UpdateFunctionConfirmationDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[900px]">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[1200px] max-h-[90vh] flex flex-col gap-0 p-0">
+        <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
           <DialogTitle className="flex items-center gap-2">
-            <Edit className="size-5" />
-            Confirm Function Update
+            <Upload className="size-5" />
+            Commit Changes to Function
           </DialogTitle>
           <DialogDescription>
-            Review the changes and update the function name and description if needed.
+            This will update the AppliesTo function "{func.name}" in LogicMonitor. Review the changes and update the function name and description if needed.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="flex-1 overflow-y-auto px-6 py-4 min-h-0">
+          <div className="space-y-4">
           {/* Name field */}
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="update-name" className="text-right">
@@ -117,30 +132,19 @@ export function UpdateFunctionConfirmationDialog({
           {/* Code comparison */}
           <div className="space-y-2">
             <Label className="text-sm font-medium">Code Changes</Label>
-            <div className="grid grid-cols-2 gap-4">
-              {/* Original code */}
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Original Code</Label>
-                <Textarea
-                  value={func.code}
-                  readOnly
-                  className="min-h-[100px] font-mono text-sm bg-muted/50 resize-none"
+            {hasCodeChanges ? (
+              <div className="border border-border rounded-md overflow-hidden">
+                <DiffEditor
+                  original={func.code}
+                  modified={newCode}
+                  language="groovy"
+                  height="300px"
+                  theme={monacoTheme}
+                  readOnly={true}
+                  wordWrap={true}
                 />
               </div>
-              {/* New code */}
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">New Code</Label>
-                <Textarea
-                  value={newCode}
-                  readOnly
-                  className={cn(
-                    "min-h-[100px] font-mono text-sm resize-none",
-                    hasCodeChanges ? "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800" : "bg-muted/50"
-                  )}
-                />
-              </div>
-            </div>
-            {!hasCodeChanges && (
+            ) : (
               <p className="text-xs text-muted-foreground">No code changes detected.</p>
             )}
           </div>
@@ -166,22 +170,28 @@ export function UpdateFunctionConfirmationDialog({
               {updateError}
             </div>
           )}
+          </div>
         </div>
 
-        <DialogFooter>
+        <DialogFooter className="px-6 pb-6 pt-4 border-t shrink-0">
           <Button type="button" variant="ghost" onClick={handleCancel} disabled={isUpdating}>
             Cancel
           </Button>
-          <Button type="button" onClick={handleConfirm} disabled={isUpdating}>
+          <Button 
+            type="button" 
+            onClick={handleConfirm} 
+            disabled={isUpdating || !hasCodeChanges}
+            className="bg-blue-600 hover:bg-blue-500 text-white"
+          >
             {isUpdating ? (
               <>
                 <Loader2 className="size-4 mr-2 animate-spin" />
-                Updating...
+                Committing...
               </>
             ) : (
               <>
-                <Save className="size-4 mr-2" />
-                Confirm Update
+                <Upload className="size-4 mr-2" />
+                Commit Changes
               </>
             )}
           </Button>

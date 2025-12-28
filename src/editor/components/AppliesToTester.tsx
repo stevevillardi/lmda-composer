@@ -14,6 +14,7 @@ import {
   Save,
   Download,
   Hammer,
+  Upload,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEditorStore } from '../stores/editor-store';
@@ -503,7 +504,7 @@ export function AppliesToTester() {
       setUpdateConfirmationOpen(false);
       fetchCustomFunctions(); // Refresh list
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to update function');
+      toast.error(error instanceof Error ? error.message : 'Failed to commit function');
       throw error;
     }
   };
@@ -781,13 +782,13 @@ export function AppliesToTester() {
               <div className="flex items-center justify-end gap-2">
                 {loadedFunction ? (
                   <Button
-                    variant="outline"
+                    variant="default"
                     onClick={handleUpdateFunctionClick}
                     disabled={!canSaveAsFunction || !selectedPortalId}
-                    className="gap-2"
+                    className="gap-2 bg-blue-600 hover:bg-blue-500 text-white"
                   >
-                    <Save className="size-4" />
-                    Update Function
+                    <Upload className="size-4" />
+                    Commit Function
                   </Button>
                 ) : (
                   <Button
