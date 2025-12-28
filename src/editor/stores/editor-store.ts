@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { toast } from 'sonner';
 import type { 
   Portal, 
   Collector, 
@@ -20,6 +21,8 @@ import type {
   EditorTab,
   FilePermissionStatus,
   CustomAppliesToFunction,
+  ExecuteDebugCommandRequest,
+  DebugCommandResult,
 } from '@/shared/types';
 import { DEFAULT_PREFERENCES } from '@/shared/types';
 import { parseOutput, type ParseResult } from '../utils/output-parser';
@@ -132,6 +135,11 @@ interface EditorState {
   isCreatingFunction: boolean;
   isUpdatingFunction: boolean;
   isDeletingFunction: boolean;
+  
+  // Debug commands state
+  debugCommandsDialogOpen: boolean;
+  debugCommandResults: Record<number, DebugCommandResult>;
+  isExecutingDebugCommand: boolean;
   
   // Actions
   setSelectedPortal: (portalId: string | null) => void;
@@ -266,6 +274,12 @@ interface EditorState {
   updateCustomFunction: (id: number, name: string, code: string, description?: string) => Promise<void>;
   deleteCustomFunction: (id: number) => Promise<void>;
   getAllFunctions: () => Array<{ name: string; syntax: string; parameters: string; description: string; example?: string; source: 'builtin' | 'custom'; customId?: number }>;
+  
+  // Debug commands actions
+  setDebugCommandsDialogOpen: (open: boolean) => void;
+  executeDebugCommand: (portalId: string, collectorIds: number[], command: string, parameters?: Record<string, string>) => Promise<void>;
+  cancelDebugCommandExecution: () => Promise<void>;
+  debugCommandExecutionId: string | null;
 }
 
 export const DEFAULT_GROOVY_TEMPLATE = `import com.santaba.agent.groovyapi.expect.Expect;
@@ -412,6 +426,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   isCreatingFunction: false,
   isUpdatingFunction: false,
   isDeletingFunction: false,
+  
+  // Debug commands initial state
+  debugCommandsDialogOpen: false,
+  debugCommandResults: {},
+  isExecutingDebugCommand: false,
+  debugCommandExecutionId: null,
   
   // Welcome screen / Recent files state
   recentFiles: [],
@@ -1832,6 +1852,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           // Direct save to existing file
           await fileHandleStore.writeToHandle(handle, tab.content);
           
+          // Update lastAccessed timestamp for recent files
+          await fileHandleStore.saveHandle(targetTabId, handle, tab.displayName);
+          
           // Update originalContent to mark as clean
           set({
             tabs: tabs.map(t => 
@@ -1846,6 +1869,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           const granted = await fileHandleStore.requestPermission(handle);
           if (granted) {
             await fileHandleStore.writeToHandle(handle, tab.content);
+            
+            // Update lastAccessed timestamp for recent files
+            await fileHandleStore.saveHandle(targetTabId, handle, tab.displayName);
+            
             set({
               tabs: tabs.map(t => 
                 t.id === targetTabId 
@@ -2397,6 +2424,97 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     }));
     
     return [...builtinAsFunctions, ...customAsFunctions];
+  },
+
+  // Debug commands actions
+  setDebugCommandsDialogOpen: (open: boolean) => {
+    set({ debugCommandsDialogOpen: open });
+    if (!open) {
+      // Clear results when closing
+      set({ debugCommandResults: {}, isExecutingDebugCommand: false, debugCommandExecutionId: null });
+    }
+  },
+
+  executeDebugCommand: async (portalId: string, collectorIds: number[], command: string, parameters?: Record<string, string>) => {
+    const executionId = crypto.randomUUID();
+    set({ isExecutingDebugCommand: true, debugCommandResults: {}, debugCommandExecutionId: executionId });
+
+    const request: ExecuteDebugCommandRequest = {
+      portalId,
+      collectorIds,
+      command,
+      parameters,
+    };
+
+    // Set up message listener for progress updates and completion
+    const progressListener = (message: any) => {
+      // Only handle messages for this execution
+      if (message.executionId && message.executionId !== executionId) {
+        return false;
+      }
+
+      if (message.type === 'DEBUG_COMMAND_UPDATE') {
+        // Progress updates - could show progress in UI if needed
+        // For now, we just track execution state
+      } else if (message.type === 'DEBUG_COMMAND_COMPLETE') {
+        set({
+          debugCommandResults: message.payload.results,
+          isExecutingDebugCommand: false,
+          debugCommandExecutionId: null,
+        });
+        chrome.runtime.onMessage.removeListener(progressListener);
+      } else if (message.type === 'ERROR' && message.payload.code === 'DEBUG_COMMAND_ERROR') {
+        set({
+          isExecutingDebugCommand: false,
+          debugCommandExecutionId: null,
+        });
+        chrome.runtime.onMessage.removeListener(progressListener);
+        toast.error('Debug command execution failed', {
+          description: message.payload.message,
+        });
+      }
+      return false; // Don't keep channel open
+    };
+
+    chrome.runtime.onMessage.addListener(progressListener);
+
+    try {
+      // Send execution request with executionId
+      // Note: The service worker will send messages back via onMessage
+      await chrome.runtime.sendMessage({
+        type: 'EXECUTE_DEBUG_COMMAND',
+        payload: { ...request, executionId },
+      });
+    } catch (error) {
+      set({ isExecutingDebugCommand: false, debugCommandExecutionId: null });
+      chrome.runtime.onMessage.removeListener(progressListener);
+      toast.error('Failed to execute debug command', {
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  },
+
+  cancelDebugCommandExecution: async () => {
+    const { debugCommandExecutionId } = get();
+    if (!debugCommandExecutionId) {
+      return;
+    }
+
+    try {
+      await chrome.runtime.sendMessage({
+        type: 'CANCEL_DEBUG_COMMAND',
+        payload: { executionId: debugCommandExecutionId },
+      });
+      set({
+        isExecutingDebugCommand: false,
+        debugCommandExecutionId: null,
+      });
+      toast.info('Debug command execution cancelled');
+    } catch (error) {
+      toast.error('Failed to cancel debug command', {
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
   },
 }));
 

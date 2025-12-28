@@ -13,6 +13,7 @@ import {
   PanelRight,
   CloudDownload,
   Hammer,
+  Terminal,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEditorStore } from '../stores/editor-store';
@@ -52,6 +53,7 @@ export function CommandPalette() {
     setModuleBrowserOpen,
     setSettingsDialogOpen,
     setAppliesToTesterOpen,
+    setDebugCommandsDialogOpen,
     setRightSidebarOpen,
     setRightSidebarTab,
     portals,
@@ -125,6 +127,7 @@ export function CommandPalette() {
       id: 'export-file',
       label: 'Export (Download)',
       icon: <Download className="size-4" />,
+      shortcut: '⌘⇧E',
       action: () => {
         setCommandPaletteOpen(false);
         exportToFile();
@@ -156,8 +159,9 @@ export function CommandPalette() {
   const navigationCommands: CommandAction[] = [
     {
       id: 'open-module-browser',
-      label: 'Import from LogicModule Exchange',
+      label: 'Import from LMX',
       icon: <CloudDownload className="size-4" />,
+      shortcut: '⌘⇧I',
       action: () => {
         setCommandPaletteOpen(false);
         setModuleBrowserOpen(true);
@@ -172,6 +176,17 @@ export function CommandPalette() {
       action: () => {
         setCommandPaletteOpen(false);
         setAppliesToTesterOpen(true);
+      },
+      disabled: !selectedPortalId,
+    },
+    {
+      id: 'debug-commands',
+      label: 'Debug Commands',
+      icon: <Terminal className="size-4" />,
+      shortcut: '⌘D',
+      action: () => {
+        setCommandPaletteOpen(false);
+        setDebugCommandsDialogOpen(true);
       },
       disabled: !selectedPortalId,
     },
@@ -336,6 +351,31 @@ export function CommandPalette() {
         }
         return;
       }
+
+      // Cmd/Ctrl + D to open Debug Commands
+      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === 'd') {
+        e.preventDefault();
+        if (selectedPortalId) {
+          setDebugCommandsDialogOpen(true);
+        }
+        return;
+      }
+
+      // Cmd/Ctrl + Shift + E to export file
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'e') {
+        e.preventDefault();
+        exportToFile();
+        return;
+      }
+
+      // Cmd/Ctrl + Shift + I to import from LogicModule Exchange
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'i') {
+        e.preventDefault();
+        if (selectedPortalId) {
+          setModuleBrowserOpen(true);
+        }
+        return;
+      }
     };
 
     window.addEventListener('keydown', handleKeyDown);
@@ -351,11 +391,14 @@ export function CommandPalette() {
     setModuleBrowserOpen,
     setSettingsDialogOpen,
     setAppliesToTesterOpen,
+    setDebugCommandsDialogOpen,
     saveFile,
     saveFileAs,
     openFileFromDisk,
+    exportToFile,
     refreshCollectors,
     toggleRightSidebar,
+    copyOutput,
   ]);
 
   return (

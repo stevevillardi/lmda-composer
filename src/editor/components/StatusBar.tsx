@@ -26,10 +26,14 @@ const KEYBOARD_SHORTCUTS = [
   { keys: ['⌘', 'O'], action: 'Open file' },
   { keys: ['⌘', 'S'], action: 'Save' },
   { keys: ['⌘', '⇧', 'S'], action: 'Save As...' },
+  { keys: ['⌘', '⇧', 'E'], action: 'Export (Download)' },
   { keys: ['⌘', '⇧', 'C'], action: 'Copy output' },
-  { keys: ['⌘', ','], action: 'Settings' },
+  { keys: ['⌘', '⇧', 'I'], action: 'Import from LMX' },
+  { keys: ['⌘', '⇧', 'A'], action: 'AppliesTo Toolbox' },
+  { keys: ['⌘', 'D'], action: 'Debug Commands' },
   { keys: ['⌘', 'B'], action: 'Toggle sidebar' },
   { keys: ['⌘', 'R'], action: 'Refresh collectors' },
+  { keys: ['⌘', ','], action: 'Settings' },
 ] as const;
 
 // Character count thresholds for progressive warnings

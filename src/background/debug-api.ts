@@ -21,6 +21,7 @@ interface DebugExecuteResponse {
 interface DebugPollResponse {
   output?: string;
   sessionId?: string;
+  cmdline?: string | null;  // null means command is complete
 }
 
 /**
@@ -122,6 +123,7 @@ export async function pollDebugResult(
 
   const data: DebugPollResponse = await response.json();
   
+  // Status 200 with output means command completed
   return {
     status: 'complete',
     output: data.output ?? '',
@@ -251,6 +253,139 @@ export function buildGroovyCommand(
  */
 export function buildPowerShellCommand(script: string): string {
   return `!posh \n${script}`;
+}
+
+/**
+ * Build a debug command string with optional parameters.
+ * Parameters are formatted as key=value pairs.
+ * 
+ * @param command The base command (e.g., "!adlist")
+ * @param parameters Optional parameters as key-value pairs
+ * @returns Complete command string (e.g., "!adlist type=get method=ad_snmp")
+ */
+export function buildDebugCommand(
+  command: string,
+  parameters?: Record<string, string>
+): string {
+  if (!parameters || Object.keys(parameters).length === 0) {
+    return command;
+  }
+
+  const paramStrings: string[] = [];
+  for (const [key, value] of Object.entries(parameters)) {
+    if (value !== undefined && value !== null && value !== '') {
+      // Handle special cases where value might contain spaces or special chars
+      // For now, just append as-is (user is responsible for quoting if needed)
+      paramStrings.push(`${key}=${value}`);
+    }
+  }
+
+  if (paramStrings.length === 0) {
+    return command;
+  }
+
+  return `${command} ${paramStrings.join(' ')}`;
+}
+
+export interface MultiCollectorResult {
+  collectorId: number;
+  success: boolean;
+  output?: string;
+  error?: string;
+  duration?: number;
+}
+
+export interface ExecuteOnMultipleCollectorsOptions extends ExecuteAndPollOptions {
+  onCollectorProgress?: (collectorId: number, attempt: number, maxAttempts: number) => void;
+  onCollectorComplete?: (collectorId: number, result: MultiCollectorResult) => void;
+}
+
+/**
+ * Execute a debug command on multiple collectors in parallel.
+ * Returns a map of collectorId -> result.
+ * 
+ * @param portal Portal hostname
+ * @param collectorIds Array of collector IDs to execute on
+ * @param cmdline The command line to execute
+ * @param csrfToken CSRF token for authentication
+ * @param options Optional execution options including progress callbacks
+ * @returns Map of collectorId -> execution result
+ */
+export async function executeOnMultipleCollectors(
+  portal: string,
+  collectorIds: number[],
+  cmdline: string,
+  csrfToken: string,
+  options?: ExecuteOnMultipleCollectorsOptions
+): Promise<Map<number, MultiCollectorResult>> {
+  const { onCollectorProgress, onCollectorComplete, abortSignal } = options ?? {};
+  const results = new Map<number, MultiCollectorResult>();
+
+  // Execute on all collectors in parallel
+  const executions = collectorIds.map(async (collectorId) => {
+    const startTime = Date.now();
+    
+    try {
+      // Check for cancellation
+      if (abortSignal?.aborted) {
+        const result: MultiCollectorResult = {
+          collectorId,
+          success: false,
+          error: 'Execution cancelled',
+          duration: Date.now() - startTime
+        };
+        results.set(collectorId, result);
+        onCollectorComplete?.(collectorId, result);
+        return;
+      }
+
+      // Create collector-specific progress callback
+      const collectorProgressCallback = (attempt: number, maxAttempts: number) => {
+        onCollectorProgress?.(collectorId, attempt, maxAttempts);
+        options?.onProgress?.(attempt, maxAttempts);
+      };
+
+      // Execute and poll
+      const output = await executeAndPoll(
+        portal,
+        collectorId,
+        cmdline,
+        csrfToken,
+        {
+          ...options,
+          onProgress: collectorProgressCallback,
+          abortSignal
+        }
+      );
+
+      const duration = Date.now() - startTime;
+      const result: MultiCollectorResult = {
+        collectorId,
+        success: true,
+        output,
+        duration
+      };
+      
+      results.set(collectorId, result);
+      onCollectorComplete?.(collectorId, result);
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      const result: MultiCollectorResult = {
+        collectorId,
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        duration
+      };
+      
+      results.set(collectorId, result);
+      onCollectorComplete?.(collectorId, result);
+    }
+  });
+
+  // Wait for all executions to complete
+  await Promise.allSettled(executions);
+
+  return results;
 }
 
 /**

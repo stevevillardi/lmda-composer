@@ -334,6 +334,8 @@ export type EditorToSWMessage =
   | { type: 'CREATE_CUSTOM_FUNCTION'; payload: { portalId: string; name: string; code: string; description?: string } }
   | { type: 'UPDATE_CUSTOM_FUNCTION'; payload: { portalId: string; functionId: number; name: string; code: string; description?: string } }
   | { type: 'DELETE_CUSTOM_FUNCTION'; payload: { portalId: string; functionId: number } }
+  | { type: 'EXECUTE_DEBUG_COMMAND'; payload: ExecuteDebugCommandRequest & { executionId?: string } }
+  | { type: 'CANCEL_DEBUG_COMMAND'; payload: { executionId: string } }
   | { type: 'OPEN_EDITOR'; payload?: DeviceContext };
 
 export type SWToEditorMessage =
@@ -351,6 +353,8 @@ export type SWToEditorMessage =
   | { type: 'CUSTOM_FUNCTION_UPDATED'; payload: CustomAppliesToFunction }
   | { type: 'CUSTOM_FUNCTION_DELETED'; payload: { functionId: number } }
   | { type: 'CUSTOM_FUNCTION_ERROR'; payload: { error: string; code?: number } }
+  | { type: 'DEBUG_COMMAND_UPDATE'; payload: DebugCommandProgress }
+  | { type: 'DEBUG_COMMAND_COMPLETE'; payload: DebugCommandComplete }
   | { type: 'ERROR'; payload: { code: string; message: string } };
 
 export type ContentToSWMessage =
@@ -417,6 +421,32 @@ export interface TestAppliesToRequest {
   portalId: string;
   currentAppliesTo: string;
   testFrom: AppliesToTestFrom;
+}
+
+// Debug Commands
+export interface ExecuteDebugCommandRequest {
+  portalId: string;
+  collectorIds: number[];
+  command: string;
+  parameters?: Record<string, string>;
+}
+
+export interface DebugCommandProgress {
+  collectorId: number;
+  attempt: number;
+  maxAttempts: number;
+}
+
+export interface DebugCommandResult {
+  collectorId: number;
+  success: boolean;
+  output?: string;
+  error?: string;
+  duration?: number;
+}
+
+export interface DebugCommandComplete {
+  results: Record<number, DebugCommandResult>;
 }
 
 // Constants

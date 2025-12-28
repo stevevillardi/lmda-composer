@@ -17,6 +17,7 @@ import type {
   FetchDeviceByIdRequest,
   FetchDevicePropertiesRequest,
   TestAppliesToRequest,
+  ExecuteDebugCommandRequest,
 } from '@/shared/types';
 
 // Initialize managers
@@ -292,6 +293,59 @@ async function handleMessage(
             } 
           });
         }
+        break;
+      }
+
+      case 'EXECUTE_DEBUG_COMMAND': {
+        const request = message.payload as ExecuteDebugCommandRequest & { executionId?: string };
+        const executionId = request.executionId || crypto.randomUUID();
+        
+        // Execute debug command asynchronously and send progress updates
+        scriptExecutor.executeDebugCommand(
+          { ...request, executionId },
+          (collectorId, attempt, maxAttempts) => {
+            // Send progress update
+            chrome.runtime.sendMessage({
+              type: 'DEBUG_COMMAND_UPDATE',
+              payload: { collectorId, attempt, maxAttempts },
+              executionId
+            }).catch(() => {
+              // Ignore errors if no listener (editor window might be closed)
+            });
+          },
+          () => {
+            // Individual collector complete - we'll send final complete message when all done
+          }
+        ).then((results) => {
+          // Send final results
+          chrome.runtime.sendMessage({
+            type: 'DEBUG_COMMAND_COMPLETE',
+            payload: { results },
+            executionId
+          }).catch(() => {
+            // Ignore errors if no listener
+          });
+        }).catch((error) => {
+          chrome.runtime.sendMessage({
+            type: 'ERROR',
+            payload: {
+              code: 'DEBUG_COMMAND_ERROR',
+              message: error instanceof Error ? error.message : 'Unknown error executing debug command'
+            },
+            executionId
+          }).catch(() => {
+            // Ignore errors if no listener
+          });
+        });
+        
+        sendResponse({ success: true, executionId });
+        return true;
+      }
+
+      case 'CANCEL_DEBUG_COMMAND': {
+        const { executionId } = message.payload as { executionId: string };
+        const cancelled = scriptExecutor.cancelDebugExecution(executionId);
+        sendResponse({ success: cancelled });
         break;
       }
 

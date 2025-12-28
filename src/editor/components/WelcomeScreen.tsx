@@ -7,6 +7,7 @@ import {
   Clock,
   Loader2,
   Hammer,
+  Terminal,
 } from 'lucide-react';
 import { useEditorStore } from '../stores/editor-store';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -36,7 +37,7 @@ function ActionCard({
       disabled={disabled}
       className={cn(
         "flex flex-col items-center justify-center gap-3 p-5 rounded-lg border transition-all duration-200",
-        "w-[160px] h-[140px]",
+        "w-[180px] h-[140px]",
         disabled
           ? "border-border/50 bg-muted/20 cursor-not-allowed opacity-50"
           : "border-border bg-card hover:bg-accent hover:border-primary/50 hover:shadow-md cursor-pointer"
@@ -122,6 +123,7 @@ export function WelcomeScreen() {
     openFileFromDisk,
     setModuleBrowserOpen,
     setAppliesToTesterOpen,
+    setDebugCommandsDialogOpen,
   } = useEditorStore();
 
   // Load recent files on mount
@@ -133,7 +135,7 @@ export function WelcomeScreen() {
 
   return (
     <div className="flex-1 flex items-center justify-center bg-background overflow-hidden p-6">
-      <div className="max-w-3xl w-full space-y-8">
+      <div className="max-w-6xl w-full space-y-8">
         {/* Header */}
         <div className="text-center space-y-3">
           <div className="flex items-center justify-center gap-3">
@@ -152,35 +154,60 @@ export function WelcomeScreen() {
         </div>
 
         {/* Action Cards */}
-        <div className="flex items-center justify-center gap-3">
-          <ActionCard
-            icon={<FilePlus className="size-6" />}
-            title="New File"
-            description="Create a new script"
-            onClick={createNewFile}
-          />
-          <ActionCard
-            icon={<FolderOpen className="size-6" />}
-            title="Open File"
-            description="Open from disk"
-            onClick={openFileFromDisk}
-          />
-          <ActionCard
-            icon={<CloudDownload className="size-6" />}
-            title="Import from LMX"
-            description="Browse LogicModules"
-            onClick={() => setModuleBrowserOpen(true)}
-            disabled={!selectedPortalId}
-            disabledReason="Connect to a portal first to browse LogicModules"
-          />
-          <ActionCard
-            icon={<Hammer className="size-6" />}
-            title="AppliesTo Toolbox"
-            description="Test expressions"
-            onClick={() => setAppliesToTesterOpen(true)}
-            disabled={!selectedPortalId}
-            disabledReason="Connect to a portal first to test AppliesTo expressions"
-          />
+        <div className="space-y-6 max-w-4xl mx-auto">
+          {/* File Actions */}
+          <div className="space-y-3">
+            <h2 className="text-sm font-medium text-muted-foreground text-center">
+              File Actions
+            </h2>
+            <div className="flex items-center justify-center gap-3 flex-wrap">
+              <ActionCard
+                icon={<FilePlus className="size-6" />}
+                title="New File"
+                description="Create a new script"
+                onClick={createNewFile}
+              />
+              <ActionCard
+                icon={<FolderOpen className="size-6" />}
+                title="Open File"
+                description="Open from disk"
+                onClick={openFileFromDisk}
+              />
+            </div>
+          </div>
+
+          {/* Portal Actions */}
+          <div className="space-y-3">
+            <h2 className="text-sm font-medium text-muted-foreground text-center">
+              Portal Actions
+            </h2>
+            <div className="flex items-center justify-center gap-3 flex-wrap">
+              <ActionCard
+                icon={<CloudDownload className="size-6" />}
+                title="Import from LMX"
+                description="Browse LogicModules"
+                onClick={() => setModuleBrowserOpen(true)}
+                disabled={!selectedPortalId}
+                disabledReason="Connect to a portal first to browse LogicModules"
+              />
+              <ActionCard
+                icon={<Hammer className="size-6" />}
+                title="AppliesTo Toolbox"
+                description="Test expressions"
+                onClick={() => setAppliesToTesterOpen(true)}
+                disabled={!selectedPortalId}
+                disabledReason="Connect to a portal first to test AppliesTo expressions"
+              />
+              <ActionCard
+                icon={<Terminal className="size-6" />}
+                title="Debug Commands"
+                description="Run collector commands"
+                onClick={() => setDebugCommandsDialogOpen(true)}
+                disabled={!selectedPortalId}
+                disabledReason="Connect to a portal first to run debug commands"
+              />
+            </div>
+          </div>
         </div>
 
         {/* Recent Files */}

@@ -4,8 +4,8 @@
  * Orchestrates script execution with CSRF token management and cancellation support.
  */
 
-import type { ExecuteScriptRequest, ExecutionResult } from '@/shared/types';
-import { executeAndPoll, buildGroovyCommand, buildPowerShellCommand } from './debug-api';
+import type { ExecuteScriptRequest, ExecutionResult, ExecuteDebugCommandRequest, DebugCommandResult } from '@/shared/types';
+import { executeAndPoll, buildGroovyCommand, buildPowerShellCommand, buildDebugCommand, executeOnMultipleCollectors } from './debug-api';
 import { hasTokens, substituteTokens, substituteWithEmpty, type SubstitutionResult } from './token-substitutor';
 import { fetchDeviceProperties } from './property-prefetcher';
 
@@ -25,9 +25,16 @@ interface ActiveExecution {
   startTime: number;
 }
 
+interface ActiveDebugExecution {
+  abortController: AbortController;
+  startTime: number;
+  collectorIds: number[];
+}
+
 export class ScriptExecutor {
   private context: ExecutorContext;
   private activeExecutions: Map<string, ActiveExecution> = new Map();
+  private activeDebugExecutions: Map<string, ActiveDebugExecution> = new Map();
   
   constructor(context: ExecutorContext) {
     this.context = context;
@@ -285,6 +292,104 @@ export class ScriptExecutor {
       startTime,
       error: 'Execution was cancelled by user',
     };
+  }
+
+  /**
+   * Execute a debug command on one or more collectors.
+   * Supports parallel execution on multiple collectors.
+   * Progress updates are sent via callback.
+   */
+  async executeDebugCommand(
+    request: ExecuteDebugCommandRequest & { executionId?: string },
+    onProgress?: (collectorId: number, attempt: number, maxAttempts: number) => void,
+    onComplete?: (collectorId: number, result: DebugCommandResult) => void
+  ): Promise<Record<number, DebugCommandResult>> {
+    const executionId = request.executionId || crypto.randomUUID();
+    const abortController = new AbortController();
+    
+    // Register this execution
+    this.activeDebugExecutions.set(executionId, {
+      abortController,
+      startTime: Date.now(),
+      collectorIds: request.collectorIds
+    });
+
+    try {
+      // Get CSRF token (portalId is the hostname)
+      let csrfToken = await this.acquireCsrfToken(request.portalId);
+      if (!csrfToken) {
+        throw new Error('No CSRF token available - please ensure you are logged into the LogicMonitor portal');
+      }
+
+      // Build command string
+      const cmdline = buildDebugCommand(request.command, request.parameters);
+
+      // Execute on multiple collectors (portalId is the hostname)
+      const results = await executeOnMultipleCollectors(
+        request.portalId,
+        request.collectorIds,
+        cmdline,
+        csrfToken,
+        {
+          onCollectorProgress: onProgress,
+          onCollectorComplete: (collectorId, result) => {
+            const debugResult: DebugCommandResult = {
+              collectorId: result.collectorId,
+              success: result.success,
+              output: result.output,
+              error: result.error,
+              duration: result.duration
+            };
+            onComplete?.(collectorId, debugResult);
+          },
+          abortSignal: abortController.signal
+        }
+      );
+
+      // Convert Map to Record for serialization
+      const resultRecord: Record<number, DebugCommandResult> = {};
+      for (const [collectorId, result] of results.entries()) {
+        resultRecord[collectorId] = {
+          collectorId: result.collectorId,
+          success: result.success,
+          output: result.output,
+          error: result.error,
+          duration: result.duration
+        };
+      }
+
+      return resultRecord;
+    } catch (error) {
+      // Return error results for all collectors
+      const errorResults: Record<number, DebugCommandResult> = {};
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      for (const collectorId of request.collectorIds) {
+        errorResults[collectorId] = {
+          collectorId,
+          success: false,
+          error: errorMessage
+        };
+      }
+      
+      return errorResults;
+    } finally {
+      // Clean up
+      this.activeDebugExecutions.delete(executionId);
+    }
+  }
+
+  /**
+   * Cancel a running debug command execution.
+   */
+  cancelDebugExecution(executionId: string): boolean {
+    const execution = this.activeDebugExecutions.get(executionId);
+    if (execution) {
+      execution.abortController.abort();
+      this.activeDebugExecutions.delete(executionId);
+      return true;
+    }
+    return false;
   }
 }
 
