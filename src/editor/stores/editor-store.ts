@@ -1935,10 +1935,15 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           await fileHandleStore.saveHandle(targetTabId, handle, tab.displayName);
           
           // Update originalContent to mark as clean
+          // If this was a module tab being saved, convert it to a file tab
           set({
             tabs: tabs.map(t => 
               t.id === targetTabId 
-                ? { ...t, originalContent: tab.content }
+                ? { 
+                    ...t, 
+                    originalContent: tab.content,
+                    source: t.source?.type === 'module' ? { type: 'file' } : t.source,
+                  }
                 : t
             ),
           });
@@ -1955,7 +1960,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
             set({
               tabs: tabs.map(t => 
                 t.id === targetTabId 
-                  ? { ...t, originalContent: tab.content }
+                  ? { 
+                      ...t, 
+                      originalContent: tab.content,
+                      source: t.source?.type === 'module' ? { type: 'file' } : t.source,
+                    }
                   : t
               ),
             });
@@ -2024,6 +2033,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
                 originalContent: tab.content,
                 hasFileHandle: true,
                 isLocalFile: true,
+                source: { type: 'file' }, // Change from 'module' to 'file' when saved locally
               }
             : t
         ),

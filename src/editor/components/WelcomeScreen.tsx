@@ -166,7 +166,7 @@ export function WelcomeScreen() {
               </h1>
             </div>
             <p className="text-muted-foreground text-lg">
-              Develop and debug LogicMonitor scripts with ease
+              Develop and debug LogicModules with ease
             </p>
           </div>
 

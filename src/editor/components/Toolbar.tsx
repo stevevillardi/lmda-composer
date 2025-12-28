@@ -11,6 +11,7 @@ import {
   StopCircle,
   PanelRightClose,
   PanelRightOpen,
+  Upload,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEditorStore } from '../stores/editor-store';
@@ -72,6 +73,10 @@ export function Toolbar() {
     cancelDialogOpen,
     setCancelDialogOpen,
     cancelExecution,
+    // Module commit
+    canCommitModule,
+    fetchModuleForCommit,
+    setModuleCommitConfirmationOpen,
   } = useEditorStore();
 
   // Get active tab data
@@ -142,6 +147,9 @@ Exit 0
 
   // Check if we can execute
   const canExecute = selectedPortalId && selectedCollectorId && !isExecuting;
+  
+  // Check if we can commit module changes
+  const canCommit = activeTabId && canCommitModule(activeTabId);
 
   return (
     <div className="flex items-center gap-2 px-3 py-2 bg-secondary/30 border-b border-border">
@@ -240,6 +248,44 @@ Exit 0
 
       {/* Action Group */}
       <div className="flex items-center gap-1.5">
+        {/* Commit Button - only shown for module tabs with unsaved changes */}
+        {canCommit && (
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={async () => {
+                    if (!activeTabId) return;
+                    try {
+                      await fetchModuleForCommit(activeTabId);
+                      setModuleCommitConfirmationOpen(true);
+                    } catch (error) {
+                      toast.error('Failed to prepare commit', {
+                        description: error instanceof Error ? error.message : 'Unknown error',
+                      });
+                    }
+                  }}
+                  className={cn(
+                    "gap-1.5",
+                    SIZES.BUTTON_TOOLBAR,
+                    "px-3 font-medium",
+                    "bg-blue-600 hover:bg-blue-500 text-white"
+                  )}
+                  aria-label="Commit changes to module"
+                >
+                  <Upload className={SIZES.ICON_MEDIUM} />
+                  Commit
+                </Button>
+              }
+            />
+            <TooltipContent>
+              Commit changes back to LogicMonitor module
+            </TooltipContent>
+          </Tooltip>
+        )}
+        
         {/* Actions Dropdown */}
         <ActionsDropdown />
 
