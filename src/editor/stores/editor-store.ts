@@ -155,6 +155,7 @@ interface EditorState {
   executeScript: () => Promise<void>;
   refreshPortals: () => Promise<void>;
   refreshCollectors: () => Promise<void>;
+  handlePortalDisconnected: (portalId: string, hostname: string) => void;
   clearOutput: () => void;
   
   // Parsing actions
@@ -803,6 +804,48 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       }
     } catch {
       // Silently handle - collectors will remain empty
+    }
+  },
+
+  handlePortalDisconnected: (portalId: string, hostname: string) => {
+    const { selectedPortalId, portals } = get();
+    
+    // Remove the disconnected portal from the list
+    const updatedPortals = portals.filter(p => p.id !== portalId);
+    
+    // If the disconnected portal was selected, clear the selection
+    if (selectedPortalId === portalId) {
+      set({
+        portals: updatedPortals,
+        selectedPortalId: null,
+        selectedCollectorId: null,
+        collectors: [],
+        devices: [],
+        hostname: '',
+        // Clear module cache since it was for this portal
+        modulesCache: {
+          datasource: [],
+          configsource: [],
+          topologysource: [],
+          propertysource: [],
+          logsource: [],
+          diagnosticsource: [],
+        },
+      });
+      
+      // Show toast notification for the disconnected portal
+      toast.warning(`Portal disconnected: ${hostname}`, {
+        description: 'Open a LogicMonitor tab to reconnect.',
+        duration: 8000,
+      });
+    } else {
+      // Just update the portals list
+      set({ portals: updatedPortals });
+      
+      // Show a less intrusive notification
+      toast.info(`Portal disconnected: ${hostname}`, {
+        duration: 5000,
+      });
     }
   },
 

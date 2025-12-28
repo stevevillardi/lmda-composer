@@ -58,6 +58,7 @@ export function App() {
     tabsNeedingPermission,
     restoreFileHandles,
     requestFilePermissions,
+    handlePortalDisconnected,
   } = useEditorStore();
   
   // Get active tab for auto-save trigger and window title
@@ -161,6 +162,23 @@ export function App() {
   useEffect(() => {
     refreshPortals();
   }, [refreshPortals]);
+
+  // Listen for portal disconnection messages from the service worker
+  useEffect(() => {
+    const handleMessage = (message: { type: string; payload?: { portalId: string; hostname: string } }) => {
+      if (message.type === 'PORTAL_DISCONNECTED' && message.payload) {
+        handlePortalDisconnected(message.payload.portalId, message.payload.hostname);
+      }
+      // Don't return true - we're not using sendResponse
+      return false;
+    };
+
+    chrome.runtime.onMessage.addListener(handleMessage);
+    
+    return () => {
+      chrome.runtime.onMessage.removeListener(handleMessage);
+    };
+  }, [handlePortalDisconnected]);
 
   // Apply URL parameters after portals are loaded
   useEffect(() => {

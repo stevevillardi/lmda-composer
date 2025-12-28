@@ -76,9 +76,11 @@ export class PortalManager {
   /**
    * Remove a closed tab from all portals.
    * Called when chrome.tabs.onRemoved fires.
+   * Returns information about any portal that was deleted (lost all tabs).
    */
-  handleTabRemoved(tabId: number): void {
+  handleTabRemoved(tabId: number): { deletedPortal: { id: string; hostname: string } | null } {
     let stateChanged = false;
+    let deletedPortal: { id: string; hostname: string } | null = null;
     
     for (const portal of this.portals.values()) {
       const index = portal.tabIds.indexOf(tabId);
@@ -87,6 +89,8 @@ export class PortalManager {
         stateChanged = true;
         
         if (portal.tabIds.length === 0) {
+          // Capture portal info before deleting
+          deletedPortal = { id: portal.id, hostname: portal.hostname };
           this.portals.delete(portal.id);
         }
       }
@@ -95,6 +99,8 @@ export class PortalManager {
     if (stateChanged) {
       this.persistState();
     }
+    
+    return { deletedPortal };
   }
 
   /**

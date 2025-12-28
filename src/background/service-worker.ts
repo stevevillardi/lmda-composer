@@ -412,5 +412,18 @@ chrome.tabs.onUpdated.addListener(async (_tabId, changeInfo, tab) => {
 
 // Handle tab removal - clean up stale tab IDs from portals
 chrome.tabs.onRemoved.addListener((tabId) => {
-  portalManager.handleTabRemoved(tabId);
+  const { deletedPortal } = portalManager.handleTabRemoved(tabId);
+  
+  // If a portal was deleted (lost all tabs), notify the editor
+  if (deletedPortal) {
+    chrome.runtime.sendMessage({
+      type: 'PORTAL_DISCONNECTED',
+      payload: {
+        portalId: deletedPortal.id,
+        hostname: deletedPortal.hostname,
+      },
+    }).catch(() => {
+      // Ignore errors if no listener (editor window might be closed)
+    });
+  }
 });

@@ -355,6 +355,7 @@ export type SWToEditorMessage =
   | { type: 'CUSTOM_FUNCTION_ERROR'; payload: { error: string; code?: number } }
   | { type: 'DEBUG_COMMAND_UPDATE'; payload: DebugCommandProgress }
   | { type: 'DEBUG_COMMAND_COMPLETE'; payload: DebugCommandComplete }
+  | { type: 'PORTAL_DISCONNECTED'; payload: { portalId: string; hostname: string } }
   | { type: 'ERROR'; payload: { code: string; message: string } };
 
 export type ContentToSWMessage =
