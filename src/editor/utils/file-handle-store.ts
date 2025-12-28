@@ -256,9 +256,15 @@ export interface RecentFileInfo {
   lastAccessed: number;
 }
 
+// Maximum number of recent files to keep
+const MAX_RECENT_FILES = 20;
+// Maximum age for recent files (30 days in milliseconds)
+const MAX_RECENT_FILE_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+
 /**
  * Get recent file handles sorted by lastAccessed (most recent first).
  * Returns metadata only; use getHandle() to retrieve the actual handle.
+ * Also cleans up old handles that exceed limits.
  */
 export async function getRecentHandles(limit: number = 10): Promise<RecentFileInfo[]> {
   const db = await openDatabase();
@@ -271,23 +277,67 @@ export async function getRecentHandles(limit: number = 10): Promise<RecentFileIn
     // Open cursor in reverse order (newest first)
     const request = index.openCursor(null, 'prev');
     const results: RecentFileInfo[] = [];
+    const allRecords: RecentFileInfo[] = [];
     
     request.onsuccess = () => {
       const cursor = request.result;
-      if (cursor && results.length < limit) {
+      if (cursor) {
         const record = cursor.value as StoredHandle;
-        results.push({
+        allRecords.push({
           tabId: record.tabId,
           fileName: record.fileName,
           lastAccessed: record.lastAccessed,
         });
+        
+        // Only add to results if within limit
+        if (results.length < limit) {
+          results.push({
+            tabId: record.tabId,
+            fileName: record.fileName,
+            lastAccessed: record.lastAccessed,
+          });
+        }
         cursor.continue();
       } else {
+        // Done iterating - trigger cleanup of old records
+        cleanupOldHandles(allRecords).catch(console.error);
         resolve(results);
       }
     };
     
     request.onerror = () => reject(request.error);
   });
+}
+
+/**
+ * Clean up old file handles that exceed our limits.
+ * Removes handles that are:
+ * - Beyond the MAX_RECENT_FILES limit
+ * - Older than MAX_RECENT_FILE_AGE_MS
+ */
+async function cleanupOldHandles(allRecords: RecentFileInfo[]): Promise<void> {
+  const now = Date.now();
+  const toDelete: string[] = [];
+  
+  allRecords.forEach((record, index) => {
+    // Delete if beyond max count
+    if (index >= MAX_RECENT_FILES) {
+      toDelete.push(record.tabId);
+      return;
+    }
+    
+    // Delete if too old
+    const age = now - record.lastAccessed;
+    if (age > MAX_RECENT_FILE_AGE_MS) {
+      toDelete.push(record.tabId);
+    }
+  });
+  
+  if (toDelete.length > 0) {
+    console.log(`[cleanupOldHandles] Removing ${toDelete.length} old handles`);
+    for (const tabId of toDelete) {
+      await deleteHandle(tabId);
+    }
+  }
 }
 

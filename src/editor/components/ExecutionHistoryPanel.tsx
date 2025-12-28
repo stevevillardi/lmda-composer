@@ -41,9 +41,9 @@ function formatDuration(ms: number): string {
 
 function getModeLabel(mode: string): string {
   switch (mode) {
-    case 'ad': return 'AD';
+    case 'ad': return 'Active Discovery';
     case 'collection': return 'Collection';
-    case 'batchcollection': return 'Batch';
+    case 'batchcollection': return 'Batch Collection';
     case 'freeform': return 'Freeform';
     default: return mode;
   }

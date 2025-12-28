@@ -9,7 +9,10 @@ import { LogicModuleBrowser } from './components/LogicModuleBrowser';
 import { CommandPalette } from './components/CommandPalette';
 import { SettingsDialog } from './components/SettingsDialog';
 import { RightSidebar } from './components/RightSidebar';
+import { BraveFileSystemWarning } from './components/BraveFileSystemWarning';
 import { useEditorStore } from './stores/editor-store';
+import { isFileSystemAccessSupported } from './utils/file-handle-store';
+import { isBraveBrowser } from './utils/browser-detection';
 import { Button } from '@/components/ui/button';
 import {
   ResizablePanelGroup,
@@ -70,6 +73,9 @@ export function App() {
   const [pendingDraft, setPendingDraft] = useState<DraftScript | DraftTabs | null>(null);
   const [showDraftDialog, setShowDraftDialog] = useState(false);
   
+  // Brave File System Access API warning state
+  const [showBraveWarning, setShowBraveWarning] = useState(false);
+  
   // Debounce timer for auto-save
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -96,6 +102,38 @@ export function App() {
     loadHistory();
     loadUserSnippets();
   }, [loadPreferences, loadHistory, loadUserSnippets]);
+
+  // Check for File System Access API availability and Brave browser
+  useEffect(() => {
+    // Check if user has already dismissed this warning
+    const dismissed = localStorage.getItem('lm-ide-brave-fs-api-warning-dismissed');
+    if (dismissed === 'true') {
+      return;
+    }
+
+    // Check if File System Access API is not supported
+    const fsApiSupported = isFileSystemAccessSupported();
+    
+    if (!fsApiSupported) {
+      // Check if browser is Brave (async)
+      isBraveBrowser().then((isBrave) => {
+        if (isBrave) {
+          // Show warning after a short delay to ensure preferences are loaded
+          setTimeout(() => {
+            setShowBraveWarning(true);
+          }, 500);
+        }
+      }).catch((error) => {
+        console.error('Error checking if browser is Brave:', error);
+      });
+    }
+  }, []);
+
+  // Handle Brave warning dismissal
+  const handleBraveWarningDismiss = useCallback(() => {
+    localStorage.setItem('lm-ide-brave-fs-api-warning-dismissed', 'true');
+    setShowBraveWarning(false);
+  }, []);
 
   // Check for saved draft on mount
   useEffect(() => {
@@ -335,6 +373,11 @@ export function App() {
       <LogicModuleBrowser />
       <CommandPalette />
       <SettingsDialog />
+      <BraveFileSystemWarning
+        open={showBraveWarning}
+        onOpenChange={setShowBraveWarning}
+        onDismiss={handleBraveWarningDismiss}
+      />
 
       {/* Draft Restore Dialog */}
       <AlertDialog open={showDraftDialog} onOpenChange={setShowDraftDialog}>

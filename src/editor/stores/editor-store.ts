@@ -1497,10 +1497,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const tabIndex = tabs.findIndex(t => t.id === tabId);
     const newTabs = tabs.filter(t => t.id !== tabId);
     
-    // Clean up file handle from IndexedDB
-    if (tab.hasFileHandle) {
-      fileHandleStore.deleteHandle(tabId).catch(console.error);
-    }
+    // NOTE: We intentionally do NOT delete file handles when closing tabs.
+    // This allows them to persist in "Recent Files" for the WelcomeScreen.
+    // Handles are only deleted when opening a recent file that no longer exists.
     
     // Remove from permission-needed list if present
     const newTabsNeedingPermission = tabsNeedingPermission.filter(t => t.tabId !== tabId);

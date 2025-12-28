@@ -37,10 +37,10 @@ function ModeBadge({ mode }: { mode: EditorTab['mode'] }) {
   };
   
   const modeLabels = {
-    ad: 'AD',
-    collection: 'Collect',
-    batchcollection: 'Batch',
-    freeform: 'Free',
+    ad: 'Active Discovery',
+    collection: 'Collection',
+    batchcollection: 'Batch Collection',
+    freeform: 'Freeform',
   };
   
   return (

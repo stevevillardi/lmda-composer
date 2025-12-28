@@ -73,22 +73,49 @@ export function LogicModuleBrowser() {
     confirmModuleLoad,
     cancelModuleLoad,
     selectedPortalId,
+    fetchModules,
   } = useEditorStore();
+
+  const [isRefreshingModules, setIsRefreshingModules] = useState(false);
 
   // Get modules for current type
   const modules = modulesCache[selectedModuleType];
 
-  // Filter modules by search query
+  // Filter and sort modules by search query
   const filteredModules = useMemo(() => {
-    if (!moduleSearchQuery.trim()) return modules;
-    const query = moduleSearchQuery.toLowerCase();
-    return modules.filter(
-      (m) =>
-        m.name.toLowerCase().includes(query) ||
-        m.displayName.toLowerCase().includes(query) ||
-        m.appliesTo?.toLowerCase().includes(query)
-    );
+    let filtered = modules;
+    
+    // Filter by search query
+    if (moduleSearchQuery.trim()) {
+      const query = moduleSearchQuery.toLowerCase();
+      filtered = modules.filter(
+        (m) =>
+          m.name.toLowerCase().includes(query) ||
+          m.displayName.toLowerCase().includes(query) ||
+          m.appliesTo?.toLowerCase().includes(query)
+      );
+    }
+    
+    // Sort alphabetically by displayName or name (A-Z)
+    return filtered.sort((a, b) => {
+      const nameA = (a.displayName || a.name).toLowerCase();
+      const nameB = (b.displayName || b.name).toLowerCase();
+      return nameA.localeCompare(nameB);
+    });
   }, [modules, moduleSearchQuery]);
+
+  // Handle module refresh with loading state
+  const handleRefreshModules = async () => {
+    setIsRefreshingModules(true);
+    try {
+      await fetchModules(selectedModuleType);
+    } finally {
+      // Add a small delay to ensure the animation is visible
+      setTimeout(() => {
+        setIsRefreshingModules(false);
+      }, 300);
+    }
+  };
 
   // Handle module type change
   const handleTypeChange = (value: string | string[]) => {
@@ -141,15 +168,43 @@ export function LogicModuleBrowser() {
             <div className="w-80 flex-shrink-0 border-r border-border flex flex-col">
               {/* Search */}
               <div className="p-3 border-b border-border">
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                  <Input
-                    type="text"
-                    placeholder="Search modules..."
-                    value={moduleSearchQuery}
-                    onChange={(e) => setModuleSearchQuery(e.target.value)}
-                    className="pl-8 h-8"
-                  />
+                <div className="flex items-center gap-2">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                    <Input
+                      type="text"
+                      placeholder="Search modules..."
+                      value={moduleSearchQuery}
+                      onChange={(e) => setModuleSearchQuery(e.target.value)}
+                      className="pl-8 h-8"
+                    />
+                  </div>
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          onClick={handleRefreshModules}
+                          disabled={isRefreshingModules || isFetchingModules}
+                          className={cn(
+                            "size-8 transition-all duration-200",
+                            (isRefreshingModules || isFetchingModules) && "opacity-70"
+                          )}
+                        >
+                          <RefreshCw 
+                            className={cn(
+                              "size-3.5 transition-transform duration-200",
+                              (isRefreshingModules || isFetchingModules) && "animate-spin"
+                            )} 
+                          />
+                        </Button>
+                      }
+                    />
+                    <TooltipContent>
+                      {(isRefreshingModules || isFetchingModules) ? 'Refreshing modules...' : 'Refresh modules'}
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
               </div>
 
@@ -176,7 +231,7 @@ export function LogicModuleBrowser() {
                     </EmptyHeader>
                   </Empty>
                 ) : (
-                  <div className="divide-y divide-border">
+                  <div className="p-2 space-y-1.5">
                     {filteredModules.map((module) => (
                       <ModuleListItem
                         key={module.id}
@@ -253,22 +308,24 @@ function ModuleListItem({ module, isSelected, onClick }: ModuleListItemProps) {
     <button
       onClick={onClick}
       className={cn(
-        'w-full text-left px-3 py-2.5 hover:bg-accent/50 transition-colors',
-        isSelected && 'bg-accent'
+        'w-full text-left px-4 py-3 rounded-md transition-all duration-200',
+        'border border-transparent',
+        'hover:bg-accent/50 hover:border-border',
+        isSelected && 'bg-accent border-border shadow-sm'
       )}
     >
-      <div className="font-medium text-sm truncate">{module.displayName || module.name}</div>
-      <div className="flex items-center gap-2 mt-0.5 text-xs text-muted-foreground">
-        <span className="font-mono">{module.collectMethod}</span>
+      <div className="font-semibold text-sm truncate mb-1">{module.displayName || module.name}</div>
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <span className="font-mono font-medium">{module.collectMethod}</span>
         {module.hasAutoDiscovery && (
           <>
-            <span>•</span>
-            <span className="text-green-500">AD</span>
+            <span className="text-muted-foreground/50">•</span>
+            <span className="text-green-500 font-medium">Active Discovery Enabled</span>
           </>
         )}
       </div>
       {module.appliesTo && (
-        <div className="mt-1 text-xs text-muted-foreground/70 truncate font-mono">
+        <div className="mt-1.5 text-xs text-muted-foreground/70 truncate font-mono">
           {module.appliesTo}
         </div>
       )}

@@ -284,14 +284,14 @@ const selector = '[data-testid="LM_navigationMoreOptions24PxIcon"]';
 - [x] Save edited code to file (.groovy/.ps1)
 - [x] Searchable device/hostname dropdown (populated from collector)
 
-### Phase 6: Local File System Support 🚧 IN PROGRESS
-- [ ] Open files from disk using File System Access API
-- [ ] Save files directly to disk (Ctrl+S)
-- [ ] Save As functionality (Ctrl+Shift+S)
-- [ ] Persist file handles in IndexedDB across sessions
-- [ ] VS Code-like unsaved changes indicator (dot in tab)
-- [ ] Permission re-request flow after browser restart
-- [ ] Dirty state tracking per tab
+### Phase 6: Local File System Support ✅ COMPLETE
+- [x] Open files from disk using File System Access API
+- [x] Save files directly to disk (Ctrl+S)
+- [x] Save As functionality (Ctrl+Shift+S)
+- [x] Persist file handles in IndexedDB across sessions
+- [x] VS Code-like unsaved changes indicator (dot in tab)
+- [x] Permission re-request flow after browser restart
+- [x] Dirty state tracking per tab
 
 ---
 
