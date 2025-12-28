@@ -12,8 +12,7 @@ import {
   Copy,
   Check,
   Save,
-  Edit2,
-  MoreVertical,
+  Download,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEditorStore } from '../stores/editor-store';
@@ -29,17 +28,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/components/ui/empty';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Separator } from '@/components/ui/separator';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -53,6 +46,7 @@ import {
 import { cn } from '@/lib/utils';
 import { APPLIES_TO_OPERATORS, getOperatorsByCategory, type AppliesToOperator } from '../data/applies-to-operators';
 import { CreateFunctionDialog } from './AppliesToTester/CreateFunctionDialog';
+import { UpdateFunctionConfirmationDialog } from './AppliesToTester/UpdateFunctionConfirmationDialog';
 import type { AppliesToFunction, CustomAppliesToFunction } from '@/shared/types';
 
 export function AppliesToTester() {
@@ -86,17 +80,16 @@ export function AppliesToTester() {
   const [copiedId, setCopiedId] = useState<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
-  const [editingFunction, setEditingFunction] = useState<CustomAppliesToFunction | null>(null);
+  const [loadedFunction, setLoadedFunction] = useState<CustomAppliesToFunction | null>(null);
+  const [updateConfirmationOpen, setUpdateConfirmationOpen] = useState(false);
   const [deletingFunctionId, setDeletingFunctionId] = useState<number | null>(null);
+  const [showOnlyCustom, setShowOnlyCustom] = useState(false);
 
   // Autocomplete state
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [suggestionIndex, setSuggestionIndex] = useState(0);
   const [cursorWordStart, setCursorWordStart] = useState(0);
   const [currentWord, setCurrentWord] = useState('');
-  const [inlineSuggestion, setInlineSuggestion] = useState<string | null>(null);
-  const [cursorPosition, setCursorPosition] = useState({ top: 0, left: 0 });
-  const textareaContainerRef = useRef<HTMLDivElement>(null);
 
   // Fetch custom functions when dialog opens
   useEffect(() => {
@@ -119,15 +112,26 @@ export function AppliesToTester() {
     }));
   }, [allFunctions]);
 
-  // Filter functions based on search
+  // Filter functions based on search and custom/builtin toggle
   const filteredFunctions = useMemo(() => {
-    if (!appliesToFunctionSearch.trim()) return typedAllFunctions;
-    const query = appliesToFunctionSearch.toLowerCase();
-    return typedAllFunctions.filter(
-      (f: any) => f.name.toLowerCase().includes(query) || 
-           f.description.toLowerCase().includes(query)
-    );
-  }, [appliesToFunctionSearch, typedAllFunctions]);
+    let functions = typedAllFunctions;
+    
+    // Filter by custom/builtin toggle
+    if (showOnlyCustom) {
+      functions = functions.filter((f: any) => f.source === 'custom');
+    }
+    
+    // Filter by search query
+    if (appliesToFunctionSearch.trim()) {
+      const query = appliesToFunctionSearch.toLowerCase();
+      functions = functions.filter(
+        (f: any) => f.name.toLowerCase().includes(query) || 
+             f.description.toLowerCase().includes(query)
+      );
+    }
+    
+    return functions;
+  }, [appliesToFunctionSearch, typedAllFunctions, showOnlyCustom]);
 
   // Enhanced word detection with context awareness
   interface WordContext {
@@ -266,9 +270,11 @@ export function AppliesToTester() {
       .slice(0, 5);
     results.push(...functionMatches);
     
-    // Add operator matches
+    // Add operator matches (exclude single-character operators like (, ), !, >, <)
     const operatorMatches = APPLIES_TO_OPERATORS
       .filter(op => {
+        // Skip single-character operators - they're complete on their own
+        if (op.symbol.length === 1) return false;
         const symbol = op.symbol.toLowerCase();
         return symbol.startsWith(word) || 
                op.alternatives?.some(alt => alt.toLowerCase().startsWith(word));
@@ -279,51 +285,6 @@ export function AppliesToTester() {
     return results;
   }, [currentWord, typedAllFunctions]);
 
-
-  // Calculate cursor position for inline autocomplete
-  const updateCursorPosition = useCallback((textarea: HTMLTextAreaElement) => {
-    if (!textareaContainerRef.current || !textarea) return;
-    
-    const containerRect = textareaContainerRef.current.getBoundingClientRect();
-    const textareaRect = textarea.getBoundingClientRect();
-    
-    // Get computed styles
-    const computedStyle = window.getComputedStyle(textarea);
-    const font = computedStyle.font;
-    const paddingLeft = parseFloat(computedStyle.paddingLeft) || 0;
-    const paddingTop = parseFloat(computedStyle.paddingTop) || 0;
-    const lineHeight = parseFloat(computedStyle.lineHeight) || parseFloat(computedStyle.fontSize) * 1.5;
-    
-    // Create a temporary span to measure text
-    const span = document.createElement('span');
-    span.style.visibility = 'hidden';
-    span.style.position = 'absolute';
-    span.style.whiteSpace = 'pre-wrap';
-    span.style.font = font;
-    span.style.padding = '0';
-    span.style.border = '0';
-    span.style.width = `${textarea.offsetWidth - paddingLeft * 2}px`;
-    span.style.wordWrap = 'break-word';
-    
-    const textBeforeCursor = textarea.value.substring(0, textarea.selectionStart);
-    
-    // Handle newlines - count them to calculate vertical position
-    const lines = textBeforeCursor.split('\n');
-    const currentLine = lines[lines.length - 1];
-    const lineNumber = lines.length - 1;
-    
-    // Measure the current line width
-    span.textContent = currentLine;
-    document.body.appendChild(span);
-    const spanWidth = span.offsetWidth;
-    document.body.removeChild(span);
-    
-    // Calculate position relative to container (not textarea)
-    const left = (textareaRect.left - containerRect.left) + paddingLeft + spanWidth;
-    const top = (textareaRect.top - containerRect.top) + paddingTop + (lineNumber * lineHeight);
-    
-    setCursorPosition({ left, top });
-  }, []);
 
   // Handle textarea change
   const handleExpressionChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -348,9 +309,11 @@ export function AppliesToTester() {
         .slice(0, 5);
       currentSuggestions.push(...functionMatches);
       
-      // Add operator matches
+      // Add operator matches (exclude single-character operators like (, ), !, >, <)
       const operatorMatches = APPLIES_TO_OPERATORS
         .filter(op => {
+          // Skip single-character operators - they're complete on their own
+          if (op.symbol.length === 1) return false;
           const symbol = op.symbol.toLowerCase();
           return symbol.startsWith(word) || 
                  op.alternatives?.some(alt => alt.toLowerCase().startsWith(word));
@@ -361,32 +324,6 @@ export function AppliesToTester() {
     
     setShowSuggestions(currentSuggestions.length > 0);
     setSuggestionIndex(0);
-    
-    // Set inline suggestion (first match) - use same logic as suggestions memo
-    if (wordContext.word.length >= 1) {
-      const word = wordContext.word.toLowerCase();
-      // Use the same matching logic as suggestions memo
-      const functionMatch = typedAllFunctions.find((f: any) => f.name.toLowerCase().startsWith(word));
-      const operatorMatch = APPLIES_TO_OPERATORS.find(op => 
-        op.symbol.toLowerCase().startsWith(word) ||
-        op.alternatives?.some(alt => alt.toLowerCase().startsWith(word))
-      );
-      
-      const match = functionMatch || operatorMatch;
-      if (match) {
-        if ('name' in match) {
-          const remaining = match.name.slice(wordContext.word.length);
-          setInlineSuggestion(remaining);
-        } else {
-          const remaining = match.symbol.slice(wordContext.word.length);
-          setInlineSuggestion(remaining);
-        }
-      } else {
-        setInlineSuggestion(null);
-      }
-    } else {
-      setInlineSuggestion(null);
-    }
   };
 
   // Handle selecting a suggestion (function or operator)
@@ -399,58 +336,78 @@ export function AppliesToTester() {
     
     // Build the insertion text
     let insertText: string;
+    let selectionStart: number | null = null;
+    let selectionEnd: number | null = null;
+    
     if ('name' in item) {
       // Function
       const func = item as AppliesToFunction;
-      insertText = func.syntax.includes('()') ? func.syntax : func.name;
+      // Always use the full syntax if available
+      insertText = func.syntax || func.name;
+      
+      // Check if function has parameters
+      const hasNoParams = func.parameters === 'None' || !func.parameters || func.parameters.trim() === '';
+      
+      if (!hasNoParams && insertText.includes('(')) {
+        // Find the first placeholder (e.g., <array>, <property value>, "<property name>")
+        // Look for patterns like <...> or "<...>"
+        const placeholderPattern = /<[^>]+>|"[^"]*<[^>]+>[^"]*"/;
+        const match = insertText.match(placeholderPattern);
+        
+        if (match && match.index !== undefined) {
+          // Select the placeholder text
+          selectionStart = cursorWordStart + match.index;
+          selectionEnd = cursorWordStart + match.index + match[0].length;
+        } else {
+          // If no placeholder found, place cursor after opening parenthesis
+          const parenPos = insertText.indexOf('(');
+          selectionStart = cursorWordStart + parenPos + 1;
+          selectionEnd = selectionStart;
+        }
+      } else if (hasNoParams) {
+        // Functions with no parameters: place cursor after closing parenthesis
+        selectionStart = cursorWordStart + insertText.length;
+        selectionEnd = selectionStart;
+      } else {
+        // Fallback: place cursor at end
+        selectionStart = cursorWordStart + insertText.length;
+        selectionEnd = selectionStart;
+      }
     } else {
       // Operator
       const op = item as AppliesToOperator;
       insertText = op.symbol;
+      selectionStart = cursorWordStart + insertText.length;
+      selectionEnd = selectionStart;
     }
     
     // Replace the current word with the selected item
     const newText = text.slice(0, cursorWordStart) + insertText + text.slice(cursorPos);
     setAppliesToExpression(newText);
     
-    // Move cursor to appropriate position
-    let newCursorPos: number;
-    if ('name' in item) {
-      const parenPos = insertText.indexOf('(');
-      newCursorPos = cursorWordStart + (parenPos > -1 ? parenPos + 1 : insertText.length);
-    } else {
-      newCursorPos = cursorWordStart + insertText.length;
-    }
-    
     setShowSuggestions(false);
     setCurrentWord('');
-    setInlineSuggestion(null);
     
-    // Focus and set cursor position
+    // Focus and set cursor/selection position
     setTimeout(() => {
       textarea.focus();
-      textarea.setSelectionRange(newCursorPos, newCursorPos);
-      updateCursorPosition(textarea);
+      if (selectionStart !== null && selectionEnd !== null) {
+        textarea.setSelectionRange(selectionStart, selectionEnd);
+      }
     }, 0);
-  }, [appliesToExpression, cursorWordStart, setAppliesToExpression, updateCursorPosition]);
+  }, [appliesToExpression, cursorWordStart, setAppliesToExpression]);
 
   // Handle keyboard navigation in suggestions
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-    // Handle Tab for inline autocomplete
-    if (e.key === 'Tab' && inlineSuggestion && !showSuggestions) {
-      e.preventDefault();
-      const textarea = textareaRef.current;
-      if (textarea) {
-        const cursorPos = textarea.selectionStart;
-        const newText = appliesToExpression.slice(0, cursorPos) + inlineSuggestion + appliesToExpression.slice(cursorPos);
-        setAppliesToExpression(newText);
-        setInlineSuggestion(null);
-        setTimeout(() => {
-          textarea.focus();
-          textarea.setSelectionRange(cursorPos + inlineSuggestion.length, cursorPos + inlineSuggestion.length);
-          updateCursorPosition(textarea);
-        }, 0);
+    // Handle Escape - close suggestions but NOT the modal
+    if (e.key === 'Escape') {
+      if (showSuggestions) {
+        e.preventDefault();
+        e.stopPropagation(); // Prevent dialog from closing
+        setShowSuggestions(false);
+        return;
       }
+      // If no suggestions, let Escape work normally (close modal)
       return;
     }
 
@@ -460,8 +417,8 @@ export function AppliesToTester() {
         e.preventDefault();
         testAppliesTo();
       }
-      // Allow regular Tab to work normally if no inline suggestion
-      if (e.key === 'Tab' && !inlineSuggestion) {
+      // Allow regular Tab to work normally
+      if (e.key === 'Tab') {
         return; // Let browser handle default Tab behavior
       }
       return;
@@ -484,33 +441,11 @@ export function AppliesToTester() {
     }
   };
 
-  // Update cursor position on mount and when expression changes
-  useEffect(() => {
-    const textarea = textareaRef.current;
-    if (textarea) {
-      // Use requestAnimationFrame to ensure DOM has updated
-      requestAnimationFrame(() => {
-        updateCursorPosition(textarea);
-      });
-    }
-  }, [appliesToExpression, updateCursorPosition]);
-
-  // Update cursor position when inline suggestion changes
-  useEffect(() => {
-    const textarea = textareaRef.current;
-    if (textarea && inlineSuggestion) {
-      requestAnimationFrame(() => {
-        updateCursorPosition(textarea);
-      });
-    }
-  }, [inlineSuggestion, updateCursorPosition]);
-
   // Close suggestions when clicking outside
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       if (textareaRef.current && !textareaRef.current.contains(e.target as Node)) {
         setShowSuggestions(false);
-        setInlineSuggestion(null);
       }
     };
     document.addEventListener('click', handleClick);
@@ -524,10 +459,24 @@ export function AppliesToTester() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  // Handle save as function
+  // Handle load function into editor
+  const handleLoadFunction = (func: CustomAppliesToFunction) => {
+    setAppliesToExpression(func.code);
+    setLoadedFunction(func);
+    clearAppliesToResults();
+    toast.success(`Function "${func.name}" loaded into editor`);
+  };
+
+  // Handle save as function (create new)
   const handleSaveAsFunction = () => {
-    setEditingFunction(null);
+    setLoadedFunction(null);
     setCreateDialogOpen(true);
+  };
+
+  // Handle update function button click (opens confirmation dialog)
+  const handleUpdateFunctionClick = () => {
+    if (!loadedFunction) return;
+    setUpdateConfirmationOpen(true);
   };
 
   // Handle create function
@@ -535,25 +484,22 @@ export function AppliesToTester() {
     try {
       await createCustomFunction(name, code, description);
       toast.success(`Custom function "${name}" created successfully!`);
+      setLoadedFunction(null);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to create function');
       throw error;
     }
   };
 
-  // Handle edit function
-  const handleEditFunction = (func: CustomAppliesToFunction) => {
-    setEditingFunction(func);
-    setCreateDialogOpen(true);
-  };
-
-  // Handle update function
+  // Handle update function (from confirmation dialog)
   const handleUpdateFunction = async (name: string, code: string, description?: string) => {
-    if (!editingFunction) return;
+    if (!loadedFunction) return;
     try {
-      await updateCustomFunction(editingFunction.id, name, code, description);
+      await updateCustomFunction(loadedFunction.id, name, code, description);
       toast.success(`Custom function "${name}" updated successfully!`);
-      setEditingFunction(null);
+      setLoadedFunction(null);
+      setUpdateConfirmationOpen(false);
+      fetchCustomFunctions(); // Refresh list
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to update function');
       throw error;
@@ -614,15 +560,29 @@ export function AppliesToTester() {
     setTimeout(() => {
       textarea.focus();
       textarea.setSelectionRange(newCursorPos, newCursorPos);
-      updateCursorPosition(textarea);
     }, 0);
-  }, [appliesToExpression, setAppliesToExpression, updateCursorPosition]);
+  }, [appliesToExpression, setAppliesToExpression]);
 
   return (
-    <Dialog open={appliesToTesterOpen} onOpenChange={setAppliesToTesterOpen}>
-      <DialogContent className="!w-[90vw] !max-w-[90vw] h-[90vh] flex flex-col gap-0 p-0" showCloseButton>
+    <Dialog 
+      open={appliesToTesterOpen} 
+      onOpenChange={(open) => {
+        // Don't close if suggestions are visible - let Escape handle that first
+        if (!open && showSuggestions) {
+          // Close suggestions first, but don't close the dialog
+          setShowSuggestions(false);
+          return;
+        }
+        if (!open) {
+          // Clear loaded function when dialog closes
+          setLoadedFunction(null);
+        }
+        setAppliesToTesterOpen(open);
+      }}
+    >
+      <DialogContent className="w-[90vw]! max-w-[90vw]! h-[90vh] flex flex-col gap-0 p-0" showCloseButton>
         {/* Header */}
-        <DialogHeader className="px-6 pt-6 pb-4 flex-shrink-0">
+        <DialogHeader className="px-6 pt-6 pb-4 shrink-0">
           <DialogTitle>AppliesTo Toolbox</DialogTitle>
           <DialogDescription>
             Test AppliesTo expressions against resources in your portal
@@ -732,13 +692,8 @@ export function AppliesToTester() {
               <div className="flex-1 flex flex-col gap-2 min-h-0">
                 <Label htmlFor="expression" className="text-sm font-medium">
                   Expression
-                  {inlineSuggestion && (
-                    <span className="ml-2 text-xs text-muted-foreground font-normal">
-                      (Press <kbd className="px-1 py-0.5 rounded bg-muted border text-[10px]">Tab</kbd> to complete)
-                    </span>
-                  )}
                 </Label>
-                <div ref={textareaContainerRef} className="relative flex-1 min-h-0">
+                <div className="relative flex-1 min-h-0">
                   <Textarea
                     ref={textareaRef}
                     id="expression"
@@ -747,89 +702,21 @@ export function AppliesToTester() {
                     onKeyDown={handleKeyDown}
                     onSelect={(e) => {
                       const textarea = e.target as HTMLTextAreaElement;
-                      updateCursorPosition(textarea);
                       const cursorPos = textarea.selectionStart;
                       const wordContext = extractWordAtCursor(appliesToExpression, cursorPos);
                       setCurrentWord(wordContext.word);
                       setCursorWordStart(wordContext.start);
-                      
-                      // Update inline suggestion
-                      if (wordContext.word.length >= 1) {
-                        const word = wordContext.word.toLowerCase();
-                        const functionMatch = typedAllFunctions.find((f: any) => f.name.toLowerCase().startsWith(word));
-                        const operatorMatch = APPLIES_TO_OPERATORS.find(op => 
-                          op.symbol.toLowerCase().startsWith(word) ||
-                          op.alternatives?.some(alt => alt.toLowerCase().startsWith(word))
-                        );
-                        
-                        const match = functionMatch || operatorMatch;
-                        if (match) {
-                          if ('name' in match) {
-                            const remaining = match.name.slice(wordContext.word.length);
-                            setInlineSuggestion(remaining);
-                          } else {
-                            const remaining = match.symbol.slice(wordContext.word.length);
-                            setInlineSuggestion(remaining);
-                          }
-                        } else {
-                          setInlineSuggestion(null);
-                        }
-                      } else {
-                        setInlineSuggestion(null);
-                      }
                     }}
                     onMouseUp={(e) => {
                       const textarea = e.target as HTMLTextAreaElement;
-                      updateCursorPosition(textarea);
                       const cursorPos = textarea.selectionStart;
                       const wordContext = extractWordAtCursor(appliesToExpression, cursorPos);
                       setCurrentWord(wordContext.word);
                       setCursorWordStart(wordContext.start);
-                      
-                      // Update inline suggestion
-                      if (wordContext.word.length >= 1) {
-                        const word = wordContext.word.toLowerCase();
-                        const functionMatch = typedAllFunctions.find((f: any) => f.name.toLowerCase().startsWith(word));
-                        const operatorMatch = APPLIES_TO_OPERATORS.find(op => 
-                          op.symbol.toLowerCase().startsWith(word) ||
-                          op.alternatives?.some(alt => alt.toLowerCase().startsWith(word))
-                        );
-                        
-                        const match = functionMatch || operatorMatch;
-                        if (match) {
-                          if ('name' in match) {
-                            const remaining = match.name.slice(wordContext.word.length);
-                            setInlineSuggestion(remaining);
-                          } else {
-                            const remaining = match.symbol.slice(wordContext.word.length);
-                            setInlineSuggestion(remaining);
-                          }
-                        } else {
-                          setInlineSuggestion(null);
-                        }
-                      } else {
-                        setInlineSuggestion(null);
-                      }
                     }}
                     placeholder='hasCategory("Linux") && isDevice()'
                     className="h-full min-h-[120px] font-mono text-sm resize-none relative z-10"
                   />
-                  
-                  {/* Inline autocomplete overlay */}
-                  {inlineSuggestion && (
-                    <div
-                      className="absolute pointer-events-none z-30 font-mono text-sm"
-                      style={{
-                        left: `${Math.max(cursorPosition.left, 0)}px`,
-                        top: `${cursorPosition.top}px`,
-                        color: 'hsl(var(--muted-foreground) / 0.7)',
-                        fontStyle: 'italic',
-                        lineHeight: 'inherit',
-                      }}
-                    >
-                      {inlineSuggestion}
-                    </div>
-                  )}
                   
                   {/* Autocomplete suggestions dropdown */}
                   {showSuggestions && suggestions.length > 0 && (
@@ -887,15 +774,27 @@ export function AppliesToTester() {
 
               {/* Test button */}
               <div className="flex items-center justify-end gap-2">
-                <Button
-                  variant="outline"
-                  onClick={handleSaveAsFunction}
-                  disabled={!canSaveAsFunction || !selectedPortalId}
-                  className="gap-2"
-                >
-                  <Save className="size-4" />
-                  Save as Function
-                </Button>
+                {loadedFunction ? (
+                  <Button
+                    variant="outline"
+                    onClick={handleUpdateFunctionClick}
+                    disabled={!canSaveAsFunction || !selectedPortalId}
+                    className="gap-2"
+                  >
+                    <Save className="size-4" />
+                    Update Function
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    onClick={handleSaveAsFunction}
+                    disabled={!canSaveAsFunction || !selectedPortalId}
+                    className="gap-2"
+                  >
+                    <Save className="size-4" />
+                    Save as Function
+                  </Button>
+                )}
                 <Button
                   onClick={testAppliesTo}
                   disabled={isTestingAppliesTo || !selectedPortalId || !appliesToExpression.trim()}
@@ -1054,16 +953,28 @@ export function AppliesToTester() {
             
             <CollapsibleContent>
               <div className="px-4 pb-4">
-                {/* Search */}
-                <div className="relative mb-3">
-                  <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                  <Input
-                    type="text"
-                    placeholder="Search functions..."
-                    value={appliesToFunctionSearch}
-                    onChange={(e) => setAppliesToFunctionSearch(e.target.value)}
-                    className="pl-8 h-8"
-                  />
+                {/* Search and Filter */}
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="relative flex-1">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                    <Input
+                      type="text"
+                      placeholder="Search functions..."
+                      value={appliesToFunctionSearch}
+                      onChange={(e) => setAppliesToFunctionSearch(e.target.value)}
+                      className="pl-8 h-8"
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <Label htmlFor="custom-switch" className="text-xs text-muted-foreground whitespace-nowrap cursor-pointer">
+                      Custom only
+                    </Label>
+                    <Switch
+                      id="custom-switch"
+                      checked={showOnlyCustom}
+                      onCheckedChange={setShowOnlyCustom}
+                    />
+                  </div>
                 </div>
                 
                 {/* Loading state */}
@@ -1084,27 +995,37 @@ export function AppliesToTester() {
                   </div>
                 )}
 
-                {/* Functions grid */}
+                {/* Functions grid - Fixed height container */}
                 {!isLoadingCustomFunctions && (
-                  <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 max-h-48 overflow-auto">
-                      {filteredFunctions.map((func: any) => (
-                        <FunctionCard
-                          key={`${func.source || 'builtin'}-${func.name}-${func.customId || ''}`}
-                          func={func}
-                          onInsert={() => insertItem(func)}
-                          onEdit={func.source === 'custom' && func.customId ? handleEditFunction : undefined}
-                          onDelete={func.source === 'custom' && func.customId ? setDeletingFunctionId : undefined}
-                        />
-                      ))}
-                    </div>
-                    
-                    {filteredFunctions.length === 0 && (
-                      <div className="text-center text-sm text-muted-foreground py-4">
-                        No functions match your search
+                  <div className="h-48 overflow-auto">
+                    {filteredFunctions.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+                        {filteredFunctions.map((func: any) => (
+                          <FunctionCard
+                            key={`${func.source || 'builtin'}-${func.name}-${func.customId || ''}`}
+                            func={func}
+                            onInsert={() => insertItem(func)}
+                            onLoad={func.source === 'custom' && func.customId ? handleLoadFunction : undefined}
+                            onDelete={func.source === 'custom' && func.customId ? setDeletingFunctionId : undefined}
+                          />
+                        ))}
                       </div>
+                    ) : (
+                      <Empty className="h-full border-0">
+                        <EmptyHeader>
+                          <EmptyMedia variant="icon">
+                            <Search className="size-5 text-muted-foreground" />
+                          </EmptyMedia>
+                          <EmptyTitle className="text-base">No Functions Found</EmptyTitle>
+                          <EmptyDescription>
+                            {showOnlyCustom
+                              ? "No custom functions match your search criteria."
+                              : "No functions match your search criteria."}
+                          </EmptyDescription>
+                        </EmptyHeader>
+                      </Empty>
                     )}
-                  </>
+                  </div>
                 )}
               </div>
             </CollapsibleContent>
@@ -1112,20 +1033,33 @@ export function AppliesToTester() {
         </div>
       </DialogContent>
 
-      {/* Create/Edit Function Dialog */}
+      {/* Create Function Dialog */}
       <CreateFunctionDialog
         open={createDialogOpen}
         onOpenChange={(open) => {
           setCreateDialogOpen(open);
           if (!open) {
-            setEditingFunction(null);
+            setLoadedFunction(null);
           }
         }}
-        onSave={editingFunction ? handleUpdateFunction : handleCreateFunction}
-        editingFunction={editingFunction}
+        onSave={handleCreateFunction}
         initialCode={appliesToExpression}
-        isSaving={isCreatingFunction || isUpdatingFunction}
+        isSaving={isCreatingFunction}
       />
+
+      {/* Update Function Confirmation Dialog */}
+      {loadedFunction && (
+        <UpdateFunctionConfirmationDialog
+          open={updateConfirmationOpen}
+          onOpenChange={(open) => {
+            setUpdateConfirmationOpen(open);
+          }}
+          onConfirm={handleUpdateFunction}
+          function={loadedFunction}
+          newCode={appliesToExpression}
+          isUpdating={isUpdatingFunction}
+        />
+      )}
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deletingFunctionId !== null} onOpenChange={(open) => !open && setDeletingFunctionId(null)}>
@@ -1160,11 +1094,11 @@ export function AppliesToTester() {
 interface FunctionCardProps {
   func: AppliesToFunction & { source?: 'builtin' | 'custom'; customId?: number };
   onInsert: () => void;
-  onEdit?: (func: CustomAppliesToFunction) => void;
+  onLoad?: (func: CustomAppliesToFunction) => void;
   onDelete?: (id: number) => void;
 }
 
-function FunctionCard({ func, onInsert, onEdit, onDelete }: FunctionCardProps) {
+function FunctionCard({ func, onInsert, onLoad, onDelete }: FunctionCardProps) {
   const { customFunctions } = useEditorStore();
   const isCustom = func.source === 'custom';
   const customFunction = isCustom && func.customId 
@@ -1172,51 +1106,13 @@ function FunctionCard({ func, onInsert, onEdit, onDelete }: FunctionCardProps) {
     : null;
 
   return (
-    <div className="group relative w-full text-left p-2 rounded-md border border-border hover:bg-accent/50 transition-colors">
-      {/* Action menu for custom functions - positioned first so it's on top */}
-      {isCustom && customFunction && (onEdit || onDelete) && (
-        <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <Button
-                  variant="ghost"
-                  size="icon-xs"
-                  className="h-6 w-6"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  <MoreVertical className="size-3" />
-                </Button>
-              }
-            />
-            <DropdownMenuContent align="end">
-              {onEdit && (
-                <DropdownMenuItem onClick={() => onEdit(customFunction)}>
-                  <Edit2 className="size-4 mr-2" />
-                  Edit
-                </DropdownMenuItem>
-              )}
-              {onEdit && onDelete && <DropdownMenuSeparator />}
-              {onDelete && (
-                <DropdownMenuItem 
-                  onClick={() => onDelete(customFunction.id)}
-                  className="text-destructive"
-                >
-                  <Trash2 className="size-4 mr-2" />
-                  Delete
-                </DropdownMenuItem>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      )}
-      
+    <div className="group relative w-full text-left p-2 rounded-md border border-border transition-colors">
       <Tooltip>
         <TooltipTrigger
           render={
             <button
               onClick={onInsert}
-              className="w-full text-left pr-8"
+              className="w-full text-left hover:bg-accent/50 rounded-md p-1 -m-1 transition-colors"
             >
               <div className="flex items-center gap-2 mb-1 min-w-0">
                 <div className="font-mono text-xs font-medium text-primary truncate flex-1 min-w-0">
@@ -1258,6 +1154,40 @@ function FunctionCard({ func, onInsert, onEdit, onDelete }: FunctionCardProps) {
           </div>
         </TooltipContent>
       </Tooltip>
+      
+      {/* Action buttons for custom functions - always visible */}
+      {isCustom && customFunction && (onLoad || onDelete) && (
+        <div className="flex items-center gap-1 mt-2 pt-2 border-t border-border">
+          {onLoad && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                onLoad(customFunction);
+              }}
+              className="h-7 px-2 text-xs flex-1"
+            >
+              <Download className="size-3 mr-1" />
+              Load
+            </Button>
+          )}
+          {onDelete && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete(customFunction.id);
+              }}
+              className="h-7 px-2 text-xs flex-1 text-destructive hover:text-destructive"
+            >
+              <Trash2 className="size-3 mr-1" />
+              Delete
+            </Button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
