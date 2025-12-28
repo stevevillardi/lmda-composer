@@ -10,6 +10,15 @@ import { Kbd } from '@/components/ui/kbd';
 import { cn } from '@/lib/utils';
 import { MAX_SCRIPT_LENGTH } from '@/shared/types';
 
+// Get extension version from manifest
+const getExtensionVersion = (): string => {
+  try {
+    return chrome.runtime.getManifest().version || 'unknown';
+  } catch {
+    return 'unknown';
+  }
+};
+
 // Keyboard shortcuts for help display
 const KEYBOARD_SHORTCUTS = [
   { keys: ['⌘', 'Enter'], action: 'Run script' },
@@ -70,6 +79,9 @@ export function StatusBar() {
   // Calculate line and column (simplified - just line count for now)
   const lineCount = script.split('\n').length;
 
+  // Get extension version
+  const extensionVersion = useMemo(() => getExtensionVersion(), []);
+
   // Execution status
   let statusText = 'Ready';
   let statusVariant: 'default' | 'secondary' | 'destructive' | 'outline' = 'secondary';
@@ -108,7 +120,7 @@ export function StatusBar() {
         {/* Connection status */}
         {selectedPortalId && selectedCollectorId && (
           <>
-            <Separator orientation="vertical" className="h-4" />
+            <Separator orientation="vertical" className="h-5" />
             <span className="text-muted-foreground flex items-center gap-1.5">
               <span className="size-1.5 rounded-full bg-green-500" />
               Connected to {selectedPortal?.hostname} via {selectedCollector?.description || selectedCollector?.hostname}
@@ -129,12 +141,12 @@ export function StatusBar() {
           {language}
         </Badge>
 
-        <Separator orientation="vertical" className="h-4" />
+        <Separator orientation="vertical" className="h-5" />
 
         {/* Line count */}
         <span>{lineCount} lines</span>
 
-        <Separator orientation="vertical" className="h-4" />
+        <Separator orientation="vertical" className="h-5" />
 
         {/* Character count */}
         {charCountStatus.showIcon ? (
@@ -160,9 +172,9 @@ export function StatusBar() {
           </span>
         )}
 
-        <Separator orientation="vertical" className="h-4" />
+        <Separator orientation="vertical" className="h-5" />
 
-        {/* Keyboard Shortcuts Help */}
+        {/* Keyboard Shortcuts Help & Version */}
         <Popover>
           <Tooltip>
             <TooltipTrigger
@@ -171,11 +183,12 @@ export function StatusBar() {
                   render={
                     <Button 
                       variant="ghost" 
-                      size="icon-sm" 
-                      className="size-5 text-muted-foreground hover:text-foreground"
-                      aria-label="Keyboard shortcuts"
+                      size="sm"
+                      className="h-auto px-2 py-1 text-muted-foreground hover:text-foreground flex items-center gap-1.5"
+                      aria-label="Keyboard shortcuts and version"
                     >
                       <HelpCircle className="size-3.5" />
+                      <span className="text-xs">v{extensionVersion}</span>
                     </Button>
                   }
                 />
