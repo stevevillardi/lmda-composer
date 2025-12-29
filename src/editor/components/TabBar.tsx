@@ -206,8 +206,8 @@ function TabItem({
                   </span>
                   
                   {/* Close/Dirty indicator */}
-                  <button
-                    type="button"
+                  <span
+                    role="button"
                     className="flex items-center justify-center size-4 rounded hover:bg-destructive/20 focus:outline-none focus:ring-2 focus:ring-destructive focus:ring-offset-1"
                     onClick={(e) => {
                       e.stopPropagation();
@@ -236,7 +236,7 @@ function TabItem({
                             )
                       )} />
                     )}
-                  </button>
+                  </span>
                 </button>
               }
             />
@@ -596,14 +596,12 @@ Exit 0
               </AlertDialogMedia>
               <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
               <AlertDialogDescription>
-                <div className="space-y-2">
-                  <p>
-                    The file <strong>{pendingTab.displayName}</strong> has unsaved changes.
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    What would you like to do before closing?
-                  </p>
-                </div>
+                <span className="block">
+                  The file <strong>{pendingTab.displayName}</strong> has unsaved changes.
+                </span>
+                <span className="block text-sm text-muted-foreground">
+                  What would you like to do before closing?
+                </span>
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter className="flex-col sm:flex-row gap-2">
@@ -660,4 +658,3 @@ Exit 0
     </div>
   );
 }
-

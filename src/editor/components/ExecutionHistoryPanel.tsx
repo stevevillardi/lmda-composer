@@ -1,60 +1,28 @@
 import {
   Clock,
   Play,
+  Eye,
   Trash2,
   CheckCircle2,
   XCircle,
   Server,
 } from 'lucide-react';
+import { useState } from 'react';
 import { useEditorStore } from '../stores/editor-store';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/components/ui/empty';
 import type { ExecutionHistoryEntry } from '@/shared/types';
-
-function formatTimestamp(timestamp: number): string {
-  const date = new Date(timestamp);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffMins = Math.floor(diffMs / 60000);
-  const diffHours = Math.floor(diffMins / 60);
-  const diffDays = Math.floor(diffHours / 24);
-
-  if (diffMins < 1) return 'Just now';
-  if (diffMins < 60) return `${diffMins}m ago`;
-  if (diffHours < 24) return `${diffHours}h ago`;
-  if (diffDays < 7) return `${diffDays}d ago`;
-  
-  return date.toLocaleDateString(undefined, { 
-    month: 'short', 
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-}
-
-function formatDuration(ms: number): string {
-  if (ms < 1000) return `${ms}ms`;
-  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`;
-  return `${Math.floor(ms / 60000)}m ${Math.floor((ms % 60000) / 1000)}s`;
-}
-
-function getModeLabel(mode: string): string {
-  switch (mode) {
-    case 'ad': return 'Active Discovery';
-    case 'collection': return 'Collection';
-    case 'batchcollection': return 'Batch Collection';
-    case 'freeform': return 'Freeform';
-    default: return mode;
-  }
-}
+import { ExecutionHistoryDetailsDialog } from './ExecutionHistoryDetailsDialog';
+import { formatDuration, formatTimestamp, getModeLabel } from './execution-history-utils';
 
 interface HistoryItemProps {
   entry: ExecutionHistoryEntry;
   onReload: () => void;
+  onView: () => void;
 }
 
-function HistoryItem({ entry, onReload }: HistoryItemProps) {
+function HistoryItem({ entry, onReload, onView }: HistoryItemProps) {
   return (
     <div 
       className="group p-2 rounded-lg border border-border/50 bg-card/50 hover:bg-card hover:border-border transition-colors"
@@ -77,15 +45,26 @@ function HistoryItem({ entry, onReload }: HistoryItemProps) {
           </div>
         </div>
         
-        <Button
-          variant="ghost"
-          size="sm"
-          className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 h-6 px-2 text-xs"
-          onClick={onReload}
-        >
-          <Play className="size-3 mr-1" />
-          Load
-        </Button>
+        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 px-2 text-xs"
+            onClick={onView}
+          >
+            <Eye className="size-3 mr-1" />
+            View
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 px-2 text-xs"
+            onClick={onReload}
+          >
+            <Play className="size-3 mr-1" />
+            Load
+          </Button>
+        </div>
       </div>
 
       <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
@@ -124,9 +103,16 @@ export function ExecutionHistoryPanel() {
     clearHistory,
     reloadFromHistory,
   } = useEditorStore();
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [selectedEntry, setSelectedEntry] = useState<ExecutionHistoryEntry | null>(null);
 
   const handleReload = (entry: ExecutionHistoryEntry) => {
     reloadFromHistory(entry);
+  };
+
+  const handleView = (entry: ExecutionHistoryEntry) => {
+    setSelectedEntry(entry);
+    setDetailsOpen(true);
   };
 
   // Empty state
@@ -172,11 +158,20 @@ export function ExecutionHistoryPanel() {
               key={entry.id} 
               entry={entry} 
               onReload={() => handleReload(entry)}
+              onView={() => handleView(entry)}
             />
           ))}
         </div>
       </div>
+      <ExecutionHistoryDetailsDialog
+        open={detailsOpen}
+        entry={selectedEntry}
+        onOpenChange={(open) => {
+          setDetailsOpen(open);
+          if (!open) setSelectedEntry(null);
+        }}
+        onLoad={handleReload}
+      />
     </div>
   );
 }
-

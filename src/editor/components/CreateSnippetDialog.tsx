@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import Editor from '@monaco-editor/react';
 import { FilePlus, Code2 } from 'lucide-react';
 import { useEditorStore } from '../stores/editor-store';
 import {
@@ -11,7 +12,6 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import {
   Select,
@@ -20,6 +20,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+
+// Import the loader config to use bundled Monaco (CSP-safe)
+import '../monaco-loader';
 
 export function CreateSnippetDialog() {
   const {
@@ -30,6 +33,7 @@ export function CreateSnippetDialog() {
     updateUserSnippet,
     script,
     language,
+    preferences,
   } = useEditorStore();
 
   const [name, setName] = useState('');
@@ -85,9 +89,21 @@ export function CreateSnippetDialog() {
 
   const isValid = name.trim() && code.trim();
 
+  const monacoTheme = useMemo(() => {
+    if (preferences.theme === 'light') return 'vs';
+    if (preferences.theme === 'dark') return 'vs-dark';
+    if (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches) {
+      return 'vs';
+    }
+    return 'vs-dark';
+  }, [preferences.theme]);
+
+  const monacoLanguage =
+    snippetLanguage === 'both' ? language : snippetLanguage;
+
   return (
     <Dialog open={createSnippetDialogOpen} onOpenChange={setCreateSnippetDialogOpen}>
-      <DialogContent className="max-w-2xl!">
+      <DialogContent className="max-w-3xl!">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {editingSnippet ? (
@@ -191,13 +207,33 @@ export function CreateSnippetDialog() {
           {/* Code */}
           <div className="space-y-2">
             <Label htmlFor="snippet-code">Code *</Label>
-            <Textarea
-              id="snippet-code"
-              placeholder="// Your code here..."
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              className="font-mono text-sm min-h-[200px]"
-            />
+            <div className="rounded-md border border-border bg-muted/30 h-[260px] overflow-hidden">
+              <Editor
+                height="100%"
+                language={monacoLanguage === 'powershell' ? 'powershell' : 'groovy'}
+                theme={monacoTheme}
+                value={code}
+                onChange={(value) => setCode(value ?? '')}
+                options={{
+                  fontSize: 12,
+                  fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
+                  lineNumbers: 'on',
+                  minimap: { enabled: false },
+                  wordWrap: 'off',
+                  tabSize: 2,
+                  automaticLayout: true,
+                  scrollBeyondLastLine: false,
+                  renderLineHighlight: 'line',
+                  padding: { top: 8, bottom: 8 },
+                  scrollbar: { horizontal: 'auto', vertical: 'auto' },
+                }}
+                loading={
+                  <div className="flex items-center justify-center h-full">
+                    <div className="text-muted-foreground text-xs">Loading...</div>
+                  </div>
+                }
+              />
+            </div>
           </div>
         </div>
 
@@ -213,4 +249,3 @@ export function CreateSnippetDialog() {
     </Dialog>
   );
 }
-

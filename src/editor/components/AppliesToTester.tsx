@@ -1124,9 +1124,9 @@ export function AppliesToTester() {
             <AlertDialogDescription>
               Are you sure you want to delete this custom function? This action cannot be undone.
               {deletingFunctionId && (
-                <div className="mt-2 font-mono text-sm">
+                <span className="mt-2 font-mono text-sm block">
                   {customFunctions.find((cf: CustomAppliesToFunction) => cf.id === deletingFunctionId)?.name}
-                </div>
+                </span>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -1246,4 +1246,3 @@ function FunctionCard({ func, onInsert, onLoad, onDelete }: FunctionCardProps) {
     </div>
   );
 }
-

@@ -1,3 +1,5 @@
+import { useMemo } from 'react';
+import Editor from '@monaco-editor/react';
 import { Play, FileText, Code2 } from 'lucide-react';
 import {
   Dialog,
@@ -12,6 +14,9 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { Snippet } from '@/shared/types';
 import { useEditorStore } from '../stores/editor-store';
+
+// Import the loader config to use bundled Monaco (CSP-safe)
+import '../monaco-loader';
 
 const LANGUAGE_COLORS: Record<string, string> = {
   groovy: 'bg-orange-500/10 text-orange-500 border-orange-500/20',
@@ -30,12 +35,25 @@ export function SnippetPreviewDialog({
   onClose,
   onInsert,
 }: SnippetPreviewDialogProps) {
-  const { language: currentLanguage } = useEditorStore();
+  const { language: currentLanguage, preferences } = useEditorStore();
+
+  const snippetLanguage = snippet?.language ?? currentLanguage;
+  const isCompatible =
+    !snippet ? true : snippet.language === 'both' || snippet.language === currentLanguage;
+
+  const monacoTheme = useMemo(() => {
+    if (preferences.theme === 'light') return 'vs';
+    if (preferences.theme === 'dark') return 'vs-dark';
+    if (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches) {
+      return 'vs';
+    }
+    return 'vs-dark';
+  }, [preferences.theme]);
+
+  const monacoLanguage =
+    snippetLanguage === 'both' ? currentLanguage : snippetLanguage;
 
   if (!snippet) return null;
-
-  const isCompatible =
-    snippet.language === 'both' || snippet.language === currentLanguage;
 
   const handleInsert = () => {
     onInsert(snippet);
@@ -83,10 +101,36 @@ export function SnippetPreviewDialog({
         </DialogHeader>
 
         {/* Code preview */}
-        <div className="flex-1 min-h-0 border rounded-lg bg-secondary/30 overflow-auto">
-          <pre className="p-4 text-sm font-mono whitespace-pre">
-            <code>{snippet.code}</code>
-          </pre>
+        <div className="flex-1 min-h-0 border rounded-lg bg-secondary/30 overflow-hidden">
+          <Editor
+            height="100%"
+            language={monacoLanguage === 'powershell' ? 'powershell' : 'groovy'}
+            theme={monacoTheme}
+            value={snippet.code}
+            options={{
+              readOnly: true,
+              fontSize: 12,
+              fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
+              lineNumbers: 'on',
+              minimap: { enabled: false },
+              wordWrap: 'off',
+              tabSize: 2,
+              automaticLayout: true,
+              scrollBeyondLastLine: false,
+              renderLineHighlight: 'none',
+              padding: { top: 8, bottom: 8 },
+              domReadOnly: true,
+              cursorStyle: 'line-thin',
+              selectionHighlight: false,
+              occurrencesHighlight: 'off',
+              scrollbar: { horizontal: 'auto', vertical: 'auto' },
+            }}
+            loading={
+              <div className="flex items-center justify-center h-full">
+                <div className="text-muted-foreground text-xs">Loading...</div>
+              </div>
+            }
+          />
         </div>
 
         <DialogFooter className="shrink-0">
@@ -108,4 +152,3 @@ export function SnippetPreviewDialog({
     </Dialog>
   );
 }
-

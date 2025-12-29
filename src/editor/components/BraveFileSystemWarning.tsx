@@ -35,20 +35,18 @@ export function BraveFileSystemWarning({
           </AlertDialogMedia>
           <AlertDialogTitle>File System Access API Disabled</AlertDialogTitle>
           <AlertDialogDescription>
-            <div className="space-y-2 text-left">
-              <p>
-                LMDA Composer requires the File System Access API for full save functionality. 
-                In Brave browser, this feature is disabled by default. If you wish to enable full save and open functionality, you must enable the File System Access API in the Brave browser settings.
-              </p>
-              <p className="font-medium">To enable it:</p>
-              <ol className="list-decimal list-inside space-y-1 ml-2">
-                <li>Open <code className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono">brave://flags</code> in a new tab</li>
-                <li>Search for "File System Access API"</li>
-                <li>Set it to "Enabled"</li>
-                <li>Restart your browser</li>
-              </ol>
-            </div>
+            LMDA Composer requires the File System Access API for full save functionality.
+            In Brave browser, this feature is disabled by default.
           </AlertDialogDescription>
+          <div className="space-y-2 text-left text-sm text-muted-foreground">
+            <div className="font-medium text-foreground">To enable it:</div>
+            <ol className="list-decimal list-inside space-y-1 ml-2">
+              <li>Open <code className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono">brave://flags</code> in a new tab</li>
+              <li>Search for "File System Access API"</li>
+              <li>Set it to "Enabled"</li>
+              <li>Restart your browser</li>
+            </ol>
+          </div>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel onClick={handleDismiss}>
@@ -59,4 +57,3 @@ export function BraveFileSystemWarning({
     </AlertDialog>
   );
 }
-
