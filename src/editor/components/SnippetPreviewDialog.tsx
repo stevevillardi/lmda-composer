@@ -44,8 +44,8 @@ export function SnippetPreviewDialog({
 
   return (
     <Dialog open={!!snippet} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="!max-w-3xl !h-[80vh] flex flex-col overflow-hidden">
-        <DialogHeader className="flex-shrink-0">
+      <DialogContent className="max-w-3xl! h-[80vh]! flex flex-col overflow-hidden">
+        <DialogHeader className="shrink-0">
           <div className="flex items-center gap-2">
             {snippet.category === 'template' ? (
               <FileText className="size-5 text-muted-foreground" />
@@ -89,7 +89,7 @@ export function SnippetPreviewDialog({
           </pre>
         </div>
 
-        <DialogFooter className="flex-shrink-0">
+        <DialogFooter className="shrink-0">
           {!isCompatible && (
             <p className="text-xs text-amber-500 mr-auto">
               This snippet is for {snippet.language === 'groovy' ? 'Groovy' : 'PowerShell'} only.

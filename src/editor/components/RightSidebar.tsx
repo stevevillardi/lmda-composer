@@ -26,7 +26,7 @@ export function RightSidebar({ className }: RightSidebarProps) {
   return (
     <div className={cn('flex flex-col h-full bg-background border-l border-border min-w-[200px] overflow-hidden', className)}>
       {/* Header with tabs */}
-      <div className="flex items-center px-2 py-1.5 border-b border-border bg-secondary/30 flex-shrink-0">
+      <div className="flex items-center px-2 py-1.5 border-b border-border bg-secondary/30 shrink-0">
         <Tabs value={rightSidebarTab} onValueChange={(value) => setRightSidebarTab(value as 'properties' | 'snippets' | 'history')}>
           <TabsList variant="line" className="h-7">
             <TabsTrigger value="properties" className="h-6 text-xs px-2 gap-1">

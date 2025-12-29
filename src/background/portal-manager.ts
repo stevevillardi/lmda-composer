@@ -149,6 +149,12 @@ export class PortalManager {
       for (const tab of tabs) {
         if (!tab.url || !tab.id) continue;
         
+        // Skip tabs that aren't ready - they won't have LMGlobalData loaded yet
+        if (tab.status !== 'complete') {
+          console.log(`Skipping tab ${tab.id}: status is ${tab.status}`);
+          continue;
+        }
+        
         const isLMPortal = await this.verifyLogicMonitorPortal(tab.id);
         if (!isLMPortal) continue;
         
@@ -206,16 +212,91 @@ export class PortalManager {
    */
   private async verifyLogicMonitorPortal(tabId: number): Promise<boolean> {
     try {
-      const results = await chrome.scripting.executeScript({
-        target: { tabId },
-        world: 'MAIN', // Execute in the main world to access page's window object
-        func: () => {
-          // Check if LMGlobalData exists on the window object
-          return typeof (window as unknown as { LMGlobalData?: unknown }).LMGlobalData !== 'undefined';
-        },
-      });
-      return results?.[0]?.result === true;
-    } catch {
+      // First, verify the tab is still valid and ready
+      let tab: chrome.tabs.Tab;
+      try {
+        tab = await chrome.tabs.get(tabId);
+      } catch (error) {
+        console.warn(`Tab ${tabId} no longer exists:`, error);
+        return false;
+      }
+      
+      // Double-check tab status (should already be filtered in discoverPortals, but be safe)
+      if (tab.status !== 'complete') {
+        console.log(`Tab ${tabId} not ready for verification (status: ${tab.status})`);
+        return false;
+      }
+      
+      // Verify URL matches LogicMonitor pattern
+      if (!tab.url || !tab.url.includes('logicmonitor.com')) {
+        return false;
+      }
+      
+      // Try to execute script with retry logic for timing issues
+      let lastError: Error | null = null;
+      const maxRetries = 3;
+      const retryDelay = 500; // 500ms between retries
+      
+      for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+          if (attempt > 0) {
+            // Wait before retrying (page might still be loading LMGlobalData)
+            await new Promise(resolve => setTimeout(resolve, retryDelay));
+          }
+          
+          const results = await chrome.scripting.executeScript({
+            target: { tabId },
+            world: 'MAIN', // Execute in the main world to access page's window object
+            func: () => {
+              // Check if LMGlobalData exists on the window object
+              return typeof (window as unknown as { LMGlobalData?: unknown }).LMGlobalData !== 'undefined';
+            },
+          });
+          
+          const isValid = results?.[0]?.result === true;
+          
+          if (isValid) {
+            return true;
+          }
+          
+          // If result is false but no error, the page might still be loading
+          // Try again if we have retries left
+          if (attempt < maxRetries - 1) {
+            console.log(`Portal verification attempt ${attempt + 1} failed: LMGlobalData not found for tab ${tabId}, retrying...`);
+            continue;
+          }
+          
+          return false;
+        } catch (error) {
+          lastError = error as Error;
+          
+          // Check if it's a scripting error (tab might be in a restricted state)
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          
+          // Some errors are permanent (e.g., cannot access chrome:// pages)
+          if (errorMessage.includes('Cannot access') || errorMessage.includes('No tab with id')) {
+            console.warn(`Permanent error verifying tab ${tabId}:`, errorMessage);
+            return false;
+          }
+          
+          // If it's a scripting error and we have retries left, try again
+          if (attempt < maxRetries - 1) {
+            console.warn(`Portal verification attempt ${attempt + 1} failed for tab ${tabId}:`, errorMessage);
+            continue;
+          }
+        }
+      }
+      
+      // Log the final error if all retries failed
+      if (lastError) {
+        console.error(`Portal verification failed after ${maxRetries} attempts for tab ${tabId}:`, lastError);
+      } else {
+        console.warn(`Portal verification failed: LMGlobalData not found after ${maxRetries} attempts for tab ${tabId}`);
+      }
+      
+      return false;
+    } catch (error) {
+      console.error(`Portal verification error for tab ${tabId}:`, error);
       return false;
     }
   }

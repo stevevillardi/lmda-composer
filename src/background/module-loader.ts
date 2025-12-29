@@ -234,7 +234,9 @@ function fetchModulesFromAPI(
             } else {
               // DataSource, ConfigSource, TopologySource
               collectionScript = m.collectorAttribute?.groovyScript || '';
-              scriptType = m.collectorAttribute?.scriptType || 'embed';
+              // Normalize scriptType - API may return different casings
+              const rawScriptType = m.collectorAttribute?.scriptType || 'embed';
+              scriptType = rawScriptType.toLowerCase() === 'powershell' ? 'powerShell' : 'embed';
               
               // Only mark as AD if there's actually an AD script defined
               if (m.enableAutoDiscovery && m.autoDiscoveryConfig?.method) {

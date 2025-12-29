@@ -71,7 +71,7 @@ export function ExecutionContextDialog() {
   if (isCollectionMode) {
     return (
       <Dialog open={executionContextDialogOpen} onOpenChange={handleOpenChange}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[525px]">
           <form onSubmit={handleSubmit}>
             <DialogHeader>
               <div className="flex items-center gap-3 mb-2">
@@ -82,7 +82,7 @@ export function ExecutionContextDialog() {
               </div>
               <DialogDescription>
                 Collection scripts run once per instance. Enter the instance identifier (wildvalue) 
-                to test your script against a specific instance.
+                to test your script against a specific instance. This is optional and not required for the script to run.
               </DialogDescription>
             </DialogHeader>
 
@@ -130,7 +130,7 @@ export function ExecutionContextDialog() {
   if (isBatchCollectionMode) {
     return (
       <Dialog open={executionContextDialogOpen} onOpenChange={handleOpenChange}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[525px]">
           <form onSubmit={handleSubmit}>
             <DialogHeader>
               <div className="flex items-center gap-3 mb-2">
@@ -141,7 +141,7 @@ export function ExecutionContextDialog() {
               </div>
               <DialogDescription>
                 Batch collection scripts iterate over all discovered instances. Enter the datasource 
-                name or ID to fetch instance properties from the collector.
+                name or ID to fetch instance properties from the collector. This is optional and not required for the script to run unless you are using the datasourceinstanceProps variable in your script.
               </DialogDescription>
             </DialogHeader>
 

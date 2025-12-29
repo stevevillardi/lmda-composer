@@ -2558,6 +2558,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         const originalContent = tab.originalContent || '';
         const hasConflict = originalContent.trim() !== currentScript.trim();
         
+        // Normalize scriptType - API may return different casings
+        const rawScriptType = module.scriptType || module.collectorAttribute?.scriptType || 'embed';
+        const normalizedScriptType = rawScriptType.toLowerCase() === 'powershell' ? 'powerShell' : 'embed';
+        
         const moduleInfo: LogicModuleInfo = {
           id: module.id,
           name: module.name,
@@ -2566,7 +2570,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           appliesTo: module.appliesTo || '',
           collectMethod: module.collectMethod || 'script',
           hasAutoDiscovery: !!module.enableAutoDiscovery,
-          scriptType: module.scriptType === 'powerShell' ? 'powerShell' : 'embed',
+          scriptType: normalizedScriptType,
         };
         
         // Store conflict info in a way that can be accessed by the dialog

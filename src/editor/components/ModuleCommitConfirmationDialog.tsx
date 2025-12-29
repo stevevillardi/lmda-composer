@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { DiffEditor } from './DiffEditor';
 import { useEditorStore } from '../stores/editor-store';
-import type { LogicModuleType } from '@/shared/types';
+import type { LogicModuleType, ScriptLanguage } from '@/shared/types';
 
 interface ModuleCommitConfirmationDialogProps {
   open: boolean;
@@ -23,6 +23,7 @@ interface ModuleCommitConfirmationDialogProps {
   moduleName: string;
   moduleType: LogicModuleType;
   scriptType: 'collection' | 'ad';
+  scriptLanguage?: ScriptLanguage;
   originalScript: string;
   newScript: string;
   hasConflict?: boolean;
@@ -46,6 +47,7 @@ export function ModuleCommitConfirmationDialog({
   moduleName,
   moduleType,
   scriptType,
+  scriptLanguage = 'groovy',
   originalScript,
   newScript,
   hasConflict = false,
@@ -91,7 +93,7 @@ export function ModuleCommitConfirmationDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="!max-w-[95vw] sm:!max-w-[1200px] max-h-[90vh] flex flex-col gap-0 p-0">
+      <DialogContent className="max-w-[95vw]! sm:max-w-[1500px]! max-h-[90vh] flex flex-col gap-0 p-0">
         <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Upload className="size-5" />
@@ -126,17 +128,27 @@ export function ModuleCommitConfirmationDialog({
           {/* Script comparison */}
           <div className="space-y-2">
             <Label className="text-sm font-medium">Script Changes</Label>
-            {hasChanges ? (
+            {hasChanges && originalScript !== undefined && newScript !== undefined ? (
               <div className="border border-border rounded-md overflow-hidden">
+                <div className="grid grid-cols-2 border-b border-border bg-muted/30">
+                  <div className="px-4 py-2 text-xs font-medium text-muted-foreground border-r border-border">
+                    Original
+                  </div>
+                  <div className="px-4 py-2 text-xs font-medium text-muted-foreground">
+                    Modified
+                  </div>
+                </div>
                 <DiffEditor
                   original={originalScript}
                   modified={newScript}
-                  language="groovy"
+                  language={scriptLanguage}
                   height="400px"
                   theme={monacoTheme}
                   readOnly={true}
                 />
               </div>
+            ) : hasChanges ? (
+              <p className="text-xs text-muted-foreground">Loading diff...</p>
             ) : (
               <p className="text-xs text-muted-foreground">No script changes detected.</p>
             )}

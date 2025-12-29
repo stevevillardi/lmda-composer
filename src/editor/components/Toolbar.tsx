@@ -148,7 +148,10 @@ Exit 0
   // Check if we can execute
   const canExecute = selectedPortalId && selectedCollectorId && !isExecuting;
   
-  // Check if we can commit module changes
+  // Check if active tab is a module tab
+  const isModuleTab = activeTab?.source?.type === 'module';
+  
+  // Check if we can commit module changes (has changes and portal selected)
   const canCommit = activeTabId && canCommitModule(activeTabId);
 
   return (
@@ -248,8 +251,8 @@ Exit 0
 
       {/* Action Group */}
       <div className="flex items-center gap-1.5">
-        {/* Commit Button - only shown for module tabs with unsaved changes */}
-        {canCommit && (
+        {/* Commit Button - shown for module tabs, disabled unless there are changes */}
+        {isModuleTab && (
           <Tooltip>
             <TooltipTrigger
               render={
@@ -267,11 +270,13 @@ Exit 0
                       });
                     }
                   }}
+                  disabled={!canCommit}
                   className={cn(
                     "gap-1.5",
                     SIZES.BUTTON_TOOLBAR,
                     "px-3 font-medium",
-                    "bg-blue-600 hover:bg-blue-500 text-white"
+                    "bg-blue-600 hover:bg-blue-500 text-white",
+                    "disabled:bg-blue-600/50 disabled:text-white/70"
                   )}
                   aria-label="Commit changes to module"
                 >
@@ -281,7 +286,9 @@ Exit 0
               }
             />
             <TooltipContent>
-              Commit changes back to LogicMonitor module
+              {canCommit 
+                ? 'Commit changes back to LogicMonitor module'
+                : 'No changes to commit'}
             </TooltipContent>
           </Tooltip>
         )}

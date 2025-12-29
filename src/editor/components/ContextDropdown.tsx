@@ -53,11 +53,14 @@ export function ContextDropdown() {
     hostname,
     setHostname,
     refreshPortals,
+    refreshCollectors,
+    fetchDevices,
   } = useEditorStore();
 
   const [isOpen, setIsOpen] = useState(false);
   const [deviceSearchQuery, setDeviceSearchQuery] = useState('');
   const [isRefreshingPortals, setIsRefreshingPortals] = useState(false);
+  const [isRefreshingCollectors, setIsRefreshingCollectors] = useState(false);
 
   // Filter devices based on search query
   const filteredDevices = useMemo(() => {
@@ -106,6 +109,24 @@ export function ContextDropdown() {
         setIsRefreshingPortals(false);
       }, 300);
     }
+  };
+
+  // Handle collector refresh with loading state
+  const handleRefreshCollectors = async () => {
+    setIsRefreshingCollectors(true);
+    try {
+      await refreshCollectors();
+    } finally {
+      // Add a small delay to ensure the animation is visible
+      setTimeout(() => {
+        setIsRefreshingCollectors(false);
+      }, 300);
+    }
+  };
+
+  // Handle device refresh with loading state
+  const handleRefreshDevices = async () => {
+    await fetchDevices();
   };
 
   return (
@@ -166,11 +187,11 @@ export function ContextDropdown() {
                   render={
                     <Button
                       variant="ghost"
-                      size="icon-xs"
+                      size="xs"
                       onClick={handleRefreshPortals}
                       disabled={isRefreshingPortals}
                       className={cn(
-                        "size-5 transition-all duration-200",
+                        "transition-all duration-200",
                         isRefreshingPortals && "opacity-70"
                       )}
                     >
@@ -180,6 +201,7 @@ export function ContextDropdown() {
                           isRefreshingPortals && "animate-spin"
                         )} 
                       />
+                      Refresh
                     </Button>
                   }
                 />
@@ -238,7 +260,36 @@ export function ContextDropdown() {
 
           {/* Collector Selector */}
           <div className="space-y-1.5">
-            <Label className="text-xs">Collector</Label>
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">Collector</Label>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="xs"
+                      onClick={handleRefreshCollectors}
+                      disabled={isRefreshingCollectors || !selectedPortalId}
+                      className={cn(
+                        "transition-all duration-200",
+                        isRefreshingCollectors && "opacity-70"
+                      )}
+                    >
+                      <RefreshCw 
+                        className={cn(
+                          "size-3 transition-transform duration-200",
+                          isRefreshingCollectors && "animate-spin"
+                        )} 
+                      />
+                      Refresh
+                    </Button>
+                  }
+                />
+                <TooltipContent>
+                  {isRefreshingCollectors ? 'Refreshing collectors...' : 'Refresh collectors'}
+                </TooltipContent>
+              </Tooltip>
+            </div>
             <Select 
               value={selectedCollectorId?.toString() ?? null} 
               onValueChange={(value) => setSelectedCollector(value ? parseInt(value) : null)}
@@ -305,7 +356,36 @@ export function ContextDropdown() {
 
           {/* Device/Hostname Combobox */}
           <div className="space-y-1.5">
-            <Label className="text-xs">Device (optional)</Label>
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">Device (optional)</Label>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <Button
+                      variant="ghost"
+                      size="xs"
+                      onClick={handleRefreshDevices}
+                      disabled={isFetchingDevices || !selectedCollectorId}
+                      className={cn(
+                        "transition-all duration-200",
+                        isFetchingDevices && "opacity-70"
+                      )}
+                    >
+                      <RefreshCw 
+                        className={cn(
+                          "size-3 transition-transform duration-200",
+                          isFetchingDevices && "animate-spin"
+                        )} 
+                      />
+                      Refresh
+                    </Button>
+                  }
+                />
+                <TooltipContent>
+                  {isFetchingDevices ? 'Refreshing devices...' : 'Refresh devices'}
+                </TooltipContent>
+              </Tooltip>
+            </div>
             <Combobox
               value={hostname}
               onValueChange={(value) => {

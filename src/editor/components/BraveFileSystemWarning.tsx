@@ -28,7 +28,7 @@ export function BraveFileSystemWarning({
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent size="default" className="!max-w-xl !sm:max-w-2xl">
+      <AlertDialogContent size="default" className="max-w-xl! !sm:max-w-2xl">
         <AlertDialogHeader>
           <AlertDialogMedia className="bg-amber-500/10">
             <AlertTriangle className="size-8 text-amber-500" />

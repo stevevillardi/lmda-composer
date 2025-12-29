@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "LMDA Composer - LogicModule Composer for LogicMonitor",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Enhanced script development and debugging experience for LogicMonitor power users",
   "icons": {
     "16": "src/assets/icon16.png",

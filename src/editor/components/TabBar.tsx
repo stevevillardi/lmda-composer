@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState, useCallback, KeyboardEvent } from 'react';
-import { X, Plus, Pencil, Circle } from 'lucide-react';
+import { X, Plus, Pencil, Circle, Save, Upload, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEditorStore } from '../stores/editor-store';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,17 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import type { EditorTab } from '@/shared/types';
 
@@ -291,10 +302,20 @@ export function TabBar() {
     renameTab,
     preferences,
     getTabDirtyState,
+    saveFile,
+    saveFileAs,
+    canCommitModule,
+    fetchModuleForCommit,
+    setModuleCommitConfirmationOpen,
+    moduleCommitConfirmationOpen,
   } = useEditorStore();
   
   // Track which tab is being renamed
   const [renamingTabId, setRenamingTabId] = useState<string | null>(null);
+  // Track pending tab close with confirmation
+  const [pendingCloseTabId, setPendingCloseTabId] = useState<string | null>(null);
+  // Track tab to close after successful commit
+  const [tabToCloseAfterCommit, setTabToCloseAfterCommit] = useState<string | null>(null);
   const tabListRef = useRef<HTMLDivElement>(null);
   
   // Handle keyboard navigation
@@ -337,6 +358,130 @@ export function TabBar() {
     }
   }, [tabs, activeTabId, setActiveTab]);
   
+  // Handle tab close with dirty check
+  const handleTabClose = useCallback(async (tabId: string) => {
+    const tab = tabs.find(t => t.id === tabId);
+    if (!tab) return;
+    
+    const isDirty = getTabDirtyState(tab);
+    if (!isDirty) {
+      // Not dirty, close immediately
+      closeTab(tabId);
+      return;
+    }
+    
+    // Dirty - show confirmation dialog
+    setPendingCloseTabId(tabId);
+  }, [tabs, getTabDirtyState, closeTab]);
+
+  // Handle close confirmation actions
+  const handleSaveAndClose = useCallback(async () => {
+    if (!pendingCloseTabId) return;
+    const tab = tabs.find(t => t.id === pendingCloseTabId);
+    if (!tab) {
+      setPendingCloseTabId(null);
+      return;
+    }
+
+    try {
+      if (tab.hasFileHandle) {
+        // Local file - save it
+        const saved = await saveFile(pendingCloseTabId);
+        if (saved) {
+          toast.success('File saved');
+          closeTab(pendingCloseTabId);
+        } else {
+          toast.error('Failed to save file');
+        }
+        setPendingCloseTabId(null);
+      } else if (tab.source?.type === 'module') {
+        // Module without file handle - save as local file
+        const saved = await saveFileAs(pendingCloseTabId);
+        if (saved) {
+          toast.success('File saved locally');
+          closeTab(pendingCloseTabId);
+        } else {
+          toast.error('Failed to save file');
+        }
+        setPendingCloseTabId(null);
+      } else {
+        // Other tab types - save as local file
+        const saved = await saveFileAs(pendingCloseTabId);
+        if (saved) {
+          toast.success('File saved locally');
+          closeTab(pendingCloseTabId);
+        } else {
+          toast.error('Failed to save file');
+        }
+        setPendingCloseTabId(null);
+      }
+    } catch (error) {
+      toast.error('Failed to save', {
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
+      setPendingCloseTabId(null);
+    }
+  }, [pendingCloseTabId, tabs, saveFile, saveFileAs, closeTab]);
+
+  const handlePreviewCommit = useCallback(async () => {
+    if (!pendingCloseTabId) return;
+    const tab = tabs.find(t => t.id === pendingCloseTabId);
+    if (!tab || tab.source?.type !== 'module') {
+      setPendingCloseTabId(null);
+      return;
+    }
+
+    try {
+      // Store the tab ID to close after successful commit
+      setTabToCloseAfterCommit(pendingCloseTabId);
+      // Fetch module data and open commit confirmation dialog
+      await fetchModuleForCommit(pendingCloseTabId);
+      setModuleCommitConfirmationOpen(true);
+      // Close the close confirmation dialog
+      setPendingCloseTabId(null);
+    } catch (error) {
+      toast.error('Failed to prepare commit', {
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
+      setPendingCloseTabId(null);
+      setTabToCloseAfterCommit(null);
+    }
+  }, [pendingCloseTabId, tabs, fetchModuleForCommit, setModuleCommitConfirmationOpen]);
+
+  const handleDiscardAndClose = useCallback(() => {
+    if (!pendingCloseTabId) return;
+    closeTab(pendingCloseTabId);
+    setPendingCloseTabId(null);
+  }, [pendingCloseTabId, closeTab]);
+
+  const handleCancelClose = useCallback(() => {
+    setPendingCloseTabId(null);
+  }, []);
+
+  // Close tab after successful commit
+  useEffect(() => {
+    if (!moduleCommitConfirmationOpen && tabToCloseAfterCommit) {
+      const tab = tabs.find(t => t.id === tabToCloseAfterCommit);
+      // If tab exists and is no longer dirty (commit was successful), close it
+      if (tab && !getTabDirtyState(tab)) {
+        closeTab(tabToCloseAfterCommit);
+        setTabToCloseAfterCommit(null);
+      } else if (!tab) {
+        // Tab was already closed, just clear the state
+        setTabToCloseAfterCommit(null);
+      } else {
+        // Commit failed or was cancelled, clear the state
+        setTabToCloseAfterCommit(null);
+      }
+    }
+  }, [moduleCommitConfirmationOpen, tabToCloseAfterCommit, tabs, getTabDirtyState, closeTab]);
+
+  // Get pending tab info
+  const pendingTab = pendingCloseTabId ? tabs.find(t => t.id === pendingCloseTabId) : null;
+  const isModuleTab = pendingTab?.source?.type === 'module';
+  const isLocalFile = pendingTab?.hasFileHandle;
+  const canCommit = pendingCloseTabId && canCommitModule(pendingCloseTabId);
+
   // Create a new untitled tab
   const handleNewTab = () => {
     const extension = preferences.defaultLanguage === 'groovy' ? 'groovy' : 'ps1';
@@ -397,7 +542,7 @@ Exit 0
             isDirty={getTabDirtyState(tab)}
             canRename={!tab.hasFileHandle}
             onActivate={() => setActiveTab(tab.id)}
-            onClose={() => closeTab(tab.id)}
+            onClose={() => handleTabClose(tab.id)}
             onCloseOthers={() => closeOtherTabs(tab.id)}
             onCloseAll={closeAllTabs}
             onStartRename={() => setRenamingTabId(tab.id)}
@@ -439,6 +584,78 @@ Exit 0
             return <ModeBadge mode={activeTab.mode} />;
           })()}
         </div>
+      )}
+
+      {/* Close Confirmation Dialog */}
+      {pendingTab && (
+        <AlertDialog open={pendingCloseTabId !== null} onOpenChange={(open) => !open && handleCancelClose()}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogMedia className="bg-amber-500/10">
+                <Circle className="size-8 text-amber-500 fill-current" />
+              </AlertDialogMedia>
+              <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
+              <AlertDialogDescription>
+                <div className="space-y-2">
+                  <p>
+                    The file <strong>{pendingTab.displayName}</strong> has unsaved changes.
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    What would you like to do before closing?
+                  </p>
+                </div>
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+              <AlertDialogCancel onClick={handleCancelClose}>
+                Cancel
+              </AlertDialogCancel>
+              {isLocalFile && (
+                <AlertDialogAction
+                  onClick={handleSaveAndClose}
+                  className="bg-blue-600 hover:bg-blue-500 text-white gap-2"
+                >
+                  <Save className="size-4" />
+                  Save & Close
+                </AlertDialogAction>
+              )}
+              {isModuleTab && canCommit && (
+                <AlertDialogAction
+                  onClick={handlePreviewCommit}
+                  className="bg-blue-600 hover:bg-blue-500 text-white gap-2"
+                >
+                  <Upload className="size-4" />
+                  Preview Commit
+                </AlertDialogAction>
+              )}
+              {isModuleTab && !canCommit && (
+                <AlertDialogAction
+                  onClick={handleSaveAndClose}
+                  className="bg-blue-600 hover:bg-blue-500 text-white gap-2"
+                >
+                  <Save className="size-4" />
+                  Save a Local Copy & Close
+                </AlertDialogAction>
+              )}
+              {!isLocalFile && !isModuleTab && (
+                <AlertDialogAction
+                  onClick={handleSaveAndClose}
+                  className="bg-blue-600 hover:bg-blue-500 text-white gap-2"
+                >
+                  <Save className="size-4" />
+                  Save Locally
+                </AlertDialogAction>
+              )}
+              <AlertDialogAction
+                onClick={handleDiscardAndClose}
+                className="bg-destructive hover:bg-destructive/90 text-destructive-foreground gap-2"
+              >
+                <Trash2 className="size-4" />
+                Discard
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       )}
     </div>
   );

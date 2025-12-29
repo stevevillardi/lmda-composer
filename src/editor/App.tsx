@@ -422,6 +422,7 @@ export function App() {
           moduleName={loadedModuleForCommit.name}
           moduleType={loadedModuleForCommit.moduleType}
           scriptType={activeTab.source.scriptType || 'collection'}
+          scriptLanguage={loadedModuleForCommit.scriptType === 'powerShell' ? 'powershell' : 'groovy'}
           originalScript={activeTab.originalContent || ''}
           newScript={activeTab.content}
           hasConflict={false}

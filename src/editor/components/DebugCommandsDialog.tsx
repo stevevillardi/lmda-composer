@@ -22,6 +22,13 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import {
   DEBUG_COMMANDS,
@@ -36,7 +43,18 @@ const CATEGORY_LABELS: Record<string, string> = {
   network: 'Network',
   health: 'Health',
   misc: 'Misc',
+  scripting: 'Scripting',
+  fileops: 'File Operations',
+  diagnostics: 'Diagnostics',
+  windows: 'Windows',
+  query: 'Query/Protocol',
+  taskmgmt: 'Task Management',
 };
+
+// Helper function to get normalized category label
+function getCategoryLabel(category: string): string {
+  return CATEGORY_LABELS[category] || category.charAt(0).toUpperCase() + category.slice(1);
+}
 
 export function DebugCommandsDialog() {
   const {
@@ -208,27 +226,25 @@ export function DebugCommandsDialog() {
             {/* Category Filter */}
             {!searchQuery && (
               <div className="p-4 border-b shrink-0">
-                <div className="space-y-2">
-                  <Button
-                    variant={selectedCategory === null ? 'default' : 'ghost'}
-                    size="sm"
-                    className="w-full justify-start"
-                    onClick={() => setSelectedCategory(null)}
-                  >
-                    All Categories
-                  </Button>
-                  {categories.map(category => (
-                    <Button
-                      key={category}
-                      variant={selectedCategory === category ? 'default' : 'ghost'}
-                      size="sm"
-                      className="w-full justify-start"
-                      onClick={() => setSelectedCategory(category)}
-                    >
-                      {CATEGORY_LABELS[category] || category}
-                    </Button>
-                  ))}
-                </div>
+                <Label className="text-xs font-semibold mb-2 block">Category</Label>
+                <Select
+                  value={selectedCategory || 'all'}
+                  onValueChange={(value) => setSelectedCategory(value === 'all' ? null : value)}
+                >
+                  <SelectTrigger className="w-full h-9">
+                    <SelectValue>
+                      {selectedCategory ? getCategoryLabel(selectedCategory) : 'All Categories'}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    {categories.map(category => (
+                      <SelectItem key={category} value={category}>
+                        {getCategoryLabel(category)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             )}
 
@@ -245,7 +261,7 @@ export function DebugCommandsDialog() {
                       <div key={category} className="mb-4">
                         {!searchQuery && (
                           <div className="px-2 py-1 text-xs font-semibold text-muted-foreground uppercase">
-                            {CATEGORY_LABELS[category] || category}
+                            {getCategoryLabel(category)}
                           </div>
                         )}
                         {commands.map(cmd => (
@@ -289,7 +305,7 @@ export function DebugCommandsDialog() {
                           <div>
                             <div className="flex items-center gap-2 mb-2">
                               <code className="text-lg font-mono font-semibold">{selectedCommand.command}</code>
-                              <Badge variant="secondary">{CATEGORY_LABELS[selectedCommand.category]}</Badge>
+                              <Badge variant="secondary">{getCategoryLabel(selectedCommand.category)}</Badge>
                             </div>
                             <h3 className="text-lg font-semibold">{selectedCommand.name}</h3>
                             <p className="text-sm text-muted-foreground mt-1">{selectedCommand.description}</p>

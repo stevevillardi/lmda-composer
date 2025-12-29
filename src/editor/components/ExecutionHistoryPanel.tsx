@@ -149,7 +149,7 @@ export function ExecutionHistoryPanel() {
   return (
     <div className="flex flex-col h-full">
       {/* Header with count and clear button */}
-      <div className="flex items-center justify-between p-2 border-b border-border flex-shrink-0">
+      <div className="flex items-center justify-between p-2 border-b border-border shrink-0">
         <span className="text-xs text-muted-foreground">
           {executionHistory.length} execution{executionHistory.length !== 1 ? 's' : ''}
         </span>

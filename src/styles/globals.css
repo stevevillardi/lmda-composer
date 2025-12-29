@@ -143,6 +143,30 @@
     @apply font-sans;
   }
 
+  /* Monaco Diff Editor - Define diff highlighting colors */
+  /* These CSS variables are required for diff decorations to be visible */
+  .monaco-editor, .monaco-diff-editor {
+    --vscode-diffEditor-insertedTextBackground: rgba(155, 185, 85, 0.2);
+    --vscode-diffEditor-removedTextBackground: rgba(255, 0, 0, 0.2);
+    --vscode-diffEditor-insertedLineBackground: rgba(155, 185, 85, 0.2);
+    --vscode-diffEditor-removedLineBackground: rgba(255, 0, 0, 0.2);
+    --vscode-diffEditorGutter-insertedLineBackground: rgba(155, 185, 85, 0.3);
+    --vscode-diffEditorGutter-removedLineBackground: rgba(255, 0, 0, 0.3);
+    --vscode-diffEditor-insertedTextBorder: transparent;
+    --vscode-diffEditor-removedTextBorder: transparent;
+    --vscode-diffEditor-border: var(--border);
+    --vscode-diffEditor-diagonalFill: rgba(128, 128, 128, 0.2);
+  }
+
+  .dark .monaco-editor, .dark .monaco-diff-editor {
+    --vscode-diffEditor-insertedTextBackground: rgba(155, 185, 85, 0.25);
+    --vscode-diffEditor-removedTextBackground: rgba(255, 0, 0, 0.25);
+    --vscode-diffEditor-insertedLineBackground: rgba(155, 185, 85, 0.2);
+    --vscode-diffEditor-removedLineBackground: rgba(255, 0, 0, 0.2);
+    --vscode-diffEditorGutter-insertedLineBackground: rgba(155, 185, 85, 0.3);
+    --vscode-diffEditorGutter-removedLineBackground: rgba(255, 0, 0, 0.3);
+  }
+
   /* Native scrollbar styles for WebKit browsers (Chrome, Safari, Edge) */
   *::-webkit-scrollbar {
     width: 8px;

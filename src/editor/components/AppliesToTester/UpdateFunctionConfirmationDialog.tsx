@@ -100,7 +100,7 @@ export function UpdateFunctionConfirmationDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[1200px] max-h-[90vh] flex flex-col gap-0 p-0">
+      <DialogContent className="max-w-[95vw]! sm:max-w-[1500px]! max-h-[90vh] flex flex-col gap-0 p-0">
         <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Upload className="size-5" />
@@ -134,6 +134,14 @@ export function UpdateFunctionConfirmationDialog({
             <Label className="text-sm font-medium">Code Changes</Label>
             {hasCodeChanges ? (
               <div className="border border-border rounded-md overflow-hidden">
+                <div className="grid grid-cols-2 border-b border-border bg-muted/30">
+                  <div className="px-4 py-2 text-xs font-medium text-muted-foreground border-r border-border">
+                    Original
+                  </div>
+                  <div className="px-4 py-2 text-xs font-medium text-muted-foreground">
+                    Modified
+                  </div>
+                </div>
                 <DiffEditor
                   original={func.code}
                   modified={newCode}

@@ -15,6 +15,7 @@ import {
   Download,
   Hammer,
   Upload,
+  X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEditorStore } from '../stores/editor-store';
@@ -470,6 +471,13 @@ export function AppliesToTester() {
     toast.success(`Function "${func.name}" loaded into editor`);
   };
 
+  // Handle unload function
+  const handleUnloadFunction = () => {
+    setLoadedFunction(null);
+    clearAppliesToResults();
+    toast.info('Function unloaded');
+  };
+
   // Handle save as function (create new)
   const handleSaveAsFunction = () => {
     setLoadedFunction(null);
@@ -524,6 +532,12 @@ export function AppliesToTester() {
   // Check if expression is valid for saving
   const canSaveAsFunction = appliesToExpression.trim().length > 0 && 
     (appliesToResults.length > 0 || (!appliesToError && !isTestingAppliesTo));
+
+  // Check if expression has changed from loaded function
+  const hasExpressionChanged = useMemo(() => {
+    if (!loadedFunction) return false;
+    return appliesToExpression.trim() !== loadedFunction.code.trim();
+  }, [appliesToExpression, loadedFunction]);
 
   // Insert function or operator into expression
   const insertItem = useCallback((item: AppliesToFunction | AppliesToOperator) => {
@@ -696,9 +710,41 @@ export function AppliesToTester() {
 
               {/* Expression textarea */}
               <div className="flex-1 flex flex-col gap-2 min-h-0">
-                <Label htmlFor="expression" className="text-sm font-medium">
-                  Expression
-                </Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="expression" className="text-sm font-medium">
+                    Expression
+                  </Label>
+                  {loadedFunction && (
+                    <div className="flex items-center gap-2">
+                      <Badge variant="secondary" className="text-xs">
+                        Editing: {loadedFunction.name}
+                      </Badge>
+                      {hasExpressionChanged && (
+                        <Badge variant="outline" className="text-xs text-orange-500 border-orange-500">
+                          Modified
+                        </Badge>
+                      )}
+                      <Tooltip>
+                        <TooltipTrigger
+                          render={
+                            <Button
+                              variant="ghost"
+                              size="icon-xs"
+                              onClick={handleUnloadFunction}
+                              className="h-5 w-5"
+                              aria-label="Unload function"
+                            >
+                              <X className="size-3" />
+                            </Button>
+                          }
+                        />
+                        <TooltipContent>
+                          Unload function
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                  )}
+                </div>
                 <div className="relative flex-1 min-h-0">
                   <Textarea
                     ref={textareaRef}
@@ -784,7 +830,7 @@ export function AppliesToTester() {
                   <Button
                     variant="default"
                     onClick={handleUpdateFunctionClick}
-                    disabled={!canSaveAsFunction || !selectedPortalId}
+                    disabled={!hasExpressionChanged || !canSaveAsFunction || !selectedPortalId}
                     className="gap-2 bg-blue-600 hover:bg-blue-500 text-white"
                   >
                     <Upload className="size-4" />
