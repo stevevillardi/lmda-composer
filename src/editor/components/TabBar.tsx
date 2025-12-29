@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState, useCallback, KeyboardEvent } from 'react';
-import { X, Plus, Pencil, Circle, Save, Upload, Trash2 } from 'lucide-react';
+import { X, Plus, Pencil, Circle, Save, Upload, Trash2, AlertTriangle } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEditorStore } from '../stores/editor-store';
 import { Button } from '@/components/ui/button';
@@ -592,7 +592,7 @@ Exit 0
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogMedia className="bg-amber-500/10">
-                <Circle className="size-8 text-amber-500 fill-current" />
+                <AlertTriangle className="size-8 text-amber-500" />
               </AlertDialogMedia>
               <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
               <AlertDialogDescription>

@@ -191,11 +191,28 @@ const RESOURCE_MENU_INDICATORS = [
 
 ];
 
+// Resource menu item text patterns that indicate a resource options menu
+const COLLECTOR_MENU_INDICATORS = [
+  'Collector Status',
+  'Restart Collector', 
+
+];
+
 // Check if a menu appears to be a resource options menu based on its items
 function isResourceOptionsMenu(menuContainer: HTMLElement): boolean {
   const menuText = menuContainer.textContent || '';
   // Check if menu contains at least 2 of our indicator phrases
   const matchCount = RESOURCE_MENU_INDICATORS.filter(indicator => 
+    menuText.includes(indicator)
+  ).length;
+  return matchCount >= 2;
+}
+
+// Check if a menu appears to be a collector options menu based on its items
+function isCollectorOptionsMenu(menuContainer: HTMLElement): boolean {
+  const menuText = menuContainer.textContent || '';
+  // Check if menu contains at least 2 of our indicator phrases
+  const matchCount = COLLECTOR_MENU_INDICATORS.filter(indicator => 
     menuText.includes(indicator)
   ).length;
   return matchCount >= 2;
@@ -219,7 +236,7 @@ function setupResourceTreeObserver() {
           
           // Small delay to let the menu fully render, then check if it's a resource menu
           setTimeout(() => {
-            if (isResourceOptionsMenu(node)) {
+            if (isResourceOptionsMenu(node) || isCollectorOptionsMenu(node)) {
               injectMenuItem(node);
             }
           }, 100);
@@ -304,9 +321,179 @@ function injectMenuItem(menuContainer: HTMLElement) {
   menuList.appendChild(menuItem);
 }
 
+// Watch for button bars with Edit button and inject icon button
+function setupButtonBarObserver() {
+  const observer = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      for (const node of mutation.addedNodes) {
+        if (node instanceof HTMLElement) {
+          // Check if this node or its children contain a button with title="Edit"
+          const editButtonContainer = node.querySelector?.('[title="Edit"]');
+          if (editButtonContainer) {
+            // Find the parent container (the div.d-f.ai-c)
+            const buttonBar = editButtonContainer.closest('.d-f.ai-c');
+            if (buttonBar && buttonBar instanceof HTMLElement) {
+              // Small delay to ensure DOM is fully rendered
+              setTimeout(() => {
+                injectIconButton(buttonBar, editButtonContainer as HTMLElement);
+              }, 50);
+            }
+          }
+        }
+      }
+    }
+  });
+
+  // Also check existing elements on page load
+  const checkExistingElements = () => {
+    const editButtonContainers = document.querySelectorAll('[title="Edit"]');
+    editButtonContainers.forEach((editButtonContainer) => {
+      const buttonBar = editButtonContainer.closest('.d-f.ai-c');
+      if (buttonBar && buttonBar instanceof HTMLElement) {
+        injectIconButton(buttonBar, editButtonContainer as HTMLElement);
+      }
+    });
+  };
+
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+  });
+
+  // Check existing elements after a short delay
+  setTimeout(checkExistingElements, 500);
+}
+
+function injectIconButton(buttonBar: HTMLElement, editButtonContainer: HTMLElement) {
+  // Don't add if already present
+  if (buttonBar.querySelector('.lm-ide-icon-button')) return;
+
+  // Create wrapper div similar to other button containers
+  const wrapper = document.createElement('div');
+  wrapper.className = 'lm-ide-icon-button';
+  
+  // Create Material-UI IconButton matching the existing structure
+  const button = document.createElement('button');
+  button.className = 'MuiButtonBase-root MuiIconButton-root MuiIconButton-colorPrimary';
+  button.setAttribute('tabindex', '0');
+  button.setAttribute('type', 'button');
+  
+  const iconButtonLabel = document.createElement('span');
+  iconButtonLabel.className = 'MuiIconButton-label';
+  
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('class', 'MuiSvgIcon-root icon-width-24 icon-height-24');
+  svg.setAttribute('focusable', 'false');
+  svg.setAttribute('viewBox', '0 0 24 24');
+  svg.setAttribute('aria-hidden', 'true');
+  
+  // Create the code/editor icon SVG path (code brackets icon)
+  const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  path.setAttribute('d', 'M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0L19.2 12l-4.6-4.6L16 6l6 6-6 6-1.4-1.4z');
+  path.setAttribute('fill', 'currentColor');
+  
+  svg.appendChild(path);
+  iconButtonLabel.appendChild(svg);
+  button.appendChild(iconButtonLabel);
+  wrapper.appendChild(button);
+
+  // Create Material-UI style tooltip
+  const tooltip = document.createElement('div');
+  tooltip.className = 'MuiTooltip-tooltip MuiTooltip-tooltipPlacementBottom lm-ide-tooltip';
+  tooltip.textContent = 'Open in LMDA Composer';
+  tooltip.style.cssText = `
+    position: fixed;
+    transform-origin: top center;
+    z-index: 1500;
+    pointer-events: none;
+    color: #fff;
+    background-color: rgba(4, 28, 91);
+    font-family: "Circular", "Helvetica", "Arial", "sans-serif";
+    font-size: 0.75rem;
+    line-height: 1.4em;
+    padding: 4px 8px;
+    border-radius: 4px;
+    opacity: 0;
+    transition: opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1), transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: translateX(-50%) translateY(0) scale(0);
+    white-space: nowrap;
+    left: 0;
+    top: 0;
+  `;
+  
+  document.body.appendChild(tooltip);
+  
+  let tooltipTimeout: number | null = null;
+  let hideTimeout: number | null = null;
+  
+  const updateTooltipPosition = () => {
+    const rect = wrapper.getBoundingClientRect();
+    tooltip.style.left = `${rect.left + rect.width / 2}px`;
+    tooltip.style.top = `${rect.bottom}px`;
+  };
+  
+  const showTooltip = () => {
+    if (hideTimeout) {
+      clearTimeout(hideTimeout);
+      hideTimeout = null;
+    }
+    
+    tooltipTimeout = window.setTimeout(() => {
+      updateTooltipPosition();
+      tooltip.style.opacity = '1';
+      tooltip.style.transform = 'translateX(-50%) translateY(0) scale(1)';
+    }, 500); // Material-UI default delay
+  };
+  
+  const hideTooltip = () => {
+    if (tooltipTimeout) {
+      clearTimeout(tooltipTimeout);
+      tooltipTimeout = null;
+    }
+    
+    hideTimeout = window.setTimeout(() => {
+      tooltip.style.opacity = '0';
+      tooltip.style.transform = 'translateX(-50%) translateY(0) scale(0)';
+    }, 100);
+  };
+  
+  button.addEventListener('mouseenter', showTooltip);
+  button.addEventListener('mouseleave', hideTooltip);
+  button.addEventListener('focus', showTooltip);
+  button.addEventListener('blur', hideTooltip);
+  
+  // Update tooltip position on scroll/resize
+  const handlePositionUpdate = () => {
+    if (tooltip.style.opacity === '1') {
+      updateTooltipPosition();
+    }
+  };
+  
+  window.addEventListener('scroll', handlePositionUpdate, true);
+  window.addEventListener('resize', handlePositionUpdate);
+
+  // Add click handler
+  button.addEventListener('click', (e) => {
+    e.stopPropagation();
+    hideTooltip();
+    
+    const context = extractDeviceContext();
+    const message: ContentToSWMessage = {
+      type: 'OPEN_EDITOR',
+      payload: context,
+    };
+    
+    safeSendMessage(message);
+  });
+
+  // Insert before the Edit button container
+  editButtonContainer.parentNode?.insertBefore(wrapper, editButtonContainer);
+}
+
 // Initialize
 sendCsrfToken();
 setupResourceTreeObserver();
+setupButtonBarObserver();
 
 // Listen for messages from service worker (only if context is valid)
 if (isExtensionContextValid()) {
