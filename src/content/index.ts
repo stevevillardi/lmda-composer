@@ -261,6 +261,37 @@ const COLLECTOR_MENU_INDICATORS = [
 
 ];
 
+const iconButtonCleanups = new WeakMap<HTMLElement, () => void>();
+
+function registerIconButtonCleanup(wrapper: HTMLElement, cleanup: () => void) {
+  iconButtonCleanups.set(wrapper, cleanup);
+}
+
+function setupIconButtonCleanupObserver() {
+  const observer = new MutationObserver((mutations) => {
+    for (const mutation of mutations) {
+      for (const node of mutation.removedNodes) {
+        if (!(node instanceof HTMLElement)) continue;
+        if (node.classList.contains('lm-ide-icon-button')) {
+          iconButtonCleanups.get(node)?.();
+          iconButtonCleanups.delete(node);
+          continue;
+        }
+        node.querySelectorAll?.('.lm-ide-icon-button').forEach((child) => {
+          if (!(child instanceof HTMLElement)) return;
+          iconButtonCleanups.get(child)?.();
+          iconButtonCleanups.delete(child);
+        });
+      }
+    }
+  });
+
+  observer.observe(document.body, {
+    childList: true,
+    subtree: true,
+  });
+}
+
 // Check if a menu appears to be a resource options menu based on its items
 function isResourceOptionsMenu(menuContainer: HTMLElement): boolean {
   const menuText = menuContainer.textContent || '';
@@ -495,6 +526,7 @@ function injectIconButton(buttonBar: HTMLElement, editButtonContainer: HTMLEleme
   
   let tooltipTimeout: number | null = null;
   let hideTimeout: number | null = null;
+  const controller = new AbortController();
   
   const updateTooltipPosition = () => {
     const rect = wrapper.getBoundingClientRect();
@@ -527,10 +559,10 @@ function injectIconButton(buttonBar: HTMLElement, editButtonContainer: HTMLEleme
     }, 100);
   };
   
-  button.addEventListener('mouseenter', showTooltip);
-  button.addEventListener('mouseleave', hideTooltip);
-  button.addEventListener('focus', showTooltip);
-  button.addEventListener('blur', hideTooltip);
+  button.addEventListener('mouseenter', showTooltip, { signal: controller.signal });
+  button.addEventListener('mouseleave', hideTooltip, { signal: controller.signal });
+  button.addEventListener('focus', showTooltip, { signal: controller.signal });
+  button.addEventListener('blur', hideTooltip, { signal: controller.signal });
   
   // Update tooltip position on scroll/resize
   const handlePositionUpdate = () => {
@@ -539,8 +571,8 @@ function injectIconButton(buttonBar: HTMLElement, editButtonContainer: HTMLEleme
     }
   };
   
-  window.addEventListener('scroll', handlePositionUpdate, true);
-  window.addEventListener('resize', handlePositionUpdate);
+  window.addEventListener('scroll', handlePositionUpdate, { capture: true, signal: controller.signal });
+  window.addEventListener('resize', handlePositionUpdate, { signal: controller.signal });
 
   // Add click handler
   button.addEventListener('click', (e) => {
@@ -558,12 +590,18 @@ function injectIconButton(buttonBar: HTMLElement, editButtonContainer: HTMLEleme
 
   // Insert before the Edit button container
   editButtonContainer.parentNode?.insertBefore(wrapper, editButtonContainer);
+
+  registerIconButtonCleanup(wrapper, () => {
+    controller.abort();
+    tooltip.remove();
+  });
 }
 
 // Initialize
 sendCsrfToken();
 setupResourceTreeObserver();
 setupButtonBarObserver();
+setupIconButtonCleanupObserver();
 
 // Listen for messages from service worker (only if context is valid)
 if (isExtensionContextValid()) {

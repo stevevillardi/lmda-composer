@@ -185,6 +185,7 @@ export interface ExecuteScriptRequest {
   script: string;
   language: ScriptLanguage;
   mode: ScriptMode;
+  executionId?: string;
   hostname?: string;
   deviceId?: number;
   wildvalue?: string;
@@ -224,6 +225,7 @@ export interface LogicModuleInfo {
   id: number;
   name: string;
   displayName: string;
+  description?: string;
   moduleType: LogicModuleType;
   appliesTo: string;
   collectMethod: string;
@@ -301,6 +303,7 @@ export interface FetchModulesRequest {
   moduleType: LogicModuleType;
   offset?: number;
   size?: number;
+  search?: string;
 }
 
 export interface FetchModulesResponse {
@@ -461,6 +464,7 @@ export interface ExecuteDebugCommandRequest {
   collectorIds: number[];
   command: string;
   parameters?: Record<string, string>;
+  positionalArgs?: string[];
 }
 
 export interface DebugCommandProgress {

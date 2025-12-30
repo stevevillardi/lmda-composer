@@ -64,6 +64,8 @@ interface EditorState {
   moduleBrowserOpen: boolean;
   selectedModuleType: LogicModuleType;
   modulesCache: Record<LogicModuleType, LogicModuleInfo[]>;
+  modulesMeta: Record<LogicModuleType, { offset: number; hasMore: boolean; total: number }>;
+  modulesSearch: Record<LogicModuleType, string>;
   isFetchingModules: boolean;
   selectedModule: LogicModuleInfo | null;
   moduleSearchQuery: string;
@@ -167,7 +169,7 @@ interface EditorState {
   // Module browser actions
   setModuleBrowserOpen: (open: boolean) => void;
   setSelectedModuleType: (type: LogicModuleType) => void;
-  fetchModules: (type: LogicModuleType) => Promise<void>;
+  fetchModules: (type: LogicModuleType, options?: { append?: boolean; search?: string; pages?: number }) => Promise<void>;
   setSelectedModule: (module: LogicModuleInfo | null) => void;
   setModuleSearchQuery: (query: string) => void;
   loadModuleScript: (script: string, language: ScriptLanguage, mode: ScriptMode) => void;
@@ -276,7 +278,7 @@ interface EditorState {
   
   // Debug commands actions
   setDebugCommandsDialogOpen: (open: boolean) => void;
-  executeDebugCommand: (portalId: string, collectorIds: number[], command: string, parameters?: Record<string, string>) => Promise<void>;
+  executeDebugCommand: (portalId: string, collectorIds: number[], command: string, parameters?: Record<string, string>, positionalArgs?: string[]) => Promise<void>;
   cancelDebugCommandExecution: () => Promise<void>;
   debugCommandExecutionId: string | null;
   
@@ -357,6 +359,24 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     logsource: [],
     diagnosticsource: [],
     eventsource: [],
+  },
+  modulesMeta: {
+    datasource: { offset: 0, hasMore: true, total: 0 },
+    configsource: { offset: 0, hasMore: true, total: 0 },
+    topologysource: { offset: 0, hasMore: true, total: 0 },
+    propertysource: { offset: 0, hasMore: true, total: 0 },
+    logsource: { offset: 0, hasMore: true, total: 0 },
+    diagnosticsource: { offset: 0, hasMore: true, total: 0 },
+    eventsource: { offset: 0, hasMore: true, total: 0 },
+  },
+  modulesSearch: {
+    datasource: '',
+    configsource: '',
+    topologysource: '',
+    propertysource: '',
+    logsource: '',
+    diagnosticsource: '',
+    eventsource: '',
   },
   isFetchingModules: false,
   selectedModule: null,
@@ -699,6 +719,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           script,
           language,
           mode,
+          executionId,
           hostname: state.hostname || undefined,
           wildvalue: state.wildvalue || undefined,
           datasourceId: state.datasourceId || undefined,
@@ -837,6 +858,24 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           diagnosticsource: [],
           eventsource: [],
         },
+        modulesMeta: {
+          datasource: { offset: 0, hasMore: true, total: 0 },
+          configsource: { offset: 0, hasMore: true, total: 0 },
+          topologysource: { offset: 0, hasMore: true, total: 0 },
+          propertysource: { offset: 0, hasMore: true, total: 0 },
+          logsource: { offset: 0, hasMore: true, total: 0 },
+          diagnosticsource: { offset: 0, hasMore: true, total: 0 },
+          eventsource: { offset: 0, hasMore: true, total: 0 },
+        },
+        modulesSearch: {
+          datasource: '',
+          configsource: '',
+          topologysource: '',
+          propertysource: '',
+          logsource: '',
+          diagnosticsource: '',
+          eventsource: '',
+        },
       });
       
       // Show toast notification for the disconnected portal
@@ -883,6 +922,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const { pendingExecution } = get();
     if (!pendingExecution) return;
 
+    const executionId = crypto.randomUUID();
+
     // Close dialog and store values
     set({ 
       executionContextDialogOpen: false, 
@@ -895,6 +936,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     set({ 
       isExecuting: true, 
       currentExecution: null,
+      currentExecutionId: executionId,
       parsedOutput: null,
       outputTab: 'raw',
     });
@@ -904,6 +946,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         type: 'EXECUTE_SCRIPT',
         payload: {
           ...pendingExecution,
+          executionId,
           wildvalue: wildvalue || undefined,
           datasourceId: datasourceId || undefined,
         },
@@ -986,7 +1029,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     if (open) {
       const { selectedModuleType, modulesCache, selectedPortalId } = get();
       if (selectedPortalId && modulesCache[selectedModuleType].length === 0) {
-        get().fetchModules(selectedModuleType);
+        get().fetchModules(selectedModuleType, { append: false, pages: 3, search: '' });
       }
     } else {
       // Clear selection when closing
@@ -999,13 +1042,30 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const { modulesCache, selectedPortalId } = get();
     // Fetch if cache is empty for this type
     if (selectedPortalId && modulesCache[type].length === 0) {
-      get().fetchModules(type);
+      get().fetchModules(type, { append: false, pages: 3, search: '' });
     }
   },
 
-  fetchModules: async (type) => {
-    const { selectedPortalId } = get();
+  fetchModules: async (type, options) => {
+    const { selectedPortalId, modulesMeta, modulesSearch } = get();
     if (!selectedPortalId) return;
+
+    const pages = Math.max(1, options?.pages ?? 1);
+    if (pages > 1 && !options?.append) {
+      for (let i = 0; i < pages; i++) {
+        await get().fetchModules(type, {
+          append: i > 0,
+          search: options?.search ?? '',
+          pages: 1,
+        });
+      }
+      return;
+    }
+
+    const append = options?.append ?? false;
+    const search = options?.search ?? modulesSearch[type];
+    const currentMeta = modulesMeta[type];
+    const offset = append ? currentMeta.offset : 0;
 
     set({ isFetchingModules: true });
 
@@ -1015,20 +1075,42 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         payload: {
           portalId: selectedPortalId,
           moduleType: type,
-          offset: 0,
+          offset,
           size: 1000,
+          search: search || undefined,
         },
       });
 
       if (response?.type === 'MODULES_FETCHED') {
         const fetchResponse = response.payload as FetchModulesResponse;
-        set((state) => ({
-          modulesCache: {
-            ...state.modulesCache,
-            [type]: fetchResponse.items,
-          },
-          isFetchingModules: false,
-        }));
+        set((state) => {
+          const existing = append ? state.modulesCache[type] : [];
+          const merged = new Map<number, LogicModuleInfo>();
+          for (const item of existing) merged.set(item.id, item);
+          for (const item of fetchResponse.items) merged.set(item.id, item);
+
+          const nextOffset = offset + fetchResponse.items.length;
+
+          return {
+            modulesCache: {
+              ...state.modulesCache,
+              [type]: Array.from(merged.values()),
+            },
+            modulesMeta: {
+              ...state.modulesMeta,
+              [type]: {
+                offset: nextOffset,
+                hasMore: fetchResponse.hasMore,
+                total: fetchResponse.total,
+              },
+            },
+            modulesSearch: {
+              ...state.modulesSearch,
+              [type]: search,
+            },
+            isFetchingModules: false,
+          };
+        });
       } else {
         console.error('Failed to fetch modules:', response);
         set({ isFetchingModules: false });
@@ -2798,7 +2880,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     }
   },
 
-  executeDebugCommand: async (portalId: string, collectorIds: number[], command: string, parameters?: Record<string, string>) => {
+  executeDebugCommand: async (portalId: string, collectorIds: number[], command: string, parameters?: Record<string, string>, positionalArgs?: string[]) => {
     const executionId = crypto.randomUUID();
     set({ isExecutingDebugCommand: true, debugCommandResults: {}, debugCommandExecutionId: executionId });
 
@@ -2807,6 +2889,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       collectorIds,
       command,
       parameters,
+      positionalArgs,
     };
 
     // Set up message listener for progress updates and completion

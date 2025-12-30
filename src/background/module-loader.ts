@@ -31,76 +31,65 @@ export class ModuleLoader {
   constructor(private portalManager: PortalManager) {}
 
   /**
-   * Fetch ALL modules of a specific type from a portal with automatic pagination.
+   * Fetch a page of modules of a specific type from a portal.
    * Automatically re-discovers portals if the requested portal is not found
    * (handles service worker termination/restart)
    * 
-   * Note: Always fetches all modules with automatic pagination. The offset/size
-   * parameters from FetchModulesRequest are ignored; we use internal PAGE_SIZE.
+   * Note: Returns a single page based on offset/size (defaults to PAGE_SIZE).
    */
   async fetchModules(
     portalId: string,
-    moduleType: LogicModuleType
+    moduleType: LogicModuleType,
+    offset: number = 0,
+    size: number = PAGE_SIZE,
+    search: string = ''
   ): Promise<FetchModulesResponse> {
-    let portal = this.portalManager.getPortal(portalId);
-    
-    // If portal not found (e.g., after service worker restart), try to rediscover
-    if (!portal || portal.tabIds.length === 0) {
-      await this.portalManager.discoverPortals();
-      portal = this.portalManager.getPortal(portalId);
-    }
-    
-    if (!portal || portal.tabIds.length === 0) {
+    const tabId = await this.portalManager.getValidTabIdForPortal(portalId);
+    if (!tabId) {
       return { items: [], total: 0, hasMore: false };
     }
 
-    const tabId = portal.tabIds[0];
+    const portal = this.portalManager.getPortal(portalId);
+    if (!portal) {
+      return { items: [], total: 0, hasMore: false };
+    }
+
     const endpoint = ENDPOINTS[moduleType];
     const needsFilter = NEEDS_SCRIPT_FILTER.includes(moduleType);
 
     try {
-      // Paginate through all results
-      let allItems: FetchModulesResponse['items'] = [];
-      let offset = 0;
-      let total = 0;
-      let hasMore = true;
+      const results = await chrome.scripting.executeScript({
+        target: { tabId },
+        func: fetchModulesFromAPI,
+        args: [portal.csrfToken, endpoint, moduleType, needsFilter, offset, size, search],
+      });
 
-      while (hasMore) {
-        const results = await chrome.scripting.executeScript({
-          target: { tabId },
-          func: fetchModulesFromAPI,
-          args: [portal.csrfToken, endpoint, moduleType, needsFilter, offset, PAGE_SIZE],
-        });
-
-        if (!results?.[0]?.result) break;
-
-        const pageResult = results[0].result as FetchModulesResponse;
-        allItems = allItems.concat(pageResult.items);
-        total = pageResult.total;
-        
-        offset += PAGE_SIZE;
-        hasMore = offset < total;
+      if (!results?.[0]?.result) {
+        return { items: [], total: 0, hasMore: false };
       }
+
+      const pageResult = results[0].result as FetchModulesResponse;
+      let items = pageResult.items;
 
       // Post-filter for LogSource: only include script-based modules
       if (moduleType === 'logsource') {
-        allItems = allItems.filter(item => 
+        items = items.filter(item => 
           item.collectMethod === 'script' && item.collectionScript
         );
       }
 
       if (moduleType === 'topologysource') {
-        allItems = allItems.filter(item => item.scriptType === 'embed');
+        items = items.filter(item => item.scriptType === 'embed');
       }
 
       if (moduleType === 'eventsource') {
-        allItems = allItems.filter(item => item.scriptType === 'embed');
+        items = items.filter(item => item.scriptType === 'embed');
       }
 
       return {
-        items: allItems,
-        total: allItems.length,
-        hasMore: false, // We fetched everything
+        items,
+        total: pageResult.total,
+        hasMore: pageResult.hasMore,
       };
     } catch {
       return { items: [], total: 0, hasMore: false };
@@ -120,6 +109,7 @@ interface APIModule {
   id: number;
   name: string;
   displayName?: string;
+  description?: string;
   appliesTo?: string;
   collectMethod?: string;
   lineageId?: string;
@@ -162,7 +152,8 @@ function fetchModulesFromAPI(
   moduleType: string,
   needsFilter: boolean,
   offset: number,
-  size: number
+  size: number,
+  search: string
 ): Promise<{
   items: Array<{
     id: number;
@@ -185,9 +176,24 @@ function fetchModulesFromAPI(
     // Build URL with query params
     let url = `${endpoint}?size=${size}&offset=${offset}`;
     
-    // Add filter for script-based modules only
+    const encodeFilterValue = (value: string): string => {
+      const escaped = value.replace(/[()]/g, '\\$&');
+      const once = encodeURIComponent(escaped);
+      return encodeURIComponent(once);
+    };
+
+    const filters: string[] = [];
     if (needsFilter) {
-      url += '&filter=collectMethod~"script"';
+      filters.push('collectMethod~"script"');
+    }
+    if (search && search.trim()) {
+      const escaped = search.replace(/"/g, '\\"');
+      const encodedValue = encodeFilterValue(`*${escaped}*`);
+      const searchFilter = `_all~"${encodedValue}"`;
+      filters.push(searchFilter);
+    }
+    if (filters.length > 0) {
+      url += `&filter=${encodeURIComponent(filters.join(','))}`;
     }
 
     xhr.open('GET', '/santaba/rest' + url, true);
@@ -204,6 +210,15 @@ function fetchModulesFromAPI(
           const rawItems = response.items || response.data?.items || [];
 
           // Map to unified LogicModuleInfo format
+          const normalizeScriptType = (raw?: string): string => {
+            const normalized = (raw || '').toLowerCase();
+            if (!normalized) return '';
+            if (normalized === 'powershell') return 'powerShell';
+            if (normalized === 'property') return 'property';
+            if (normalized === 'embed' || normalized === 'embedded') return 'embed';
+            return normalized;
+          };
+
           const items = rawItems.map((m: APIModule) => {
             // Extract scripts based on module type
             let collectionScript: string | undefined;
@@ -216,17 +231,17 @@ function fetchModulesFromAPI(
           if (moduleType === 'propertysource') {
             // PropertySource stores script directly on the module in groovyScript
             collectionScript = m.groovyScript || '';
-            scriptType = m.scriptType || 'embed';
+            scriptType = normalizeScriptType(m.scriptType) || 'embed';
             collectMethod = 'script';
           } else if (moduleType === 'diagnosticsource') {
             // DiagnosticSource stores script in groovyScript field
             collectionScript = m.groovyScript || '';
-            scriptType = m.scriptType || 'embed';
+            scriptType = normalizeScriptType(m.scriptType) || 'embed';
             collectMethod = 'script';
           } else if (moduleType === 'eventsource') {
             // EventSource stores script in groovyScript field
             collectionScript = m.groovyScript || '';
-            scriptType = m.scriptType || '';
+            scriptType = normalizeScriptType(m.scriptType) || 'embed';
             collectMethod = 'script';
           } else if (moduleType === 'logsource') {
             // LogSource has different schema:
@@ -245,24 +260,12 @@ function fetchModulesFromAPI(
               const detectedType = m.collectionAttribute?.script?.type
                 || m.collectionAttribute?.scriptType
                 || 'embed';
-              scriptType = detectedType.toLowerCase() === 'powershell' ? 'powerShell' : 'embed';
+              scriptType = normalizeScriptType(detectedType) || 'embed';
             } else {
               // DataSource, ConfigSource, TopologySource
               collectionScript = m.collectorAttribute?.groovyScript || '';
               // Normalize scriptType - API may return different casings
-              const rawScriptType = m.collectorAttribute?.scriptType || '';
-              if (rawScriptType) {
-                const normalizedType = rawScriptType.toLowerCase();
-                if (normalizedType === 'powershell') {
-                  scriptType = 'powerShell';
-                } else if (normalizedType === 'property') {
-                  scriptType = 'property';
-                } else {
-                  scriptType = 'embed';
-                }
-              } else {
-                scriptType = '';
-              }
+              scriptType = normalizeScriptType(m.collectorAttribute?.scriptType) || 'embed';
               
               // Only mark as AD if there's actually an AD script defined
               if (m.enableAutoDiscovery && m.autoDiscoveryConfig?.method) {
@@ -277,6 +280,7 @@ function fetchModulesFromAPI(
               id: m.id,
               name: m.name,
               displayName: m.displayName || m.name,
+              description: m.description || '',
               moduleType,
               appliesTo,
               collectMethod,

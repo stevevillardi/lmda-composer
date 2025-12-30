@@ -168,8 +168,8 @@ async function handleMessage(
       }
 
       case 'FETCH_MODULES': {
-        const { portalId, moduleType } = message.payload as FetchModulesRequest;
-        const response = await moduleLoader.fetchModules(portalId, moduleType);
+        const { portalId, moduleType, offset, size, search } = message.payload as FetchModulesRequest;
+        const response = await moduleLoader.fetchModules(portalId, moduleType, offset, size, search);
         sendResponse({ type: 'MODULES_FETCHED', payload: response });
         break;
       }
@@ -363,7 +363,8 @@ async function handleMessage(
         };
         try {
           const portal = portalManager.getPortal(portalId);
-          if (!portal || portal.tabIds.length === 0) {
+          const tabId = await portalManager.getValidTabIdForPortal(portalId);
+          if (!portal || !tabId) {
             sendResponse({ 
               type: 'MODULE_ERROR', 
               payload: { error: 'Portal not found or no tabs available', code: 404 } 
@@ -371,7 +372,7 @@ async function handleMessage(
             break;
           }
           const csrfToken = await portalManager.getCsrfToken(portalId);
-          const module = await fetchModuleById(portal.hostname, csrfToken, moduleType, moduleId, portal.tabIds[0]);
+          const module = await fetchModuleById(portal.hostname, csrfToken, moduleType, moduleId, tabId);
           if (module) {
             sendResponse({ type: 'MODULE_FETCHED', payload: module });
           } else {
@@ -400,7 +401,8 @@ async function handleMessage(
         };
         try {
           const portal = portalManager.getPortal(portalId);
-          if (!portal || portal.tabIds.length === 0) {
+          const tabId = await portalManager.getValidTabIdForPortal(portalId);
+          if (!portal || !tabId) {
             sendResponse({
               type: 'LINEAGE_ERROR',
               payload: { error: 'Portal not found or no tabs available', code: 404 },
@@ -413,7 +415,7 @@ async function handleMessage(
             csrfToken,
             moduleType,
             lineageId,
-            portal.tabIds[0]
+            tabId
           );
           if (versions) {
             sendResponse({ type: 'LINEAGE_VERSIONS_FETCHED', payload: { versions } });
@@ -446,7 +448,8 @@ async function handleMessage(
         console.log(`[SW] COMMIT_MODULE_SCRIPT: portalId=${portalId}, moduleType=${moduleType}, moduleId=${moduleId}, scriptType=${scriptType}`);
         try {
           const portal = portalManager.getPortal(portalId);
-          if (!portal || portal.tabIds.length === 0) {
+          const tabId = await portalManager.getValidTabIdForPortal(portalId);
+          if (!portal || !tabId) {
             console.error(`[SW] Portal not found or no tabs: portalId=${portalId}, tabIds=${portal?.tabIds.length || 0}`);
             sendResponse({ 
               type: 'MODULE_ERROR', 
@@ -464,7 +467,7 @@ async function handleMessage(
             moduleId, 
             scriptType, 
             newScript,
-            portal.tabIds[0]
+            tabId
           );
           console.log(`[SW] Commit result:`, result);
           if (result.success) {

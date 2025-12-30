@@ -76,7 +76,7 @@ export class ScriptExecutor {
    */
   async execute(request: ExecuteScriptRequest): Promise<ExecutionResult> {
     const startTime = Date.now();
-    const executionId = crypto.randomUUID();
+    const executionId = request.executionId ?? crypto.randomUUID();
     
     // Check for concurrent execution
     if (this.activeExecutions.size > 0) {
@@ -322,7 +322,7 @@ export class ScriptExecutor {
       }
 
       // Build command string
-      const cmdline = buildDebugCommand(request.command, request.parameters);
+      const cmdline = buildDebugCommand(request.command, request.parameters, request.positionalArgs);
 
       // Execute on multiple collectors (portalId is the hostname)
       const results = await executeOnMultipleCollectors(
@@ -392,4 +392,3 @@ export class ScriptExecutor {
     return false;
   }
 }
-

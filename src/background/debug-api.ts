@@ -265,26 +265,38 @@ export function buildPowerShellCommand(script: string): string {
  */
 export function buildDebugCommand(
   command: string,
-  parameters?: Record<string, string>
+  parameters?: Record<string, string>,
+  positionalArgs?: string[]
 ): string {
-  if (!parameters || Object.keys(parameters).length === 0) {
-    return command;
-  }
+  const args: string[] = [];
 
-  const paramStrings: string[] = [];
-  for (const [key, value] of Object.entries(parameters)) {
-    if (value !== undefined && value !== null && value !== '') {
-      // Handle special cases where value might contain spaces or special chars
-      // For now, just append as-is (user is responsible for quoting if needed)
-      paramStrings.push(`${key}=${value}`);
+  if (positionalArgs && positionalArgs.length > 0) {
+    for (const value of positionalArgs) {
+      const needsQuoting = /[\s"\\]/.test(value);
+      const formattedValue = needsQuoting
+        ? `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
+        : value;
+      args.push(formattedValue);
     }
   }
 
-  if (paramStrings.length === 0) {
+  if (parameters) {
+    for (const [key, value] of Object.entries(parameters)) {
+      if (value !== undefined && value !== null && value !== '') {
+        const needsQuoting = /[\s"\\]/.test(value);
+        const formattedValue = needsQuoting
+          ? `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
+          : value;
+        args.push(`${key}=${formattedValue}`);
+      }
+    }
+  }
+
+  if (args.length === 0) {
     return command;
   }
 
-  return `${command} ${paramStrings.join(' ')}`;
+  return `${command} ${args.join(' ')}`;
 }
 
 export interface MultiCollectorResult {
@@ -412,4 +424,3 @@ function sleepWithAbort(ms: number, abortSignal?: AbortSignal): Promise<void> {
     abortSignal?.addEventListener('abort', abortHandler);
   });
 }
-

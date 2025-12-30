@@ -10,6 +10,7 @@ export interface DebugCommandParameter {
   description: string;
   required: boolean;
   example?: string;
+  positional?: boolean;
 }
 
 export interface DebugCommand {
@@ -562,7 +563,7 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Resolves a DNS name to an IP address.',
     example: '!nslookup logicmonitor.com',
     parameters: [
-      { name: 'hostname', description: 'Hostname to resolve', required: true, example: 'logicmonitor.com' }
+      { name: 'hostname', description: 'Hostname to resolve', required: true, example: 'logicmonitor.com', positional: true }
     ],
     category: 'network'
   },
@@ -1185,4 +1186,3 @@ export function searchCommands(query: string): DebugCommand[] {
     cmd.command.toLowerCase().includes(lowerQuery)
   );
 }
-

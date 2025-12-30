@@ -19,7 +19,8 @@ export interface PrefetchResult {
 const PREFETCH_SCRIPT_TEMPLATE = `import groovy.json.JsonOutput
 import com.santaba.agent.collector3.CollectorDb
 
-def host = CollectorDb.getInstance().getHost("##HOSTNAME##")
+def hostname = new String("##HOSTNAMEBASE64##".decodeBase64())
+def host = CollectorDb.getInstance().getHost(hostname)
 if (host == null) {
   println "{}"
   return 0
@@ -34,7 +35,8 @@ return 0
 `;
 
 function buildPrefetchScript(hostname: string): string {
-  return PREFETCH_SCRIPT_TEMPLATE.replace('##HOSTNAME##', hostname);
+  const hostnameBase64 = btoa(hostname);
+  return PREFETCH_SCRIPT_TEMPLATE.replace('##HOSTNAMEBASE64##', hostnameBase64);
 }
 
 /**
@@ -89,4 +91,3 @@ function parsePropertiesOutput(output: string): Record<string, string> {
     return {};
   }
 }
-

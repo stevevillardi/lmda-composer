@@ -72,6 +72,7 @@ export function DebugCommandsDialog() {
   const [parameters, setParameters] = useState<Record<string, string>>({});
   const [selectedCollectorIds, setSelectedCollectorIds] = useState<number[]>([]);
   const [showResults, setShowResults] = useState(false);
+  const [executedCommand, setExecutedCommand] = useState<string | null>(null);
 
   // Reset state when dialog opens/closes
   useEffect(() => {
@@ -82,6 +83,7 @@ export function DebugCommandsDialog() {
       setParameters({});
       setSelectedCollectorIds([]);
       setShowResults(false);
+      setExecutedCommand(null);
     }
   }, [debugCommandsDialogOpen]);
 
@@ -174,20 +176,51 @@ export function DebugCommandsDialog() {
       }
     }
 
-    // Filter out empty parameters
+    const positionalArgs: string[] = [];
     const filteredParams: Record<string, string> = {};
-    for (const [key, value] of Object.entries(parameters)) {
-      if (value?.trim()) {
-        filteredParams[key] = value.trim();
+    if (selectedCommand.parameters) {
+      for (const param of selectedCommand.parameters) {
+        const value = parameters[param.name]?.trim() ?? '';
+        if (!value) continue;
+        if (param.positional) {
+          positionalArgs.push(value);
+        } else {
+          filteredParams[param.name] = value;
+        }
       }
     }
 
+    const formatDebugCommand = (command: string, params: Record<string, string>, positional: string[]) => {
+      const parts: string[] = [];
+
+      for (const value of positional) {
+        const needsQuoting = /[\s"\\]/.test(value);
+        const formattedValue = needsQuoting
+          ? `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
+          : value;
+        parts.push(formattedValue);
+      }
+
+      for (const [key, value] of Object.entries(params)) {
+        const needsQuoting = /[\s"\\]/.test(value);
+        const formattedValue = needsQuoting
+          ? `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
+          : value;
+        parts.push(`${key}=${formattedValue}`);
+      }
+
+      if (parts.length === 0) return command;
+      return `${command} ${parts.join(' ')}`;
+    };
+
     setShowResults(true);
+    setExecutedCommand(formatDebugCommand(selectedCommand.command, filteredParams, positionalArgs));
     await executeDebugCommand(
       selectedPortalId,
       selectedCollectorIds,
       selectedCommand.command,
-      filteredParams
+      filteredParams,
+      positionalArgs
     );
   };
 
@@ -218,8 +251,18 @@ export function DebugCommandsDialog() {
                   placeholder="Search commands..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-8"
+                  className="pl-8 pr-7"
                 />
+                {searchQuery.trim() && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    aria-label="Clear search"
+                  >
+                    ×
+                  </button>
+                )}
               </div>
             </div>
 
@@ -437,6 +480,7 @@ export function DebugCommandsDialog() {
                 ) : (
                   <MultiCollectorResults
                     command={selectedCommand}
+                    executedCommand={executedCommand ?? selectedCommand.command}
                     onBack={() => setShowResults(false)}
                   />
                 )}
@@ -456,4 +500,3 @@ export function DebugCommandsDialog() {
     </Dialog>
   );
 }
-

@@ -133,6 +133,31 @@ export class PortalManager {
     return null;
   }
 
+  /**
+   * Get a valid tab ID for a portal, with auto-rediscovery if needed.
+   * Returns null if no valid tab is available.
+   */
+  async getValidTabIdForPortal(portalId: string): Promise<number | null> {
+    let portal = this.portals.get(portalId);
+
+    if (!portal || portal.tabIds.length === 0) {
+      await this.discoverPortals();
+      portal = this.portals.get(portalId);
+    }
+
+    if (!portal) return null;
+
+    let tabId = await this.getValidTabId(portal);
+    if (!tabId) {
+      await this.discoverPortals();
+      portal = this.portals.get(portalId);
+      if (!portal) return null;
+      tabId = await this.getValidTabId(portal);
+    }
+
+    return tabId ?? null;
+  }
+
   async discoverPortals(): Promise<Portal[]> {
     try {
       // Initialize from storage if not already done
@@ -645,7 +670,7 @@ function fetchCsrfToken(): Promise<string | null> {
 
 // Function to be injected into the page to fetch collectors
 // Note: Returns plain objects, will be typed as Collector[] by caller
-function fetchCollectors(csrfToken: string | null): Promise<Array<{
+async function fetchCollectors(csrfToken: string | null): Promise<Array<{
   id: number;
   description: string;
   hostname: string;
@@ -654,9 +679,22 @@ function fetchCollectors(csrfToken: string | null): Promise<Array<{
   collectorGroupName: string;
   arch?: string;
 }>> {
-  return new Promise((resolve) => {
+  const pageSize = 1000;
+
+  const fetchPage = (offset: number) => new Promise<{
+    items: Array<{
+      id: number;
+      description: string;
+      hostname: string;
+      status: number;
+      isDown: boolean;
+      collectorGroupName: string;
+      arch?: string;
+    }>;
+    total: number;
+  }>((resolve) => {
     const xhr = new XMLHttpRequest();
-    xhr.open('GET', '/santaba/rest/setting/collector/collectors?size=1000&fields=id,description,hostname,status,isDown,collectorGroupName,arch', true);
+    xhr.open('GET', `/santaba/rest/setting/collector/collectors?size=${pageSize}&offset=${offset}&fields=id,description,hostname,status,isDown,collectorGroupName,arch`, true);
     xhr.setRequestHeader('Content-Type', 'application/json');
     xhr.setRequestHeader('X-version', '3');
     if (csrfToken) {
@@ -685,22 +723,48 @@ function fetchCollectors(csrfToken: string | null): Promise<Array<{
             collectorGroupName: c.collectorGroupName,
             arch: c.arch,
           }));
-          resolve(collectors);
+          const total = typeof response.total === 'number' ? response.total : (response.data?.total ?? 0);
+          resolve({ items: collectors, total: total || items.length });
         } catch {
-          resolve([]);
+          resolve({ items: [], total: 0 });
         }
       } else {
-        resolve([]);
+        resolve({ items: [], total: 0 });
       }
     };
     
-    xhr.onerror = () => resolve([]);
+    xhr.onerror = () => resolve({ items: [], total: 0 });
     xhr.send();
   });
+
+  const allCollectors: Array<{
+    id: number;
+    description: string;
+    hostname: string;
+    status: number;
+    isDown: boolean;
+    collectorGroupName: string;
+    arch?: string;
+  }> = [];
+
+  let offset = 0;
+  let total = 0;
+
+  while (true) {
+    const page = await fetchPage(offset);
+    if (page.items.length === 0) break;
+    allCollectors.push(...page.items);
+    total = page.total;
+    offset += page.items.length;
+    if (total > 0 && offset >= total) break;
+    if (page.items.length < pageSize) break;
+  }
+
+  return allCollectors;
 }
 
 // Function to be injected into the page to fetch devices for a collector
-function fetchDevices(csrfToken: string | null, collectorId: number): Promise<{
+async function fetchDevices(csrfToken: string | null, collectorId: number): Promise<{
   items: Array<{
     id: number;
     name: string;
@@ -710,10 +774,21 @@ function fetchDevices(csrfToken: string | null, collectorId: number): Promise<{
   }>;
   total: number;
 }> {
-  return new Promise((resolve) => {
+  const pageSize = 1000;
+
+  const fetchPage = (offset: number) => new Promise<{
+    items: Array<{
+      id: number;
+      name: string;
+      displayName: string;
+      currentCollectorId: number;
+      hostStatus: string;
+    }>;
+    total: number;
+  }>((resolve) => {
     const xhr = new XMLHttpRequest();
     const filter = encodeURIComponent(`currentCollectorId:${collectorId}`);
-    xhr.open('GET', `/santaba/rest/device/devices?filter=${filter}&size=1000&fields=id,name,displayName,currentCollectorId,hostStatus`, true);
+    xhr.open('GET', `/santaba/rest/device/devices?filter=${filter}&size=${pageSize}&offset=${offset}&fields=id,name,displayName,currentCollectorId,hostStatus`, true);
     xhr.setRequestHeader('Content-Type', 'application/json');
     xhr.setRequestHeader('X-version', '3');
     if (csrfToken) {
@@ -738,7 +813,8 @@ function fetchDevices(csrfToken: string | null, collectorId: number): Promise<{
             currentCollectorId: d.currentCollectorId,
             hostStatus: d.hostStatus || 'unknown',
           }));
-          resolve({ items: devices, total: response.total || devices.length });
+          const total = typeof response.total === 'number' ? response.total : (response.data?.total ?? 0);
+          resolve({ items: devices, total: total || items.length });
         } catch {
           resolve({ items: [], total: 0 });
         }
@@ -750,6 +826,29 @@ function fetchDevices(csrfToken: string | null, collectorId: number): Promise<{
     xhr.onerror = () => resolve({ items: [], total: 0 });
     xhr.send();
   });
+
+  const allDevices: Array<{
+    id: number;
+    name: string;
+    displayName: string;
+    currentCollectorId: number;
+    hostStatus: string;
+  }> = [];
+
+  let offset = 0;
+  let total = 0;
+
+  while (true) {
+    const page = await fetchPage(offset);
+    if (page.items.length === 0) break;
+    allDevices.push(...page.items);
+    total = page.total;
+    offset += page.items.length;
+    if (total > 0 && offset >= total) break;
+    if (page.items.length < pageSize) break;
+  }
+
+  return { items: allDevices, total: total || allDevices.length };
 }
 
 // Function to be injected into the page to fetch a single device by ID

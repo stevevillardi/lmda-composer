@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { 
   Database, 
   FileText, 
@@ -68,6 +68,8 @@ export function LogicModuleBrowser() {
     selectedModuleType,
     setSelectedModuleType,
     modulesCache,
+    modulesMeta,
+    modulesSearch,
     isFetchingModules,
     selectedModule,
     setSelectedModule,
@@ -84,6 +86,41 @@ export function LogicModuleBrowser() {
 
   // Get modules for current type
   const modules = modulesCache[selectedModuleType];
+  const moduleMeta = modulesMeta[selectedModuleType];
+  const cachedSearch = modulesSearch[selectedModuleType];
+
+  useEffect(() => {
+    if (!moduleBrowserOpen || !selectedPortalId) return;
+
+    const trimmedQuery = moduleSearchQuery.trim();
+
+    if (!trimmedQuery) {
+      if (cachedSearch) {
+        fetchModules(selectedModuleType, { append: false, pages: 3, search: '' });
+      }
+      return;
+    }
+
+    if (!moduleMeta.hasMore) {
+      return;
+    }
+
+    if (trimmedQuery === cachedSearch) return;
+
+    const handle = window.setTimeout(() => {
+      fetchModules(selectedModuleType, { append: false, search: trimmedQuery });
+    }, 300);
+
+    return () => window.clearTimeout(handle);
+  }, [
+    moduleBrowserOpen,
+    selectedPortalId,
+    moduleSearchQuery,
+    cachedSearch,
+    moduleMeta.hasMore,
+    selectedModuleType,
+    fetchModules,
+  ]);
 
   // Filter and sort modules by search query
   const filteredModules = useMemo(() => {
@@ -91,13 +128,16 @@ export function LogicModuleBrowser() {
     
     // Filter by search query
     if (moduleSearchQuery.trim()) {
-      const query = moduleSearchQuery.toLowerCase();
-      filtered = modules.filter(
-        (m) =>
-          m.name.toLowerCase().includes(query) ||
-          m.displayName.toLowerCase().includes(query) ||
-          m.appliesTo?.toLowerCase().includes(query)
-      );
+      if (!moduleMeta.hasMore || moduleSearchQuery !== cachedSearch) {
+        const query = moduleSearchQuery.toLowerCase();
+        filtered = modules.filter(
+          (m) =>
+            m.name.toLowerCase().includes(query) ||
+            m.displayName.toLowerCase().includes(query) ||
+            m.appliesTo?.toLowerCase().includes(query) ||
+            m.description?.toLowerCase().includes(query)
+        );
+      }
     }
     
     // Sort alphabetically by displayName or name (A-Z)
@@ -112,7 +152,12 @@ export function LogicModuleBrowser() {
   const handleRefreshModules = async () => {
     setIsRefreshingModules(true);
     try {
-      await fetchModules(selectedModuleType);
+      const trimmedQuery = moduleSearchQuery.trim();
+      if (trimmedQuery && moduleMeta.hasMore) {
+        await fetchModules(selectedModuleType, { append: false, search: trimmedQuery });
+      } else if (!trimmedQuery) {
+        await fetchModules(selectedModuleType, { append: false, pages: 3, search: '' });
+      }
       toast.success('Modules refreshed', {
         description: `Loaded ${modulesCache[selectedModuleType]?.length || 0} modules`,
       });
@@ -190,8 +235,18 @@ export function LogicModuleBrowser() {
                       placeholder="Search modules..."
                       value={moduleSearchQuery}
                       onChange={(e) => setModuleSearchQuery(e.target.value)}
-                      className="pl-8 h-8"
+                      className="pl-8 pr-7 h-8"
                     />
+                    {moduleSearchQuery.trim() && (
+                      <button
+                        type="button"
+                        onClick={() => setModuleSearchQuery('')}
+                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        aria-label="Clear search"
+                      >
+                        ×
+                      </button>
+                    )}
                   </div>
                   <Tooltip>
                     <TooltipTrigger
@@ -256,6 +311,21 @@ export function LogicModuleBrowser() {
                         onClick={() => setSelectedModule(module)}
                       />
                     ))}
+                    {moduleMeta?.hasMore && (
+                      <div className="pt-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="w-full"
+                          onClick={() => fetchModules(selectedModuleType, { append: true })}
+                          disabled={isFetchingModules}
+                        >
+                          {isFetchingModules
+                            ? 'Loading more...'
+                            : `Load more (${modules.length} of ${moduleMeta.total || '...'} loaded)`}
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -330,7 +400,14 @@ function ModuleListItem({ module, isSelected, onClick }: ModuleListItemProps) {
         isSelected && 'bg-accent border-border shadow-sm'
       )}
     >
-      <div className="font-semibold text-sm truncate mb-1">{module.displayName || module.name}</div>
+      <div className="font-semibold text-sm truncate mb-1">
+        {module.displayName || module.name}
+        {module.name && module.displayName && module.name !== module.displayName && (
+          <span className="text-muted-foreground font-normal ml-1 truncate">
+            ({module.name})
+          </span>
+        )}
+      </div>
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
         <span className="font-mono font-medium">{module.collectMethod}</span>
         {module.hasAutoDiscovery && (

@@ -23,10 +23,11 @@ import { ConfirmationDialog } from './ConfirmationDialog';
 
 interface MultiCollectorResultsProps {
   command: DebugCommand;
+  executedCommand?: string;
   onBack: () => void;
 }
 
-export function MultiCollectorResults({ command, onBack }: MultiCollectorResultsProps) {
+export function MultiCollectorResults({ command, executedCommand, onBack }: MultiCollectorResultsProps) {
   const {
     debugCommandResults,
     collectors,
@@ -65,6 +66,16 @@ export function MultiCollectorResults({ command, onBack }: MultiCollectorResults
       toast.success('Output copied to clipboard');
     } catch (error) {
       toast.error('Failed to copy output');
+    }
+  };
+
+  const copyExecutedCommand = async () => {
+    if (!executedCommand) return;
+    try {
+      await navigator.clipboard.writeText(executedCommand);
+      toast.success('Executed command copied');
+    } catch (error) {
+      toast.error('Failed to copy command');
     }
   };
 
@@ -194,6 +205,12 @@ export function MultiCollectorResults({ command, onBack }: MultiCollectorResults
               <Button variant="outline" size="sm" onClick={exportAllResults}>
                 <Download className="size-4 mr-2" />
                 Export All
+              </Button>
+            )}
+            {executedCommand && (
+              <Button variant="outline" size="sm" onClick={copyExecutedCommand}>
+                <Copy className="size-4 mr-2" />
+                Copy Command
               </Button>
             )}
           </div>
@@ -407,4 +424,3 @@ export function MultiCollectorResults({ command, onBack }: MultiCollectorResults
     </>
   );
 }
-
