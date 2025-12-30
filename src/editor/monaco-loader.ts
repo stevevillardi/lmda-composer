@@ -1,6 +1,7 @@
 import { loader } from '@monaco-editor/react';
 import * as monaco from 'monaco-editor';
 import EditorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
+import 'monaco-editor/esm/vs/basic-languages/powershell/powershell';
 
 const mockWorker = {
   postMessage: () => {},
@@ -74,6 +75,9 @@ loader.init().then((monaco) => {
 
     tokenizer: {
       root: [
+        // Annotations
+        [/@[a-zA-Z_]\w*/, 'annotation'],
+
         // Identifiers and keywords
         [/[a-zA-Z_$][\w$]*/, {
           cases: {
@@ -106,10 +110,16 @@ loader.init().then((monaco) => {
 
         // Strings
         [/"""/, 'string', '@multistring'],
+        [/'''/, 'string', '@multistringsingle'],
         [/"([^"\\]|\\.)*$/, 'string.invalid'],
         [/"/, 'string', '@string'],
         [/'([^'\\]|\\.)*$/, 'string.invalid'],
         [/'/, 'string', '@stringsingle'],
+
+        // Slashy and dollar-slashy strings
+        [/\$\/$/, 'string.invalid'],
+        [/\$\//, 'string', '@dollarslashy'],
+        [/\/(?![/*])/, 'string', '@slashy'],
 
         // GStrings with interpolation
         [/\$\{/, 'string.interpolation', '@interpolation'],
@@ -157,6 +167,34 @@ loader.init().then((monaco) => {
         [/\\./, 'string.escape.invalid'],
         [/"""/, 'string', '@pop'],
         [/"/, 'string']
+      ],
+
+      multistringsingle: [
+        [/[^\\'$]+/, 'string'],
+        [/\$\{/, 'string.interpolation', '@interpolation'],
+        [/\$[a-zA-Z_]\w*/, 'string.interpolation'],
+        [/@escapes/, 'string.escape'],
+        [/\\./, 'string.escape.invalid'],
+        [/'''/, 'string', '@pop'],
+        [/'/, 'string']
+      ],
+
+      slashy: [
+        [/[^\\/$]+/, 'string'],
+        [/\$\{/, 'string.interpolation', '@interpolation'],
+        [/\$[a-zA-Z_]\w*/, 'string.interpolation'],
+        [/\\\//, 'string.escape'],
+        [/\\./, 'string.escape.invalid'],
+        [/\//, 'string', '@pop']
+      ],
+
+      dollarslashy: [
+        [/[^/$]+/, 'string'],
+        [/\$\{/, 'string.interpolation', '@interpolation'],
+        [/\$[a-zA-Z_]\w*/, 'string.interpolation'],
+        [/\/\$/, 'string', '@pop'],
+        [/\/(?!\$)/, 'string'],
+        [/\$\$/, 'string']
       ],
 
       interpolation: [

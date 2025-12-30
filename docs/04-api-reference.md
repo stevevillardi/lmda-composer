@@ -14,7 +14,7 @@ This document covers the LogicMonitor REST API v3 endpoints required for the Log
 
 ### CSRF Token
 
-All POST/PUT/DELETE requests require a CSRF token. The extension obtains this token by making a request to a dummy endpoint.
+All POST/PUT/DELETE requests require a CSRF token. The extension obtains this token from a content-script XHR executed in the portal page.
 
 **Endpoint:**
 ```
@@ -34,17 +34,16 @@ X-CSRF-Token: {token_value}
 
 **Usage:**
 ```typescript
-async function fetchCsrfToken(portal: string): Promise<string> {
-  const response = await fetch(`https://${portal}/santaba/rest/functions/dummy`, {
-    method: 'GET',
-    headers: {
-      'X-CSRF-Token': 'Fetch',
-      'X-version': '3'
-    },
-    credentials: 'include'  // Important: include cookies
+function fetchCsrfToken(): Promise<string | null> {
+  return new Promise((resolve) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', '/santaba/rest/functions/dummy', true);
+    xhr.setRequestHeader('X-CSRF-Token', 'Fetch');
+    xhr.setRequestHeader('X-version', '3');
+    xhr.onload = () => resolve(xhr.status === 200 ? xhr.getResponseHeader('X-CSRF-Token') : null);
+    xhr.onerror = () => resolve(null);
+    xhr.send();
   });
-  
-  return response.headers.get('X-CSRF-Token');
 }
 ```
 
@@ -77,7 +76,7 @@ X-version: 3
 **Request Body:**
 ```json
 {
-  "cmdline": "!groovy hostId=12345 \n import com.santaba.agent.groovyapi.snmp.Snmp;\n..."
+  "cmdline": "!groovy hostId=null \n import com.santaba.agent.groovyapi.snmp.Snmp;\n..."
 }
 ```
 
@@ -92,7 +91,7 @@ X-version: 3
 
 | Type | Command Prefix |
 |------|----------------|
-| Groovy | `!groovy hostId={deviceId} \n {script}` |
+| Groovy | `!groovy hostId=null \n {script}` |
 | PowerShell | `!posh \n {script}` |
 
 **Groovy Command Options:**
@@ -107,8 +106,7 @@ Options:
 ```
 
 **Notes:**
-- `hostId` accepts the **device ID** (numeric), not hostname
-- `hostId` enables `hostProps` in the Groovy script context
+- We always use `hostId=null` and inject a Groovy preamble to populate `hostProps`, `instanceProps`, and `datasourceinstanceProps` from `CollectorDb`
 - PowerShell does not support `hostId` natively (hence our Groovy prefetch solution)
 - Maximum execution timeout: **120 seconds** (script will be terminated if exceeded)
 
@@ -240,26 +238,15 @@ X-version: 3
 | 2 | Critical |
 | 3 | Dead |
 
-**TypeScript Interface:**
+**TypeScript Interface (API response subset used by the UI):**
 ```typescript
 interface Collector {
   id: number;
   description: string;
   hostname: string;
   status: number;
-  upTime: number;
-  collectorGroupId: number;
   collectorGroupName: string;
-  build: string;
-  platform: string;
   isDown: boolean;
-  numberOfHosts: number;
-}
-
-interface CollectorListResponse {
-  items: Collector[];
-  total: number;
-  searchId: string | null;
 }
 ```
 
@@ -267,13 +254,13 @@ interface CollectorListResponse {
 
 ## Device/Resource API
 
-### Get Device by ID
+### List Devices (for dropdown)
 
-Fetch device details including properties.
+Fetch lightweight device data for the current portal.
 
 **Endpoint:**
 ```
-GET /santaba/rest/device/devices/{id}
+GET /santaba/rest/device/devices?filter={filter}&size=1000&fields=id,name,displayName,currentCollectorId,hostStatus
 ```
 
 **Response:**
@@ -298,36 +285,40 @@ GET /santaba/rest/device/devices/{id}
 }
 ```
 
-### Search Devices
-
-Search for devices by name or property.
-
-**Endpoint:**
-```
-GET /santaba/rest/device/devices?filter=displayName~"{query}"
-```
-
-**Response:** Same format as single device, but in `items` array.
+**Filter Examples:**
+- `displayName~"router"`
+- `name~"web"`
 
 **TypeScript Interface:**
 ```typescript
-interface DeviceProperty {
-  name: string;
-  value: string;
-}
-
-interface Device {
+interface DeviceInfo {
   id: number;
   name: string;
   displayName: string;
-  hostGroupIds: string;
-  preferredCollectorId: number;
-  preferredCollectorGroupId: number;
-  systemProperties: DeviceProperty[];
-  customProperties: DeviceProperty[];
-  inheritedProperties: DeviceProperty[];
+  currentCollectorId: number;
+  hostStatus: string;
 }
 ```
+
+### Get Device by ID (lightweight)
+
+Used when opening the editor with a `resourceId` from the LM UI.
+
+**Endpoint:**
+```
+GET /santaba/rest/device/devices/{resourceId}?fields=id,name,displayName,currentCollectorId
+```
+
+### Get Device Properties (for sidebar)
+
+Fetch properties for a single device.
+
+**Endpoint:**
+```
+GET /santaba/rest/device/devices/{deviceId}?fields=systemProperties,customProperties,inheritedProperties,autoProperties
+```
+
+**Response:** Contains property arrays grouped by type.
 
 ---
 
@@ -744,4 +735,3 @@ async function withRetry<T>(
 1. **Collector cache behavior:** What happens when `CollectorDb.getInstance().getHost(hostname)` is called for a device not in the collector's cache? Returns null? Throws exception? Need to handle gracefully.
 
 2. **PropertySource/EventSource/ConfigSource scripts:** Same structure as DataSource? Need to verify field names when implementing.
-

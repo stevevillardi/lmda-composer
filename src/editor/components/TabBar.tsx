@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import type { EditorTab } from '@/shared/types';
+import { getDefaultScriptTemplate } from '../config/script-templates';
 
 // Language icons (using simple text badges for now)
 function LanguageIcon({ language }: { language: EditorTab['language'] }) {
@@ -485,27 +486,7 @@ export function TabBar() {
   // Create a new untitled tab
   const handleNewTab = () => {
     const extension = preferences.defaultLanguage === 'groovy' ? 'groovy' : 'ps1';
-    const template = preferences.defaultLanguage === 'groovy' 
-      ? `import com.santaba.agent.groovyapi.expect.Expect;
-import com.santaba.agent.groovyapi.snmp.Snmp;
-import com.santaba.agent.groovyapi.http.*;
-import com.santaba.agent.groovyapi.jmx.*;
-
-def hostname = hostProps.get("system.hostname");
-
-// Your script here
-
-return 0;
-`
-      : `# LogicMonitor PowerShell Script
-# Use ##PROPERTY.NAME## tokens for device properties (e.g., ##SYSTEM.HOSTNAME##)
-
-$hostname = "##SYSTEM.HOSTNAME##"
-
-# Your script here
-
-Exit 0
-`;
+    const template = getDefaultScriptTemplate(preferences.defaultLanguage);
     
     // Find a unique name
     let counter = 1;

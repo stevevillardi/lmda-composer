@@ -8,14 +8,18 @@
 | Multi-collector selection | P0 | 1 | ✅ |
 | Monaco Editor with Groovy/PowerShell | P0 | 1 | ✅ |
 | Script execution via Debug API | P0 | 2 | ✅ |
-| PowerShell hostProps support | P0 | 2 | ✅ |
+| PowerShell token substitution | P0 | 2 | ✅ |
 | Active Discovery mode with validation | P1 | 3 | ✅ |
 | Collection mode with validation | P1 | 3 | ✅ |
 | Batch Collection mode with validation | P1 | 3 | ✅ |
 | LogicModule browser | P1 | 4 | ✅ |
-| Resource tree context menu | P2 | 5 | |
-| Command palette | P2 | 5 | |
-| Execution history | P2 | 5 | |
+| Module lineage & diff | P1 | 4 | ✅ |
+| Module commit from IDE | P1 | 4 | ✅ |
+| Snippet library | P2 | 5 | ✅ |
+| Execution history | P2 | 5 | ✅ |
+| Command palette | P2 | 5 | ✅ |
+| Resource tree context menu | P2 | 5 | ✅ |
+| Local file open/save | P2 | 6 | ✅ |
 
 ---
 
@@ -781,4 +785,3 @@ As a user, I want to easily restore access to my files after the browser forgets
 ### Collaboration
 - Share scripts via URL
 - Import/export scripts
-

@@ -34,8 +34,8 @@ LogicMonitor IDE is a Chrome Extension (Manifest V3) that provides an enhanced s
 │         │                          │                          │             │
 │         ▼                          ▼                          ▼             │
 │  ┌─────────────────┐    ┌─────────────────────┐    ┌─────────────────────┐  │
-│  │ Content Script  │    │    Editor Window    │    │  LogicMonitor Tab   │  │
-│  │ (LM pages)      │    │    (Popup)          │    │  (User's session)   │  │
+│  │ Content Script  │    │     Editor Tab      │    │  LogicMonitor Tab   │  │
+│  │ (LM pages)      │    │ (extension page)    │    │  (User's session)   │  │
 │  │                 │    │                     │    │                     │  │
 │  │ - Context menu  │    │  ┌───────────────┐  │    │  - Authenticated    │  │
 │  │ - Device info   │    │  │ Monaco Editor │  │    │  - CSRF token       │  │
@@ -157,9 +157,9 @@ content/
                            #   - Device context extraction from page
 ```
 
-### 3. Editor Window (`editor/`)
+### 3. Editor Tab (`editor/`)
 
-A standalone popup window containing the IDE UI:
+A dedicated extension tab containing the IDE UI:
 - Monaco Editor for script editing
 - Target selector (portal, collector, device)
 - Mode selector (AD, Collection, Freeform)
@@ -168,11 +168,9 @@ A standalone popup window containing the IDE UI:
 
 **Opened via:**
 ```typescript
-chrome.windows.create({
-  url: 'editor.html',
-  type: 'popup',
-  width: 1200,
-  height: 800
+chrome.tabs.create({
+  url: chrome.runtime.getURL('src/editor/index.html'),
+  active: true
 });
 ```
 
@@ -187,13 +185,17 @@ editor/
 │   ├── Toolbar.tsx        # Portal/Collector/Device selectors, actions
 │   ├── EditorPanel.tsx    # Monaco Editor integration
 │   ├── OutputPanel.tsx    # Raw/Parsed/Validation tabs
+│   ├── RightSidebar.tsx   # Properties/Snippets/History panel
+│   ├── SnippetLibraryPanel.tsx # Snippet filters and insertion
 │   ├── StatusBar.tsx      # Status info display
 │   ├── CommandPalette.tsx # Quick command access (Ctrl+K)
 │   ├── ExecutionContextDialog.tsx  # Wildvalue/DatasourceId prompts
-│   ├── ExecutionHistory.tsx        # History sheet
+│   ├── ExecutionHistoryPanel.tsx   # History sidebar panel
 │   ├── LogicModuleBrowser.tsx      # Module search and preview
 │   ├── SettingsDialog.tsx # User preferences
 │   ├── ModulePreview.tsx  # Script preview tabs
+│   ├── ModuleLineageDialog.tsx # Historical diffs/restores
+│   ├── ModuleCommitConfirmationDialog.tsx # Commit changes back to LM
 │   ├── ParsedContent.tsx  # Parsed output display
 │   └── ValidationContent.tsx # Validation results
 ├── stores/
@@ -472,4 +474,3 @@ interface LMIDEPlugin {
   onDeactivate(): void;
 }
 ```
-

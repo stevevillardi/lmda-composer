@@ -35,7 +35,12 @@ export function SnippetPreviewDialog({
   onClose,
   onInsert,
 }: SnippetPreviewDialogProps) {
-  const { language: currentLanguage, preferences } = useEditorStore();
+  const { tabs, activeTabId, preferences } = useEditorStore();
+
+  const currentLanguage = useMemo(() => {
+    const activeTab = tabs.find((tab) => tab.id === activeTabId);
+    return activeTab?.language ?? 'groovy';
+  }, [tabs, activeTabId]);
 
   const snippetLanguage = snippet?.language ?? currentLanguage;
   const isCompatible =

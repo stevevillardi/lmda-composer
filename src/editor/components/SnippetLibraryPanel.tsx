@@ -43,8 +43,14 @@ export function SnippetLibraryPanel() {
     setCreateSnippetDialogOpen,
     setEditingSnippet,
     deleteUserSnippet,
-    language: currentLanguage,
+    tabs,
+    activeTabId,
   } = useEditorStore();
+
+  const currentLanguage = useMemo(() => {
+    const activeTab = tabs.find((tab) => tab.id === activeTabId);
+    return activeTab?.language ?? 'groovy';
+  }, [tabs, activeTabId]);
 
   // Combine built-in and user snippets
   const allSnippets = useMemo(() => {
@@ -433,4 +439,3 @@ export function SnippetLibraryPanel() {
     </div>
   );
 }
-

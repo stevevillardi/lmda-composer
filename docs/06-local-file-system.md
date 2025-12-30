@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document specifies the implementation for opening and saving local files in LogicMonitor IDE. Due to Chrome Extension limitations, the File System Access API is not available in service workers, so all file operations occur in the editor UI context.
+This document describes the current implementation for opening and saving local files in LogicMonitor IDE. The File System Access API is not available in service workers, so all file operations occur in the editor UI context.
 
 ---
 
@@ -21,6 +21,7 @@ This document specifies the implementation for opening and saving local files in
 1. **File System Access API** is NOT available in service workers
 2. **File handles** stored in IndexedDB require permission re-request after browser restart
 3. **User gesture required** to request file permissions (can't auto-prompt on load)
+4. **Fallback required** when the File System Access API is unavailable
 
 ### Data Flow
 
@@ -71,11 +72,12 @@ This document specifies the implementation for opening and saving local files in
 
 ### Handle Lifecycle
 
-1. **Creation**: When user opens a file via File System Access API
+1. **Creation**: When user opens or saves a file via File System Access API
 2. **Persistence**: Immediately stored in IndexedDB after open/save
 3. **Restoration**: Loaded on app mount, matched to tabs by tabId
-4. **Permission Check**: Query permission status, prompt if needed
-5. **Deletion**: Removed when tab is closed
+4. **Permission Check**: Query permission status; prompt only from user actions
+5. **Recent Files**: Handles for closed tabs are kept for recent files
+6. **Cleanup**: Old handles are removed by age and count limits
 
 ---
 
@@ -170,6 +172,8 @@ async function openFileFromDisk(): Promise<void> {
 }
 ```
 
+**Fallback (no File System Access API):** uses a hidden `<input type="file">` to read the file and opens it in a new tab without a persisted handle.
+
 ### Save File (`Ctrl+S`)
 
 ```typescript
@@ -181,7 +185,7 @@ async function saveFile(tabId?: string): Promise<void> {
   const handle = await fileHandleStore.getHandle(tab.id);
   
   if (handle) {
-    // Direct save to existing file
+    // Direct save to existing file (after permission check)
     await writeToHandle(handle, tab.content);
     
     // Update originalContent to mark as clean
@@ -192,6 +196,8 @@ async function saveFile(tabId?: string): Promise<void> {
   }
 }
 ```
+
+**Permission behavior:** `queryPermission` is called for existing handles; if status is `prompt`, a user gesture triggers `requestPermission`. If denied, the flow falls back to Save As.
 
 ### Save As (`Ctrl+Shift+S`)
 
@@ -231,6 +237,15 @@ async function saveFileAs(tabId?: string): Promise<void> {
   });
 }
 ```
+
+**Fallback (no File System Access API):** Save As calls `exportToFile` (download).
+
+### Permissions & Restore
+
+On startup, the editor:
+- Restores stored handles for open tabs
+- Tracks handles needing permission in `tabsNeedingPermission`
+- Keeps handles for closed tabs to populate a recent files list
 
 ### Write Helper
 
@@ -510,4 +525,3 @@ For autosave drafts, we should:
 - Rename file externally → Handle still works (tracks by inode)
 - Move file externally → Handle may fail, graceful degradation
 - Large files → Consider size limits, streaming for very large files
-

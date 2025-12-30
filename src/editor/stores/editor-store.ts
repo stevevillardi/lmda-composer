@@ -29,6 +29,7 @@ import { DEFAULT_PREFERENCES } from '@/shared/types';
 import { parseOutput, type ParseResult } from '../utils/output-parser';
 import * as fileHandleStore from '../utils/file-handle-store';
 import { APPLIES_TO_FUNCTIONS } from '../data/applies-to-functions';
+import { DEFAULT_GROOVY_TEMPLATE, DEFAULT_POWERSHELL_TEMPLATE, getDefaultScriptTemplate } from '../config/script-templates';
 
 interface EditorState {
   // Portal/Collector selection
@@ -47,12 +48,6 @@ interface EditorState {
   // Multi-tab editor state
   tabs: EditorTab[];
   activeTabId: string | null;
-  
-  // Legacy single-script getters (computed from active tab)
-  // These are kept for backward compatibility
-  script: string;
-  language: ScriptLanguage;
-  mode: ScriptMode;
   
   // Execution state
   isExecuting: boolean;
@@ -149,7 +144,6 @@ interface EditorState {
   setHostname: (hostname: string) => void;
   setWildvalue: (wildvalue: string) => void;
   setDatasourceId: (datasourceId: string) => void;
-  setScript: (script: string) => void;
   setLanguage: (language: ScriptLanguage, force?: boolean) => void;
   setMode: (mode: ScriptMode) => void;
   setOutputTab: (tab: 'raw' | 'parsed' | 'validation') => void;
@@ -306,28 +300,6 @@ interface EditorState {
   setModuleLineageDialogOpen: (open: boolean) => void;
 }
 
-export const DEFAULT_GROOVY_TEMPLATE = `import com.santaba.agent.groovyapi.expect.Expect;
-import com.santaba.agent.groovyapi.snmp.Snmp;
-import com.santaba.agent.groovyapi.http.*;
-import com.santaba.agent.groovyapi.jmx.*;
-
-def hostname = hostProps.get("system.hostname");
-
-// Your script here
-
-return 0;
-`;
-
-export const DEFAULT_POWERSHELL_TEMPLATE = `# LogicMonitor PowerShell Script
-# Use ##PROPERTY.NAME## tokens for device properties (e.g., ##SYSTEM.HOSTNAME##)
-
-$hostname = "##SYSTEM.HOSTNAME##"
-
-# Your script here
-
-Exit 0
-`;
-
 // Storage keys
 const STORAGE_KEYS = {
   PREFERENCES: 'lm-ide-preferences',
@@ -342,7 +314,7 @@ function createDefaultTab(language: ScriptLanguage = 'groovy', mode: ScriptMode 
   return {
     id: crypto.randomUUID(),
     displayName: `Untitled.${language === 'groovy' ? 'groovy' : 'ps1'}`,
-    content: language === 'groovy' ? DEFAULT_GROOVY_TEMPLATE : DEFAULT_POWERSHELL_TEMPLATE,
+    content: getDefaultScriptTemplate(language),
     language,
     mode,
   };
@@ -366,19 +338,6 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   tabs: [],
   activeTabId: null,
   
-  // Computed getters from active tab (for backward compatibility)
-  get script() {
-    const activeTab = get().tabs.find(t => t.id === get().activeTabId);
-    return activeTab?.content ?? DEFAULT_GROOVY_TEMPLATE;
-  },
-  get language() {
-    const activeTab = get().tabs.find(t => t.id === get().activeTabId);
-    return activeTab?.language ?? 'groovy';
-  },
-  get mode() {
-    const activeTab = get().tabs.find(t => t.id === get().activeTabId);
-    return activeTab?.mode ?? 'freeform';
-  },
   isExecuting: false,
   currentExecution: null,
   parsedOutput: null,
@@ -569,23 +528,6 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   setDatasourceId: (datasourceId) => {
     set({ datasourceId });
-  },
-
-  setScript: (newScript) => {
-    const { tabs, activeTabId } = get();
-    const activeTab = tabs.find(t => t.id === activeTabId);
-    if (!activeTab) return;
-    
-    // Only update if the script actually changed
-    if (newScript !== activeTab.content) {
-      set({
-        tabs: tabs.map(t => 
-          t.id === activeTabId 
-            ? { ...t, content: newScript }
-            : t
-        ),
-      });
-    }
   },
 
   setLanguage: (language, force = false) => {

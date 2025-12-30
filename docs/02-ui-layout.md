@@ -72,13 +72,13 @@
 | Element | shadcn Component | Description |
 |---------|------------------|-------------|
 | Portal Selector | `Select` | Dropdown of discovered LM portals |
-| Portal Refresh | `Button` (icon) | Refresh portal discovery |
 | Collector Selector | `Select` | Dropdown of collectors for selected portal |
 | Device Input | `Input` | Hostname/IP (system.hostname) |
 | Language Toggle | `Button` group | Groovy / PowerShell toggle (shows confirmation if dirty) |
 | Mode Selector | `Select` | Freeform / AD / Collection / Batch Collection |
 | Run Button | `Button` | Execute script (primary action) |
-| Settings | `Button` (icon) | Settings menu (future) |
+| Actions | `Dropdown` | Open/Save, Module browser, history, settings |
+| Right Sidebar Toggle | `Button` (icon) | Show/hide properties/snippets/history panel |
 
 **Behavior:**
 - Portal selector shows status indicator (green dot = active session)
@@ -143,25 +143,19 @@
 
 **Theme:** VS Code Dark+ or Monokai (user preference)
 
-### 3. Device Context Panel
+### 3. Right Sidebar (Properties / Snippets / History)
 
-**Location:** Right sidebar, collapsible
+**Location:** Right side, collapsible with tabs
 
-**Content:**
-- Host properties (from selected device)
-- Instance properties (when wildvalue provided)
-- Quick-copy buttons for property values
-
-**shadcn Components:**
-- `ScrollArea` for scrollable list
-- `Table` for property display
-- `Button` with copy icon
+**Tabs:**
+- **Properties:** Host and instance properties, search/filter, quick copy, insert into editor
+- **Snippets:** Built-in and user snippets with filters, preview, insert
+- **History:** Execution history with reload/preview
 
 **Behavior:**
-- Loads when device hostname is entered
-- Shows loading skeleton while fetching
-- Allows search/filter of properties
-- Click property name to insert into editor
+- Properties load when a device hostname is set
+- Snippets support language compatibility highlighting
+- History shows recent runs and allows reloading into a new tab
 
 ### 4. Output Panel
 
@@ -387,4 +381,3 @@
 - Output panel shows error in red
 - Validation tab highlights issues
 - Status bar shows "Error" with error count
-

@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import Editor from '@monaco-editor/react';
 import { FilePlus, Code2 } from 'lucide-react';
 import { useEditorStore } from '../stores/editor-store';
+import { getDefaultScriptTemplate } from '../config/script-templates';
 import {
   Dialog,
   DialogContent,
@@ -31,10 +32,17 @@ export function CreateSnippetDialog() {
     editingSnippet,
     createUserSnippet,
     updateUserSnippet,
-    script,
-    language,
+    tabs,
+    activeTabId,
     preferences,
   } = useEditorStore();
+
+  const activeTab = useMemo(() => {
+    return tabs.find((tab) => tab.id === activeTabId) ?? null;
+  }, [tabs, activeTabId]);
+
+  const currentLanguage = activeTab?.language ?? 'groovy';
+  const currentScript = activeTab?.content ?? getDefaultScriptTemplate(currentLanguage);
 
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
@@ -56,12 +64,12 @@ export function CreateSnippetDialog() {
       // Default to current script content and language for new snippets
       setName('');
       setDescription('');
-      setSnippetLanguage(language);
+      setSnippetLanguage(currentLanguage);
       setCategory('pattern');
       setTags('');
-      setCode(script);
+      setCode(currentScript);
     }
-  }, [editingSnippet, createSnippetDialogOpen, script, language]);
+  }, [editingSnippet, createSnippetDialogOpen, currentScript, currentLanguage]);
 
   const handleSubmit = () => {
     const snippetData = {
@@ -99,7 +107,7 @@ export function CreateSnippetDialog() {
   }, [preferences.theme]);
 
   const monacoLanguage =
-    snippetLanguage === 'both' ? language : snippetLanguage;
+    snippetLanguage === 'both' ? currentLanguage : snippetLanguage;
 
   return (
     <Dialog open={createSnippetDialogOpen} onOpenChange={setCreateSnippetDialogOpen}>

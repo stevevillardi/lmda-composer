@@ -46,92 +46,102 @@ type PortalStatus =
 
 ### Collector
 
-Represents a LogicMonitor collector.
+Represents a LogicMonitor collector (lightweight fields used by the UI).
 
 ```typescript
 interface Collector {
-  /** Collector ID */
   id: number;
-  
-  /** Collector description/name */
   description: string;
-  
-  /** Collector hostname */
   hostname: string;
-  
-  /** Collector status code (0=OK, 1=Warning, 2=Critical, 3=Dead) */
-  statusCode: number;
-  
-  /** Human-readable status */
-  status: CollectorStatus;
-  
-  /** Collector group ID */
-  groupId: number;
-  
-  /** Collector group name */
-  groupName: string;
-  
-  /** Platform (linux64, win64, etc.) */
-  platform: string;
-  
-  /** Number of devices on this collector */
-  deviceCount: number;
-  
-  /** Whether collector is down */
+  /** Raw status code returned by the API */
+  status: number;
   isDown: boolean;
-  
-  /** Portal this collector belongs to */
-  portalId: string;
-}
-
-type CollectorStatus = 
-  | 'ok'        // Status code 0
-  | 'warning'   // Status code 1
-  | 'critical'  // Status code 2
-  | 'dead';     // Status code 3
-
-function mapStatusCode(code: number): CollectorStatus {
-  switch (code) {
-    case 0: return 'ok';
-    case 1: return 'warning';
-    case 2: return 'critical';
-    case 3: return 'dead';
-    default: return 'dead';
-  }
+  collectorGroupName: string;
 }
 ```
 
 ---
 
-### Device
+### DeviceInfo
 
-Represents a LogicMonitor device/resource.
+Lightweight device info used for dropdowns and lookups.
 
 ```typescript
-interface Device {
-  /** Device ID */
+interface DeviceInfo {
   id: number;
-  
-  /** Internal name */
   name: string;
-  
-  /** Display name */
   displayName: string;
-  
-  /** Preferred collector ID */
-  preferredCollectorId: number;
-  
-  /** All device properties merged */
-  properties: Record<string, string>;
-  
-  /** Portal this device belongs to */
-  portalId: string;
+  currentCollectorId: number;
+  /** "normal" = online, anything else indicates an issue */
+  hostStatus: string;
 }
 
 interface DeviceProperty {
   name: string;
   value: string;
-  source: 'system' | 'custom' | 'inherited' | 'auto';
+  type: 'system' | 'custom' | 'inherited' | 'auto';
+}
+```
+
+---
+
+### Snippet
+
+Snippet definitions used by the snippet library.
+
+```typescript
+interface Snippet {
+  id: string;
+  name: string;
+  description: string;
+  language: 'groovy' | 'powershell' | 'both';
+  category: 'template' | 'pattern';
+  tags: string[];
+  code: string;
+  isBuiltIn: boolean;
+}
+```
+
+---
+
+### EditorTab
+
+Multi-tab editing model for the editor.
+
+```typescript
+type EditorTabSourceType = 'module' | 'file' | 'new' | 'history';
+
+interface EditorTabSource {
+  type: EditorTabSourceType;
+  moduleId?: number;
+  moduleName?: string;
+  moduleType?: LogicModuleType;
+  scriptType?: 'collection' | 'ad';
+  lineageId?: string;
+}
+
+interface EditorTabContextOverride {
+  hostname?: string;
+  collectorId?: number;
+}
+
+interface EditorTab {
+  id: string;
+  displayName: string;
+  content: string;
+  language: ScriptLanguage;
+  mode: ScriptMode;
+  source?: EditorTabSource;
+  contextOverride?: EditorTabContextOverride;
+  originalContent?: string;
+  hasFileHandle?: boolean;
+  isLocalFile?: boolean;
+}
+
+interface DraftTabs {
+  tabs: EditorTab[];
+  activeTabId: string | null;
+  lastModified: number;
 }
 ```
 
@@ -139,56 +149,21 @@ interface DeviceProperty {
 
 ### LogicModule
 
-Represents a DataSource, PropertySource, EventSource, or ConfigSource.
+LogicModule types used by the module browser and previews.
 
 ```typescript
-interface LogicModule {
-  /** Module ID */
-  id: number;
-  
-  /** Module name (unique identifier) */
-  name: string;
-  
-  /** Display name */
-  displayName: string;
-  
-  /** Module type */
-  type: LogicModuleType;
-  
-  /** AppliesTo expression */
-  appliesTo: string;
-  
-  /** Collection method */
-  collectMethod: CollectMethod;
-  
-  /** Whether it has multiple instances */
-  hasMultiInstances: boolean;
-  
-  /** Collection interval in seconds */
-  collectInterval: number;
-  
-  /** Whether AD is enabled */
-  enableAutoDiscovery: boolean;
-  
-  /** Active Discovery configuration */
-  autoDiscoveryConfig: AutoDiscoveryConfig | null;
-  
-  /** Collector attribute containing scripts */
-  collectorAttribute: CollectorAttribute;
-  
-  /** Datapoints (for DataSources) */
-  dataPoints: DataPoint[];
-}
-
-type LogicModuleType = 
+type LogicModuleType =
   | 'datasource'
+  | 'configsource'
+  | 'topologysource'
   | 'propertysource'
-  | 'eventsource'
-  | 'configsource';
+  | 'logsource'
+  | 'diagnosticsource'
+  | 'eventsource';
 
-type CollectMethod = 
-  | 'script'        // Single script per instance
-  | 'batchscript'   // One script for all instances
+type CollectMethod =
+  | 'script'
+  | 'batchscript'
   | 'snmp'
   | 'wmi'
   | 'jdbc'
@@ -200,21 +175,32 @@ type CollectMethod =
 
 type ScriptType = 'embed' | 'powerShell' | 'file';
 
+// Lightweight module info for list display
+interface LogicModuleInfo {
+  id: number;
+  name: string;
+  displayName: string;
+  moduleType: LogicModuleType;
+  appliesTo: string;
+  collectMethod: string;
+  hasAutoDiscovery: boolean;
+  scriptType: ScriptType;
+  lineageId?: string;
+  collectionScript?: string;
+  adScript?: string;
+}
+
 interface CollectorAttribute {
   name: string;
-  /** The script content (may be Groovy OR PowerShell - check scriptType!) */
   groovyScript: string;
-  /** Identifies actual language: "embed" = Groovy, "powerShell" = PowerShell */
   scriptType: ScriptType;
   linuxScript: string;
   windowsScript: string;
-  linuxCmdline: string;
-  windowsCmdline: string;
 }
 
 interface ADMethod {
-  name: string;        // "ad_script", "ad_snmp", etc.
-  type: string;        // "embeded", "file"
+  name: string;
+  type: string;
   groovyScript: string | null;
   linuxScript: string | null;
   winScript: string | null;
@@ -223,9 +209,6 @@ interface ADMethod {
 interface AutoDiscoveryConfig {
   scheduleInterval: number;
   method: ADMethod;
-  persistentInstance: boolean;
-  disableInstance: boolean;
-  deleteInactiveInstance: boolean;
 }
 
 interface DataPoint {
@@ -233,39 +216,38 @@ interface DataPoint {
   name: string;
   dataType: number;
   description: string;
-  postProcessorMethod: string;   // "namevalue", "regex", etc.
-  postProcessorParam: string;    // Extraction pattern
-  alertExpr: string;
-  alertForNoData: number;
+  postProcessorMethod: string;
+  postProcessorParam: string;
+}
+
+interface LogicModule {
+  id: number;
+  name: string;
+  displayName: string;
+  type: LogicModuleType;
+  appliesTo: string;
+  collectMethod: CollectMethod;
+  hasMultiInstances: boolean;
+  collectInterval: number;
+  enableAutoDiscovery: boolean;
+  autoDiscoveryConfig: AutoDiscoveryConfig | null;
+  collectorAttribute: CollectorAttribute;
+  dataPoints: DataPoint[];
 }
 
 /** Helper to extract the correct script from a LogicModule */
 interface ExtractedScripts {
   collection: string | null;
   ad: string | null;
-  language: 'groovy' | 'powershell' | 'linux' | 'windows';
+  language: 'groovy' | 'powershell';
 }
 
 function extractScripts(module: LogicModule): ExtractedScripts {
   const attr = module.collectorAttribute;
-  
-  // Determine language
-  let language: ExtractedScripts['language'] = 'groovy';
-  if (attr.scriptType === 'powerShell') {
-    language = 'powershell';
-  } else if (attr.linuxScript) {
-    language = 'linux';
-  } else if (attr.windowsScript) {
-    language = 'windows';
-  }
-  
-  // Extract collection script
-  const collection = attr.groovyScript || attr.linuxScript || attr.windowsScript || null;
-  
-  // Extract AD script
+  const language = attr.scriptType === 'powerShell' ? 'powershell' : 'groovy';
+  const collection = attr.groovyScript || null;
   const adMethod = module.autoDiscoveryConfig?.method;
-  const ad = adMethod?.groovyScript || adMethod?.linuxScript || adMethod?.winScript || null;
-  
+  const ad = adMethod?.groovyScript || null;
   return { collection, ad, language };
 }
 ```
@@ -515,55 +497,92 @@ interface EditorStore {
   wildvalue: string;
   datasourceId: string;
   
-  // === Editor State ===
-  script: string;
-  language: ScriptLanguage;
-  mode: ScriptMode;
-  isDirty: boolean;
+  // === Multi-Tab Editor State ===
+  tabs: EditorTab[];
+  activeTabId: string | null;
   
   // === Execution State ===
   isExecuting: boolean;
   currentExecution: ExecutionResult | null;
-  executionHistory: ExecutionHistoryEntry[];
   parsedOutput: ParseResult | null;
+  executionHistory: ExecutionHistoryEntry[];
   
   // === Execution Context Dialog ===
   executionContextDialogOpen: boolean;
   pendingExecution: Omit<ExecuteScriptRequest, 'wildvalue' | 'datasourceId'> | null;
   
   // === Module Browser ===
+  moduleBrowserOpen: boolean;
+  selectedModuleType: LogicModuleType;
+  modulesCache: Record<LogicModuleType, LogicModuleInfo[]>;
+  isFetchingModules: boolean;
+  selectedModule: LogicModuleInfo | null;
   moduleSearchQuery: string;
-  moduleSearchResults: LogicModule[];
-  isSearching: boolean;
-  loadedModule: LogicModule | null;
+  pendingModuleLoad: {
+    script: string;
+    language: ScriptLanguage;
+    mode: ScriptMode;
+  } | null;
   
   // === UI State ===
-  isContextPanelOpen: boolean;
-  isOutputPanelOpen: boolean;
-  isModuleBrowserOpen: boolean;
   outputTab: 'raw' | 'parsed' | 'validation';
+  commandPaletteOpen: boolean;
+  settingsDialogOpen: boolean;
+  executionHistoryOpen: boolean;
+  rightSidebarOpen: boolean;
+  rightSidebarTab: 'properties' | 'snippets' | 'history';
   
-  // === Actions ===
-  setSelectedPortal: (portalId: string) => void;
-  setSelectedCollector: (collectorId: number) => void;
+  // === Device Properties ===
+  deviceProperties: DeviceProperty[];
+  isFetchingProperties: boolean;
+  propertiesSearchQuery: string;
+  selectedDeviceId: number | null;
+  
+  // === Snippet Library ===
+  userSnippets: Snippet[];
+  snippetsSearchQuery: string;
+  snippetCategoryFilter: 'all' | 'template' | 'pattern';
+  snippetLanguageFilter: 'all' | 'groovy' | 'powershell';
+  snippetSourceFilter: 'all' | 'builtin' | 'user';
+  createSnippetDialogOpen: boolean;
+  editingSnippet: Snippet | null;
+  
+  // === User Preferences ===
+  preferences: UserPreferences;
+  
+  // === Drafts / File System ===
+  hasSavedDraft: boolean;
+  tabsNeedingPermission: FilePermissionStatus[];
+  isRestoringFileHandles: boolean;
+
+  // === Actions (selection) ===
+  setSelectedPortal: (portalId: string | null) => void;
+  setSelectedCollector: (collectorId: number | null) => void;
   setHostname: (hostname: string) => void;
   setWildvalue: (wildvalue: string) => void;
   setDatasourceId: (datasourceId: string) => void;
-  setScript: (script: string) => void;
-  setLanguage: (language: ScriptLanguage) => void;
+  setLanguage: (language: ScriptLanguage, force?: boolean) => void;
   setMode: (mode: ScriptMode) => void;
   executeScript: () => Promise<void>;
-  cancelExecution: () => void;
-  searchModules: (query: string) => Promise<void>;
-  loadModule: (moduleId: number, scriptType: 'ad' | 'collection') => Promise<void>;
-  refreshPortals: () => Promise<void>;
-  refreshCollectors: () => Promise<void>;
+  cancelExecution: () => Promise<void>;
   parseCurrentOutput: () => void;
-  setExecutionContextDialogOpen: (open: boolean) => void;
-  confirmExecutionContext: (wildvalue: string, datasourceId: string) => void;
-  cancelExecutionContextDialog: () => void;
+  
+  // === Tab Management ===
+  getActiveTab: () => EditorTab | null;
+  openTab: (tab: Omit<EditorTab, 'id'> & { id?: string }) => string;
+  closeTab: (tabId: string) => void;
+  closeOtherTabs: (tabId: string) => void;
+  closeAllTabs: () => void;
+  setActiveTab: (tabId: string) => void;
+  renameTab: (tabId: string, newName: string) => void;
+  updateTabContent: (tabId: string, content: string) => void;
+  updateActiveTabContent: (content: string) => void;
+  setActiveTabLanguage: (language: ScriptLanguage) => void;
+  setActiveTabMode: (mode: ScriptMode) => void;
 }
 ```
+
+**Active tab pattern:** UI components should derive the active tab from `tabs` + `activeTabId` (e.g., `tabs.find(t => t.id === activeTabId)`) and use that value for language/mode/content. This keeps components reactive to tab changes and avoids relying on legacy getters.
 
 ---
 
@@ -575,6 +594,7 @@ interface ExecutionHistoryEntry {
   timestamp: number;
   portal: string;
   collector: string;
+  collectorId: number;
   hostname?: string;
   language: ScriptLanguage;
   mode: ScriptMode;
@@ -596,20 +616,48 @@ interface ExecutionHistoryEntry {
 type EditorToSWMessage =
   | { type: 'DISCOVER_PORTALS' }
   | { type: 'GET_COLLECTORS'; payload: { portalId: string } }
+  | { type: 'GET_DEVICES'; payload: FetchDevicesRequest }
+  | { type: 'GET_DEVICE_BY_ID'; payload: FetchDeviceByIdRequest }
+  | { type: 'GET_DEVICE_PROPERTIES'; payload: FetchDevicePropertiesRequest }
   | { type: 'EXECUTE_SCRIPT'; payload: ExecuteScriptRequest }
   | { type: 'CANCEL_EXECUTION'; payload: { executionId: string } }
-  | { type: 'SEARCH_MODULES'; payload: { portalId: string; query: string } }
-  | { type: 'LOAD_MODULE'; payload: { portalId: string; moduleId: number } }
-  | { type: 'GET_DEVICE'; payload: { portalId: string; hostname: string } };
+  | { type: 'FETCH_MODULES'; payload: FetchModulesRequest }
+  | { type: 'TEST_APPLIES_TO'; payload: TestAppliesToRequest }
+  | { type: 'FETCH_CUSTOM_FUNCTIONS'; payload: { portalId: string } }
+  | { type: 'CREATE_CUSTOM_FUNCTION'; payload: { portalId: string; name: string; code: string; description?: string } }
+  | { type: 'UPDATE_CUSTOM_FUNCTION'; payload: { portalId: string; functionId: number; name: string; code: string; description?: string } }
+  | { type: 'DELETE_CUSTOM_FUNCTION'; payload: { portalId: string; functionId: number } }
+  | { type: 'EXECUTE_DEBUG_COMMAND'; payload: ExecuteDebugCommandRequest & { executionId?: string } }
+  | { type: 'CANCEL_DEBUG_COMMAND'; payload: { executionId: string } }
+  | { type: 'FETCH_MODULE'; payload: { portalId: string; moduleType: LogicModuleType; moduleId: number } }
+  | { type: 'COMMIT_MODULE_SCRIPT'; payload: { portalId: string; moduleType: LogicModuleType; moduleId: number; scriptType: 'collection' | 'ad'; newScript: string } }
+  | { type: 'FETCH_LINEAGE_VERSIONS'; payload: { portalId: string; moduleType: LogicModuleType; lineageId: string } }
+  | { type: 'OPEN_EDITOR'; payload?: DeviceContext };
 
 // Messages from Service Worker to Editor
 type SWToEditorMessage =
   | { type: 'PORTALS_UPDATE'; payload: Portal[] }
   | { type: 'COLLECTORS_UPDATE'; payload: Collector[] }
+  | { type: 'DEVICES_UPDATE'; payload: FetchDevicesResponse }
+  | { type: 'DEVICE_BY_ID_LOADED'; payload: FetchDeviceByIdResponse }
+  | { type: 'DEVICE_PROPERTIES_LOADED'; payload: DeviceProperty[] }
   | { type: 'EXECUTION_UPDATE'; payload: ExecutionResult }
-  | { type: 'MODULES_UPDATE'; payload: LogicModule[] }
-  | { type: 'MODULE_LOADED'; payload: LogicModule }
-  | { type: 'DEVICE_LOADED'; payload: Device }
+  | { type: 'MODULES_FETCHED'; payload: FetchModulesResponse }
+  | { type: 'APPLIES_TO_RESULT'; payload: AppliesToTestResult }
+  | { type: 'APPLIES_TO_ERROR'; payload: AppliesToTestError }
+  | { type: 'CUSTOM_FUNCTIONS_LOADED'; payload: CustomAppliesToFunction[] }
+  | { type: 'CUSTOM_FUNCTION_CREATED'; payload: CustomAppliesToFunction }
+  | { type: 'CUSTOM_FUNCTION_UPDATED'; payload: CustomAppliesToFunction }
+  | { type: 'CUSTOM_FUNCTION_DELETED'; payload: { functionId: number } }
+  | { type: 'CUSTOM_FUNCTION_ERROR'; payload: { error: string; code?: number } }
+  | { type: 'DEBUG_COMMAND_UPDATE'; payload: DebugCommandProgress }
+  | { type: 'DEBUG_COMMAND_COMPLETE'; payload: DebugCommandComplete }
+  | { type: 'MODULE_FETCHED'; payload: any }
+  | { type: 'MODULE_COMMITTED'; payload: { moduleId: number; moduleType: LogicModuleType } }
+  | { type: 'MODULE_ERROR'; payload: { error: string; code?: number } }
+  | { type: 'LINEAGE_VERSIONS_FETCHED'; payload: { versions: LineageVersion[] } }
+  | { type: 'LINEAGE_ERROR'; payload: { error: string; code?: number } }
+  | { type: 'PORTAL_DISCONNECTED'; payload: { portalId: string; hostname: string } }
   | { type: 'ERROR'; payload: { code: string; message: string } };
 
 // Messages from Content Script to Service Worker
@@ -619,9 +667,7 @@ type ContentToSWMessage =
 
 interface DeviceContext {
   portalId: string;
-  hostname?: string;
-  deviceId?: number;
-  collectorId?: number;
+  resourceId?: number;
 }
 ```
 
@@ -631,23 +677,16 @@ interface DeviceContext {
 
 ### Chrome Storage Schema
 
+The editor uses discrete keys in `chrome.storage.local` (not a single StoredState blob).
+
 ```typescript
-interface StoredState {
-  // Cached portals (may be stale)
-  portals: Portal[];
-  
-  // Cached collectors per portal
-  collectors: Record<string, Collector[]>;
-  
-  // User preferences
-  preferences: UserPreferences;
-  
-  // Execution history
-  executionHistory: ExecutionHistoryEntry[];
-  
-  // Draft scripts (auto-save)
-  drafts: Record<string, DraftScript>;
-}
+const STORAGE_KEYS = {
+  PREFERENCES: 'lm-ide-preferences',
+  HISTORY: 'lm-ide-execution-history',
+  DRAFT: 'lm-ide-draft',          // Legacy single-file draft
+  DRAFT_TABS: 'lm-ide-draft-tabs',// Multi-tab draft
+  USER_SNIPPETS: 'lm-ide-user-snippets',
+} as const;
 
 interface UserPreferences {
   theme: 'dark' | 'light' | 'system';
@@ -665,6 +704,12 @@ interface DraftScript {
   language: ScriptLanguage;
   mode: ScriptMode;
   hostname?: string;
+  lastModified: number;
+}
+
+interface DraftTabs {
+  tabs: EditorTab[];
+  activeTabId: string | null;
   lastModified: number;
 }
 ```
@@ -859,4 +904,3 @@ const COLLECTOR_STATUS_MAP = {
   3: 'dead'
 } as const;
 ```
-

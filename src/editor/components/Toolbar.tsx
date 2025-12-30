@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEditorStore } from '../stores/editor-store';
+import { DEFAULT_GROOVY_TEMPLATE, DEFAULT_POWERSHELL_TEMPLATE } from '../config/script-templates';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { 
@@ -96,28 +97,9 @@ export function Toolbar() {
     if (!activeTab) return false;
     const normalize = (s: string) => s.trim().replace(/\r\n/g, '\n');
     const content = normalize(activeTab.content);
-    // Import the default templates for comparison
-    const DEFAULT_GROOVY = normalize(`import com.santaba.agent.groovyapi.expect.Expect;
-import com.santaba.agent.groovyapi.snmp.Snmp;
-import com.santaba.agent.groovyapi.http.*;
-import com.santaba.agent.groovyapi.jmx.*;
-
-def hostname = hostProps.get("system.hostname");
-
-// Your script here
-
-return 0;
-`);
-    const DEFAULT_PS = normalize(`# LogicMonitor PowerShell Script
-# Use ##PROPERTY.NAME## tokens for device properties (e.g., ##SYSTEM.HOSTNAME##)
-
-$hostname = "##SYSTEM.HOSTNAME##"
-
-# Your script here
-
-Exit 0
-`);
-    return content !== DEFAULT_GROOVY && content !== DEFAULT_PS;
+    const defaultGroovy = normalize(DEFAULT_GROOVY_TEMPLATE);
+    const defaultPs = normalize(DEFAULT_POWERSHELL_TEMPLATE);
+    return content !== defaultGroovy && content !== defaultPs;
   }, [activeTab]);
 
   // State for language switch confirmation dialog
