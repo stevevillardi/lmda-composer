@@ -128,45 +128,25 @@ function showRefreshNotification() {
   }, 10000);
 }
 
-// Send CSRF token to service worker on page load
-async function sendCsrfToken() {
-  // Don't try to send if context is invalid
-  if (!isExtensionContextValid()) return;
-  
-  try {
-    const xhr = new XMLHttpRequest();
-    xhr.open('GET', '/santaba/rest/functions/dummy', true);
-    xhr.setRequestHeader('X-CSRF-Token', 'Fetch');
-    xhr.setRequestHeader('X-version', '3');
-    
-    xhr.onload = () => {
-      if (xhr.status === 200) {
-        const token = xhr.getResponseHeader('X-CSRF-Token');
-        if (token) {
-          const message: ContentToSWMessage = {
-            type: 'CSRF_TOKEN',
-            payload: {
-              portalId: window.location.hostname,
-              token,
-            },
-          };
-          safeSendMessage(message);
-        }
-      }
-    };
-    
-    xhr.send();
-  } catch (error) {
-    console.error('LogicMonitor IDE: Failed to fetch CSRF token:', error);
-  }
+const CSRF_TOKEN_TTL_MS = 10 * 60 * 1000;
+
+let cachedCsrfToken: { token: string | null; timestamp: number } = {
+  token: null,
+  timestamp: 0,
+};
+
+function isCachedTokenFresh(): boolean {
+  if (!cachedCsrfToken.token) return false;
+  return Date.now() - cachedCsrfToken.timestamp < CSRF_TOKEN_TTL_MS;
 }
 
-async function fetchCsrfTokenForRequest(): Promise<string | null> {
+async function requestCsrfToken(): Promise<string | null> {
   return new Promise((resolve) => {
     const xhr = new XMLHttpRequest();
     xhr.open('GET', '/santaba/rest/functions/dummy', true);
     xhr.setRequestHeader('X-CSRF-Token', 'Fetch');
     xhr.setRequestHeader('X-version', '3');
+
     xhr.onload = () => {
       if (xhr.status === 200) {
         resolve(xhr.getResponseHeader('X-CSRF-Token'));
@@ -174,9 +154,49 @@ async function fetchCsrfTokenForRequest(): Promise<string | null> {
         resolve(null);
       }
     };
+
     xhr.onerror = () => resolve(null);
     xhr.send();
   });
+}
+
+async function getCsrfToken(forceRefresh: boolean = false): Promise<string | null> {
+  if (!forceRefresh && isCachedTokenFresh()) {
+    return cachedCsrfToken.token;
+  }
+
+  const token = await requestCsrfToken();
+  if (token) {
+    cachedCsrfToken = { token, timestamp: Date.now() };
+  }
+
+  return token;
+}
+
+// Send CSRF token to service worker on page load
+async function sendCsrfToken() {
+  // Don't try to send if context is invalid
+  if (!isExtensionContextValid()) return;
+  
+  try {
+    const token = await getCsrfToken();
+    if (token) {
+      const message: ContentToSWMessage = {
+        type: 'CSRF_TOKEN',
+        payload: {
+          portalId: window.location.hostname,
+          token,
+        },
+      };
+      safeSendMessage(message);
+    }
+  } catch (error) {
+    console.error('LogicMonitor IDE: Failed to fetch CSRF token:', error);
+  }
+}
+
+async function fetchCsrfTokenForRequest(): Promise<string | null> {
+  return getCsrfToken();
 }
 
 async function fetchDeviceDatasourceInfo(
@@ -185,7 +205,7 @@ async function fetchDeviceDatasourceInfo(
 ): Promise<{ dataSourceId: number; collectMethod: string } | null> {
   const csrfToken = await fetchCsrfTokenForRequest();
 
-  return new Promise((resolve) => {
+  const requestWithToken = (token: string | null) => new Promise<{ dataSourceId: number; collectMethod: string } | null>((resolve) => {
     const xhr = new XMLHttpRequest();
     xhr.open(
       'GET',
@@ -193,8 +213,8 @@ async function fetchDeviceDatasourceInfo(
       true
     );
     xhr.setRequestHeader('X-version', '3');
-    if (csrfToken) {
-      xhr.setRequestHeader('X-CSRF-Token', csrfToken);
+    if (token) {
+      xhr.setRequestHeader('X-CSRF-Token', token);
     }
 
     xhr.onload = () => {
@@ -218,6 +238,14 @@ async function fetchDeviceDatasourceInfo(
     xhr.onerror = () => resolve(null);
     xhr.send();
   });
+
+  const firstAttempt = await requestWithToken(csrfToken);
+  if (firstAttempt) return firstAttempt;
+
+  // Retry once on possible token expiry
+  const refreshedToken = await getCsrfToken(true);
+  if (!refreshedToken) return null;
+  return requestWithToken(refreshedToken);
 }
 
 // Extract device context from current page URL

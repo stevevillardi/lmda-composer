@@ -15,6 +15,7 @@ export class PortalManager {
   private initialized = false;
   private persistTimeout: ReturnType<typeof setTimeout> | null = null;
   private static readonly PERSIST_DEBOUNCE_MS = 300;
+  private static readonly CSRF_TOKEN_TTL_MS = 10 * 60 * 1000;
 
   /**
    * Initialize the PortalManager by loading persisted state.
@@ -340,6 +341,12 @@ export class PortalManager {
     const refreshPromises: Promise<void>[] = [];
 
     for (const portal of this.portals.values()) {
+      if (portal.csrfToken && portal.csrfTokenTimestamp) {
+        const age = Date.now() - portal.csrfTokenTimestamp;
+        if (age < PortalManager.CSRF_TOKEN_TTL_MS) {
+          continue;
+        }
+      }
       if (portal.tabIds.length > 0) {
         refreshPromises.push(this.refreshCsrfToken(portal));
       }
