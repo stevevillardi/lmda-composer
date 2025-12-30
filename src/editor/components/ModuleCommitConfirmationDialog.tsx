@@ -38,6 +38,7 @@ const MODULE_TYPE_LABELS: Record<LogicModuleType, string> = {
   propertysource: 'PropertySource',
   logsource: 'LogSource',
   diagnosticsource: 'DiagnosticSource',
+  eventsource: 'EventSource',
 };
 
 export function ModuleCommitConfirmationDialog({
@@ -198,4 +199,3 @@ export function ModuleCommitConfirmationDialog({
     </Dialog>
   );
 }
-

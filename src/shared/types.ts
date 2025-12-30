@@ -119,6 +119,7 @@ export interface EditorTabSource {
   moduleName?: string;
   moduleType?: LogicModuleType;
   scriptType?: 'collection' | 'ad';
+  lineageId?: string;
 }
 
 export interface EditorTabContextOverride {
@@ -214,7 +215,8 @@ export type LogicModuleType =
   | 'topologysource'
   | 'propertysource'
   | 'logsource'
-  | 'diagnosticsource';
+  | 'diagnosticsource'
+  | 'eventsource';
 
 // Lightweight module info for list display (before fetching full details)
 export interface LogicModuleInfo {
@@ -226,6 +228,7 @@ export interface LogicModuleInfo {
   collectMethod: string;
   hasAutoDiscovery: boolean;
   scriptType: ScriptType;
+  lineageId?: string;
   // Script content (for preview)
   collectionScript?: string;
   adScript?: string;
@@ -322,6 +325,20 @@ export interface FetchDevicePropertiesRequest {
   deviceId: number;
 }
 
+export interface LineageVersion {
+  id: string;
+  name: string;
+  displayName?: string;
+  version?: string;
+  updatedAtMS?: number;
+  createdAtMS?: number;
+  commitMessage?: string;
+  authorUsername?: string;
+  isLatest?: boolean;
+  collectionScript?: string;
+  adScript?: string;
+}
+
 export type EditorToSWMessage =
   | { type: 'DISCOVER_PORTALS' }
   | { type: 'GET_COLLECTORS'; payload: { portalId: string } }
@@ -340,6 +357,7 @@ export type EditorToSWMessage =
   | { type: 'CANCEL_DEBUG_COMMAND'; payload: { executionId: string } }
   | { type: 'FETCH_MODULE'; payload: { portalId: string; moduleType: LogicModuleType; moduleId: number } }
   | { type: 'COMMIT_MODULE_SCRIPT'; payload: { portalId: string; moduleType: LogicModuleType; moduleId: number; scriptType: 'collection' | 'ad'; newScript: string } }
+  | { type: 'FETCH_LINEAGE_VERSIONS'; payload: { portalId: string; moduleType: LogicModuleType; lineageId: string } }
   | { type: 'OPEN_EDITOR'; payload?: DeviceContext };
 
 export type SWToEditorMessage =
@@ -362,6 +380,8 @@ export type SWToEditorMessage =
   | { type: 'MODULE_FETCHED'; payload: any } // Full module object from API
   | { type: 'MODULE_COMMITTED'; payload: { moduleId: number; moduleType: LogicModuleType } }
   | { type: 'MODULE_ERROR'; payload: { error: string; code?: number } }
+  | { type: 'LINEAGE_VERSIONS_FETCHED'; payload: { versions: LineageVersion[] } }
+  | { type: 'LINEAGE_ERROR'; payload: { error: string; code?: number } }
   | { type: 'PORTAL_DISCONNECTED'; payload: { portalId: string; hostname: string } }
   | { type: 'ERROR'; payload: { code: string; message: string } };
 
@@ -464,5 +484,3 @@ export const MAX_SCRIPT_LENGTH = 64000;
 export const EXECUTION_POLL_INTERVAL_MS = 1000;
 export const EXECUTION_MAX_ATTEMPTS = 120;
 export const CSRF_REFRESH_INTERVAL_MS = 10 * 60 * 1000;
-
-

@@ -13,6 +13,7 @@ import { BraveFileSystemWarning } from './components/BraveFileSystemWarning';
 import { AppliesToTester } from './components/AppliesToTester';
 import { DebugCommandsDialog } from './components/DebugCommandsDialog';
 import { ModuleCommitConfirmationDialog } from './components/ModuleCommitConfirmationDialog';
+import { ModuleLineageDialog } from './components/ModuleLineageDialog';
 import { useEditorStore } from './stores/editor-store';
 import { isFileSystemAccessSupported } from './utils/file-handle-store';
 import { isBraveBrowser } from './utils/browser-detection';
@@ -428,6 +429,9 @@ export function App() {
           hasConflict={false}
           isCommitting={isCommittingModule}
         />
+      )}
+      {activeTab && activeTab.source?.type === 'module' && (
+        <ModuleLineageDialog activeTab={activeTab} />
       )}
       <BraveFileSystemWarning
         open={showBraveWarning}

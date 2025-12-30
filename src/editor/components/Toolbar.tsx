@@ -12,6 +12,7 @@ import {
   PanelRightClose,
   PanelRightOpen,
   Upload,
+  History,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEditorStore } from '../stores/editor-store';
@@ -77,6 +78,9 @@ export function Toolbar() {
     canCommitModule,
     fetchModuleForCommit,
     setModuleCommitConfirmationOpen,
+    fetchLineageVersions,
+    setModuleLineageDialogOpen,
+    isFetchingLineage,
   } = useEditorStore();
 
   // Get active tab data
@@ -150,6 +154,7 @@ Exit 0
   
   // Check if active tab is a module tab
   const isModuleTab = activeTab?.source?.type === 'module';
+  const hasLineage = !!activeTab?.source?.lineageId;
   
   // Check if we can commit module changes (has changes and portal selected)
   const canCommit = activeTabId && canCommitModule(activeTabId);
@@ -251,6 +256,46 @@ Exit 0
 
       {/* Action Group */}
       <div className="flex items-center gap-1.5">
+        {/* Lineage Button - shown for module tabs with lineageId */}
+        {isModuleTab && hasLineage && (
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    if (!activeTabId) return;
+                    try {
+                      const count = await fetchLineageVersions(activeTabId);
+                      if (count > 0) {
+                        setModuleLineageDialogOpen(true);
+                      } else {
+                        toast.info('No lineage history found', {
+                          description: 'This module does not have historical versions available.',
+                        });
+                      }
+                    } catch (error) {
+                      toast.error('Failed to load lineage', {
+                        description: error instanceof Error ? error.message : 'Unknown error',
+                      });
+                    }
+                  }}
+                  disabled={isFetchingLineage}
+                  className={cn("gap-1.5", SIZES.BUTTON_TOOLBAR)}
+                  aria-label="View module lineage"
+                >
+                  <History className={cn(SIZES.ICON_MEDIUM, isFetchingLineage && "animate-spin")} />
+                  {isFetchingLineage ? 'Loading...' : 'View Lineage'}
+                </Button>
+              }
+            />
+            <TooltipContent>
+              {isFetchingLineage ? 'Loading lineage...' : 'View historical versions'}
+            </TooltipContent>
+          </Tooltip>
+        )}
+
         {/* Commit Button - shown for module tabs, disabled unless there are changes */}
         {isModuleTab && (
           <Tooltip>

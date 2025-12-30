@@ -19,6 +19,7 @@ import type {
   DraftScript,
   DraftTabs,
   EditorTab,
+  LineageVersion,
   FilePermissionStatus,
   CustomAppliesToFunction,
   ExecuteDebugCommandRequest,
@@ -287,12 +288,22 @@ interface EditorState {
   moduleCommitError: string | null;
   moduleCommitConfirmationOpen: boolean;
   loadedModuleForCommit: LogicModuleInfo | null;
+
+  // Module lineage state
+  moduleLineageDialogOpen: boolean;
+  lineageVersions: LineageVersion[];
+  isFetchingLineage: boolean;
+  lineageError: string | null;
   
   // Module commit actions
   fetchModuleForCommit: (tabId: string) => Promise<void>;
   commitModuleScript: (tabId: string) => Promise<void>;
   canCommitModule: (tabId: string) => boolean;
   setModuleCommitConfirmationOpen: (open: boolean) => void;
+
+  // Module lineage actions
+  fetchLineageVersions: (tabId: string) => Promise<number>;
+  setModuleLineageDialogOpen: (open: boolean) => void;
 }
 
 export const DEFAULT_GROOVY_TEMPLATE = `import com.santaba.agent.groovyapi.expect.Expect;
@@ -382,6 +393,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     propertysource: [],
     logsource: [],
     diagnosticsource: [],
+    eventsource: [],
   },
   isFetchingModules: false,
   selectedModule: null,
@@ -445,6 +457,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   moduleCommitError: null,
   moduleCommitConfirmationOpen: false,
   loadedModuleForCommit: null,
+
+  // Module lineage initial state
+  moduleLineageDialogOpen: false,
+  lineageVersions: [],
+  isFetchingLineage: false,
+  lineageError: null,
   
   // Debug commands initial state
   debugCommandsDialogOpen: false,
@@ -465,15 +483,16 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       devices: [],
       hostname: '',
       // Clear module cache when portal changes
-      modulesCache: {
-        datasource: [],
-        configsource: [],
-        topologysource: [],
-        propertysource: [],
-        logsource: [],
-        diagnosticsource: [],
-      },
-    });
+        modulesCache: {
+          datasource: [],
+          configsource: [],
+          topologysource: [],
+          propertysource: [],
+          logsource: [],
+          diagnosticsource: [],
+          eventsource: [],
+        },
+      });
     if (portalId) {
       get().refreshCollectors();
     }
@@ -848,6 +867,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           propertysource: [],
           logsource: [],
           diagnosticsource: [],
+          eventsource: [],
         },
       });
       
@@ -1084,6 +1104,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         moduleName: selectedModule.name,
         moduleType: selectedModule.moduleType,
         scriptType,
+        lineageId: selectedModule.lineageId,
       } : undefined,
     };
     
@@ -1124,6 +1145,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         moduleName: selectedModule.name,
         moduleType: selectedModule.moduleType,
         scriptType,
+        lineageId: selectedModule.lineageId,
       } : undefined,
     };
     
@@ -1798,6 +1820,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           moduleName: module.name,
           moduleType: module.moduleType,
           scriptType,
+          lineageId: module.lineageId,
         },
       };
     });
@@ -2500,6 +2523,13 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     }
   },
 
+  setModuleLineageDialogOpen: (open: boolean) => {
+    set({ moduleLineageDialogOpen: open });
+    if (!open) {
+      set({ lineageVersions: [], lineageError: null });
+    }
+  },
+
   canCommitModule: (tabId: string) => {
     const tab = get().tabs.find(t => t.id === tabId);
     if (!tab) return false;
@@ -2542,7 +2572,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           currentScript = module.autoDiscoveryConfig?.method?.groovyScript || '';
         } else {
           // Collection script
-          if (tab.source.moduleType === 'propertysource' || tab.source.moduleType === 'diagnosticsource') {
+          if (
+            tab.source.moduleType === 'propertysource' ||
+            tab.source.moduleType === 'diagnosticsource' ||
+            tab.source.moduleType === 'eventsource'
+          ) {
             currentScript = module.groovyScript || '';
           } else if (tab.source.moduleType === 'logsource') {
             currentScript = module.collectionAttribute?.script?.embeddedContent
@@ -2681,6 +2715,54 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     }
   },
 
+  fetchLineageVersions: async (tabId: string): Promise<number> => {
+    const { tabs, selectedPortalId } = get();
+    const tab = tabs.find(t => t.id === tabId);
+
+    if (!tab || !selectedPortalId) {
+      throw new Error('Tab not found or portal not selected');
+    }
+
+    if (tab.source?.type !== 'module' || !tab.source.moduleType || !tab.source.lineageId) {
+      throw new Error('Lineage is only available for LMX-loaded modules');
+    }
+
+    set({ isFetchingLineage: true, lineageError: null });
+
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: 'FETCH_LINEAGE_VERSIONS',
+        payload: {
+          portalId: selectedPortalId,
+          moduleType: tab.source.moduleType,
+          lineageId: tab.source.lineageId,
+        },
+      });
+
+      if (response?.type === 'LINEAGE_VERSIONS_FETCHED') {
+        const versions = response.payload.versions || [];
+        set({
+          lineageVersions: versions,
+          isFetchingLineage: false,
+        });
+        return versions.length;
+      } else if (response?.type === 'LINEAGE_ERROR') {
+        const error = response.payload.error || 'Failed to fetch lineage versions';
+        set({ lineageError: error, isFetchingLineage: false });
+        throw new Error(error);
+      } else {
+        const error = 'Unknown error occurred';
+        set({ lineageError: error, isFetchingLineage: false });
+        throw new Error(error);
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch lineage versions';
+      set({ lineageError: errorMessage, isFetchingLineage: false });
+      throw error;
+    }
+    return 0;
+  },
+
   getAllFunctions: () => {
     const { customFunctions } = get();
     
@@ -2796,4 +2878,3 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     }
   },
 }));
-

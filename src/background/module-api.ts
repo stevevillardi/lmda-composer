@@ -1,6 +1,7 @@
-import type { LogicModuleType } from '@/shared/types';
+import type { LogicModuleType, LineageVersion } from '@/shared/types';
 
 const API_VERSION = '3';
+const LINEAGE_API_VERSION = '4';
 
 // API endpoint paths for each module type
 const ENDPOINTS: Record<LogicModuleType, string> = {
@@ -10,6 +11,17 @@ const ENDPOINTS: Record<LogicModuleType, string> = {
   propertysource: '/setting/propertyrules',
   logsource: '/setting/logsources',
   diagnosticsource: '/setting/diagnosticsources',
+  eventsource: '/setting/eventsources',
+};
+
+const LINEAGE_MODEL_KEYS: Record<LogicModuleType, string> = {
+  datasource: 'exchangeDataSources',
+  configsource: 'exchangeConfigSources',
+  topologysource: 'exchangeTopologySources',
+  propertysource: 'exchangePropertySources',
+  logsource: 'exchangeLogSources',
+  diagnosticsource: 'exchangeDiagnosticSources',
+  eventsource: 'exchangeEventSources',
 };
 
 // API response structure varies by module type
@@ -53,6 +65,112 @@ interface APIModule {
   appliesToScript?: string;   // LogSource uses this instead of appliesTo
 }
 
+interface LineageResponse {
+  data?: {
+    byId?: Record<string, Record<string, Record<string, unknown>>>;
+  };
+}
+
+function pickFirstString(values: Array<unknown>): string {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim()) {
+      return value;
+    }
+  }
+  return '';
+}
+
+function extractLineageScripts(module: Record<string, unknown>, moduleType: LogicModuleType) {
+  const script = module['script'] as {
+    groovyScript?: string;
+    powershellScript?: string;
+  } | undefined;
+
+  const collectionAttributes = module['collectionAttributes'] as {
+    script?: { groovyScript?: string; powershellScript?: string; embeddedContent?: string };
+  } | undefined;
+
+  const activeDiscoveryConfig = module['activeDiscoveryConfig'] as {
+    activeDiscoveryParams?: {
+      script?: { groovyScript?: string; powershellScript?: string };
+    };
+  } | undefined;
+
+  if (moduleType === 'topologysource') {
+    return {
+      collectionScript: pickFirstString([
+        script?.groovyScript,
+        script?.powershellScript,
+      ]),
+      adScript: '',
+    };
+  }
+
+  if (moduleType === 'logsource') {
+    return {
+      collectionScript: pickFirstString([
+        collectionAttributes?.script?.embeddedContent,
+      ]),
+      adScript: '',
+    };
+  }
+
+  if (moduleType === 'diagnosticsource') {
+    return {
+      collectionScript: pickFirstString([
+        script?.groovyScript,
+        script?.powershellScript,
+      ]),
+      adScript: '',
+    };
+  }
+
+  if (moduleType === 'propertysource') {
+    return {
+      collectionScript: pickFirstString([
+        script?.groovyScript,
+        script?.powershellScript,
+      ]),
+      adScript: '',
+    };
+  }
+
+  if (moduleType === 'configsource') {
+    return {
+      collectionScript: pickFirstString([
+        script?.groovyScript,
+        script?.powershellScript,
+      ]),
+      adScript: pickFirstString([
+        activeDiscoveryConfig?.activeDiscoveryParams?.script?.groovyScript,
+        activeDiscoveryConfig?.activeDiscoveryParams?.script?.powershellScript,
+      ]),
+    };
+  }
+
+  if (moduleType === 'datasource') {
+    return {
+      collectionScript: pickFirstString([
+        collectionAttributes?.script?.groovyScript,
+        collectionAttributes?.script?.powershellScript,
+      ]),
+      adScript: pickFirstString([
+        activeDiscoveryConfig?.activeDiscoveryParams?.script?.groovyScript,
+        activeDiscoveryConfig?.activeDiscoveryParams?.script?.powershellScript,
+      ]),
+    };
+  }
+
+  if (moduleType === 'eventsource') {
+    return {
+      collectionScript: pickFirstString([script?.groovyScript]),
+      adScript: '',
+    };
+  }
+
+  return { collectionScript: '', adScript: '' };
+}
+
 /**
  * Build update payload for module script
  */
@@ -83,7 +201,7 @@ function buildUpdatePayload(
     }
   } else {
     // Collection scripts
-    if (moduleType === 'propertysource' || moduleType === 'diagnosticsource') {
+    if (moduleType === 'propertysource' || moduleType === 'diagnosticsource' || moduleType === 'eventsource') {
       payload.groovyScript = newScript;
     } else if (moduleType === 'logsource') {
       // LogSource uses collectionAttribute.script.embeddedContent
@@ -232,6 +350,37 @@ function updateModuleInAPI(
   });
 }
 
+function fetchLineageVersionsFromAPI(
+  csrfToken: string | null,
+  lineageId: string,
+  apiVersion: string
+): Promise<LineageResponse | { error: string; status?: number; responseText?: string }> {
+  return new Promise((resolve) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `/santaba/rest/exchange/store/lineages/${lineageId}`, true);
+    xhr.setRequestHeader('Content-Type', 'application/json');
+    xhr.setRequestHeader('X-version', apiVersion);
+    if (csrfToken) {
+      xhr.setRequestHeader('X-CSRF-Token', csrfToken);
+    }
+
+    xhr.onload = () => {
+      if (xhr.status === 200) {
+        try {
+          resolve(JSON.parse(xhr.responseText) as LineageResponse);
+        } catch (error) {
+          resolve({ error: 'Parse error', status: xhr.status, responseText: xhr.responseText });
+        }
+      } else {
+        resolve({ error: `HTTP ${xhr.status}`, status: xhr.status, responseText: xhr.responseText });
+      }
+    };
+
+    xhr.onerror = () => resolve({ error: 'Network error' });
+    xhr.send('{}');
+  });
+}
+
 /**
  * Fetch a single module by ID
  */
@@ -342,3 +491,82 @@ export async function commitModuleScript(
   }
 }
 
+export async function fetchLineageVersions(
+  _portalId: string,
+  csrfToken: string | null,
+  moduleType: LogicModuleType,
+  lineageId: string,
+  tabId: number
+): Promise<LineageVersion[] | null> {
+  try {
+    try {
+      await chrome.tabs.get(tabId);
+    } catch (tabError) {
+      console.error(`[fetchLineageVersions] Tab ${tabId} is not accessible:`, tabError);
+      return null;
+    }
+
+    const results = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: fetchLineageVersionsFromAPI,
+      args: [csrfToken, lineageId, LINEAGE_API_VERSION],
+    });
+
+    const result = results?.[0]?.result;
+    if (!result) {
+      console.error('[fetchLineageVersions] No result from injected script');
+      return null;
+    }
+
+    if (typeof result === 'object' && 'error' in result) {
+      console.error('[fetchLineageVersions] Error from injected script:', result);
+      return null;
+    }
+
+    const response = result as LineageResponse;
+    const byId = response.data?.byId || {};
+    const preferredKey = LINEAGE_MODEL_KEYS[moduleType];
+    let modelKey = preferredKey in byId ? preferredKey : '';
+
+    if (!modelKey) {
+      modelKey =
+        Object.keys(byId).find((key) => {
+          const entries = byId[key];
+          if (!entries || typeof entries !== 'object') return false;
+          return Object.values(entries).some((entry) => {
+            if (!entry || typeof entry !== 'object') return false;
+            return 'lineageId' in entry || 'collectionAttributes' in entry || 'collectorAttribute' in entry || 'collectionAttribute' in entry;
+          });
+        }) || '';
+    }
+
+    const modelEntries = modelKey ? byId[modelKey] : undefined;
+    if (!modelEntries) {
+      return [];
+    }
+
+    const versions = Object.entries(modelEntries).map(([id, raw]) => {
+      const module = raw as Record<string, unknown>;
+      const { collectionScript, adScript } = extractLineageScripts(module, moduleType);
+
+      return {
+        id,
+        name: (module['name'] as string) || '',
+        displayName: (module['displayName'] as string) || undefined,
+        version: (module['version'] as string) || undefined,
+        updatedAtMS: (module['updatedAtMS'] as number) || undefined,
+        createdAtMS: (module['createdAtMS'] as number) || undefined,
+        commitMessage: (module['commitMessage'] as string) || undefined,
+        authorUsername: (module['authorUsername'] as string) || undefined,
+        isLatest: (module['isLatest'] as boolean) || undefined,
+        collectionScript,
+        adScript,
+      };
+    });
+
+    return versions.sort((a, b) => (b.updatedAtMS || 0) - (a.updatedAtMS || 0));
+  } catch (error) {
+    console.error('[fetchLineageVersions] Error fetching lineage versions:', error);
+    return null;
+  }
+}

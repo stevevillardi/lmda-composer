@@ -10,6 +10,7 @@ import {
 import {
   fetchModuleById,
   commitModuleScript,
+  fetchLineageVersions,
 } from './module-api';
 import type { 
   EditorToSWMessage, 
@@ -386,6 +387,49 @@ async function handleMessage(
               error: error instanceof Error ? error.message : 'Failed to fetch module',
               code: 500
             } 
+          });
+        }
+        break;
+      }
+
+      case 'FETCH_LINEAGE_VERSIONS': {
+        const { portalId, moduleType, lineageId } = message.payload as {
+          portalId: string;
+          moduleType: LogicModuleType;
+          lineageId: string;
+        };
+        try {
+          const portal = portalManager.getPortal(portalId);
+          if (!portal || portal.tabIds.length === 0) {
+            sendResponse({
+              type: 'LINEAGE_ERROR',
+              payload: { error: 'Portal not found or no tabs available', code: 404 },
+            });
+            break;
+          }
+          const csrfToken = await portalManager.getCsrfToken(portalId);
+          const versions = await fetchLineageVersions(
+            portal.hostname,
+            csrfToken,
+            moduleType,
+            lineageId,
+            portal.tabIds[0]
+          );
+          if (versions) {
+            sendResponse({ type: 'LINEAGE_VERSIONS_FETCHED', payload: { versions } });
+          } else {
+            sendResponse({
+              type: 'LINEAGE_ERROR',
+              payload: { error: 'Failed to fetch lineage versions', code: 500 },
+            });
+          }
+        } catch (error) {
+          sendResponse({
+            type: 'LINEAGE_ERROR',
+            payload: {
+              error: error instanceof Error ? error.message : 'Failed to fetch lineage versions',
+              code: 500,
+            },
           });
         }
         break;

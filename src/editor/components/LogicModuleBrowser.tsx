@@ -6,6 +6,7 @@ import {
   Settings2, 
   FileCode, 
   Stethoscope,
+  Bell,
   Search,
   AlertTriangle,
   FolderSearch,
@@ -57,6 +58,7 @@ const MODULE_TYPES: ModuleTypeConfig[] = [
   { value: 'propertysource', label: 'PropertySource', shortLabel: 'PS', icon: Settings2 },
   { value: 'logsource', label: 'LogSource', shortLabel: 'LS', icon: FileCode },
   { value: 'diagnosticsource', label: 'DiagnosticSource', shortLabel: 'Diag', icon: Stethoscope },
+  { value: 'eventsource', label: 'EventSource', shortLabel: 'ES', icon: Bell },
 ];
 
 export function LogicModuleBrowser() {
@@ -346,4 +348,3 @@ function ModuleListItem({ module, isSelected, onClick }: ModuleListItemProps) {
     </button>
   );
 }
-

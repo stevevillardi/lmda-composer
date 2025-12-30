@@ -12,6 +12,7 @@ const ENDPOINTS: Record<LogicModuleType, string> = {
   propertysource: '/setting/propertyrules',
   logsource: '/setting/logsources',
   diagnosticsource: '/setting/diagnosticsources',
+  eventsource: '/setting/eventsources',
 };
 
 // Module types that need script filter (have non-script collection methods)
@@ -88,6 +89,14 @@ export class ModuleLoader {
         );
       }
 
+      if (moduleType === 'topologysource') {
+        allItems = allItems.filter(item => item.scriptType === 'embed');
+      }
+
+      if (moduleType === 'eventsource') {
+        allItems = allItems.filter(item => item.scriptType === 'embed');
+      }
+
       return {
         items: allItems,
         total: allItems.length,
@@ -113,6 +122,7 @@ interface APIModule {
   displayName?: string;
   appliesTo?: string;
   collectMethod?: string;
+  lineageId?: string;
   enableAutoDiscovery?: boolean;
   autoDiscoveryConfig?: {
     method?: {
@@ -203,20 +213,25 @@ function fetchModulesFromAPI(
             let collectMethod = m.collectMethod || 'script';
             let appliesTo = m.appliesTo || '';
 
-            if (moduleType === 'propertysource') {
-              // PropertySource stores script directly on the module in groovyScript
-              collectionScript = m.groovyScript || '';
-              scriptType = m.scriptType || 'embed';
-              collectMethod = 'script';
-            } else if (moduleType === 'diagnosticsource') {
-              // DiagnosticSource stores script in groovyScript field
-              collectionScript = m.groovyScript || '';
-              scriptType = m.scriptType || 'embed';
-              collectMethod = 'script';
-            } else if (moduleType === 'logsource') {
-              // LogSource has different schema:
-              // - collectionMethod (uppercase) instead of collectMethod
-              // - script is in collectionAttribute.script.embeddedContent (NOT collectorAttribute)
+          if (moduleType === 'propertysource') {
+            // PropertySource stores script directly on the module in groovyScript
+            collectionScript = m.groovyScript || '';
+            scriptType = m.scriptType || 'embed';
+            collectMethod = 'script';
+          } else if (moduleType === 'diagnosticsource') {
+            // DiagnosticSource stores script in groovyScript field
+            collectionScript = m.groovyScript || '';
+            scriptType = m.scriptType || 'embed';
+            collectMethod = 'script';
+          } else if (moduleType === 'eventsource') {
+            // EventSource stores script in groovyScript field
+            collectionScript = m.groovyScript || '';
+            scriptType = m.scriptType || '';
+            collectMethod = 'script';
+          } else if (moduleType === 'logsource') {
+            // LogSource has different schema:
+            // - collectionMethod (uppercase) instead of collectMethod
+            // - script is in collectionAttribute.script.embeddedContent (NOT collectorAttribute)
               // - appliesToScript instead of appliesTo
               appliesTo = m.appliesToScript || m.appliesTo || '';
               collectMethod = (m.collectionMethod || m.collectMethod || 'SCRIPT').toLowerCase();
@@ -235,8 +250,19 @@ function fetchModulesFromAPI(
               // DataSource, ConfigSource, TopologySource
               collectionScript = m.collectorAttribute?.groovyScript || '';
               // Normalize scriptType - API may return different casings
-              const rawScriptType = m.collectorAttribute?.scriptType || 'embed';
-              scriptType = rawScriptType.toLowerCase() === 'powershell' ? 'powerShell' : 'embed';
+              const rawScriptType = m.collectorAttribute?.scriptType || '';
+              if (rawScriptType) {
+                const normalizedType = rawScriptType.toLowerCase();
+                if (normalizedType === 'powershell') {
+                  scriptType = 'powerShell';
+                } else if (normalizedType === 'property') {
+                  scriptType = 'property';
+                } else {
+                  scriptType = 'embed';
+                }
+              } else {
+                scriptType = '';
+              }
               
               // Only mark as AD if there's actually an AD script defined
               if (m.enableAutoDiscovery && m.autoDiscoveryConfig?.method) {
@@ -256,6 +282,7 @@ function fetchModulesFromAPI(
               collectMethod,
               hasAutoDiscovery,
               scriptType,
+              lineageId: m.lineageId,
               collectionScript,
               adScript,
             };
@@ -282,4 +309,3 @@ function fetchModulesFromAPI(
     xhr.send();
   });
 }
-
