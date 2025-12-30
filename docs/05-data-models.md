@@ -183,11 +183,21 @@ interface LogicModuleInfo {
   moduleType: LogicModuleType;
   appliesTo: string;
   collectMethod: string;
+  collectInterval?: number;
   hasAutoDiscovery: boolean;
   scriptType: ScriptType;
   lineageId?: string;
   collectionScript?: string;
   adScript?: string;
+  dataPoints?: Array<{
+    id: number;
+    name: string;
+    description?: string;
+    alertForNoData?: number | boolean;
+    alertExpr?: string;
+    alertTransitionInterval?: number;
+    alertClearTransitionInterval?: number;
+  }>;
 }
 
 interface CollectorAttribute {
@@ -219,6 +229,64 @@ interface DataPoint {
   postProcessorMethod: string;
   postProcessorParam: string;
 }
+
+### Module Search
+
+```typescript
+type ModuleSearchMatchType = 'substring' | 'exact' | 'regex';
+
+interface ScriptMatchRange {
+  line: number;
+  startColumn: number;
+  endColumn: number;
+}
+
+interface ScriptSearchResult {
+  module: LogicModuleInfo;
+  collectionMatches: ScriptMatchRange[];
+  adMatches: ScriptMatchRange[];
+}
+
+interface DataPointSearchResult {
+  moduleId: number;
+  moduleName: string;
+  moduleDisplayName: string;
+  appliesTo: string;
+  collectInterval?: number;
+  dataPoint: {
+    id: number;
+    name: string;
+    description: string;
+    alertForNoData?: number | boolean;
+    alertExpr?: string;
+    alertTransitionInterval?: number;
+    alertClearTransitionInterval?: number;
+  };
+}
+
+interface SearchModuleScriptsRequest {
+  portalId: string;
+  query: string;
+  matchType: ModuleSearchMatchType;
+  caseSensitive: boolean;
+  moduleTypes: LogicModuleType[];
+}
+
+interface SearchModuleScriptsResponse {
+  results: ScriptSearchResult[];
+}
+
+interface SearchDatapointsRequest {
+  portalId: string;
+  query: string;
+  matchType: ModuleSearchMatchType;
+  caseSensitive: boolean;
+}
+
+interface SearchDatapointsResponse {
+  results: DataPointSearchResult[];
+}
+```
 
 interface LogicModule {
   id: number;
@@ -632,6 +700,8 @@ type EditorToSWMessage =
   | { type: 'FETCH_MODULE'; payload: { portalId: string; moduleType: LogicModuleType; moduleId: number } }
   | { type: 'COMMIT_MODULE_SCRIPT'; payload: { portalId: string; moduleType: LogicModuleType; moduleId: number; scriptType: 'collection' | 'ad'; newScript: string } }
   | { type: 'FETCH_LINEAGE_VERSIONS'; payload: { portalId: string; moduleType: LogicModuleType; lineageId: string } }
+  | { type: 'SEARCH_MODULE_SCRIPTS'; payload: SearchModuleScriptsRequest }
+  | { type: 'SEARCH_DATAPOINTS'; payload: SearchDatapointsRequest }
   | { type: 'OPEN_EDITOR'; payload?: DeviceContext };
 
 // Messages from Service Worker to Editor
@@ -657,6 +727,10 @@ type SWToEditorMessage =
   | { type: 'MODULE_ERROR'; payload: { error: string; code?: number } }
   | { type: 'LINEAGE_VERSIONS_FETCHED'; payload: { versions: LineageVersion[] } }
   | { type: 'LINEAGE_ERROR'; payload: { error: string; code?: number } }
+  | { type: 'MODULE_SCRIPT_SEARCH_RESULTS'; payload: SearchModuleScriptsResponse }
+  | { type: 'MODULE_SCRIPT_SEARCH_ERROR'; payload: { error: string; code?: number } }
+  | { type: 'DATAPOINT_SEARCH_RESULTS'; payload: SearchDatapointsResponse }
+  | { type: 'DATAPOINT_SEARCH_ERROR'; payload: { error: string; code?: number } }
   | { type: 'PORTAL_DISCONNECTED'; payload: { portalId: string; hostname: string } }
   | { type: 'ERROR'; payload: { code: string; message: string } };
 

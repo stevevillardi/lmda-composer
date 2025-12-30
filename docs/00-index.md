@@ -267,13 +267,14 @@ const selector = '[data-testid="LM_navigationMoreOptions24PxIcon"]';
 - [x] UX improvements (mode icons, execution mode label, disabled tabs for freeform)
 
 ### Phase 4: LogicModule Integration ✅ COMPLETE
-- [x] Module browser with 6 module types (DataSource, ConfigSource, TopologySource, PropertySource, LogSource, DiagnosticSource)
+- [x] Module browser with 7 module types (DataSource, ConfigSource, TopologySource, PropertySource, LogSource, DiagnosticSource, EventSource)
 - [x] Paginated API fetching with script-only filter
 - [x] Type toggle group with searchable module list
 - [x] Dual-pane Monaco preview (AD + Collection) for AD-enabled modules
 - [x] Load confirmation dialog when editor has unsaved changes
 - [x] Auto-set language and execution mode when loading scripts
 - [x] "Open from LMX" button in toolbar (enabled when portal is selected)
+- [x] LogicModule search across scripts + datapoints with highlighted previews
 
 ### Phase 5: Polish ✅ COMPLETE
 - [x] Resource tree context menu injection
@@ -348,4 +349,3 @@ When implementing features:
 3. Use the types defined in [05-data-models.md](./05-data-models.md)
 4. Check API usage in [04-api-reference.md](./04-api-reference.md)
 5. Update docs when discovering new information or making design changes
-

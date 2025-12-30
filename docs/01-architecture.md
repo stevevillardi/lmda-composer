@@ -90,6 +90,7 @@ background/
 ├── property-prefetcher.ts # Fetches device props via Groovy for PowerShell
 ├── token-substitutor.ts   # ##TOKEN## detection and replacement
 ├── module-loader.ts       # LogicModule fetching with pagination
+├── module-searcher.ts     # Script/datapoint search across modules
 └── rate-limiter.ts        # Rate limit detection and exponential backoff
 ```
 
@@ -192,6 +193,7 @@ editor/
 │   ├── ExecutionContextDialog.tsx  # Wildvalue/DatasourceId prompts
 │   ├── ExecutionHistoryPanel.tsx   # History sidebar panel
 │   ├── LogicModuleBrowser.tsx      # Module search and preview
+│   ├── LogicModuleSearch.tsx       # Cross-module script/datapoint search
 │   ├── SettingsDialog.tsx # User preferences
 │   ├── ModulePreview.tsx  # Script preview tabs
 │   ├── ModuleLineageDialog.tsx # Historical diffs/restores

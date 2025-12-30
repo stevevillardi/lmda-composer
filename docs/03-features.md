@@ -13,6 +13,7 @@
 | Collection mode with validation | P1 | 3 | ✅ |
 | Batch Collection mode with validation | P1 | 3 | ✅ |
 | LogicModule browser | P1 | 4 | ✅ |
+| LogicModule search | P1 | 4 | ✅ |
 | Module lineage & diff | P1 | 4 | ✅ |
 | Module commit from IDE | P1 | 4 | ✅ |
 | Snippet library | P2 | 5 | ✅ |
@@ -412,8 +413,9 @@ As a user, I want to load existing LogicModule scripts so I can test and debug t
 | ConfigSource | `/setting/configsources` | `collectMethod~"script"` |
 | TopologySource | `/setting/topologysources` | `collectMethod~"script"` |
 | PropertySource | `/setting/propertyrules` | None (always script) |
-| LogSource | `/setting/logsources` | `collectMethod~"script"` |
+| LogSource | `/setting/logsources` | `collectMethod~"script"` (post-filtered) |
 | DiagnosticSource | `/setting/diagnosticsources` | None |
+| EventSource | `/setting/eventsources` | Script-only (embedded) |
 
 **Behavior:**
 1. Click "Open from LMX" button in toolbar (requires portal selection)
@@ -442,6 +444,37 @@ As a user, I want to load existing LogicModule scripts so I can test and debug t
 - `src/background/module-loader.ts` - API client
 - `src/editor/components/LogicModuleBrowser.tsx` - Main dialog
 - `src/editor/components/ModulePreview.tsx` - Dual-pane preview
+
+### F4.2 LogicModule Search ✅
+
+**Description:**  
+Search across module scripts (collection + AD) and datasource datapoints, with highlighted results and quick actions.
+
+**User Story:**  
+As a user, I want to find a specific snippet, deprecated call, or datapoint definition across all modules so I can reuse or update it.
+
+**Behavior:**
+1. Open the search dialog (⌘⇧F) from Actions, Command Palette, or Welcome screen
+2. Choose Script or Datapoint search mode
+3. Select match type (substring, exact, regex) and case sensitivity
+4. View grouped results by module type
+5. Preview scripts with match highlighting
+6. Load into editor or create a new freeform file
+7. Datapoints show alert thresholds and timing details
+
+**Acceptance Criteria:**
+- [x] Search across all module types with script + AD scanning
+- [x] Highlight matches in Monaco preview (line + inline)
+- [x] Load as module-backed tab with commit support
+- [x] Create new freeform tab from a script
+- [x] Datapoint search matches name + description
+- [x] Datapoint details show thresholds, no-data rules, and timing
+
+**Implementation Files:**
+- `src/editor/components/LogicModuleSearch.tsx` - Search dialog + preview
+- `src/background/module-searcher.ts` - Search logic (scripts + datapoints)
+- `src/background/module-loader.ts` - Datasource list with datapoints
+- `src/shared/types.ts` - Search request/response types
 
 ---
 
