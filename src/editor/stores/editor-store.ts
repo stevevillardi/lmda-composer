@@ -626,6 +626,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const script = activeTab.content;
     const language = activeTab.language;
     const mode = activeTab.mode;
+    const selectedCollector = state.collectors.find(c => c.id === state.selectedCollectorId);
+    const isWindowsCollector = selectedCollector?.arch?.toLowerCase().includes('win') ?? true;
     
     if (!state.selectedPortalId || !state.selectedCollectorId) {
       set({
@@ -636,6 +638,22 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           duration: 0,
           startTime: Date.now(),
           error: 'Please select a portal and collector',
+        },
+        outputTab: 'raw',
+        parsedOutput: null,
+      });
+      return;
+    }
+
+    if (language === 'powershell' && !isWindowsCollector) {
+      set({
+        currentExecution: {
+          id: crypto.randomUUID(),
+          status: 'error',
+          rawOutput: '',
+          duration: 0,
+          startTime: Date.now(),
+          error: 'PowerShell execution is only supported on Windows collectors. Select a Windows collector to run this script.',
         },
         outputTab: 'raw',
         parsedOutput: null,

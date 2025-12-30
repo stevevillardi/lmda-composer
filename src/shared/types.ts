@@ -17,6 +17,7 @@ export interface Collector {
   status: number;
   isDown: boolean;
   collectorGroupName: string;
+  arch?: string;
 }
 
 // Lightweight device info for dropdown display

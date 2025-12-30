@@ -652,10 +652,11 @@ function fetchCollectors(csrfToken: string | null): Promise<Array<{
   status: number;
   isDown: boolean;
   collectorGroupName: string;
+  arch?: string;
 }>> {
   return new Promise((resolve) => {
     const xhr = new XMLHttpRequest();
-    xhr.open('GET', '/santaba/rest/setting/collector/collectors?size=1000&fields=id,description,hostname,status,isDown,collectorGroupName', true);
+    xhr.open('GET', '/santaba/rest/setting/collector/collectors?size=1000&fields=id,description,hostname,status,isDown,collectorGroupName,arch', true);
     xhr.setRequestHeader('Content-Type', 'application/json');
     xhr.setRequestHeader('X-version', '3');
     if (csrfToken) {
@@ -674,6 +675,7 @@ function fetchCollectors(csrfToken: string | null): Promise<Array<{
             status: number;
             isDown: boolean;
             collectorGroupName: string;
+            arch?: string;
           }) => ({
             id: c.id,
             description: c.description || `Collector ${c.id}`,
@@ -681,6 +683,7 @@ function fetchCollectors(csrfToken: string | null): Promise<Array<{
             status: c.status,
             isDown: c.isDown,
             collectorGroupName: c.collectorGroupName,
+            arch: c.arch,
           }));
           resolve(collectors);
         } catch {
@@ -960,4 +963,3 @@ function testAppliesToExpression(
     xhr.send(JSON.stringify(payload));
   });
 }
-

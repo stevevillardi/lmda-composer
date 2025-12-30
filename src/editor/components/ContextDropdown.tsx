@@ -75,6 +75,7 @@ export function ContextDropdown() {
   // Get selected entities for display
   const selectedPortal = portals.find(p => p.id === selectedPortalId);
   const selectedCollector = collectors.find(c => c.id === selectedCollectorId);
+  const selectedCollectorArch = selectedCollector?.arch;
 
   // Build items arrays for Select
   const portalItems = [
@@ -157,7 +158,10 @@ export function ContextDropdown() {
             </div>
             <div className="flex items-center gap-2">
               <span className="text-muted-foreground">Collector:</span>
-              <span>{selectedCollector?.description || selectedCollector?.hostname || 'Not selected'}</span>
+              <span>
+                {selectedCollector?.description || selectedCollector?.hostname || 'Not selected'}
+                {selectedCollectorArch ? ` (${selectedCollectorArch})` : ''}
+              </span>
             </div>
             {hostname && (
               <div className="flex items-center gap-2">
@@ -342,6 +346,7 @@ export function ContextDropdown() {
                           <span className="text-xs text-muted-foreground truncate">
                             #{collector.id}
                             {collector.collectorGroupName && ` · ${collector.collectorGroupName}`}
+                            {collector.arch && ` · ${collector.arch}`}
                           </span>
                         </div>
                       </div>
@@ -487,4 +492,3 @@ export function ContextDropdown() {
     </Popover>
   );
 }
-

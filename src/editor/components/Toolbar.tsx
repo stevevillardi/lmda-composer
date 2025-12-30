@@ -27,7 +27,7 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -64,6 +64,7 @@ export function Toolbar() {
     selectedCollectorId,
     tabs,
     activeTabId,
+    collectors,
     setLanguage,
     setMode,
     isExecuting,
@@ -91,6 +92,9 @@ export function Toolbar() {
 
   const language = activeTab?.language ?? 'groovy';
   const mode = activeTab?.mode ?? 'freeform';
+  const selectedCollector = collectors.find(c => c.id === selectedCollectorId);
+  const isWindowsCollector = selectedCollector?.arch?.toLowerCase().includes('win') ?? true;
+  const powerShellBlocked = language === 'powershell' && !isWindowsCollector;
   
   // Check if content has been modified from default templates
   const isModified = useMemo(() => {
@@ -133,6 +137,16 @@ export function Toolbar() {
 
   // Check if we can execute
   const canExecute = selectedPortalId && selectedCollectorId && !isExecuting;
+
+  const handleRunClick = () => {
+    if (powerShellBlocked) {
+      toast.info('PowerShell runs only on Windows collectors', {
+        description: 'Select a Windows collector to run this script.',
+      });
+      return;
+    }
+    executeScript();
+  };
   
   // Check if active tab is a module tab
   const isModuleTab = activeTab?.source?.type === 'module';
@@ -325,7 +339,7 @@ export function Toolbar() {
 
         {/* Run Button */}
         <Button
-          onClick={executeScript}
+          onClick={handleRunClick}
           disabled={!canExecute}
           size="sm"
           className={cn(

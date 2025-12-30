@@ -51,6 +51,7 @@ export function StatusBar() {
     selectedPortalId,
     collectors,
     selectedCollectorId,
+    hostname,
   } = useEditorStore();
 
   // Get active tab data
@@ -138,6 +139,7 @@ export function StatusBar() {
             <span className="text-muted-foreground flex items-center gap-1.5" aria-label="Connection status">
               <span className="size-1.5 rounded-full bg-green-500" aria-hidden="true" />
               Connected to {selectedPortal?.hostname} via {selectedCollector?.description || selectedCollector?.hostname}
+              {hostname ? ` · ${hostname}` : ''}
             </span>
           </>
         )}
