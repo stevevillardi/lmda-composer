@@ -20,6 +20,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         editor: resolve(__dirname, 'src/editor/index.html'),
+        onboarding: resolve(__dirname, 'src/onboarding/index.html'),
       },
     },
   },

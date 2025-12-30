@@ -507,6 +507,11 @@ async function handleMessage(
   }
 }
 
+function openOnboardingPage() {
+  const url = chrome.runtime.getURL('src/onboarding/index.html');
+  chrome.tabs.create({ url, active: true });
+}
+
 // Open the editor in a new tab
 async function openEditorWindow(context?: DeviceContext) {
   const url = new URL(chrome.runtime.getURL('src/editor/index.html'));
@@ -539,6 +544,12 @@ async function openEditorWindow(context?: DeviceContext) {
     });
   }
 }
+
+chrome.runtime.onInstalled.addListener((details) => {
+  if (details.reason === 'install') {
+    openOnboardingPage();
+  }
+});
 
 // Handle extension icon click
 chrome.action.onClicked.addListener(async () => {

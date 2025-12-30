@@ -1,7 +1,7 @@
 import Editor from '@monaco-editor/react';
 import { useEditorStore } from '../stores/editor-store';
 import type { editor } from 'monaco-editor';
-import { useCallback, useRef, useMemo } from 'react';
+import { useCallback, useRef, useMemo, useEffect } from 'react';
 import { TabBar } from './TabBar';
 import { WelcomeScreenV2 } from './WelcomeScreenV2';
 
@@ -14,7 +14,8 @@ export function EditorPanel() {
     activeTabId, 
     updateActiveTabContent, 
     executeScript, 
-    preferences 
+    preferences,
+    setEditorInstance,
   } = useEditorStore();
   
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
@@ -26,6 +27,7 @@ export function EditorPanel() {
 
   const handleEditorMount = useCallback((editor: editor.IStandaloneCodeEditor) => {
     editorRef.current = editor;
+    setEditorInstance(editor);
     
     // Add keyboard shortcut for running script
     editor.addAction({
@@ -42,7 +44,7 @@ export function EditorPanel() {
 
     // Focus editor
     editor.focus();
-  }, [executeScript]);
+  }, [executeScript, setEditorInstance]);
 
   const handleEditorChange = useCallback((value: string | undefined) => {
     if (value !== undefined) {
@@ -87,6 +89,12 @@ export function EditorPanel() {
   }), [preferences.fontSize, preferences.tabSize, preferences.wordWrap, preferences.minimap]);
 
   // Show WelcomeScreen when no tabs are open
+  useEffect(() => {
+    if (tabs.length === 0) {
+      setEditorInstance(null);
+    }
+  }, [tabs.length, setEditorInstance]);
+
   if (tabs.length === 0) {
     return (
       <div className="h-full w-full flex flex-col">

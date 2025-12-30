@@ -30,6 +30,7 @@ import { parseOutput, type ParseResult } from '../utils/output-parser';
 import * as fileHandleStore from '../utils/file-handle-store';
 import { APPLIES_TO_FUNCTIONS } from '../data/applies-to-functions';
 import { DEFAULT_GROOVY_TEMPLATE, DEFAULT_POWERSHELL_TEMPLATE, getDefaultScriptTemplate } from '../config/script-templates';
+import type { editor } from 'monaco-editor';
 
 interface EditorState {
   // Portal/Collector selection
@@ -53,6 +54,7 @@ interface EditorState {
   isExecuting: boolean;
   currentExecution: ExecutionResult | null;
   parsedOutput: ParseResult | null;
+  editorInstance: editor.IStandaloneCodeEditor | null;
   
   // Execution context dialog state (for Collection/Batch Collection modes)
   executionContextDialogOpen: boolean;
@@ -147,6 +149,7 @@ interface EditorState {
   setLanguage: (language: ScriptLanguage, force?: boolean) => void;
   setMode: (mode: ScriptMode) => void;
   setOutputTab: (tab: 'raw' | 'parsed' | 'validation') => void;
+  setEditorInstance: (editor: editor.IStandaloneCodeEditor | null) => void;
   executeScript: () => Promise<void>;
   refreshPortals: () => Promise<void>;
   refreshCollectors: () => Promise<void>;
@@ -341,6 +344,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   isExecuting: false,
   currentExecution: null,
   parsedOutput: null,
+  editorInstance: null,
   executionContextDialogOpen: false,
   pendingExecution: null,
   moduleBrowserOpen: false,
@@ -592,6 +596,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   setOutputTab: (tab) => {
     set({ outputTab: tab });
+  },
+
+  setEditorInstance: (editorInstance) => {
+    set({ editorInstance });
   },
 
   executeScript: async () => {
@@ -1451,7 +1459,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   insertSnippet: (snippet) => {
-    const { tabs, activeTabId } = get();
+    const { tabs, activeTabId, editorInstance } = get();
     const activeTab = tabs.find(t => t.id === activeTabId);
     if (!activeTab) return;
     
@@ -1466,10 +1474,26 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         ),
       });
     } else {
-      // Patterns insert at end (could be at cursor in future)
+      if (editorInstance) {
+        const selections = editorInstance.getSelections() ?? [];
+        const targetSelections = selections.length > 0 ? selections : [editorInstance.getSelection()].filter(Boolean);
+        if (targetSelections.length > 0) {
+          editorInstance.executeEdits(
+            'snippet',
+            targetSelections.map((selection) => ({
+              range: selection!,
+              text: snippet.code,
+              forceMoveMarkers: true,
+            }))
+          );
+          editorInstance.focus();
+          return;
+        }
+      }
+
       set({
-        tabs: tabs.map(t => 
-          t.id === activeTabId 
+        tabs: tabs.map(t =>
+          t.id === activeTabId
             ? { ...t, content: t.content + '\n\n' + snippet.code }
             : t
         ),
