@@ -24,6 +24,9 @@ import type {
   CustomAppliesToFunction,
   ExecuteDebugCommandRequest,
   DebugCommandResult,
+  ModuleSearchMatchType,
+  ScriptSearchResult,
+  DataPointSearchResult,
 } from '@/shared/types';
 import { DEFAULT_PREFERENCES } from '@/shared/types';
 import { parseOutput, type ParseResult } from '../utils/output-parser';
@@ -69,6 +72,20 @@ interface EditorState {
   isFetchingModules: boolean;
   selectedModule: LogicModuleInfo | null;
   moduleSearchQuery: string;
+
+  // Module search
+  moduleSearchOpen: boolean;
+  moduleSearchMode: 'scripts' | 'datapoints';
+  moduleSearchTerm: string;
+  moduleSearchMatchType: ModuleSearchMatchType;
+  moduleSearchCaseSensitive: boolean;
+  moduleSearchModuleTypes: LogicModuleType[];
+  isSearchingModules: boolean;
+  moduleScriptSearchResults: ScriptSearchResult[];
+  moduleDatapointSearchResults: DataPointSearchResult[];
+  moduleSearchError: string | null;
+  selectedScriptSearchResult: ScriptSearchResult | null;
+  selectedDatapointSearchResult: DataPointSearchResult | null;
   
   // Pending load confirmation state
   pendingModuleLoad: {
@@ -175,6 +192,19 @@ interface EditorState {
   loadModuleScript: (script: string, language: ScriptLanguage, mode: ScriptMode) => void;
   confirmModuleLoad: () => void;
   cancelModuleLoad: () => void;
+
+  // Module search actions
+  setModuleSearchOpen: (open: boolean) => void;
+  setModuleSearchMode: (mode: 'scripts' | 'datapoints') => void;
+  setModuleSearchTerm: (query: string) => void;
+  setModuleSearchMatchType: (matchType: ModuleSearchMatchType) => void;
+  setModuleSearchCaseSensitive: (caseSensitive: boolean) => void;
+  setModuleSearchModuleTypes: (moduleTypes: LogicModuleType[]) => void;
+  searchModuleScripts: () => Promise<void>;
+  searchDatapoints: () => Promise<void>;
+  setSelectedScriptSearchResult: (result: ScriptSearchResult | null) => void;
+  setSelectedDatapointSearchResult: (result: DataPointSearchResult | null) => void;
+  clearModuleSearchResults: () => void;
   
   // UI state actions
   setCommandPaletteOpen: (open: boolean) => void;
@@ -381,6 +411,26 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   isFetchingModules: false,
   selectedModule: null,
   moduleSearchQuery: '',
+  moduleSearchOpen: false,
+  moduleSearchMode: 'scripts',
+  moduleSearchTerm: '',
+  moduleSearchMatchType: 'substring',
+  moduleSearchCaseSensitive: false,
+  moduleSearchModuleTypes: [
+    'datasource',
+    'configsource',
+    'topologysource',
+    'propertysource',
+    'logsource',
+    'diagnosticsource',
+    'eventsource',
+  ],
+  isSearchingModules: false,
+  moduleScriptSearchResults: [],
+  moduleDatapointSearchResults: [],
+  moduleSearchError: null,
+  selectedScriptSearchResult: null,
+  selectedDatapointSearchResult: null,
   pendingModuleLoad: null,
   outputTab: 'raw',
   commandPaletteOpen: false,
@@ -1212,6 +1262,173 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   cancelModuleLoad: () => {
     set({ pendingModuleLoad: null });
+  },
+
+  // Module search actions
+  setModuleSearchOpen: (open) => {
+    set({ moduleSearchOpen: open });
+    if (!open) {
+      set({
+        moduleSearchTerm: '',
+        moduleSearchError: null,
+        moduleScriptSearchResults: [],
+        moduleDatapointSearchResults: [],
+        selectedScriptSearchResult: null,
+        selectedDatapointSearchResult: null,
+        isSearchingModules: false,
+      });
+    }
+  },
+
+  setModuleSearchMode: (mode) => {
+    set({
+      moduleSearchMode: mode,
+      moduleSearchError: null,
+      moduleScriptSearchResults: [],
+      moduleDatapointSearchResults: [],
+      selectedScriptSearchResult: null,
+      selectedDatapointSearchResult: null,
+    });
+  },
+
+  setModuleSearchTerm: (query) => {
+    set({ moduleSearchTerm: query });
+  },
+
+  setModuleSearchMatchType: (matchType) => {
+    set({ moduleSearchMatchType: matchType });
+  },
+
+  setModuleSearchCaseSensitive: (caseSensitive) => {
+    set({ moduleSearchCaseSensitive: caseSensitive });
+  },
+
+  setModuleSearchModuleTypes: (moduleTypes) => {
+    set({ moduleSearchModuleTypes: moduleTypes });
+  },
+
+  searchModuleScripts: async () => {
+    const {
+      selectedPortalId,
+      moduleSearchTerm,
+      moduleSearchMatchType,
+      moduleSearchCaseSensitive,
+      moduleSearchModuleTypes,
+    } = get();
+    if (!selectedPortalId) return;
+
+    const trimmedQuery = moduleSearchTerm.trim();
+    if (!trimmedQuery) {
+      set({
+        moduleScriptSearchResults: [],
+        selectedScriptSearchResult: null,
+        moduleSearchError: null,
+        isSearchingModules: false,
+      });
+      return;
+    }
+
+    set({ isSearchingModules: true, moduleSearchError: null });
+
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: 'SEARCH_MODULE_SCRIPTS',
+        payload: {
+          portalId: selectedPortalId,
+          query: trimmedQuery,
+          matchType: moduleSearchMatchType,
+          caseSensitive: moduleSearchCaseSensitive,
+          moduleTypes: moduleSearchModuleTypes,
+        },
+      });
+
+      if (response?.type === 'MODULE_SCRIPT_SEARCH_RESULTS') {
+        const results = response.payload.results as ScriptSearchResult[];
+        set({
+          moduleScriptSearchResults: results,
+          selectedScriptSearchResult: results[0] || null,
+          isSearchingModules: false,
+        });
+      } else {
+        const errorMessage = response?.payload?.error || 'Failed to search modules';
+        set({ moduleSearchError: errorMessage, isSearchingModules: false });
+      }
+    } catch (error) {
+      set({
+        moduleSearchError: error instanceof Error ? error.message : 'Failed to search modules',
+        isSearchingModules: false,
+      });
+    }
+  },
+
+  searchDatapoints: async () => {
+    const {
+      selectedPortalId,
+      moduleSearchTerm,
+      moduleSearchMatchType,
+      moduleSearchCaseSensitive,
+    } = get();
+    if (!selectedPortalId) return;
+
+    const trimmedQuery = moduleSearchTerm.trim();
+    if (!trimmedQuery) {
+      set({
+        moduleDatapointSearchResults: [],
+        selectedDatapointSearchResult: null,
+        moduleSearchError: null,
+        isSearchingModules: false,
+      });
+      return;
+    }
+
+    set({ isSearchingModules: true, moduleSearchError: null });
+
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: 'SEARCH_DATAPOINTS',
+        payload: {
+          portalId: selectedPortalId,
+          query: trimmedQuery,
+          matchType: moduleSearchMatchType,
+          caseSensitive: moduleSearchCaseSensitive,
+        },
+      });
+
+      if (response?.type === 'DATAPOINT_SEARCH_RESULTS') {
+        const results = response.payload.results as DataPointSearchResult[];
+        set({
+          moduleDatapointSearchResults: results,
+          selectedDatapointSearchResult: results[0] || null,
+          isSearchingModules: false,
+        });
+      } else {
+        const errorMessage = response?.payload?.error || 'Failed to search datapoints';
+        set({ moduleSearchError: errorMessage, isSearchingModules: false });
+      }
+    } catch (error) {
+      set({
+        moduleSearchError: error instanceof Error ? error.message : 'Failed to search datapoints',
+        isSearchingModules: false,
+      });
+    }
+  },
+
+  setSelectedScriptSearchResult: (result) => {
+    set({ selectedScriptSearchResult: result });
+  },
+
+  setSelectedDatapointSearchResult: (result) => {
+    set({ selectedDatapointSearchResult: result });
+  },
+
+  clearModuleSearchResults: () => {
+    set({
+      moduleScriptSearchResults: [],
+      moduleDatapointSearchResults: [],
+      selectedScriptSearchResult: null,
+      selectedDatapointSearchResult: null,
+      moduleSearchError: null,
+    });
   },
 
   // UI state actions

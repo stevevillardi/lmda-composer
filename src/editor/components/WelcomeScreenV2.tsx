@@ -7,6 +7,7 @@ import {
   Clock,
   Loader2,
   Hammer,
+  FolderSearch,
   Terminal,
 } from 'lucide-react';
 import { useEditorStore } from '../stores/editor-store';
@@ -145,6 +146,7 @@ export function WelcomeScreenV2() {
     createNewFile,
     openFileFromDisk,
     setModuleBrowserOpen,
+    setModuleSearchOpen,
     setAppliesToTesterOpen,
     setDebugCommandsDialogOpen,
   } = useEditorStore();
@@ -196,7 +198,7 @@ export function WelcomeScreenV2() {
                   />
                   <ActionRow
                     icon={<CloudDownload className="size-4" />}
-                    title="Import from LMX"
+                    title="Import from LogicModule Exchange"
                     description="Browse and import LogicModule scripts"
                     onClick={() => setModuleBrowserOpen(true)}
                     disabled={!selectedPortalId}
@@ -212,6 +214,14 @@ export function WelcomeScreenV2() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2.5">
+                  <ActionRow
+                    icon={<FolderSearch className="size-4" />}
+                    title="Search LogicModules"
+                    description="Find scripts and datapoints across modules"
+                    onClick={() => setModuleSearchOpen(true)}
+                    disabled={!selectedPortalId}
+                    disabledReason="Connect to a portal first to search modules"
+                  />
                   <ActionRow
                     icon={<Hammer className="size-4" />}
                     title="AppliesTo Toolbox"

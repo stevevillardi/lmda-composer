@@ -13,6 +13,7 @@ import {
   FilePlus,
   PanelRight,
   CloudDownload,
+  FolderSearch,
   Hammer,
   Terminal,
 } from 'lucide-react';
@@ -52,6 +53,7 @@ export function CommandPalette() {
     selectedPortalId,
     selectedCollectorId,
     setModuleBrowserOpen,
+    setModuleSearchOpen,
     setSettingsDialogOpen,
     setAppliesToTesterOpen,
     setDebugCommandsDialogOpen,
@@ -177,6 +179,17 @@ export function CommandPalette() {
       action: () => {
         setCommandPaletteOpen(false);
         setModuleBrowserOpen(true);
+      },
+      disabled: !selectedPortalId,
+    },
+    {
+      id: 'module-search',
+      label: 'Search LogicModules',
+      icon: <FolderSearch className="size-4" />,
+      shortcut: '⌘⇧F',
+      action: () => {
+        setCommandPaletteOpen(false);
+        setModuleSearchOpen(true);
       },
       disabled: !selectedPortalId,
     },
@@ -387,6 +400,15 @@ export function CommandPalette() {
         return;
       }
 
+      // Cmd/Ctrl + Shift + F to search LogicModules
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        if (selectedPortalId) {
+          setModuleSearchOpen(true);
+        }
+        return;
+      }
+
       // Cmd/Ctrl + Shift + I to import from LogicModule Exchange
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'i') {
         e.preventDefault();
@@ -408,6 +430,7 @@ export function CommandPalette() {
     selectedCollectorId,
     currentExecution,
     setModuleBrowserOpen,
+    setModuleSearchOpen,
     setSettingsDialogOpen,
     setAppliesToTesterOpen,
     setDebugCommandsDialogOpen,
@@ -516,4 +539,3 @@ export function CommandPalette() {
     </CommandDialog>
   );
 }
-

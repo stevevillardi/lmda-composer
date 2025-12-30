@@ -113,6 +113,16 @@ interface APIModule {
   appliesTo?: string;
   collectMethod?: string;
   lineageId?: string;
+  collectInterval?: number;
+  dataPoints?: Array<{
+    id: number;
+    name: string;
+    description?: string;
+    alertForNoData?: number | boolean;
+    alertExpr?: string;
+    alertTransitionInterval?: number;
+    alertClearTransitionInterval?: number;
+  }>;
   enableAutoDiscovery?: boolean;
   autoDiscoveryConfig?: {
     method?: {
@@ -284,11 +294,13 @@ function fetchModulesFromAPI(
               moduleType,
               appliesTo,
               collectMethod,
+              collectInterval: m.collectInterval,
               hasAutoDiscovery,
               scriptType,
               lineageId: m.lineageId,
               collectionScript,
               adScript,
+              dataPoints: m.dataPoints,
             };
           });
 

@@ -7,6 +7,7 @@ import { OutputPanel } from './components/OutputPanel';
 import { StatusBar } from './components/StatusBar';
 import { ExecutionContextDialog } from './components/ExecutionContextDialog';
 import { LogicModuleBrowser } from './components/LogicModuleBrowser';
+import { LogicModuleSearch } from './components/LogicModuleSearch';
 import { CommandPalette } from './components/CommandPalette';
 import { SettingsDialog } from './components/SettingsDialog';
 import { RightSidebar } from './components/RightSidebar';
@@ -481,6 +482,7 @@ export function App() {
       {/* Dialogs */}
       <ExecutionContextDialog />
       <LogicModuleBrowser />
+      <LogicModuleSearch />
       <CommandPalette />
       <SettingsDialog />
       <AppliesToTester />

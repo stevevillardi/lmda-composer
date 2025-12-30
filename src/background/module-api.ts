@@ -32,6 +32,15 @@ interface APIModule {
   appliesTo?: string;
   collectMethod?: string;
   enableAutoDiscovery?: boolean;
+  dataPoints?: Array<{
+    id: number;
+    name: string;
+    description?: string;
+    alertForNoData?: number | boolean;
+    alertExpr?: string;
+    alertTransitionInterval?: number;
+    alertClearTransitionInterval?: number;
+  }>;
   autoDiscoveryConfig?: {
     scheduleInterval?: number;
     method?: {

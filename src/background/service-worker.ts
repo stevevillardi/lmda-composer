@@ -1,6 +1,7 @@
 import { PortalManager } from './portal-manager';
 import { ScriptExecutor, type ExecutorContext } from './script-executor';
 import { ModuleLoader } from './module-loader';
+import { searchDatapoints, searchModuleScripts } from './module-searcher';
 import {
   fetchCustomFunctions,
   createCustomFunction,
@@ -23,6 +24,8 @@ import type {
   FetchDevicePropertiesRequest,
   TestAppliesToRequest,
   ExecuteDebugCommandRequest,
+  SearchModuleScriptsRequest,
+  SearchDatapointsRequest,
   LogicModuleType,
 } from '@/shared/types';
 
@@ -430,6 +433,55 @@ async function handleMessage(
             type: 'LINEAGE_ERROR',
             payload: {
               error: error instanceof Error ? error.message : 'Failed to fetch lineage versions',
+              code: 500,
+            },
+          });
+        }
+        break;
+      }
+
+      case 'SEARCH_MODULE_SCRIPTS': {
+        const { portalId, query, matchType, caseSensitive, moduleTypes } =
+          message.payload as SearchModuleScriptsRequest;
+        try {
+          const results = await searchModuleScripts(
+            moduleLoader,
+            portalId,
+            query,
+            matchType,
+            caseSensitive,
+            moduleTypes
+          );
+          sendResponse({ type: 'MODULE_SCRIPT_SEARCH_RESULTS', payload: { results } });
+        } catch (error) {
+          sendResponse({
+            type: 'MODULE_SCRIPT_SEARCH_ERROR',
+            payload: {
+              error: error instanceof Error ? error.message : 'Failed to search module scripts',
+              code: 500,
+            },
+          });
+        }
+        break;
+      }
+
+      case 'SEARCH_DATAPOINTS': {
+        const { portalId, query, matchType, caseSensitive } =
+          message.payload as SearchDatapointsRequest;
+        try {
+          const results = await searchDatapoints(
+            moduleLoader,
+            portalId,
+            query,
+            matchType,
+            caseSensitive
+          );
+          sendResponse({ type: 'DATAPOINT_SEARCH_RESULTS', payload: { results } });
+        } catch (error) {
+          sendResponse({
+            type: 'DATAPOINT_SEARCH_ERROR',
+            payload: {
+              error: error instanceof Error ? error.message : 'Failed to search datapoints',
               code: 500,
             },
           });

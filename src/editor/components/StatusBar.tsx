@@ -21,20 +21,41 @@ const getExtensionVersion = (): string => {
 
 // Keyboard shortcuts for help display
 const KEYBOARD_SHORTCUTS = [
-  { keys: ['⌘', 'Enter'], action: 'Run script' },
-  { keys: ['⌘', 'K'], action: 'Command palette' },
-  { keys: ['⌘', 'N'], action: 'New file' },
-  { keys: ['⌘', 'O'], action: 'Open file' },
-  { keys: ['⌘', 'S'], action: 'Save' },
-  { keys: ['⌘', '⇧', 'S'], action: 'Save As...' },
-  { keys: ['⌘', '⇧', 'E'], action: 'Export (Download)' },
-  { keys: ['⌘', '⇧', 'C'], action: 'Copy output' },
-  { keys: ['⌘', '⇧', 'I'], action: 'Import from LMX' },
-  { keys: ['⌘', '⇧', 'A'], action: 'AppliesTo Toolbox' },
-  { keys: ['⌘', 'D'], action: 'Debug Commands' },
-  { keys: ['⌘', 'B'], action: 'Toggle sidebar' },
-  { keys: ['⌘', 'R'], action: 'Refresh collectors' },
-  { keys: ['⌘', ','], action: 'Settings' },
+  {
+    label: 'Editor',
+    items: [
+      { keys: ['⌘', 'Enter'], action: 'Run script' },
+      { keys: ['⌘', 'K'], action: 'Command palette' },
+      { keys: ['⌘', 'B'], action: 'Toggle sidebar' },
+      { keys: ['⌘', ','], action: 'Settings' },
+    ],
+  },
+  {
+    label: 'Files',
+    items: [
+      { keys: ['⌘', 'N'], action: 'New file' },
+      { keys: ['⌘', 'O'], action: 'Open file' },
+      { keys: ['⌘', 'S'], action: 'Save' },
+      { keys: ['⌘', '⇧', 'S'], action: 'Save As...' },
+      { keys: ['⌘', '⇧', 'E'], action: 'Export (Download)' },
+    ],
+  },
+  {
+    label: 'Portal Tools',
+    items: [
+      { keys: ['⌘', '⇧', 'I'], action: 'Import from LMX' },
+      { keys: ['⌘', '⇧', 'F'], action: 'Search LogicModules' },
+      { keys: ['⌘', '⇧', 'A'], action: 'AppliesTo Toolbox' },
+      { keys: ['⌘', 'D'], action: 'Debug Commands' },
+      { keys: ['⌘', 'R'], action: 'Refresh collectors' },
+    ],
+  },
+  {
+    label: 'Output',
+    items: [
+      { keys: ['⌘', '⇧', 'C'], action: 'Copy output' },
+    ],
+  },
 ] as const;
 
 // Character count thresholds for progressive warnings
@@ -225,13 +246,26 @@ export function StatusBar() {
             <PopoverHeader>
               <PopoverTitle className="text-sm">Keyboard Shortcuts</PopoverTitle>
             </PopoverHeader>
-            <div className="flex flex-col gap-2 mt-2">
-              {KEYBOARD_SHORTCUTS.map((shortcut, idx) => (
-                <div key={idx} className="flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">{shortcut.action}</span>
-                  <div className="flex items-center gap-0.5">
-                    {shortcut.keys.map((key, keyIdx) => (
-                      <Kbd key={keyIdx}>{key}</Kbd>
+            <div className="flex flex-col gap-3 mt-2">
+              {KEYBOARD_SHORTCUTS.map((section, sectionIdx) => (
+                <div key={section.label} className="space-y-2">
+                  {sectionIdx > 0 && <Separator />}
+                  <div className="relative flex items-center gap-2">
+                    <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                      {section.label}
+                    </span>
+                    <Separator className="flex-1" />
+                  </div>
+                  <div className="flex flex-col gap-1.5">
+                    {section.items.map((shortcut) => (
+                      <div key={shortcut.action} className="flex items-center justify-between text-xs">
+                        <span className="text-muted-foreground">{shortcut.action}</span>
+                        <div className="flex items-center gap-0.5">
+                          {shortcut.keys.map((key, keyIdx) => (
+                            <Kbd key={keyIdx}>{key}</Kbd>
+                          ))}
+                        </div>
+                      </div>
                     ))}
                   </div>
                 </div>

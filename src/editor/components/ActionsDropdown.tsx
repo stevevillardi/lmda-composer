@@ -7,6 +7,7 @@ import {
   CommandIcon,
   PanelRight,
   CloudDownload,
+  FolderSearch,
   Hammer,
   Wrench,
   Upload,
@@ -31,6 +32,7 @@ export function ActionsDropdown() {
     activeTabId,
     selectedPortalId,
     setModuleBrowserOpen,
+    setModuleSearchOpen,
     setSettingsDialogOpen,
     setAppliesToTesterOpen,
     setDebugCommandsDialogOpen,
@@ -186,6 +188,17 @@ export function ActionsDropdown() {
             <CloudDownload className="size-4 mr-2" />
             <span className="flex-1">Import from LMX</span>
             <Kbd className="ml-auto">⌘⇧I</Kbd>
+          </DropdownMenuItem>
+
+          <DropdownMenuItem 
+            onClick={() => {
+              setModuleSearchOpen(true);
+            }}
+            disabled={!selectedPortalId}
+          >
+            <FolderSearch className="size-4 mr-2" />
+            <span className="flex-1">Search LogicModules</span>
+            <Kbd className="ml-auto">⌘⇧F</Kbd>
           </DropdownMenuItem>
 
           <DropdownMenuItem 

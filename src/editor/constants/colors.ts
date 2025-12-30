@@ -22,6 +22,15 @@ export const COLORS = {
     bgSubtle: 'bg-amber-500/10',
     textSubtle: 'text-amber-500',
   },
+  WARNING_STRONG: {
+    text: 'text-yellow-500',
+  },
+  ERROR_STRONG: {
+    text: 'text-orange-500',
+  },
+  CRITICAL_STRONG: {
+    text: 'text-red-500',
+  },
   INFO: {
     bg: 'bg-blue-600',
     hover: 'hover:bg-blue-500',
@@ -30,5 +39,4 @@ export const COLORS = {
     textSubtle: 'text-blue-500',
   },
 } as const;
-
 
