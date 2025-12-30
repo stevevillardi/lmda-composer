@@ -84,7 +84,6 @@ export function ActionsDropdown() {
           </div>
           <DropdownMenuItem onClick={() => {
             createNewFile();
-            toast.info('New file created');
           }}>
             <FilePlus className="size-4 mr-2" />
             <span className="flex-1">New File</span>
@@ -93,7 +92,6 @@ export function ActionsDropdown() {
 
           <DropdownMenuItem onClick={() => {
             openFileFromDisk();
-            toast.info('Opening file...');
           }}>
             <FileInput className="size-4 mr-2" />
             <span className="flex-1">Open File...</span>
@@ -182,7 +180,6 @@ export function ActionsDropdown() {
           <DropdownMenuItem 
             onClick={() => {
               setModuleBrowserOpen(true);
-              toast.info('Opening LogicModule Exchange...');
             }}
             disabled={!selectedPortalId}
           >
@@ -194,7 +191,6 @@ export function ActionsDropdown() {
           <DropdownMenuItem 
             onClick={() => {
               setAppliesToTesterOpen(true);
-              toast.info('Opening AppliesTo Toolbox...');
             }}
             disabled={!selectedPortalId}
           >
@@ -206,7 +202,6 @@ export function ActionsDropdown() {
           <DropdownMenuItem 
             onClick={() => {
               setDebugCommandsDialogOpen(true);
-              toast.info('Opening Debug Commands...');
             }}
             disabled={!selectedPortalId}
           >
@@ -261,7 +256,6 @@ export function ActionsDropdown() {
           <DropdownMenuItem 
             onClick={() => {
               toggleRightSidebar();
-              toast.info(rightSidebarOpen ? 'Sidebar hidden' : 'Sidebar shown');
             }}
             disabled={!hasOpenTabs}
           >
@@ -282,7 +276,6 @@ export function ActionsDropdown() {
         <DropdownMenuGroup>
           <DropdownMenuItem onClick={() => {
             setSettingsDialogOpen(true);
-            toast.info('Opening settings...');
           }}>
             <Settings className="size-4 mr-2" />
             <span className="flex-1">Settings</span>
@@ -293,4 +286,3 @@ export function ActionsDropdown() {
     </DropdownMenu>
   );
 }
-

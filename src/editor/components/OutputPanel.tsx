@@ -116,7 +116,6 @@ export function OutputPanel() {
               size="sm"
               onClick={() => {
                 clearOutput();
-                toast.info('Output cleared');
               }}
               className="gap-1.5 h-7 px-2 text-xs"
               aria-label="Clear output"

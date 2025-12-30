@@ -377,7 +377,6 @@ export function Toolbar() {
                 size="icon-sm"
                 onClick={() => {
                   setRightSidebarOpen(!rightSidebarOpen);
-                  toast.info(rightSidebarOpen ? 'Sidebar closed' : 'Sidebar opened');
                 }}
                 disabled={tabs.length === 0}
                 aria-label={rightSidebarOpen ? 'Close sidebar' : 'Open sidebar'}
