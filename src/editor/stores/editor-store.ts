@@ -1422,19 +1422,37 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   insertPropertyAccess: (propertyName) => {
-    const { tabs, activeTabId } = get();
+    const { tabs, activeTabId, editorInstance } = get();
     const activeTab = tabs.find(t => t.id === activeTabId);
     if (!activeTab) return;
     
-    const accessor = activeTab.language === 'groovy' 
+    const accessorBase = activeTab.language === 'groovy' 
       ? `hostProps.get("${propertyName}")`
-      : `"##${propertyName.toUpperCase()}##"`;
+      : `$${propertyName
+          .replace(/[^a-zA-Z0-9_]/g, '_')
+          .replace(/^(\d)/, '_$1')} = "##${propertyName.toUpperCase()}##"`;
+    const accessor = `\n${accessorBase}`;
     
-    // For now, append to the end of the script
-    // In the future, this could insert at cursor position via Monaco API
+    if (editorInstance) {
+      const selections = editorInstance.getSelections() ?? [];
+      const targetSelections = selections.length > 0 ? selections : [editorInstance.getSelection()].filter(Boolean);
+      if (targetSelections.length > 0) {
+        editorInstance.executeEdits(
+          'property-access',
+          targetSelections.map((selection) => ({
+            range: selection!,
+            text: accessor,
+            forceMoveMarkers: true,
+          }))
+        );
+        editorInstance.focus();
+        return;
+      }
+    }
+
     set({
-      tabs: tabs.map(t => 
-        t.id === activeTabId 
+      tabs: tabs.map(t =>
+        t.id === activeTabId
           ? { ...t, content: t.content + '\n' + accessor }
           : t
       ),

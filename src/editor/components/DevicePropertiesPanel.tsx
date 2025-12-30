@@ -10,6 +10,7 @@ import { Empty, EmptyMedia, EmptyHeader, EmptyTitle, EmptyDescription } from '@/
 import { cn } from '@/lib/utils';
 import { LoadingState } from './shared/LoadingState';
 import { CopyButton } from './shared/CopyButton';
+import { useCallback } from 'react';
 
 const TYPE_COLORS: Record<string, string> = {
   system: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
@@ -19,6 +20,11 @@ const TYPE_COLORS: Record<string, string> = {
 };
 
 export function DevicePropertiesPanel() {
+  const toPowerShellVariable = useCallback((propertyName: string) => {
+    return propertyName
+      .replace(/[^a-zA-Z0-9_]/g, '_')
+      .replace(/^(\d)/, '_$1');
+  }, []);
   const {
     hostname,
     devices,
@@ -236,9 +242,9 @@ export function DevicePropertiesPanel() {
                               <code className="text-xs">
                                 {language === 'groovy'
                                   ? `hostProps.get("${prop.name}")`
-                                  : `"##${prop.name.toUpperCase()}##"`}
+                                  : `$${toPowerShellVariable(prop.name)} = "##${prop.name.toUpperCase()}##"`}
                               </code>
-                              <div className="text-[10px] text-muted-foreground mt-1">Click or press Enter to insert</div>
+                              <div className="text-[10px] text-muted-foreground mt-1">Click to insert</div>
                             </TooltipContent>
                           </Tooltip>
                           <p className="text-[10px] text-muted-foreground truncate mt-0.5 font-mono">
@@ -263,4 +269,3 @@ export function DevicePropertiesPanel() {
     </div>
   );
 }
-

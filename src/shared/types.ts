@@ -391,7 +391,10 @@ export type ContentToSWMessage =
 
 export interface DeviceContext {
   portalId: string;
-  resourceId?: number;  // Resource ID extracted from URL, used to fetch device details via API
+  resourceId?: number;
+  resourceDatasourceId?: number;
+  dataSourceId?: number;
+  collectMethod?: string;
 }
 
 // AppliesTo Tester

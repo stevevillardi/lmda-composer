@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { FileWarning, RotateCcw } from 'lucide-react';
+import { toast } from 'sonner';
 import { Toolbar } from './components/Toolbar';
 import { EditorPanel } from './components/EditorPanel';
 import { OutputPanel } from './components/OutputPanel';
@@ -34,7 +35,7 @@ import {
   AlertDialogMedia,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import type { DraftScript, DraftTabs } from '@/shared/types';
+import type { DraftScript, DraftTabs, LogicModuleInfo, ScriptType } from '@/shared/types';
 
 export function App() {
   const { 
@@ -54,9 +55,11 @@ export function App() {
     collectors,
     devices,
     isFetchingDevices,
+    selectedPortalId,
     setSelectedPortal,
     setSelectedCollector,
     setHostname,
+    openModuleScripts,
     rightSidebarOpen,
     tabsNeedingPermission,
     restoreFileHandles,
@@ -78,6 +81,8 @@ export function App() {
   const [urlParamsApplied, setUrlParamsApplied] = useState(false);
   const [pendingCollectorId, setPendingCollectorId] = useState<number | null>(null);
   const [pendingResourceId, setPendingResourceId] = useState<number | null>(null);
+  const [pendingDataSourceId, setPendingDataSourceId] = useState<number | null>(null);
+  const [pendingCollectMethod, setPendingCollectMethod] = useState<string | null>(null);
   const [pendingHostname, setPendingHostname] = useState<string | null>(null);
 
   // Draft restore dialog state
@@ -196,6 +201,8 @@ export function App() {
     const params = new URLSearchParams(window.location.search);
     const portalParam = params.get('portal');
     const resourceIdParam = params.get('resourceId');
+    const dataSourceIdParam = params.get('dataSourceId');
+    const collectMethodParam = params.get('collectMethod');
     
     if (portalParam) {
       const matchingPortal = portals.find(p => p.id === portalParam || p.hostname === portalParam);
@@ -206,6 +213,15 @@ export function App() {
           const resourceId = parseInt(resourceIdParam, 10);
           setPendingResourceId(resourceId);
         }
+        if (dataSourceIdParam) {
+          const dataSourceId = parseInt(dataSourceIdParam, 10);
+          if (!Number.isNaN(dataSourceId)) {
+            setPendingDataSourceId(dataSourceId);
+          }
+        }
+        if (collectMethodParam) {
+          setPendingCollectMethod(collectMethodParam);
+        }
       }
     }
     
@@ -213,10 +229,68 @@ export function App() {
     setUrlParamsApplied(true);
     
     // Clear URL params to avoid confusion on refresh
-    if (portalParam || resourceIdParam) {
+    if (portalParam || resourceIdParam || dataSourceIdParam || collectMethodParam) {
       window.history.replaceState({}, '', window.location.pathname);
     }
   }, [portals, urlParamsApplied, setSelectedPortal]);
+
+  // Auto-open scripts for device datasource links (script/batchscript only)
+  useEffect(() => {
+    const openFromDeviceDatasource = async () => {
+      if (!pendingDataSourceId || !pendingCollectMethod) return;
+      if (pendingCollectMethod !== 'script' && pendingCollectMethod !== 'batchscript') {
+        setPendingDataSourceId(null);
+        setPendingCollectMethod(null);
+        return;
+      }
+
+      if (!selectedPortalId) return;
+
+      const response = await chrome.runtime.sendMessage({
+        type: 'FETCH_MODULE',
+        payload: { portalId: selectedPortalId, moduleType: 'datasource', moduleId: pendingDataSourceId },
+      });
+
+      if (response?.type === 'MODULE_FETCHED' && response.payload) {
+        const module = response.payload;
+        const scriptType: ScriptType = module?.collectorAttribute?.scriptType ?? 'embed';
+        const moduleInfo: LogicModuleInfo = {
+          id: module.id,
+          name: module.name,
+          displayName: module.displayName,
+          moduleType: 'datasource',
+          appliesTo: module.appliesTo ?? '',
+          collectMethod: module.collectMethod ?? pendingCollectMethod,
+          hasAutoDiscovery: !!module.autoDiscoveryConfig,
+          scriptType,
+          lineageId: module.lineageId,
+        };
+
+        const scripts: Array<{ type: 'ad' | 'collection'; content: string }> = [];
+        const collectionScript = module?.collectorAttribute?.groovyScript;
+        const adScript = module?.autoDiscoveryConfig?.method?.groovyScript;
+
+        if (collectionScript) {
+          scripts.push({ type: 'collection', content: collectionScript });
+        }
+        if (adScript) {
+          scripts.push({ type: 'ad', content: adScript });
+        }
+
+        if (scripts.length > 0) {
+          openModuleScripts(moduleInfo, scripts);
+          toast.success('Opened device datasource scripts', {
+            description: module.displayName || module.name,
+          });
+        }
+      }
+
+      setPendingDataSourceId(null);
+      setPendingCollectMethod(null);
+    };
+
+    openFromDeviceDatasource();
+  }, [pendingDataSourceId, pendingCollectMethod, openModuleScripts, selectedPortalId]);
 
   // Fetch device details when we have a pending resourceId and collectors are loaded
   useEffect(() => {

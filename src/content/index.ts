@@ -161,6 +161,65 @@ async function sendCsrfToken() {
   }
 }
 
+async function fetchCsrfTokenForRequest(): Promise<string | null> {
+  return new Promise((resolve) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', '/santaba/rest/functions/dummy', true);
+    xhr.setRequestHeader('X-CSRF-Token', 'Fetch');
+    xhr.setRequestHeader('X-version', '3');
+    xhr.onload = () => {
+      if (xhr.status === 200) {
+        resolve(xhr.getResponseHeader('X-CSRF-Token'));
+      } else {
+        resolve(null);
+      }
+    };
+    xhr.onerror = () => resolve(null);
+    xhr.send();
+  });
+}
+
+async function fetchDeviceDatasourceInfo(
+  deviceId: number,
+  resourceDatasourceId: number
+): Promise<{ dataSourceId: number; collectMethod: string } | null> {
+  const csrfToken = await fetchCsrfTokenForRequest();
+
+  return new Promise((resolve) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open(
+      'GET',
+      `/santaba/rest/device/devices/${deviceId}/devicedatasources/${resourceDatasourceId}`,
+      true
+    );
+    xhr.setRequestHeader('X-version', '3');
+    if (csrfToken) {
+      xhr.setRequestHeader('X-CSRF-Token', csrfToken);
+    }
+
+    xhr.onload = () => {
+      if (xhr.status === 200) {
+        try {
+          const response = JSON.parse(xhr.responseText);
+          const data = response?.data ?? response;
+          const dataSourceId = data?.dataSourceId ?? data?.dataSourceID;
+          const collectMethod = data?.collectMethod;
+          if (typeof dataSourceId === 'number' && typeof collectMethod === 'string') {
+            resolve({ dataSourceId, collectMethod });
+            return;
+          }
+        } catch (error) {
+          console.error('LogicMonitor IDE: Failed to parse device datasource response:', error);
+        }
+      }
+      resolve(null);
+    };
+
+    xhr.onerror = () => resolve(null);
+    xhr.send();
+  });
+}
+
 // Extract device context from current page URL
 // Simplified: only extracts portalId and resourceId from URL
 // Device details (hostname, collectorId) are fetched via API in the editor
@@ -178,6 +237,10 @@ function extractDeviceContext(): DeviceContext {
     const match = resourcePath.match(/resources-(\d+)/);
     if (match) {
       context.resourceId = parseInt(match[1], 10);
+    }
+    const datasourceMatch = resourcePath.match(/resourceDataSources-(\d+)/);
+    if (datasourceMatch) {
+      context.resourceDatasourceId = parseInt(datasourceMatch[1], 10);
     }
   }
 
@@ -295,10 +358,17 @@ function injectMenuItem(menuContainer: HTMLElement) {
     menuItem.style.backgroundColor = 'transparent';
   });
 
-  menuItem.addEventListener('click', (e) => {
+  menuItem.addEventListener('click', async (e) => {
     e.stopPropagation();
     
     const context = extractDeviceContext();
+    if (context.resourceId && context.resourceDatasourceId) {
+      const info = await fetchDeviceDatasourceInfo(context.resourceId, context.resourceDatasourceId);
+      if (info) {
+        context.dataSourceId = info.dataSourceId;
+        context.collectMethod = info.collectMethod;
+      }
+    }
     const message: ContentToSWMessage = {
       type: 'OPEN_EDITOR',
       payload: context,
@@ -504,4 +574,3 @@ if (isExtensionContextValid()) {
     return true;
   });
 }
-
