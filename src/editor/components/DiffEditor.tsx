@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { DiffEditor as MonacoDiffEditor } from '@monaco-editor/react';
 // Import Monaco loader to configure workers for Chrome extension CSP
 import '../monaco-loader';
@@ -22,11 +23,19 @@ export function DiffEditor({
   readOnly = true,
   wordWrap = false,
 }: DiffEditorProps) {
+  const modelId = useId();
+  const originalModelPath = `inmemory://model/${modelId}/original`;
+  const modifiedModelPath = `inmemory://model/${modelId}/modified`;
+
   return (
     <MonacoDiffEditor
       original={original}
       modified={modified}
       language={language}
+      originalModelPath={originalModelPath}
+      modifiedModelPath={modifiedModelPath}
+      keepCurrentOriginalModel
+      keepCurrentModifiedModel
       height={height}
       theme={theme}
       options={{

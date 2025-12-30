@@ -1,22 +1,31 @@
 import { loader } from '@monaco-editor/react';
 import * as monaco from 'monaco-editor';
+import EditorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
 
-// Configure Monaco environment to disable web workers
-// This is required for Chrome extensions due to CSP restrictions that block worker-src
-// We return a mock Worker object instead of null to prevent "postMessage on null" errors
+const mockWorker = {
+  postMessage: () => {},
+  onmessage: null,
+  onerror: null,
+  terminate: () => {},
+  addEventListener: () => {},
+  removeEventListener: () => {},
+  dispatchEvent: () => true,
+} as unknown as Worker;
+
+// Configure Monaco environment for Chrome extensions.
+// Diff computation relies on the editor worker, so we try to create it and
+// gracefully fall back to a mock worker if CSP blocks worker creation.
 self.MonacoEnvironment = {
-  getWorker: function () {
-    // Return a mock worker that satisfies Monaco's interface
-    // without triggering CSP errors or null reference errors
-    return {
-      postMessage: () => {},
-      onmessage: null,
-      onerror: null,
-      terminate: () => {},
-      addEventListener: () => {},
-      removeEventListener: () => {},
-      dispatchEvent: () => true,
-    } as unknown as Worker;
+  getWorker: function (_moduleId, label) {
+    if (label === 'editorWorkerService') {
+      try {
+        return new EditorWorker();
+      } catch {
+        return mockWorker;
+      }
+    }
+
+    return mockWorker;
   },
 };
 
