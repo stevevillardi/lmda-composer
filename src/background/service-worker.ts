@@ -61,6 +61,19 @@ const scriptExecutor = new ScriptExecutor(executorContext);
 const apiExecutor = new ApiExecutor(executorContext);
 
 const activeModuleSearches = new Map<string, AbortController>();
+const ACTION_ICON_PATHS = {
+  16: 'src/assets/icon16.png',
+  48: 'src/assets/icon48.png',
+  128: 'src/assets/icon128.png',
+};
+
+async function ensureActionIcon(): Promise<void> {
+  try {
+    await chrome.action.setIcon({ path: ACTION_ICON_PATHS });
+  } catch (error) {
+    console.warn('Failed to set action icon:', error);
+  }
+}
 
 function sendModuleSearchProgress(progress: ModuleSearchProgress) {
   chrome.runtime.sendMessage({
@@ -679,9 +692,14 @@ async function openEditorWindow(context?: DeviceContext) {
 }
 
 chrome.runtime.onInstalled.addListener((details) => {
+  ensureActionIcon();
   if (details.reason === 'install') {
     openOnboardingPage();
   }
+});
+
+chrome.runtime.onStartup.addListener(() => {
+  ensureActionIcon();
 });
 
 // Handle extension icon click

@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { 
   ChevronDown, 
   Circle, 
@@ -67,6 +67,12 @@ export function ContextDropdown({
   const [deviceSearchQuery, setDeviceSearchQuery] = useState('');
   const [isRefreshingPortals, setIsRefreshingPortals] = useState(false);
   const [isRefreshingCollectors, setIsRefreshingCollectors] = useState(false);
+
+  useEffect(() => {
+    if (isOpen && portals.length === 0) {
+      refreshPortals();
+    }
+  }, [isOpen, portals.length, refreshPortals]);
 
   // Filter devices based on search query
   const filteredDevices = useMemo(() => {

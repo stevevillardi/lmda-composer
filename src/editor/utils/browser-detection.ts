@@ -30,3 +30,13 @@ export async function isBraveBrowser(): Promise<boolean> {
   return false;
 }
 
+export async function isVivaldiBrowser(): Promise<boolean> {
+  if (typeof chrome === 'undefined' || !chrome.tabs?.query) return false;
+
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    return Boolean((tab as { vivExtData?: unknown } | undefined)?.vivExtData);
+  } catch {
+    return false;
+  }
+}

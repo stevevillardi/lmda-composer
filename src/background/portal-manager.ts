@@ -1,6 +1,28 @@
 import type { Portal, Collector, DeviceInfo, DeviceProperty, AppliesToTestResult, AppliesToTestError, AppliesToTestFrom } from '@/shared/types';
 
 const STORAGE_KEY = 'lm-ide-portals';
+const NON_PORTAL_SUBDOMAINS = new Set([
+  'www',
+  'docs',
+  'support',
+  'community',
+  'developer',
+  'status',
+  'help',
+  'academy',
+  'blog',
+  'okta',
+  'jira',
+  'confluence',
+  'stash'
+]);
+
+function isLikelyPortalHostname(hostname: string): boolean {
+  if (!hostname.endsWith('.logicmonitor.com')) return false;
+  const parts = hostname.split('.');
+  if (parts.length < 3) return false;
+  return !NON_PORTAL_SUBDOMAINS.has(parts[0]);
+}
 
 interface PersistedPortalData {
   id: string;
@@ -171,6 +193,10 @@ export class PortalManager {
 
       // Group tabs by hostname, but first verify they are actual LM portals
       const portalTabs = new Map<string, number[]>();
+      let skippedIncomplete = 0;
+      let verifiedPortals = 0;
+      let fallbackPortals = 0;
+      let nonPortalMatches = 0;
       
       for (const tab of tabs) {
         if (!tab.url || !tab.id) continue;
@@ -178,14 +204,23 @@ export class PortalManager {
         // Skip tabs that aren't ready - they won't have LMGlobalData loaded yet
         if (tab.status !== 'complete') {
           console.log(`Skipping tab ${tab.id}: status is ${tab.status}`);
+          skippedIncomplete += 1;
           continue;
         }
         
-        const isLMPortal = await this.verifyLogicMonitorPortal(tab.id);
-        if (!isLMPortal) continue;
-        
         const url = new URL(tab.url);
         const hostname = url.hostname;
+        const isLikelyPortal = isLikelyPortalHostname(hostname);
+        const isLMPortal = await this.verifyLogicMonitorPortal(tab.id);
+        if (!isLMPortal && !isLikelyPortal) {
+          nonPortalMatches += 1;
+          continue;
+        }
+        if (isLMPortal) {
+          verifiedPortals += 1;
+        } else if (isLikelyPortal) {
+          fallbackPortals += 1;
+        }
         
         if (!portalTabs.has(hostname)) {
           portalTabs.set(hostname, []);
@@ -224,6 +259,16 @@ export class PortalManager {
       
       // Persist updated state (debounced)
       this.persistState();
+
+      console.info('[PortalDiscovery] completed', {
+        tabsQueried: tabs.length,
+        portalsFound: portalTabs.size,
+        portalHosts: Array.from(portalTabs.keys()),
+        skippedIncomplete,
+        verifiedPortals,
+        fallbackPortals,
+        nonPortalMatches,
+      });
 
       return Array.from(this.portals.values());
     } catch (error) {

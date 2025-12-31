@@ -22,7 +22,7 @@ import { ModuleCommitConfirmationDialog } from './components/ModuleCommitConfirm
 import { ModuleLineageDialog } from './components/ModuleLineageDialog';
 import { useEditorStore } from './stores/editor-store';
 import { isFileSystemAccessSupported } from './utils/file-handle-store';
-import { isBraveBrowser } from './utils/browser-detection';
+import { isBraveBrowser, isVivaldiBrowser } from './utils/browser-detection';
 import { Button } from '@/components/ui/button';
 import {
   ResizablePanelGroup,
@@ -96,8 +96,9 @@ export function App() {
   const [pendingDraft, setPendingDraft] = useState<DraftScript | DraftTabs | null>(null);
   const [showDraftDialog, setShowDraftDialog] = useState(false);
   
-  // Brave File System Access API warning state
+  // File System Access API warning state
   const [showBraveWarning, setShowBraveWarning] = useState(false);
+  const [fileSystemWarningBrowser, setFileSystemWarningBrowser] = useState<'brave' | 'vivaldi' | null>(null);
   
   // Debounce timer for auto-save
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -131,31 +132,41 @@ export function App() {
   // Check for File System Access API availability and Brave browser
   useEffect(() => {
     // Check if user has already dismissed this warning
-    const dismissed = localStorage.getItem('lm-ide-brave-fs-api-warning-dismissed');
+    const dismissed = localStorage.getItem('lm-ide-fs-api-warning-dismissed')
+      ?? localStorage.getItem('lm-ide-brave-fs-api-warning-dismissed');
     if (dismissed === 'true') {
       return;
     }
 
-    // Check if File System Access API is not supported
-    const fsApiSupported = isFileSystemAccessSupported();
-    
-    if (!fsApiSupported) {
-      // Check if browser is Brave (async)
-      isBraveBrowser().then((isBrave) => {
+    const checkBrowser = async () => {
+      if (await isVivaldiBrowser()) {
+        setFileSystemWarningBrowser('vivaldi');
+        setTimeout(() => {
+          setShowBraveWarning(true);
+        }, 500);
+        return;
+      }
+
+      const fsApiSupported = isFileSystemAccessSupported();
+      if (!fsApiSupported) {
+        const isBrave = await isBraveBrowser();
         if (isBrave) {
-          // Show warning after a short delay to ensure preferences are loaded
+          setFileSystemWarningBrowser('brave');
           setTimeout(() => {
             setShowBraveWarning(true);
           }, 500);
         }
-      }).catch((error) => {
-        console.error('Error checking if browser is Brave:', error);
-      });
-    }
+      }
+    };
+
+    checkBrowser().catch((error) => {
+      console.error('Error checking browser for File System Access warning:', error);
+    });
   }, []);
 
   // Handle Brave warning dismissal
   const handleBraveWarningDismiss = useCallback(() => {
+    localStorage.setItem('lm-ide-fs-api-warning-dismissed', 'true');
     localStorage.setItem('lm-ide-brave-fs-api-warning-dismissed', 'true');
     setShowBraveWarning(false);
   }, []);
@@ -523,6 +534,7 @@ export function App() {
         open={showBraveWarning}
         onOpenChange={setShowBraveWarning}
         onDismiss={handleBraveWarningDismiss}
+        browser={fileSystemWarningBrowser ?? 'brave'}
       />
 
       {/* Draft Restore Dialog */}
