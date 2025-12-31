@@ -40,7 +40,13 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
 
-export function ContextDropdown() {
+export function ContextDropdown({
+  showCollector = true,
+  showDevice = true,
+}: {
+  showCollector?: boolean;
+  showDevice?: boolean;
+}) {
   const {
     portals,
     selectedPortalId,
@@ -94,8 +100,9 @@ export function ContextDropdown() {
   // Build summary text for dropdown trigger
   const getSummaryText = () => {
     if (!selectedPortal) return 'No connected portal';
+    if (!showCollector) return selectedPortal.hostname;
     if (!selectedCollector) return selectedPortal.hostname;
-    const device = hostname ? ` → ${hostname}` : '';
+    const device = showDevice && hostname ? ` → ${hostname}` : '';
     return `${selectedPortal.hostname} → ${selectedCollector.description || selectedCollector.hostname}${device}`;
   };
 
@@ -156,14 +163,16 @@ export function ContextDropdown() {
               <span className="text-muted-foreground">Portal:</span>
               <span>{selectedPortal?.hostname || 'Not selected'}</span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-muted-foreground">Collector:</span>
-              <span>
-                {selectedCollector?.description || selectedCollector?.hostname || 'Not selected'}
-                {selectedCollectorArch ? ` (${selectedCollectorArch})` : ''}
-              </span>
-            </div>
-            {hostname && (
+            {showCollector && (
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">Collector:</span>
+                <span>
+                  {selectedCollector?.description || selectedCollector?.hostname || 'Not selected'}
+                  {selectedCollectorArch ? ` (${selectedCollectorArch})` : ''}
+                </span>
+              </div>
+            )}
+            {showDevice && hostname && (
               <div className="flex items-center gap-2">
                 <span className="text-muted-foreground">Device:</span>
                 <span>{hostname}</span>
@@ -177,7 +186,7 @@ export function ContextDropdown() {
         <div className="p-3 border-b border-border">
           <h4 className="font-medium text-sm">Execution Context</h4>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Select where to run your scripts
+            {showCollector ? 'Select where to run your scripts' : 'Select your portal'}
           </p>
         </div>
 
@@ -260,233 +269,237 @@ export function ContextDropdown() {
             </Select>
           </div>
 
-          <Separator />
-
-          {/* Collector Selector */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <Label className="text-xs">Collector</Label>
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <Button
-                      variant="ghost"
-                      size="xs"
-                      onClick={handleRefreshCollectors}
-                      disabled={isRefreshingCollectors || !selectedPortalId}
-                      className={cn(
-                        "transition-all duration-200",
-                        isRefreshingCollectors && "opacity-70"
-                      )}
-                    >
-                      <RefreshCw 
-                        className={cn(
-                          "size-3 transition-transform duration-200",
-                          isRefreshingCollectors && "animate-spin"
-                        )} 
-                      />
-                      Refresh
-                    </Button>
-                  }
-                />
-                <TooltipContent>
-                  {isRefreshingCollectors ? 'Refreshing collectors...' : 'Refresh collectors'}
-                </TooltipContent>
-              </Tooltip>
-            </div>
-            <Select 
-              value={selectedCollectorId?.toString() ?? null} 
-              onValueChange={(value) => setSelectedCollector(value ? parseInt(value) : null)}
-              disabled={!selectedPortalId || collectors.length === 0}
-              items={collectorItems}
-            >
-              <SelectTrigger className="w-full h-8" aria-label="Select collector">
-                <div className="flex items-center gap-2 overflow-hidden flex-1 min-w-0">
-                  {selectedCollector && (
-                    <Server
-                      className={cn(
-                        'size-4 shrink-0',
-                        selectedCollector.isDown 
-                          ? 'text-red-500' 
-                          : 'text-green-500'
-                      )}
+          {showCollector && (
+            <>
+              <Separator />
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Collector</Label>
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <Button
+                          variant="ghost"
+                          size="xs"
+                          onClick={handleRefreshCollectors}
+                          disabled={isRefreshingCollectors || !selectedPortalId}
+                          className={cn(
+                            "transition-all duration-200",
+                            isRefreshingCollectors && "opacity-70"
+                          )}
+                        >
+                          <RefreshCw 
+                            className={cn(
+                              "size-3 transition-transform duration-200",
+                              isRefreshingCollectors && "animate-spin"
+                            )} 
+                          />
+                          Refresh
+                        </Button>
+                      }
                     />
-                  )}
-                  <SelectValue className="truncate" />
+                    <TooltipContent>
+                      {isRefreshingCollectors ? 'Refreshing collectors...' : 'Refresh collectors'}
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
-              </SelectTrigger>
-              <SelectContent align="start" className="min-w-[320px]">
-                {collectors.length === 0 ? (
-                  <div className="px-2 py-4 text-sm text-muted-foreground text-center">
-                    {selectedPortalId ? 'No collectors found' : 'Select a portal first'}
-                  </div>
-                ) : (
-                  collectors.map((collector) => (
-                    <SelectItem 
-                      key={collector.id} 
-                      value={collector.id.toString()}
-                      disabled={collector.isDown}
-                    >
-                      <div className="flex items-center gap-2 w-full">
+                <Select 
+                  value={selectedCollectorId?.toString() ?? null} 
+                  onValueChange={(value) => setSelectedCollector(value ? parseInt(value) : null)}
+                  disabled={!selectedPortalId || collectors.length === 0}
+                  items={collectorItems}
+                >
+                  <SelectTrigger className="w-full h-8" aria-label="Select collector">
+                    <div className="flex items-center gap-2 overflow-hidden flex-1 min-w-0">
+                      {selectedCollector && (
                         <Server
                           className={cn(
                             'size-4 shrink-0',
-                            collector.isDown 
+                            selectedCollector.isDown 
                               ? 'text-red-500' 
                               : 'text-green-500'
                           )}
                         />
-                        <div className="flex flex-col min-w-0 flex-1">
-                          <span className="font-medium truncate">
-                            {collector.description || collector.hostname}
-                            {collector.isDown && (
-                              <span className="text-red-500 text-xs ml-1.5">(offline)</span>
-                            )}
-                          </span>
-                          <span className="text-xs text-muted-foreground truncate">
-                            #{collector.id}
-                            {collector.collectorGroupName && ` · ${collector.collectorGroupName}`}
-                            {collector.arch && ` · ${collector.arch}`}
-                          </span>
-                        </div>
-                      </div>
-                    </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <Separator />
-
-          {/* Device/Hostname Combobox */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <Label className="text-xs">Device (optional)</Label>
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <Button
-                      variant="ghost"
-                      size="xs"
-                      onClick={handleRefreshDevices}
-                      disabled={isFetchingDevices || !selectedCollectorId}
-                      className={cn(
-                        "transition-all duration-200",
-                        isFetchingDevices && "opacity-70"
                       )}
-                    >
-                      <RefreshCw 
-                        className={cn(
-                          "size-3 transition-transform duration-200",
-                          isFetchingDevices && "animate-spin"
-                        )} 
-                      />
-                      Refresh
-                    </Button>
-                  }
-                />
-                <TooltipContent>
-                  {isFetchingDevices ? 'Refreshing devices...' : 'Refresh devices'}
-                </TooltipContent>
-              </Tooltip>
-            </div>
-            <Combobox
-              value={hostname}
-              onValueChange={(value) => {
-                setHostname(value || '');
-                if (value) setDeviceSearchQuery('');
-              }}
-              disabled={!selectedCollectorId}
-            >
-              <InputGroup className="w-full h-9" data-disabled={!selectedCollectorId}>
-                {hostname && (
-                  <InputGroupAddon align="inline-start">
-                    <Server className={cn(
-                      "size-4 shrink-0",
-                      devices.find(d => d.name === hostname)?.hostStatus === 'normal'
-                        ? "text-green-500"
-                        : "text-red-500"
-                    )} />
-                  </InputGroupAddon>
-                )}
-                <ComboboxPrimitive.Input
-                  render={<InputGroupInput disabled={!selectedCollectorId} />}
-                  placeholder={
-                    isFetchingDevices 
-                      ? 'Loading devices...' 
-                      : !selectedCollectorId 
-                        ? 'Select collector first...'
-                        : devices.length === 0 
-                          ? 'No devices on collector' 
-                          : 'Search devices...'
-                  }
-                  onChange={(e) => setDeviceSearchQuery(e.target.value)}
-                />
-                <InputGroupAddon align="inline-end">
-                  {hostname ? (
-                    <ComboboxPrimitive.Clear
-                      render={<InputGroupButton variant="ghost" size="icon-xs" />}
-                    >
-                      <X className="size-3.5 pointer-events-none" />
-                    </ComboboxPrimitive.Clear>
-                  ) : (
-                    <InputGroupButton
-                      size="icon-xs"
-                      variant="ghost"
-                      render={<ComboboxPrimitive.Trigger />}
-                      disabled={!selectedCollectorId}
-                      className="data-pressed:bg-transparent"
-                    >
-                      <ChevronDown className="size-3.5 text-muted-foreground pointer-events-none" />
-                    </InputGroupButton>
-                  )}
-                </InputGroupAddon>
-              </InputGroup>
-              <ComboboxContent className="min-w-[320px]">
-                <ComboboxList>
-                  {isFetchingDevices ? (
-                    <div className="flex items-center justify-center py-4 text-sm text-muted-foreground">
-                      <Loader2 className="size-4 animate-spin mr-2" />
-                      Loading devices...
+                      <SelectValue className="truncate" />
                     </div>
-                  ) : devices.length === 0 ? (
-                    <div className="flex items-center justify-center py-4 text-sm text-muted-foreground">
-                      {selectedCollectorId 
-                        ? 'No devices found on this collector'
-                        : 'Select a collector first'}
-                    </div>
-                  ) : filteredDevices.length === 0 ? (
-                    <div className="flex items-center justify-center py-4 text-sm text-muted-foreground">
-                      No devices match "{deviceSearchQuery}"
-                    </div>
-                  ) : (
-                    filteredDevices.map((device) => (
-                      <ComboboxItem key={device.id} value={device.name}>
-                        <div className="flex items-center gap-2 w-full">
-                          <Server className={cn(
-                            "size-4 shrink-0",
-                            device.hostStatus === 'normal' 
-                              ? "text-green-500" 
-                              : "text-red-500"
-                          )} />
-                          <div className="flex flex-col min-w-0 flex-1">
-                            <span className="font-medium truncate">
-                              {device.displayName}
-                              {device.hostStatus !== 'normal' && (
-                                <span className="text-red-500 text-xs ml-1.5">(offline)</span>
+                  </SelectTrigger>
+                  <SelectContent align="start" className="min-w-[320px]">
+                    {collectors.length === 0 ? (
+                      <div className="px-2 py-4 text-sm text-muted-foreground text-center">
+                        {selectedPortalId ? 'No collectors found' : 'Select a portal first'}
+                      </div>
+                    ) : (
+                      collectors.map((collector) => (
+                        <SelectItem 
+                          key={collector.id} 
+                          value={collector.id.toString()}
+                          disabled={collector.isDown}
+                        >
+                          <div className="flex items-center gap-2 w-full">
+                            <Server
+                              className={cn(
+                                'size-4 shrink-0',
+                                collector.isDown 
+                                  ? 'text-red-500' 
+                                  : 'text-green-500'
                               )}
-                            </span>
-                            <span className="text-xs text-muted-foreground truncate">{device.name}</span>
+                            />
+                            <div className="flex flex-col min-w-0 flex-1">
+                              <span className="font-medium truncate">
+                                {collector.description || collector.hostname}
+                                {collector.isDown && (
+                                  <span className="text-red-500 text-xs ml-1.5">(offline)</span>
+                                )}
+                              </span>
+                              <span className="text-xs text-muted-foreground truncate">
+                                #{collector.id}
+                                {collector.collectorGroupName && ` · ${collector.collectorGroupName}`}
+                                {collector.arch && ` · ${collector.arch}`}
+                              </span>
+                            </div>
                           </div>
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            </>
+          )}
+
+          {showDevice && (
+            <>
+              <Separator />
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <Label className="text-xs">Device (optional)</Label>
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <Button
+                          variant="ghost"
+                          size="xs"
+                          onClick={handleRefreshDevices}
+                          disabled={isFetchingDevices || !selectedCollectorId}
+                          className={cn(
+                            "transition-all duration-200",
+                            isFetchingDevices && "opacity-70"
+                          )}
+                        >
+                          <RefreshCw 
+                            className={cn(
+                              "size-3 transition-transform duration-200",
+                              isFetchingDevices && "animate-spin"
+                            )} 
+                          />
+                          Refresh
+                        </Button>
+                      }
+                    />
+                    <TooltipContent>
+                      {isFetchingDevices ? 'Refreshing devices...' : 'Refresh devices'}
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <Combobox
+                  value={hostname}
+                  onValueChange={(value) => {
+                    setHostname(value || '');
+                    if (value) setDeviceSearchQuery('');
+                  }}
+                  disabled={!selectedCollectorId}
+                >
+                  <InputGroup className="w-full h-9" data-disabled={!selectedCollectorId}>
+                    {hostname && (
+                      <InputGroupAddon align="inline-start">
+                        <Server className={cn(
+                          "size-4 shrink-0",
+                          devices.find(d => d.name === hostname)?.hostStatus === 'normal'
+                            ? "text-green-500"
+                            : "text-red-500"
+                        )} />
+                      </InputGroupAddon>
+                    )}
+                    <ComboboxPrimitive.Input
+                      render={<InputGroupInput disabled={!selectedCollectorId} />}
+                      placeholder={
+                        isFetchingDevices 
+                          ? 'Loading devices...' 
+                          : !selectedCollectorId 
+                            ? 'Select collector first...'
+                            : devices.length === 0 
+                              ? 'No devices on collector' 
+                              : 'Search devices...'
+                      }
+                      onChange={(e) => setDeviceSearchQuery(e.target.value)}
+                    />
+                    <InputGroupAddon align="inline-end">
+                      {hostname ? (
+                        <ComboboxPrimitive.Clear
+                          render={<InputGroupButton variant="ghost" size="icon-xs" />}
+                        >
+                          <X className="size-3.5 pointer-events-none" />
+                        </ComboboxPrimitive.Clear>
+                      ) : (
+                        <InputGroupButton
+                          size="icon-xs"
+                          variant="ghost"
+                          render={<ComboboxPrimitive.Trigger />}
+                          disabled={!selectedCollectorId}
+                          className="data-pressed:bg-transparent"
+                        >
+                          <ChevronDown className="size-3.5 text-muted-foreground pointer-events-none" />
+                        </InputGroupButton>
+                      )}
+                    </InputGroupAddon>
+                  </InputGroup>
+                  <ComboboxContent className="min-w-[320px]">
+                    <ComboboxList>
+                      {isFetchingDevices ? (
+                        <div className="flex items-center justify-center py-4 text-sm text-muted-foreground">
+                          <Loader2 className="size-4 animate-spin mr-2" />
+                          Loading devices...
                         </div>
-                      </ComboboxItem>
-                    ))
-                  )}
-                </ComboboxList>
-              </ComboboxContent>
-            </Combobox>
-          </div>
+                      ) : devices.length === 0 ? (
+                        <div className="flex items-center justify-center py-4 text-sm text-muted-foreground">
+                          {selectedCollectorId 
+                            ? 'No devices found on this collector'
+                            : 'Select a collector first'}
+                        </div>
+                      ) : filteredDevices.length === 0 ? (
+                        <div className="flex items-center justify-center py-4 text-sm text-muted-foreground">
+                          No devices match "{deviceSearchQuery}"
+                        </div>
+                      ) : (
+                        filteredDevices.map((device) => (
+                          <ComboboxItem key={device.id} value={device.name}>
+                            <div className="flex items-center gap-2 w-full">
+                              <Server className={cn(
+                                "size-4 shrink-0",
+                                device.hostStatus === 'normal' 
+                                  ? "text-green-500" 
+                                  : "text-red-500"
+                              )} />
+                              <div className="flex flex-col min-w-0 flex-1">
+                                <span className="font-medium truncate">
+                                  {device.displayName}
+                                  {device.hostStatus !== 'normal' && (
+                                    <span className="text-red-500 text-xs ml-1.5">(offline)</span>
+                                  )}
+                                </span>
+                                <span className="text-xs text-muted-foreground truncate">{device.name}</span>
+                              </div>
+                            </div>
+                          </ComboboxItem>
+                        ))
+                      )}
+                    </ComboboxList>
+                  </ComboboxContent>
+                </Combobox>
+              </div>
+            </>
+          )}
         </div>
       </PopoverContent>
     </Popover>

@@ -16,6 +16,7 @@ LogicMonitor IDE is a Chrome Extension that provides an enhanced script developm
 | [04-api-reference.md](./04-api-reference.md) | LogicMonitor REST API endpoints and usage |
 | [05-data-models.md](./05-data-models.md) | TypeScript interfaces, types, and constants |
 | [06-local-file-system.md](./06-local-file-system.md) | Local file system support implementation spec |
+| [07-api-explorer.md](./07-api-explorer.md) | API Explorer architecture and UX spec |
 
 ---
 

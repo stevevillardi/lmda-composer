@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState, useCallback, KeyboardEvent } from 'react';
-import { X, Plus, Pencil, Circle, Save, Upload, Trash2, AlertTriangle } from 'lucide-react';
+import { X, Plus, Pencil, Circle, Save, Upload, Trash2, AlertTriangle, Braces } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEditorStore } from '../stores/editor-store';
 import { Button } from '@/components/ui/button';
@@ -36,6 +36,14 @@ function LanguageIcon({ language }: { language: EditorTab['language'] }) {
         : "bg-cyan-500/20 text-cyan-400"
     )}>
       {language === 'groovy' ? 'GR' : 'PS'}
+    </span>
+  );
+}
+
+function ApiBadge() {
+  return (
+    <span className="text-[10px] font-medium px-1 py-0.5 rounded bg-emerald-500/20 text-emerald-400">
+      API
     </span>
   );
 }
@@ -156,7 +164,7 @@ function TabItem({
           "bg-background text-foreground border-b-2 border-b-primary"
         )}
       >
-        <LanguageIcon language={tab.language} />
+        {tab.kind === 'api' ? <ApiBadge /> : <LanguageIcon language={tab.language} />}
         <input
           ref={inputRef}
           type="text"
@@ -196,7 +204,7 @@ function TabItem({
                   )}
                 >
                   {/* Language indicator */}
-                  <LanguageIcon language={tab.language} />
+                  {tab.kind === 'api' ? <ApiBadge /> : <LanguageIcon language={tab.language} />}
                   
                   {/* Tab name */}
                   <span className="truncate flex-1 text-left">
@@ -282,9 +290,11 @@ function TabItem({
       <TooltipContent side="bottom" className="max-w-xs">
         <div className="text-xs">{tooltipContent}</div>
         <div className="text-[10px] text-muted-foreground mt-0.5">
-          {tab.hasFileHandle 
-            ? "Local file • Saved to disk" 
-            : "Double-click to rename"}
+          {tab.kind === 'api'
+            ? 'API request tab'
+            : tab.hasFileHandle 
+              ? 'Local file • Saved to disk' 
+              : 'Double-click to rename'}
         </div>
       </TooltipContent>
     </Tooltip>
@@ -300,6 +310,7 @@ export function TabBar() {
     closeOtherTabs,
     closeAllTabs,
     openTab,
+    openApiExplorerTab,
     renameTab,
     preferences,
     getTabDirtyState,
@@ -319,11 +330,16 @@ export function TabBar() {
   const [tabToCloseAfterCommit, setTabToCloseAfterCommit] = useState<string | null>(null);
   const tabListRef = useRef<HTMLDivElement>(null);
   
+  const activeTab = activeTabId ? tabs.find(t => t.id === activeTabId) : null;
+  const isApiActive = activeTab?.kind === 'api';
+  const activeView = isApiActive ? 'api' : 'script';
+  const visibleTabs = tabs.filter(tab => (tab.kind ?? 'script') === activeView);
+
   // Handle keyboard navigation
   const handleKeyDown = useCallback((e: KeyboardEvent<HTMLDivElement>) => {
     if (!tabListRef.current) return;
     
-    const currentIndex = tabs.findIndex(t => t.id === activeTabId);
+    const currentIndex = visibleTabs.findIndex(t => t.id === activeTabId);
     if (currentIndex === -1) return;
     
     let targetIndex = currentIndex;
@@ -335,7 +351,7 @@ export function TabBar() {
         break;
       case 'ArrowRight':
         e.preventDefault();
-        targetIndex = Math.min(tabs.length - 1, currentIndex + 1);
+        targetIndex = Math.min(visibleTabs.length - 1, currentIndex + 1);
         break;
       case 'Home':
         e.preventDefault();
@@ -343,21 +359,21 @@ export function TabBar() {
         break;
       case 'End':
         e.preventDefault();
-        targetIndex = tabs.length - 1;
+        targetIndex = visibleTabs.length - 1;
         break;
       default:
         return;
     }
     
     if (targetIndex !== currentIndex) {
-      setActiveTab(tabs[targetIndex].id);
+      setActiveTab(visibleTabs[targetIndex].id);
       // Focus the tab button
       const tabButton = tabListRef.current.querySelector(
-        `button[role="tab"][aria-controls="tabpanel-${tabs[targetIndex].id}"]`
+        `button[role="tab"][aria-controls="tabpanel-${visibleTabs[targetIndex].id}"]`
       ) as HTMLButtonElement;
       tabButton?.focus();
     }
-  }, [tabs, activeTabId, setActiveTab]);
+  }, [visibleTabs, activeTabId, setActiveTab]);
   
   // Handle tab close with dirty check
   const handleTabClose = useCallback(async (tabId: string) => {
@@ -482,9 +498,13 @@ export function TabBar() {
   const isModuleTab = pendingTab?.source?.type === 'module';
   const isLocalFile = pendingTab?.hasFileHandle;
   const canCommit = pendingCloseTabId && canCommitModule(pendingCloseTabId);
-
   // Create a new untitled tab
   const handleNewTab = () => {
+    if (isApiActive) {
+      openApiExplorerTab();
+      return;
+    }
+
     const extension = preferences.defaultLanguage === 'groovy' ? 'groovy' : 'ps1';
     const template = getDefaultScriptTemplate(preferences.defaultLanguage);
     
@@ -514,7 +534,7 @@ export function TabBar() {
     >
       {/* Scrollable tab list */}
       <div className="flex-1 flex items-center overflow-x-auto scrollbar-thin scrollbar-thumb-border">
-        {tabs.map((tab) => (
+        {visibleTabs.map((tab) => (
           <TabItem
             key={tab.id}
             tab={tab}
@@ -547,12 +567,12 @@ export function TabBar() {
                 onClick={handleNewTab}
                 className="h-6 px-2 gap-1 text-xs"
               >
-                <Plus className="size-3.5" />
-                <span>New File</span>
+                {isApiActive ? <Braces className="size-3.5" /> : <Plus className="size-3.5" />}
+                <span>{isApiActive ? 'New API Request' : 'New File'}</span>
               </Button>
             }
           />
-          <TooltipContent>Create a new file tab</TooltipContent>
+          <TooltipContent>{isApiActive ? 'Create a new API request tab' : 'Create a new file tab'}</TooltipContent>
         </Tooltip>
       </div>
       
@@ -560,8 +580,10 @@ export function TabBar() {
       {activeTabId && (
         <div className="flex items-center gap-1 px-2 border-l border-border">
           {(() => {
-            const activeTab = tabs.find(t => t.id === activeTabId);
             if (!activeTab) return null;
+            if (activeTab.kind === 'api') {
+              return <ApiBadge />;
+            }
             return <ModeBadge mode={activeTab.mode} />;
           })()}
         </div>

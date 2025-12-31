@@ -11,6 +11,10 @@ import { LogicModuleSearch } from './components/LogicModuleSearch';
 import { CommandPalette } from './components/CommandPalette';
 import { SettingsDialog } from './components/SettingsDialog';
 import { RightSidebar } from './components/RightSidebar';
+import { TabBar } from './components/TabBar';
+import { WelcomeScreenV2 } from './components/WelcomeScreenV2';
+import { ApiExplorerPanel } from './components/api/ApiExplorerPanel';
+import { ApiRightSidebar } from './components/api/ApiRightSidebar';
 import { BraveFileSystemWarning } from './components/BraveFileSystemWarning';
 import { AppliesToTester } from './components/AppliesToTester';
 import { DebugCommandsDialog } from './components/DebugCommandsDialog';
@@ -50,6 +54,8 @@ export function App() {
     saveDraft,
     loadPreferences,
     loadHistory,
+    loadApiHistory,
+    loadApiEnvironments,
     loadUserSnippets,
     preferences,
     portals,
@@ -117,8 +123,10 @@ export function App() {
   useEffect(() => {
     loadPreferences();
     loadHistory();
+    loadApiHistory();
+    loadApiEnvironments();
     loadUserSnippets();
-  }, [loadPreferences, loadHistory, loadUserSnippets]);
+  }, [loadPreferences, loadHistory, loadApiHistory, loadApiEnvironments, loadUserSnippets]);
 
   // Check for File System Access API availability and Brave browser
   useEffect(() => {
@@ -431,49 +439,51 @@ export function App() {
       )}
 
       {/* Main Content Area */}
-      {/* When no tabs are open, show WelcomeScreen full-height without OutputPanel */}
+      {/* When no tabs are open, show WelcomeScreen full-height */}
       {tabs.length === 0 ? (
         <div className="flex-1 min-h-0">
-          <EditorPanel />
+          <WelcomeScreenV2 />
         </div>
       ) : (
-        /* With tabs open: Editor + Output (vertical split) with optional Right Sidebar */
-        /* Key forces re-mount when sidebar state changes so defaultSize applies correctly */
-        <ResizablePanelGroup 
-          key={rightSidebarOpen ? 'with-sidebar' : 'without-sidebar'}
-          direction="horizontal" 
-          className="flex-1 min-h-0"
-        >
-          {/* Left side: Editor + Output (vertical split) */}
-          <ResizablePanel defaultSize={rightSidebarOpen ? "78.5%" : "100%"} minSize="50%">
-            <ResizablePanelGroup direction="vertical" className="h-full">
-              {/* Editor Panel */}
-              <ResizablePanel defaultSize="80%" minSize="20%">
-                <EditorPanel />
-              </ResizablePanel>
+        <div className="flex-1 min-h-0 flex flex-col">
+          <TabBar />
 
-              {/* Resize Handle */}
-              <ResizableHandle withHandle />
+          {/* Main workspace */}
+          <ResizablePanelGroup
+            key={rightSidebarOpen ? 'with-sidebar' : 'without-sidebar'}
+            direction="horizontal"
+            className="flex-1 min-h-0"
+          >
+            <ResizablePanel defaultSize={rightSidebarOpen ? "78.5%" : "100%"} minSize="50%">
+              {activeTab?.kind === 'api' ? (
+                <ApiExplorerPanel />
+              ) : (
+                <ResizablePanelGroup direction="vertical" className="h-full">
+                  <ResizablePanel defaultSize="80%" minSize="20%">
+                    <EditorPanel />
+                  </ResizablePanel>
 
-              {/* Output Panel */}
-              <ResizablePanel defaultSize="40%" minSize="20%">
-                <div className="h-full border-t border-border">
-                  <OutputPanel />
-                </div>
-              </ResizablePanel>
-            </ResizablePanelGroup>
-          </ResizablePanel>
+                  <ResizableHandle withHandle />
 
-          {/* Right Sidebar */}
-          {rightSidebarOpen && (
-            <>
-              <ResizableHandle withVerticalHandle />
-              <ResizablePanel defaultSize="21.5%" minSize="21.5%" maxSize="40%">
-                <RightSidebar />
-              </ResizablePanel>
-            </>
-          )}
-        </ResizablePanelGroup>
+                  <ResizablePanel defaultSize="40%" minSize="20%">
+                    <div className="h-full border-t border-border">
+                      <OutputPanel />
+                    </div>
+                  </ResizablePanel>
+                </ResizablePanelGroup>
+              )}
+            </ResizablePanel>
+
+            {rightSidebarOpen && (
+              <>
+                <ResizableHandle withVerticalHandle />
+                <ResizablePanel defaultSize="21.5%" minSize="21.5%" maxSize="40%">
+                  {activeTab?.kind === 'api' ? <ApiRightSidebar /> : <RightSidebar />}
+                </ResizablePanel>
+              </>
+            )}
+          </ResizablePanelGroup>
+        </div>
       )}
 
       {/* Status Bar */}

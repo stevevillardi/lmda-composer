@@ -28,6 +28,7 @@ const KEYBOARD_SHORTCUTS = [
       { keys: ['⌘', 'K'], action: 'Command palette' },
       { keys: ['⌘', 'B'], action: 'Toggle sidebar' },
       { keys: ['⌘', ','], action: 'Settings' },
+      { keys: ['⌘', '⇧', 'M'], action: 'Toggle API/Script view' },
     ],
   },
   {
@@ -68,6 +69,7 @@ export function StatusBar() {
     activeTabId,
     currentExecution, 
     isExecuting,
+    isExecutingApi,
     portals,
     selectedPortalId,
     collectors,
@@ -79,6 +81,8 @@ export function StatusBar() {
   const activeTab = useMemo(() => {
     return tabs.find(t => t.id === activeTabId) ?? null;
   }, [tabs, activeTabId]);
+  const isApiTab = activeTab?.kind === 'api';
+  const apiResponse = activeTab?.api?.response;
 
   const script = activeTab?.content ?? '';
   const language = activeTab?.language ?? 'groovy';
@@ -131,6 +135,118 @@ export function StatusBar() {
         statusVariant = 'destructive';
         break;
     }
+  }
+
+  const helpAndVersion = (
+    <Popover>
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <PopoverTrigger
+              render={
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  className="h-auto px-2 py-1 text-muted-foreground hover:text-foreground flex items-center gap-1.5"
+                  aria-label="Keyboard shortcuts and version"
+                >
+                  <HelpCircle className="size-3.5" />
+                  <span className="text-xs">v{extensionVersion}</span>
+                </Button>
+              }
+            />
+          }
+        />
+        <TooltipContent>Keyboard shortcuts</TooltipContent>
+      </Tooltip>
+      <PopoverContent side="top" align="end" className="w-64 p-3">
+        <PopoverHeader>
+          <PopoverTitle className="text-sm">Keyboard Shortcuts</PopoverTitle>
+        </PopoverHeader>
+        <div className="flex flex-col gap-3 mt-2">
+          {KEYBOARD_SHORTCUTS.map((section, sectionIdx) => (
+            <div key={section.label} className="space-y-2">
+              {sectionIdx > 0 && <Separator />}
+                  <div className="relative flex items-center gap-2">
+                    <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
+                      {section.label}
+                    </span>
+                    <Separator className="flex-1 max-w-[120px]" />
+                  </div>
+              <div className="flex flex-col gap-1.5">
+                {section.items.map((shortcut) => (
+                  <div key={shortcut.action} className="flex items-center justify-between text-xs">
+                    <span className="text-muted-foreground">{shortcut.action}</span>
+                    <div className="flex items-center gap-0.5">
+                      {shortcut.keys.map((key, keyIdx) => (
+                        <Kbd key={keyIdx}>{key}</Kbd>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+        <p className="text-[10px] text-muted-foreground/70 mt-3 pt-2 border-t border-border">
+          Use Ctrl instead of ⌘ on Windows/Linux
+        </p>
+      </PopoverContent>
+    </Popover>
+  );
+
+  if (isApiTab) {
+    const apiStatusVariant: 'default' | 'secondary' | 'destructive' | 'outline' = (() => {
+      if (isExecutingApi) return 'default';
+      if (!apiResponse) return 'secondary';
+      if (apiResponse.status >= 400) return 'destructive';
+      return 'default';
+    })();
+
+    const apiStatusText = (() => {
+      if (isExecutingApi) return 'Requesting...';
+      if (!apiResponse) return 'Ready';
+      return `Status ${apiResponse.status}`;
+    })();
+
+    return (
+      <div 
+        className="flex items-center justify-between px-3 py-1.5 bg-secondary/30 border-t border-border text-xs"
+        role="status"
+        aria-label="API status bar"
+      >
+        <div className="flex items-center gap-3">
+          <Badge variant={apiStatusVariant} aria-live="polite" aria-atomic="true">
+            {apiStatusText}
+          </Badge>
+          {selectedPortalId && (
+            <>
+              <Separator orientation="vertical" className="h-5" aria-hidden="true" />
+              <span className="text-muted-foreground flex items-center gap-1.5" aria-label="Portal status">
+                <span className="size-1.5 rounded-full bg-green-500" aria-hidden="true" />
+                Connected to {selectedPortal?.hostname}
+              </span>
+            </>
+          )}
+        </div>
+
+        <div className="flex items-center gap-3 text-muted-foreground">
+          {apiResponse && (
+            <>
+              <span aria-label={`Last response duration ${apiResponse.durationMs} milliseconds`}>
+                {apiResponse.durationMs}ms
+              </span>
+              <Separator orientation="vertical" className="h-5" aria-hidden="true" />
+              <span aria-label={`Response size ${apiResponse.body.length} characters`}>
+                {apiResponse.body.length.toLocaleString()} chars
+              </span>
+              <Separator orientation="vertical" className="h-5" aria-hidden="true" />
+            </>
+          )}
+          {helpAndVersion}
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -221,61 +337,7 @@ export function StatusBar() {
         )}
 
         {/* Keyboard Shortcuts Help & Version */}
-        <Popover>
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <PopoverTrigger
-                  render={
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      className="h-auto px-2 py-1 text-muted-foreground hover:text-foreground flex items-center gap-1.5"
-                      aria-label="Keyboard shortcuts and version"
-                    >
-                      <HelpCircle className="size-3.5" />
-                      <span className="text-xs">v{extensionVersion}</span>
-                    </Button>
-                  }
-                />
-              }
-            />
-            <TooltipContent>Keyboard shortcuts</TooltipContent>
-          </Tooltip>
-          <PopoverContent side="top" align="end" className="w-64 p-3">
-            <PopoverHeader>
-              <PopoverTitle className="text-sm">Keyboard Shortcuts</PopoverTitle>
-            </PopoverHeader>
-            <div className="flex flex-col gap-3 mt-2">
-              {KEYBOARD_SHORTCUTS.map((section, sectionIdx) => (
-                <div key={section.label} className="space-y-2">
-                  {sectionIdx > 0 && <Separator />}
-                  <div className="relative flex items-center gap-2">
-                    <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                      {section.label}
-                    </span>
-                    <Separator className="flex-1" />
-                  </div>
-                  <div className="flex flex-col gap-1.5">
-                    {section.items.map((shortcut) => (
-                      <div key={shortcut.action} className="flex items-center justify-between text-xs">
-                        <span className="text-muted-foreground">{shortcut.action}</span>
-                        <div className="flex items-center gap-0.5">
-                          {shortcut.keys.map((key, keyIdx) => (
-                            <Kbd key={keyIdx}>{key}</Kbd>
-                          ))}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-            <p className="text-[10px] text-muted-foreground/70 mt-3 pt-2 border-t border-border">
-              Use Ctrl instead of ⌘ on Windows/Linux
-            </p>
-          </PopoverContent>
-        </Popover>
+        {helpAndVersion}
       </div>
     </div>
   );

@@ -70,6 +70,8 @@ export interface UserPreferences {
   defaultMode: ScriptMode;
   defaultLanguage: ScriptLanguage;
   maxHistorySize: number;
+  apiHistoryLimit: number;
+  apiResponseSizeLimit: number;
 }
 
 export const DEFAULT_PREFERENCES: UserPreferences = {
@@ -81,6 +83,8 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   defaultMode: 'freeform',
   defaultLanguage: 'groovy',
   maxHistorySize: 50,
+  apiHistoryLimit: 10,
+  apiResponseSizeLimit: 250000,
 };
 
 // Execution History
@@ -112,7 +116,7 @@ export interface DraftScript {
 
 // Multi-file Editor Tabs
 
-export type EditorTabSourceType = 'module' | 'file' | 'new' | 'history';
+export type EditorTabSourceType = 'module' | 'file' | 'new' | 'history' | 'api';
 
 export interface EditorTabSource {
   type: EditorTabSourceType;
@@ -130,12 +134,14 @@ export interface EditorTabContextOverride {
 
 export interface EditorTab {
   id: string;
+  kind?: 'script' | 'api';
   displayName: string;
   content: string;
   language: ScriptLanguage;
   mode: ScriptMode;
   source?: EditorTabSource;
   contextOverride?: EditorTabContextOverride;
+  api?: ApiTabState;
   
   // File system support (Phase 6)
   /** Content when file was opened or last saved (for dirty detection) */
@@ -151,6 +157,59 @@ export interface DraftTabs {
   tabs: EditorTab[];
   activeTabId: string | null;
   lastModified: number;
+}
+
+// API Explorer
+
+export type ApiRequestMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+
+export interface ApiRequestSpec {
+  method: ApiRequestMethod;
+  path: string;
+  queryParams: Record<string, string>;
+  headerParams: Record<string, string>;
+  body: string;
+  bodyMode: 'form' | 'raw';
+  contentType: 'application/json';
+  pagination: {
+    enabled: boolean;
+    sizeParam: string;
+    offsetParam: string;
+    pageSize: number;
+  };
+}
+
+export interface ApiResponseSummary {
+  status: number;
+  headers: Record<string, string>;
+  body: string;
+  jsonPreview?: unknown;
+  durationMs: number;
+  timestamp: number;
+}
+
+export interface ApiHistoryEntry {
+  id: string;
+  portalId: string;
+  request: ApiRequestSpec;
+  response: ApiResponseSummary;
+}
+
+export interface ApiEnvironmentVariable {
+  key: string;
+  value: string;
+}
+
+export interface ApiEnvironmentState {
+  portalId: string;
+  variables: ApiEnvironmentVariable[];
+  lastModified: number;
+}
+
+export interface ApiTabState {
+  endpointId?: string;
+  request: ApiRequestSpec;
+  response?: ApiResponseSummary;
 }
 
 // File Handle Persistence (Phase 6)
@@ -190,6 +249,23 @@ export interface ExecuteScriptRequest {
   deviceId?: number;
   wildvalue?: string;
   datasourceId?: string;  // Datasource name (e.g., "snmp64_If-") or numeric ID for batch collection
+}
+
+export interface ExecuteApiRequest {
+  portalId: string;
+  method: ApiRequestMethod;
+  path: string;
+  queryParams?: Record<string, string>;
+  headerParams?: Record<string, string>;
+  body?: string;
+  contentType?: string;
+}
+
+export interface ExecuteApiResponse {
+  status: number;
+  headers: Record<string, string>;
+  body: string;
+  durationMs: number;
 }
 
 export type ExecutionStatus = 
@@ -414,6 +490,7 @@ export type EditorToSWMessage =
   | { type: 'GET_DEVICE_BY_ID'; payload: FetchDeviceByIdRequest }
   | { type: 'GET_DEVICE_PROPERTIES'; payload: FetchDevicePropertiesRequest }
   | { type: 'EXECUTE_SCRIPT'; payload: ExecuteScriptRequest }
+  | { type: 'EXECUTE_API_REQUEST'; payload: ExecuteApiRequest }
   | { type: 'CANCEL_EXECUTION'; payload: { executionId: string } }
   | { type: 'FETCH_MODULES'; payload: FetchModulesRequest }
   | { type: 'TEST_APPLIES_TO'; payload: TestAppliesToRequest }
@@ -437,6 +514,7 @@ export type SWToEditorMessage =
   | { type: 'DEVICE_BY_ID_LOADED'; payload: FetchDeviceByIdResponse }
   | { type: 'DEVICE_PROPERTIES_LOADED'; payload: DeviceProperty[] }
   | { type: 'EXECUTION_UPDATE'; payload: ExecutionResult }
+  | { type: 'API_RESPONSE'; payload: ExecuteApiResponse }
   | { type: 'MODULES_FETCHED'; payload: FetchModulesResponse }
   | { type: 'APPLIES_TO_RESULT'; payload: AppliesToTestResult }
   | { type: 'APPLIES_TO_ERROR'; payload: AppliesToTestError }

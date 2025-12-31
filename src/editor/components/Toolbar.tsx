@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { 
   Play, 
   AlertTriangle,
@@ -7,6 +7,7 @@ import {
   Database,
   type LucideIcon,
   Target,
+  Send,
   Loader2,
   StopCircle,
   PanelRightClose,
@@ -27,7 +28,9 @@ import {
   SelectValue 
 } from '@/components/ui/select';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { Slider } from '@/components/ui/slider';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -69,6 +72,9 @@ export function Toolbar() {
     setMode,
     isExecuting,
     executeScript,
+    executeApiRequest,
+    isExecutingApi,
+    updateApiTabRequest,
     // Right sidebar
     rightSidebarOpen,
     setRightSidebarOpen,
@@ -89,6 +95,7 @@ export function Toolbar() {
   const activeTab = useMemo(() => {
     return tabs.find(t => t.id === activeTabId) ?? null;
   }, [tabs, activeTabId]);
+  const isApiTab = activeTab?.kind === 'api';
 
   const language = activeTab?.language ?? 'groovy';
   const mode = activeTab?.mode ?? 'freeform';
@@ -154,6 +161,125 @@ export function Toolbar() {
   
   // Check if we can commit module changes (has changes and portal selected)
   const canCommit = activeTabId && canCommitModule(activeTabId);
+
+  if (isApiTab) {
+    const canSendApi = Boolean(
+      selectedPortalId &&
+      activeTab?.api?.request.path.trim() &&
+      !isExecutingApi
+    );
+    const pagination = activeTab?.api?.request.pagination;
+    const updatePagination = (updates: Partial<typeof pagination>) => {
+      if (!activeTab || activeTab.kind !== 'api') return;
+          updateApiTabRequest(activeTab.id, {
+        pagination: {
+          enabled: pagination?.enabled ?? false,
+          sizeParam: pagination?.sizeParam ?? 'size',
+          offsetParam: pagination?.offsetParam ?? 'offset',
+          pageSize: pagination?.pageSize ?? 25,
+          ...updates,
+        },
+      });
+    };
+
+    return (
+      <div className="flex items-center gap-2 px-3 py-2 bg-secondary/30 border-b border-border">
+        <div className="flex items-center gap-2">
+          <Label className="text-xs text-muted-foreground whitespace-nowrap hidden lg:block">
+            Context:
+          </Label>
+          <ContextDropdown showCollector={false} showDevice={false} />
+        </div>
+
+        <Separator orientation="vertical" className="h-8 mx-1" />
+
+        <div className="flex items-center gap-2">
+          <Label className="text-xs text-muted-foreground whitespace-nowrap hidden lg:block">
+            Pagination:
+          </Label>
+          <div className="flex items-center rounded-md border border-input bg-background/50 p-0.5 gap-1">
+            <div className="flex items-center gap-2 px-2">
+              <span className="text-xs text-muted-foreground">Auto</span>
+              <Switch
+                checked={pagination?.enabled ?? false}
+                onCheckedChange={(checked) => updatePagination({ enabled: checked })}
+              />
+            </div>
+            <Separator orientation="vertical" className="h-8" />
+            <div className="flex items-center gap-2 px-2">
+              <span className="text-xs text-muted-foreground whitespace-nowrap">Batch Size</span>
+              <Slider
+                value={[pagination?.pageSize ?? 25]}
+                onValueChange={(value) =>
+                  updatePagination({ pageSize: Array.isArray(value) ? value[0] : value })
+                }
+                min={25}
+                max={1000}
+                step={25}
+                className="w-[120px]"
+              />
+              <span className="text-xs text-muted-foreground w-6 text-right">
+                {pagination?.pageSize ?? 25}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="ml-auto flex items-center gap-1.5">
+          <ActionsDropdown />
+          <Button
+            onClick={() => executeApiRequest(activeTabId ?? undefined)}
+            disabled={!canSendApi}
+            size="sm"
+            className={cn(
+              "gap-1.5",
+              SIZES.BUTTON_TOOLBAR,
+              "px-4 font-medium",
+              "bg-green-600 hover:bg-green-500 text-white",
+              "disabled:bg-green-600/50 disabled:text-white/70"
+            )}
+            aria-label={isExecutingApi ? 'Sending request' : 'Send request'}
+          >
+            {isExecutingApi ? (
+              <Loader2 className={cn(SIZES.ICON_MEDIUM, "animate-spin")} />
+            ) : (
+              <Send className={SIZES.ICON_MEDIUM} />
+            )}
+            {isExecutingApi ? 'Sending...' : 'Send'}
+          </Button>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant={rightSidebarOpen ? 'secondary' : 'ghost'}
+                  size="icon-sm"
+                  onClick={() => {
+                    setRightSidebarOpen(!rightSidebarOpen);
+                  }}
+                  disabled={tabs.length === 0}
+                  aria-label={rightSidebarOpen ? 'Close sidebar' : 'Open sidebar'}
+                  aria-pressed={rightSidebarOpen}
+                >
+                  {rightSidebarOpen ? (
+                    <PanelRightClose className={SIZES.ICON_MEDIUM} />
+                  ) : (
+                    <PanelRightOpen className={SIZES.ICON_MEDIUM} />
+                  )}
+                </Button>
+              }
+            />
+            <TooltipContent>
+              {tabs.length === 0 
+                ? 'Open a request to access sidebar' 
+                : rightSidebarOpen 
+                  ? 'Close sidebar' 
+                  : 'Open sidebar (Variables & Helpers)'}
+            </TooltipContent>
+          </Tooltip>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center gap-2 px-3 py-2 bg-secondary/30 border-b border-border">
@@ -221,7 +347,7 @@ export function Toolbar() {
             items={MODE_ITEMS}
             disabled={tabs.length === 0}
           >
-            <SelectTrigger className="w-[180px] h-8" disabled={tabs.length === 0} aria-label="Script execution mode">
+            <SelectTrigger size="sm" className="w-[180px] text-xs" disabled={tabs.length === 0} aria-label="Script execution mode">
               <div className="flex items-center gap-2">
                 {(() => {
                   const selectedMode = MODE_ITEMS.find(m => m.value === mode);
@@ -352,7 +478,7 @@ export function Toolbar() {
           aria-label={isExecuting ? 'Running script' : 'Run script'}
         >
           {isExecuting ? (
-            <Loader2 className={SIZES.ICON_MEDIUM} animate-spin />
+            <Loader2 className={cn(SIZES.ICON_MEDIUM, "animate-spin")} />
           ) : (
             <Play className={SIZES.ICON_MEDIUM} />
           )}

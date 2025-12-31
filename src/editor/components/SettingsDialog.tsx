@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Settings, Palette, Code, Type } from 'lucide-react';
+import { Settings, Palette, Code, Type, Braces } from 'lucide-react';
 import { useEditorStore } from '../stores/editor-store';
 import { Button } from '@/components/ui/button';
 import {
@@ -26,6 +26,7 @@ import {
   CardTitle,
   CardContent,
 } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { DEFAULT_PREFERENCES } from '@/shared/types';
 import type { ScriptLanguage, ScriptMode, UserPreferences } from '@/shared/types';
 
@@ -243,6 +244,51 @@ export function SettingsDialog() {
                 </SettingRow>
               </CardContent>
             </Card>
+
+            {/* API Explorer Card */}
+            <Card size="sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <div className="p-2 rounded-lg bg-primary/10">
+                    <Braces className="size-5 text-primary" />
+                  </div>
+                  API Explorer
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <SettingRow label="History Limit" description="Max responses stored per portal">
+                  <Input
+                    type="number"
+                    min={1}
+                    max={50}
+                    value={preferences.apiHistoryLimit}
+                    onChange={(event) => {
+                      const value = Number(event.target.value);
+                      if (!Number.isNaN(value)) {
+                        setPreferences({ apiHistoryLimit: Math.max(1, Math.min(50, value)) });
+                      }
+                    }}
+                    className="w-[120px] h-8"
+                  />
+                </SettingRow>
+                <SettingRow label="Response Size Limit (KB)" description="Trim saved responses to this size">
+                  <Input
+                    type="number"
+                    min={32}
+                    max={1024}
+                    value={Math.round(preferences.apiResponseSizeLimit / 1024)}
+                    onChange={(event) => {
+                      const value = Number(event.target.value);
+                      if (!Number.isNaN(value)) {
+                        const clamped = Math.max(32, Math.min(1024, value));
+                        setPreferences({ apiResponseSizeLimit: clamped * 1024 });
+                      }
+                    }}
+                    className="w-[120px] h-8"
+                  />
+                </SettingRow>
+              </CardContent>
+            </Card>
           </div>
         </div>
 
@@ -258,4 +304,3 @@ export function SettingsDialog() {
     </Dialog>
   );
 }
-

@@ -1,5 +1,6 @@
 import { PortalManager } from './portal-manager';
 import { ScriptExecutor, type ExecutorContext } from './script-executor';
+import { ApiExecutor } from './api-executor';
 import { ModuleLoader } from './module-loader';
 import { searchDatapoints, searchModuleScripts } from './module-searcher';
 import {
@@ -18,6 +19,7 @@ import type {
   ContentToSWMessage,
   DeviceContext,
   ExecuteScriptRequest,
+  ExecuteApiRequest,
   FetchModulesRequest,
   FetchDevicesRequest,
   FetchDeviceByIdRequest,
@@ -46,6 +48,7 @@ const executorContext: ExecutorContext = {
 };
 
 const scriptExecutor = new ScriptExecutor(executorContext);
+const apiExecutor = new ApiExecutor(executorContext);
 
 /**
  * Validate that a message sender is trusted.
@@ -160,6 +163,13 @@ async function handleMessage(
         const request = message.payload as ExecuteScriptRequest;
         const result = await scriptExecutor.execute(request);
         sendResponse({ type: 'EXECUTION_UPDATE', payload: result });
+        break;
+      }
+
+      case 'EXECUTE_API_REQUEST': {
+        const request = message.payload as ExecuteApiRequest;
+        const result = await apiExecutor.execute(request);
+        sendResponse({ type: 'API_RESPONSE', payload: result });
         break;
       }
 

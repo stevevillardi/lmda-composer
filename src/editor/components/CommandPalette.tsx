@@ -16,6 +16,8 @@ import {
   FolderSearch,
   Hammer,
   Terminal,
+  Braces,
+  Send,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEditorStore } from '../stores/editor-store';
@@ -46,6 +48,8 @@ export function CommandPalette() {
     setCommandPaletteOpen,
     executeScript,
     isExecuting,
+    executeApiRequest,
+    isExecutingApi,
     currentExecution,
     clearOutput,
     refreshPortals,
@@ -57,6 +61,9 @@ export function CommandPalette() {
     setSettingsDialogOpen,
     setAppliesToTesterOpen,
     setDebugCommandsDialogOpen,
+    tabs,
+    activeTabId,
+    setActiveTab,
     setRightSidebarOpen,
     setRightSidebarTab,
     portals,
@@ -67,7 +74,33 @@ export function CommandPalette() {
     saveFileAs,
     openFileFromDisk,
     createNewFile,
+    openApiExplorerTab,
   } = useEditorStore();
+
+  const getLastTabIdByKind = useCallback((kind: 'api' | 'script') => {
+    return [...tabs].reverse().find(tab => (tab.kind ?? 'script') === kind)?.id ?? null;
+  }, [tabs]);
+
+  const toggleView = useCallback(() => {
+    const activeTab = activeTabId ? tabs.find(tab => tab.id === activeTabId) : null;
+    const isApiActive = activeTab?.kind === 'api';
+    if (isApiActive) {
+      const lastScript = getLastTabIdByKind('script');
+      if (lastScript) {
+        setActiveTab(lastScript);
+      } else {
+        createNewFile();
+      }
+      return;
+    }
+
+    const lastApi = getLastTabIdByKind('api');
+    if (lastApi) {
+      setActiveTab(lastApi);
+    } else {
+      openApiExplorerTab();
+    }
+  }, [activeTabId, tabs, getLastTabIdByKind, setActiveTab, createNewFile, openApiExplorerTab]);
 
   // Copy output to clipboard
   const copyOutput = useCallback(async () => {
@@ -149,6 +182,30 @@ export function CommandPalette() {
     },
   ];
 
+  const apiCommands: CommandAction[] = [
+    {
+      id: 'new-api-request',
+      label: 'New API Request',
+      icon: <Braces className="size-4" />,
+      shortcut: '⌘N',
+      action: () => {
+        setCommandPaletteOpen(false);
+        openApiExplorerTab();
+      },
+    },
+    {
+      id: 'send-api-request',
+      label: 'Send API Request',
+      icon: <Send className="size-4" />,
+      shortcut: '⌘↵',
+      action: () => {
+        setCommandPaletteOpen(false);
+        executeApiRequest(activeTabId ?? undefined);
+      },
+      disabled: !selectedPortalId || !activeTabId || !tabs.find(t => t.id === activeTabId)?.api?.request.path.trim() || isExecutingApi,
+    },
+  ];
+
   const outputCommands: CommandAction[] = [
     {
       id: 'copy-output',
@@ -169,6 +226,7 @@ export function CommandPalette() {
       disabled: !currentExecution,
     },
   ];
+
 
   const navigationCommands: CommandAction[] = [
     {
@@ -299,7 +357,10 @@ export function CommandPalette() {
       // Cmd/Ctrl + Enter or F5 to run
       if (((e.metaKey || e.ctrlKey) && e.key === 'Enter') || e.key === 'F5') {
         e.preventDefault();
-        if (!isExecuting && selectedPortalId && selectedCollectorId) {
+        const activeTab = activeTabId ? tabs.find(tab => tab.id === activeTabId) : null;
+        if (activeTab?.kind === 'api') {
+          executeApiRequest(activeTabId ?? undefined);
+        } else if (!isExecuting && selectedPortalId && selectedCollectorId) {
           executeScript();
         }
         return;
@@ -315,7 +376,19 @@ export function CommandPalette() {
       // Cmd/Ctrl + N to create new file
       if ((e.metaKey || e.ctrlKey) && e.key === 'n') {
         e.preventDefault();
-        createNewFile();
+        const activeTab = activeTabId ? tabs.find(tab => tab.id === activeTabId) : null;
+        if (activeTab?.kind === 'api') {
+          openApiExplorerTab();
+        } else {
+          createNewFile();
+        }
+        return;
+      }
+
+      // Cmd/Ctrl + Shift + M to toggle views
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'm') {
+        e.preventDefault();
+        toggleView();
         return;
       }
 
@@ -435,6 +508,10 @@ export function CommandPalette() {
     setAppliesToTesterOpen,
     setDebugCommandsDialogOpen,
     createNewFile,
+    openApiExplorerTab,
+    activeTabId,
+    tabs,
+    toggleView,
     saveFile,
     saveFileAs,
     openFileFromDisk,
@@ -442,6 +519,8 @@ export function CommandPalette() {
     refreshCollectors,
     toggleRightSidebar,
     copyOutput,
+    executeApiRequest,
+    isExecutingApi,
   ]);
 
   return (
@@ -458,6 +537,22 @@ export function CommandPalette() {
           
           <CommandGroup heading="Script">
             {scriptCommands.map((cmd) => (
+              <CommandItem
+                key={cmd.id}
+                onSelect={cmd.action}
+                disabled={cmd.disabled}
+              >
+                {cmd.icon}
+                <span>{cmd.label}</span>
+                {cmd.shortcut && <CommandShortcut>{cmd.shortcut}</CommandShortcut>}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+
+          <CommandSeparator />
+
+          <CommandGroup heading="API Explorer">
+            {apiCommands.map((cmd) => (
               <CommandItem
                 key={cmd.id}
                 onSelect={cmd.action}

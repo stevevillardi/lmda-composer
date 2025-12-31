@@ -19,6 +19,11 @@ import type {
   DraftScript,
   DraftTabs,
   EditorTab,
+  ApiRequestSpec,
+  ApiResponseSummary,
+  ApiHistoryEntry,
+  ApiEnvironmentState,
+  ApiEnvironmentVariable,
   LineageVersion,
   FilePermissionStatus,
   CustomAppliesToFunction,
@@ -27,6 +32,8 @@ import type {
   ModuleSearchMatchType,
   ScriptSearchResult,
   DataPointSearchResult,
+  ExecuteApiRequest,
+  ExecuteApiResponse,
 } from '@/shared/types';
 import { DEFAULT_PREFERENCES } from '@/shared/types';
 import { parseOutput, type ParseResult } from '../utils/output-parser';
@@ -52,6 +59,11 @@ interface EditorState {
   // Multi-tab editor state
   tabs: EditorTab[];
   activeTabId: string | null;
+
+  // API Explorer state
+  apiHistoryByPortal: Record<string, ApiHistoryEntry[]>;
+  apiEnvironmentsByPortal: Record<string, ApiEnvironmentState>;
+  isExecutingApi: boolean;
   
   // Execution state
   isExecuting: boolean;
@@ -221,6 +233,17 @@ interface EditorState {
   clearHistory: () => void;
   loadHistory: () => Promise<void>;
   reloadFromHistory: (entry: ExecutionHistoryEntry) => void;
+
+  // API Explorer actions
+  openApiExplorerTab: () => string;
+  updateApiTabRequest: (tabId: string, request: Partial<ApiRequestSpec>) => void;
+  setApiTabResponse: (tabId: string, response: ApiResponseSummary | null) => void;
+  executeApiRequest: (tabId?: string) => Promise<void>;
+  addApiHistoryEntry: (portalId: string, entry: Omit<ApiHistoryEntry, 'id'>) => void;
+  clearApiHistory: (portalId?: string) => void;
+  loadApiHistory: () => Promise<void>;
+  setApiEnvironment: (portalId: string, variables: ApiEnvironmentVariable[]) => void;
+  loadApiEnvironments: () => Promise<void>;
   
   // Draft actions
   saveDraft: () => Promise<void>;
@@ -339,6 +362,8 @@ interface EditorState {
 const STORAGE_KEYS = {
   PREFERENCES: 'lm-ide-preferences',
   HISTORY: 'lm-ide-execution-history',
+  API_HISTORY: 'lm-ide-api-history',
+  API_ENVIRONMENTS: 'lm-ide-api-envs',
   DRAFT: 'lm-ide-draft',           // Legacy single-file draft
   DRAFT_TABS: 'lm-ide-draft-tabs', // Multi-tab draft
   USER_SNIPPETS: 'lm-ide-user-snippets',
@@ -348,10 +373,42 @@ const STORAGE_KEYS = {
 function createDefaultTab(language: ScriptLanguage = 'groovy', mode: ScriptMode = 'freeform'): EditorTab {
   return {
     id: crypto.randomUUID(),
+    kind: 'script',
     displayName: `Untitled.${language === 'groovy' ? 'groovy' : 'ps1'}`,
     content: getDefaultScriptTemplate(language),
     language,
     mode,
+  };
+}
+
+const DEFAULT_API_REQUEST: ApiRequestSpec = {
+  method: 'GET',
+  path: '',
+  queryParams: {},
+  headerParams: {},
+  body: '',
+  bodyMode: 'form',
+  contentType: 'application/json',
+      pagination: {
+        enabled: false,
+        sizeParam: 'size',
+        offsetParam: 'offset',
+        pageSize: 25,
+      },
+};
+
+function createDefaultApiTab(): EditorTab {
+  return {
+    id: crypto.randomUUID(),
+    kind: 'api',
+    displayName: 'API Request',
+    content: '',
+    language: 'groovy',
+    mode: 'freeform',
+    source: { type: 'api' },
+    api: {
+      request: { ...DEFAULT_API_REQUEST },
+    },
   };
 }
 
@@ -372,6 +429,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   // Multi-tab state - starts empty, WelcomeScreen shows when no tabs
   tabs: [],
   activeTabId: null,
+
+  // API Explorer state
+  apiHistoryByPortal: {},
+  apiEnvironmentsByPortal: {},
+  isExecutingApi: false,
   
   isExecuting: false,
   currentExecution: null,
@@ -607,7 +669,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   setLanguage: (language, force = false) => {
     const { tabs, activeTabId } = get();
     const activeTab = tabs.find(t => t.id === activeTabId);
-    if (!activeTab) return;
+    if (!activeTab || activeTab.kind === 'api') return;
     
     // If same language, do nothing
     if (language === activeTab.language) return;
@@ -646,7 +708,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   setMode: (mode) => {
     const { tabs, activeTabId, outputTab } = get();
     const activeTab = tabs.find(t => t.id === activeTabId);
-    if (!activeTab) return;
+    if (!activeTab || activeTab.kind === 'api') return;
     
     // Clear parsed output and switch to raw tab if in freeform mode
     const updates: Partial<EditorState> = { parsedOutput: null };
@@ -690,6 +752,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         outputTab: 'raw',
         parsedOutput: null,
       });
+      return;
+    }
+
+    if (activeTab.kind === 'api') {
       return;
     }
     
@@ -1463,6 +1529,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         // Check if editor is in initial state (using default template)
         const { tabs, activeTabId } = get();
         const activeTab = tabs.find(t => t.id === activeTabId);
+        if (activeTab?.kind === 'api') {
+          set({ preferences: mergedPrefs });
+          return;
+        }
         const currentScript = activeTab?.content ?? '';
         
         const normalize = (s: string) => s.trim().replace(/\r\n/g, '\n');
@@ -1573,6 +1643,318 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     });
   },
 
+  // API Explorer actions
+  openApiExplorerTab: () => {
+    const { tabs } = get();
+    const newTab = createDefaultApiTab();
+    const baseName = 'API Request';
+    let displayName = baseName;
+    let counter = 2;
+    while (tabs.some(tab => tab.displayName === displayName)) {
+      displayName = `${baseName} ${counter}`;
+      counter += 1;
+    }
+    newTab.displayName = displayName;
+    set({
+      tabs: [...tabs, newTab],
+      activeTabId: newTab.id,
+    });
+    return newTab.id;
+  },
+
+  updateApiTabRequest: (tabId, request) => {
+    const { tabs } = get();
+    set({
+      tabs: tabs.map(tab => {
+        if (tab.id !== tabId || tab.kind !== 'api') return tab;
+        const currentRequest = { ...DEFAULT_API_REQUEST, ...(tab.api?.request ?? {}) };
+        return {
+          ...tab,
+          api: {
+            ...(tab.api ?? { request: currentRequest }),
+            request: {
+              ...currentRequest,
+              ...request,
+            },
+          },
+        };
+      }),
+    });
+  },
+
+  setApiTabResponse: (tabId, response) => {
+    const { tabs } = get();
+    set({
+      tabs: tabs.map(tab => {
+        if (tab.id !== tabId || tab.kind !== 'api') return tab;
+        return {
+          ...tab,
+          api: {
+            ...(tab.api ?? { request: DEFAULT_API_REQUEST }),
+            response: response ?? undefined,
+          },
+        };
+      }),
+    });
+  },
+
+  executeApiRequest: async (tabId) => {
+    const { tabs, activeTabId, selectedPortalId, preferences, apiEnvironmentsByPortal } = get();
+    const targetTabId = tabId ?? activeTabId;
+    if (!targetTabId) return;
+
+    const tab = tabs.find(t => t.id === targetTabId);
+    if (!tab || tab.kind !== 'api' || !tab.api) return;
+
+    if (!selectedPortalId) {
+      toast.error('Select a portal to send API requests.');
+      return;
+    }
+
+    const request = tab.api.request;
+    const envVars = apiEnvironmentsByPortal[selectedPortalId]?.variables ?? [];
+    const resolveValue = (value: string) => {
+      if (!value) return value;
+      return value.replace(/\{\{\s*([\w.-]+)\s*\}\}/g, (match, key) => {
+        const variable = envVars.find(v => v.key === key);
+        return variable ? variable.value : match;
+      });
+    };
+
+    const baseRequest: ApiRequestSpec = { ...DEFAULT_API_REQUEST, ...request };
+    const resolvedRequest: ApiRequestSpec = {
+      ...baseRequest,
+      path: resolveValue(baseRequest.path),
+      body: resolveValue(baseRequest.body),
+      queryParams: Object.fromEntries(
+        Object.entries(baseRequest.queryParams).map(([key, value]) => [key, resolveValue(value)])
+      ),
+      headerParams: Object.fromEntries(
+        Object.entries(baseRequest.headerParams).map(([key, value]) => [key, resolveValue(value)])
+      ),
+    };
+
+    set({ isExecutingApi: true });
+    const startedAt = Date.now();
+
+    const executeSingle = async (req: ApiRequestSpec): Promise<ExecuteApiResponse> => {
+      const response = await chrome.runtime.sendMessage({
+        type: 'EXECUTE_API_REQUEST',
+        payload: {
+          portalId: selectedPortalId,
+          method: req.method,
+          path: req.path,
+          queryParams: req.queryParams,
+          headerParams: req.headerParams,
+          body: req.body,
+          contentType: req.contentType,
+        } satisfies ExecuteApiRequest,
+      });
+
+      if (response?.type === 'API_RESPONSE') {
+        return response.payload as ExecuteApiResponse;
+      }
+      if (response?.type === 'ERROR') {
+        throw new Error(response.payload?.message ?? 'API request failed.');
+      }
+      throw new Error('Unexpected response from API executor.');
+    };
+
+    try {
+      let finalPayload: ExecuteApiResponse | null = null;
+      let finalBody = '';
+
+      if (resolvedRequest.pagination.enabled) {
+        const sizeParam = resolvedRequest.pagination.sizeParam || 'size';
+        const offsetParam = resolvedRequest.pagination.offsetParam || 'offset';
+        const pageSize = Math.max(25, resolvedRequest.pagination.pageSize || 25);
+        const maxPages = 50;
+        let offset = 0;
+        let total: number | null = null;
+        const allItems: unknown[] = [];
+
+        for (let page = 0; page < maxPages; page += 1) {
+          const pagedRequest: ApiRequestSpec = {
+            ...resolvedRequest,
+            queryParams: {
+              ...resolvedRequest.queryParams,
+              [sizeParam]: String(pageSize),
+              [offsetParam]: String(offset),
+            },
+          };
+
+          const payload = await executeSingle(pagedRequest);
+          finalPayload = payload;
+          finalBody = payload.body;
+
+          let parsed: any;
+          try {
+            parsed = JSON.parse(payload.body);
+          } catch {
+            break;
+          }
+
+          const items = Array.isArray(parsed?.items) ? parsed.items : Array.isArray(parsed?.data) ? parsed.data : null;
+          if (!items) {
+            break;
+          }
+
+          allItems.push(...items);
+          if (typeof parsed?.total === 'number') {
+            total = parsed.total;
+          }
+
+          if (items.length < pageSize) {
+            break;
+          }
+
+          offset += pageSize;
+          if (total !== null && offset >= total) {
+            break;
+          }
+        }
+
+        if (finalPayload && allItems.length > 0) {
+          const aggregated = {
+            items: allItems,
+            total: total ?? allItems.length,
+            pageSize,
+            pages: Math.ceil((total ?? allItems.length) / pageSize),
+          };
+          finalBody = JSON.stringify(aggregated, null, 2);
+        }
+      } else {
+        finalPayload = await executeSingle(resolvedRequest);
+        finalBody = finalPayload.body;
+      }
+
+      if (!finalPayload) {
+        throw new Error('No API response received.');
+      }
+
+      let jsonPreview: unknown | undefined;
+      try {
+        const parsed = JSON.parse(finalBody);
+        if (parsed && typeof parsed === 'object') {
+          if (Array.isArray(parsed)) {
+            jsonPreview = parsed.slice(0, 20);
+          } else {
+            jsonPreview = Object.fromEntries(Object.entries(parsed).slice(0, 50));
+          }
+        }
+      } catch {
+        jsonPreview = undefined;
+      }
+
+      const limit = preferences.apiResponseSizeLimit;
+      const trimmedBody = limit > 0 && finalBody.length > limit
+        ? finalBody.slice(0, limit)
+        : finalBody;
+
+      const summary: ApiResponseSummary = {
+        status: finalPayload.status,
+        headers: finalPayload.headers,
+        body: trimmedBody,
+        jsonPreview,
+        durationMs: Date.now() - startedAt,
+        timestamp: Date.now(),
+      };
+
+      set({
+        tabs: tabs.map(t => 
+          t.id === targetTabId
+            ? {
+              ...t,
+              api: {
+                ...(t.api ?? { request }),
+                response: summary,
+              },
+            }
+            : t
+        ),
+      });
+
+      get().addApiHistoryEntry(selectedPortalId, {
+        portalId: selectedPortalId,
+        request: resolvedRequest,
+        response: summary,
+      });
+    } catch (error) {
+      console.error('Failed to execute API request:', error);
+      toast.error(error instanceof Error ? error.message : 'API request failed.');
+    } finally {
+      set({ isExecutingApi: false });
+    }
+  },
+
+  addApiHistoryEntry: (portalId, entry) => {
+    const { apiHistoryByPortal, preferences } = get();
+    const existing = apiHistoryByPortal[portalId] ?? [];
+    const newEntry: ApiHistoryEntry = {
+      ...entry,
+      id: crypto.randomUUID(),
+      portalId,
+    };
+    const updatedPortalHistory = [newEntry, ...existing].slice(0, preferences.apiHistoryLimit);
+    const updatedHistory = {
+      ...apiHistoryByPortal,
+      [portalId]: updatedPortalHistory,
+    };
+    set({ apiHistoryByPortal: updatedHistory });
+    chrome.storage.local.set({ [STORAGE_KEYS.API_HISTORY]: updatedHistory }).catch(console.error);
+  },
+
+  clearApiHistory: (portalId) => {
+    const { apiHistoryByPortal } = get();
+    if (portalId) {
+      const updated = { ...apiHistoryByPortal };
+      delete updated[portalId];
+      set({ apiHistoryByPortal: updated });
+      chrome.storage.local.set({ [STORAGE_KEYS.API_HISTORY]: updated }).catch(console.error);
+      return;
+    }
+    set({ apiHistoryByPortal: {} });
+    chrome.storage.local.remove(STORAGE_KEYS.API_HISTORY).catch(console.error);
+  },
+
+  loadApiHistory: async () => {
+    try {
+      const result = await chrome.storage.local.get(STORAGE_KEYS.API_HISTORY);
+      const stored = result[STORAGE_KEYS.API_HISTORY] as Record<string, ApiHistoryEntry[]> | undefined;
+      if (stored) {
+        set({ apiHistoryByPortal: stored });
+      }
+    } catch (error) {
+      console.error('Failed to load API history:', error);
+    }
+  },
+
+  setApiEnvironment: (portalId, variables) => {
+    const envState: ApiEnvironmentState = {
+      portalId,
+      variables,
+      lastModified: Date.now(),
+    };
+    const updated = {
+      ...get().apiEnvironmentsByPortal,
+      [portalId]: envState,
+    };
+    set({ apiEnvironmentsByPortal: updated });
+    chrome.storage.local.set({ [STORAGE_KEYS.API_ENVIRONMENTS]: updated }).catch(console.error);
+  },
+
+  loadApiEnvironments: async () => {
+    try {
+      const result = await chrome.storage.local.get(STORAGE_KEYS.API_ENVIRONMENTS);
+      const stored = result[STORAGE_KEYS.API_ENVIRONMENTS] as Record<string, ApiEnvironmentState> | undefined;
+      if (stored) {
+        set({ apiEnvironmentsByPortal: stored });
+      }
+    } catch (error) {
+      console.error('Failed to load API environments:', error);
+    }
+  },
+
   // Draft actions
   saveDraft: async () => {
     try {
@@ -1582,7 +1964,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       const normalize = (s: string) => s.trim().replace(/\r\n/g, '\n');
       
       // Check if all tabs are default templates (nothing to save)
-      const hasNonDefaultContent = tabs.some(tab => {
+      const hasApiTabs = tabs.some(tab => tab.kind === 'api');
+      const hasNonDefaultContent = hasApiTabs || tabs.some(tab => {
+        if (tab.kind === 'api') return false;
         const normalizedContent = normalize(tab.content);
         const isDefaultGroovy = normalizedContent === normalize(DEFAULT_GROOVY_TEMPLATE);
         const isDefaultPowershell = normalizedContent === normalize(DEFAULT_POWERSHELL_TEMPLATE);
@@ -1939,12 +2323,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const id = tabData.id || crypto.randomUUID();
     const newTab: EditorTab = {
       id,
+      kind: tabData.kind ?? 'script',
       displayName: tabData.displayName,
       content: tabData.content,
       language: tabData.language,
       mode: tabData.mode,
       source: tabData.source,
       contextOverride: tabData.contextOverride,
+      api: tabData.api,
     };
     
     const { tabs } = get();
@@ -1978,9 +2364,31 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         // No tabs left - WelcomeScreen will show
         newActiveTabId = null;
       } else {
-        // Switch to the tab to the left, or the first tab if we're at the start
-        const newIndex = Math.max(0, tabIndex - 1);
-        newActiveTabId = newTabs[newIndex].id;
+        const targetKind = tab.kind ?? 'script';
+        let nextTabId: string | null = null;
+
+        // Prefer same-kind tab to the left
+        for (let i = tabIndex - 1; i >= 0; i -= 1) {
+          const candidate = tabs[i];
+          if (candidate.id !== tabId && (candidate.kind ?? 'script') === targetKind) {
+            nextTabId = candidate.id;
+            break;
+          }
+        }
+
+        // Otherwise, prefer same-kind tab to the right
+        if (!nextTabId) {
+          for (let i = tabIndex + 1; i < tabs.length; i += 1) {
+            const candidate = tabs[i];
+            if (candidate.id !== tabId && (candidate.kind ?? 'script') === targetKind) {
+              nextTabId = candidate.id;
+              break;
+            }
+          }
+        }
+
+        // Fallback: first available tab
+        newActiveTabId = nextTabId ?? newTabs[0].id;
       }
     }
     
@@ -1995,18 +2403,34 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const { tabs } = get();
     const tabToKeep = tabs.find(t => t.id === tabId);
     if (!tabToKeep) return;
-    
+
+    const targetKind = tabToKeep.kind ?? 'script';
+    const remainingTabs = tabs.filter(t => (t.kind ?? 'script') !== targetKind || t.id === tabId);
+
     set({
-      tabs: [tabToKeep],
+      tabs: remainingTabs,
       activeTabId: tabId,
     });
   },
 
   closeAllTabs: () => {
-    // Clear all tabs - WelcomeScreen will show
+    const { tabs, activeTabId } = get();
+    const activeTab = tabs.find(t => t.id === activeTabId);
+    if (!activeTab) {
+      set({
+        tabs: [],
+        activeTabId: null,
+      });
+      return;
+    }
+
+    const targetKind = activeTab.kind ?? 'script';
+    const remainingTabs = tabs.filter(t => (t.kind ?? 'script') !== targetKind);
+    const nextActive = remainingTabs[0]?.id ?? null;
+
     set({
-      tabs: [],
-      activeTabId: null,
+      tabs: remainingTabs,
+      activeTabId: nextActive,
     });
   },
 
@@ -2026,8 +2450,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     let displayName = newName.trim();
     if (!displayName) return;
     
-    // Add extension if missing
-    if (!displayName.endsWith('.groovy') && !displayName.endsWith('.ps1')) {
+    // Add extension if missing for script tabs
+    if (tab.kind !== 'api' && !displayName.endsWith('.groovy') && !displayName.endsWith('.ps1')) {
       displayName += tab.language === 'groovy' ? '.groovy' : '.ps1';
     }
     
@@ -2055,6 +2479,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const { tabs, activeTabId } = get();
     if (!activeTabId) return;
     
+    const activeTab = tabs.find(t => t.id === activeTabId);
+    if (!activeTab || activeTab.kind === 'api') return;
+
     set({
       tabs: tabs.map(t => 
         t.id === activeTabId 
@@ -2068,6 +2495,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const { tabs, activeTabId } = get();
     if (!activeTabId) return;
     
+    const activeTab = tabs.find(t => t.id === activeTabId);
+    if (!activeTab || activeTab.kind === 'api') return;
+
     set({
       tabs: tabs.map(t => 
         t.id === activeTabId 
@@ -2081,6 +2511,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const { tabs, activeTabId } = get();
     if (!activeTabId) return;
     
+    const activeTab = tabs.find(t => t.id === activeTabId);
+    if (!activeTab || activeTab.kind === 'api') return;
+
     set({
       tabs: tabs.map(t => 
         t.id === activeTabId 
@@ -2488,6 +2921,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   getTabDirtyState: (tab: EditorTab) => {
+    if (tab.kind === 'api') {
+      return false;
+    }
+
     // New file without originalContent is always "dirty" (never saved)
     if (tab.originalContent === undefined) {
       return true;

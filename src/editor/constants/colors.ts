@@ -38,5 +38,26 @@ export const COLORS = {
     bgSubtle: 'bg-blue-500/10',
     textSubtle: 'text-blue-500',
   },
+  METHOD: {
+    GET: {
+      bgSubtle: 'bg-blue-500/15',
+      text: 'text-blue-400',
+    },
+    POST: {
+      bgSubtle: 'bg-emerald-500/15',
+      text: 'text-emerald-400',
+    },
+    PUT: {
+      bgSubtle: 'bg-amber-500/15',
+      text: 'text-amber-400',
+    },
+    PATCH: {
+      bgSubtle: 'bg-cyan-500/15',
+      text: 'text-cyan-400',
+    },
+    DELETE: {
+      bgSubtle: 'bg-rose-500/15',
+      text: 'text-rose-400',
+    },
+  },
 } as const;
-

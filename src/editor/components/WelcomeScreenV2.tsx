@@ -9,6 +9,7 @@ import {
   Hammer,
   FolderSearch,
   Terminal,
+  Braces,
 } from 'lucide-react';
 import { useEditorStore } from '../stores/editor-store';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -145,6 +146,7 @@ export function WelcomeScreenV2() {
     openRecentFile,
     createNewFile,
     openFileFromDisk,
+    openApiExplorerTab,
     setModuleBrowserOpen,
     setModuleSearchOpen,
     setAppliesToTesterOpen,
@@ -195,6 +197,12 @@ export function WelcomeScreenV2() {
                     title="Open File"
                     description="Open a script from your computer"
                     onClick={openFileFromDisk}
+                  />
+                  <ActionRow
+                    icon={<Braces className="size-4" />}
+                    title="API Explorer"
+                    description="Explore the LM REST API with your active session"
+                    onClick={openApiExplorerTab}
                   />
                   <ActionRow
                     icon={<CloudDownload className="size-4" />}

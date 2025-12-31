@@ -2,8 +2,6 @@ import Editor from '@monaco-editor/react';
 import { useEditorStore } from '../stores/editor-store';
 import type { editor } from 'monaco-editor';
 import { useCallback, useRef, useMemo, useEffect } from 'react';
-import { TabBar } from './TabBar';
-import { WelcomeScreenV2 } from './WelcomeScreenV2';
 
 // Import the loader config to use bundled Monaco (CSP-safe)
 import '../monaco-loader';
@@ -88,26 +86,14 @@ export function EditorPanel() {
     },
   }), [preferences.fontSize, preferences.tabSize, preferences.wordWrap, preferences.minimap]);
 
-  // Show WelcomeScreen when no tabs are open
   useEffect(() => {
-    if (tabs.length === 0) {
+    if (!activeTab) {
       setEditorInstance(null);
     }
-  }, [tabs.length, setEditorInstance]);
-
-  if (tabs.length === 0) {
-    return (
-      <div className="h-full w-full flex flex-col">
-        <WelcomeScreenV2 />
-      </div>
-    );
-  }
+  }, [activeTab, setEditorInstance]);
 
   return (
     <div className="h-full w-full flex flex-col">
-      {/* Tab Bar */}
-      <TabBar />
-      
       {/* Monaco Editor */}
       <div className="flex-1 min-h-0" role="region" aria-label="Code editor">
         {activeTab ? (
