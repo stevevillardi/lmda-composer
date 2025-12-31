@@ -1,11 +1,15 @@
 import { useMemo } from 'react';
-import { Clock, Variable, Settings2, Route } from 'lucide-react';
+import { Clock, Variable, Settings2, Route, FileWarning, History as HistoryIcon } from 'lucide-react';
 import { useEditorStore } from '@/editor/stores/editor-store';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ApiKeyValueEditor } from './ApiKeyValueEditor';
 import { Badge } from '@/components/ui/badge';
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/components/ui/empty';
+import { COLORS } from '@/editor/constants/colors';
+import { cn } from '@/lib/utils';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 
 export function ApiRightSidebar() {
@@ -66,7 +70,7 @@ export function ApiRightSidebar() {
 
   return (
     <div className="h-full flex flex-col border-l border-border bg-background">
-      <div className="h-12 px-3 border-b border-border flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase tracking-wide">
+      <div className="h-12 px-3 border-b border-border flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase tracking-wide select-none">
         <Settings2 className="size-3.5" />
         <span>API Tools</span>
       </div>
@@ -103,7 +107,7 @@ export function ApiRightSidebar() {
 
         <TabsContent value="history" className="flex-1 min-h-0 px-3 pb-3">
           <div className="flex items-center justify-between py-2">
-            <span className="text-xs text-muted-foreground">
+            <span className="text-xs text-muted-foreground select-none">
               Last {preferences.apiHistoryLimit} responses
             </span>
             <Button
@@ -117,43 +121,63 @@ export function ApiRightSidebar() {
           </div>
           <ScrollArea className="h-full pr-2">
             {history.length === 0 ? (
-              <div className="text-xs text-muted-foreground py-6 text-center">
-                No API requests yet.
-              </div>
+              <Empty className="border border-dashed border-border">
+                <EmptyHeader>
+                  <EmptyMedia variant="icon">
+                    <HistoryIcon className="size-5" />
+                  </EmptyMedia>
+                  <EmptyTitle>No requests yet</EmptyTitle>
+                  <EmptyDescription>Run a request to populate your history.</EmptyDescription>
+                </EmptyHeader>
+              </Empty>
             ) : (
               <div className="space-y-2">
-                {history.map((entry) => (
-                  <div
-                    key={entry.id}
-                    className="border border-border rounded-md p-2 bg-card/40"
-                  >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-[10px] font-semibold text-muted-foreground">
-                        {entry.request.method}
-                      </span>
-                      <span className="text-[10px] text-muted-foreground">
-                        {entry.response.status}
-                      </span>
+                {history.map((entry) => {
+                  const methodStyle = COLORS.METHOD[entry.request.method];
+                  return (
+                    <div
+                      key={entry.id}
+                      className="border border-border rounded-md p-2 bg-card/40"
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <span
+                          className={cn(
+                            "text-[10px] font-semibold px-1.5 py-0.5 rounded",
+                            methodStyle.bgSubtle,
+                            methodStyle.text
+                          )}
+                        >
+                          {entry.request.method}
+                        </span>
+                        <span className="text-[10px] text-muted-foreground select-none">
+                          {entry.response.status}
+                        </span>
+                      </div>
+                      <Tooltip>
+                        <TooltipTrigger
+                          render={<div className="text-xs text-foreground truncate">{entry.request.path}</div>}
+                        />
+                        <TooltipContent>{entry.request.path}</TooltipContent>
+                      </Tooltip>
+                      <div className="flex items-center justify-between mt-2">
+                        <span className="text-[10px] text-muted-foreground select-none">
+                          {entry.response.durationMs}ms
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="xs"
+                          onClick={() => {
+                            const newTabId = openApiExplorerTab();
+                            updateApiTabRequest(newTabId, entry.request);
+                            setApiTabResponse(newTabId, entry.response);
+                          }}
+                        >
+                          Open
+                        </Button>
+                      </div>
                     </div>
-                    <div className="text-xs text-foreground truncate">{entry.request.path}</div>
-                    <div className="flex items-center justify-between mt-2">
-                      <span className="text-[10px] text-muted-foreground">
-                        {entry.response.durationMs}ms
-                      </span>
-                      <Button
-                        variant="ghost"
-                        size="xs"
-                        onClick={() => {
-                          const newTabId = openApiExplorerTab();
-                          updateApiTabRequest(newTabId, entry.request);
-                          setApiTabResponse(newTabId, entry.response);
-                        }}
-                      >
-                        Open
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </ScrollArea>
@@ -168,7 +192,7 @@ export function ApiRightSidebar() {
                     <Route className="size-4 text-muted-foreground" />
                     <div className="text-xs font-medium text-foreground">JSON Path Helpers</div>
                   </div>
-                  <Badge variant="outline" className="text-[10px] font-normal">Top-level</Badge>
+                  <Badge variant="outline" className="text-[10px] font-normal select-none">Top-level</Badge>
                 </div>
                 {responseJson && typeof responseJson === 'object' && !hasItemsArray ? (
                   <div className="space-y-2">
@@ -217,11 +241,19 @@ export function ApiRightSidebar() {
                     )}
                   </div>
                 ) : (
-                  <p className="text-xs text-muted-foreground">
-                    {hasItemsArray
-                      ? 'Helpers are available for single-resource responses.'
-                      : 'Run a request to enable JSON path helpers.'}
-                  </p>
+                  <Empty className="border border-dashed border-border">
+                    <EmptyHeader>
+                      <EmptyMedia variant="icon">
+                        <FileWarning className="size-5" />
+                      </EmptyMedia>
+                      <EmptyTitle>No helpers available</EmptyTitle>
+                      <EmptyDescription>
+                        {hasItemsArray
+                          ? 'Helpers show for single-resource responses.'
+                          : 'Run a request to enable JSON path helpers.'}
+                      </EmptyDescription>
+                    </EmptyHeader>
+                  </Empty>
                 )}
               </div>
             </div>

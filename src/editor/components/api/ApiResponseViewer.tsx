@@ -8,7 +8,10 @@ import { CopyButton } from '../shared/CopyButton';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Maximize2 } from 'lucide-react';
+import { Maximize2, Braces, FileText, ListTree, Code2, X } from 'lucide-react';
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/components/ui/empty';
+import { COLORS } from '@/editor/constants/colors';
+import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import '../../monaco-loader';
 
@@ -140,6 +143,8 @@ export function ApiResponseViewer() {
     automaticLayout: true,
     scrollBeyondLastLine: false,
     padding: { top: 10, bottom: 10 },
+    folding: true,
+    showFoldingControls: 'always' as const,
   }), [preferences.fontSize]);
 
   const [activeView, setActiveView] = useState('json');
@@ -206,21 +211,58 @@ export function ApiResponseViewer() {
     );
   }
 
-  const renderHeader = (showFullscreen: boolean) => (
+  const statusStyle = (() => {
+    if (!response) return null;
+    if (response.status >= 500) return COLORS.HTTP_STATUS.serverError;
+    if (response.status >= 400) return COLORS.HTTP_STATUS.clientError;
+    if (response.status >= 300) return COLORS.HTTP_STATUS.redirect;
+    if (response.status >= 200) return COLORS.HTTP_STATUS.success;
+    return COLORS.HTTP_STATUS.info;
+  })();
+
+  const renderHeader = (showFullscreen: boolean, showClose: boolean) => (
     <div className="flex items-center justify-between px-3 py-2 border-b border-border">
       <div className="flex items-center gap-2">
-        <span className="text-xs text-muted-foreground">Response</span>
+        <span className="text-xs text-muted-foreground select-none">Response</span>
         {response && (
-          <Badge variant={response.status >= 400 ? 'destructive' : 'secondary'}>
-            {response.status}
-          </Badge>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Badge
+                  className={cn(
+                    "text-[10px] font-semibold",
+                    statusStyle?.bgSubtle,
+                    statusStyle?.text
+                  )}
+                >
+                  {response.status}
+                </Badge>
+              }
+            />
+            <TooltipContent>Status code</TooltipContent>
+          </Tooltip>
         )}
       </div>
       <div className="flex items-center gap-2">
         {response && (
-          <span className="text-xs text-muted-foreground">
-            {response.durationMs}ms
-          </span>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <span className="text-xs text-muted-foreground select-none">
+                  {response.durationMs}ms
+                </span>
+              }
+            />
+            <TooltipContent>Response time</TooltipContent>
+          </Tooltip>
+        )}
+        {response?.body && activeView === 'raw' && (
+          <CopyButton
+            text={response.body}
+            size="sm"
+            variant="ghost"
+            onCopy={() => toast.success('Response copied')}
+          />
         )}
         {response && showFullscreen && (
           <Tooltip>
@@ -239,6 +281,23 @@ export function ApiResponseViewer() {
             <TooltipContent>Open fullscreen</TooltipContent>
           </Tooltip>
         )}
+        {showClose && (
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => setFullscreenOpen(false)}
+                  aria-label="Close fullscreen"
+                >
+                  <X className="size-4" />
+                </Button>
+              }
+            />
+            <TooltipContent>Close fullscreen</TooltipContent>
+          </Tooltip>
+        )}
       </div>
     </div>
   );
@@ -247,55 +306,85 @@ export function ApiResponseViewer() {
     <Tabs value={activeView} onValueChange={setActiveView} className="flex-1 min-h-0 flex flex-col">
       <div className="px-3 pt-2">
         <TabsList variant="line">
-          <TabsTrigger value="json">JSON</TabsTrigger>
-          <TabsTrigger value="raw">Raw</TabsTrigger>
-          <TabsTrigger value="headers">Headers</TabsTrigger>
-          <TabsTrigger value="snippets">Snippets</TabsTrigger>
+          <TabsTrigger value="json">
+            <Braces className="size-3.5 mr-1" />
+            JSON
+          </TabsTrigger>
+          <TabsTrigger value="raw">
+            <FileText className="size-3.5 mr-1" />
+            Raw
+          </TabsTrigger>
+          <TabsTrigger value="headers">
+            <ListTree className="size-3.5 mr-1" />
+            Headers
+          </TabsTrigger>
+          <TabsTrigger value="snippets">
+            <Code2 className="size-3.5 mr-1" />
+            Snippets
+          </TabsTrigger>
         </TabsList>
       </div>
 
       <TabsContent value="json" className="flex-1 min-h-0 px-3 pb-3">
-        <div className="h-full border border-border rounded-md overflow-hidden">
-          <Editor
-            height="100%"
-            language="json"
-            theme={monacoTheme}
-            value={response ? formatJson(response.body) : ''}
-            options={editorOptions}
-          />
-        </div>
+        {response ? (
+          <div className="h-full border border-border rounded-md overflow-hidden">
+            <Editor
+              height="100%"
+              language="json"
+              theme={monacoTheme}
+              value={formatJson(response.body)}
+              options={editorOptions}
+            />
+          </div>
+        ) : (
+          <Empty className="h-full border border-dashed border-border">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <Braces className="size-5" />
+              </EmptyMedia>
+              <EmptyTitle>No response yet</EmptyTitle>
+              <EmptyDescription>Send a request to view the formatted JSON response.</EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        )}
       </TabsContent>
 
       <TabsContent value="raw" className="flex-1 min-h-0 px-3 pb-3">
-        <div className="h-full min-w-0 border border-border rounded-md flex flex-col overflow-hidden">
-          <div className="flex items-center justify-between px-3 py-2 border-b border-border">
-            <span className="text-[11px] text-muted-foreground">Raw response</span>
-            {response?.body && (
-              <CopyButton
-                text={response.body}
-                size="sm"
-                variant="ghost"
-                onCopy={() => toast.success('Response copied')}
-              />
-            )}
+        {response ? (
+          <div className="h-full min-w-0 border border-border rounded-md flex flex-col overflow-hidden">
+            <ScrollArea className="flex-1 min-h-0">
+              <pre className="p-3 text-xs font-mono whitespace-pre-wrap break-all text-foreground">
+                {response.body}
+              </pre>
+            </ScrollArea>
           </div>
-          <ScrollArea className="flex-1 min-h-0">
-            <pre className="p-3 text-xs font-mono whitespace-pre-wrap break-all text-foreground">
-              {response?.body || 'No response yet.'}
-            </pre>
-          </ScrollArea>
-        </div>
+        ) : (
+          <Empty className="h-full border border-dashed border-border">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <FileText className="size-5" />
+              </EmptyMedia>
+              <EmptyTitle>No raw response</EmptyTitle>
+              <EmptyDescription>Run an API request to view the raw payload.</EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        )}
       </TabsContent>
 
       <TabsContent value="headers" className="flex-1 min-h-0 px-3 pb-3">
-        <ScrollArea className="h-full border border-border rounded-md">
-          <div className="p-3 space-y-2 text-xs font-mono">
-            {response ? (
-              Object.entries(response.headers).map(([key, value]) => (
+        {response ? (
+          <ScrollArea className="h-full border border-border rounded-md">
+            <div className="p-3 space-y-2 text-xs font-mono">
+              {Object.entries(response.headers).map(([key, value]) => (
                 <div key={key} className="flex items-center justify-between gap-4">
-                  <span className="text-muted-foreground">{key}</span>
+                  <span className="text-muted-foreground select-none">{key}</span>
                   <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-foreground truncate">{value}</span>
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={<span className="text-foreground truncate">{value}</span>}
+                      />
+                      <TooltipContent>{value}</TooltipContent>
+                    </Tooltip>
                     <CopyButton
                       text={`${key}: ${value}`}
                       size="sm"
@@ -304,22 +393,30 @@ export function ApiResponseViewer() {
                     />
                   </div>
                 </div>
-              ))
-            ) : (
-              <div className="text-muted-foreground">No headers yet.</div>
-            )}
-          </div>
-        </ScrollArea>
+              ))}
+            </div>
+          </ScrollArea>
+        ) : (
+          <Empty className="h-full border border-dashed border-border">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <ListTree className="size-5" />
+              </EmptyMedia>
+              <EmptyTitle>No headers yet</EmptyTitle>
+              <EmptyDescription>Run a request to view response headers.</EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        )}
       </TabsContent>
 
       <TabsContent value="snippets" className="flex-1 min-h-0 px-3 pb-3 flex flex-col">
-        <ScrollArea className="flex-1 min-h-0 border border-border rounded-md">
-          <div className="p-3 space-y-5 min-w-0">
-            {snippets ? (
-              Object.entries(snippets).map(([label, snippet]) => (
+        {snippets ? (
+          <ScrollArea className="flex-1 min-h-0 border border-border rounded-md">
+            <div className="p-3 space-y-5 min-w-0">
+              {Object.entries(snippets).map(([label, snippet]) => (
                 <div key={label}>
                   <div className="flex items-center justify-between mb-2">
-                    <div className="text-xs text-muted-foreground uppercase tracking-wide">
+                    <div className="text-xs text-muted-foreground uppercase tracking-wide select-none">
                       {label}
                     </div>
                     <CopyButton
@@ -333,12 +430,20 @@ export function ApiResponseViewer() {
                     {snippet}
                   </pre>
                 </div>
-              ))
-            ) : (
-              <div className="text-muted-foreground text-sm">No request selected.</div>
-            )}
-          </div>
-        </ScrollArea>
+              ))}
+            </div>
+          </ScrollArea>
+        ) : (
+          <Empty className="h-full border border-dashed border-border">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <Code2 className="size-5" />
+              </EmptyMedia>
+              <EmptyTitle>No snippets yet</EmptyTitle>
+              <EmptyDescription>Select a request to generate language snippets.</EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        )}
       </TabsContent>
     </Tabs>
   );
@@ -346,14 +451,17 @@ export function ApiResponseViewer() {
   return (
     <div className="h-full flex flex-col border-t border-border">
       <div className={fullscreenOpen ? 'hidden' : 'flex flex-1 min-h-0 flex-col'}>
-        {renderHeader(true)}
+        {renderHeader(true, false)}
         {responseTabs}
       </div>
 
       <Dialog open={fullscreenOpen} onOpenChange={setFullscreenOpen}>
-        <DialogContent className="!max-w-none !w-[94vw] !h-[90vh] !min-h-0 !flex !flex-col overflow-hidden p-0">
+        <DialogContent
+          className="max-w-none! w-[94vw]! h-[90vh]! min-h-0! flex! flex-col! overflow-hidden p-0"
+          showCloseButton={false}
+        >
           <div className="h-full min-h-0 flex flex-col">
-            {renderHeader(false)}
+            {renderHeader(false, true)}
             {responseTabs}
           </div>
         </DialogContent>

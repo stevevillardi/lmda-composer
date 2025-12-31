@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
 interface KeyValueRow {
@@ -24,10 +25,10 @@ interface ApiKeyValueSuggestion {
 }
 
 interface ApiKeyValueEditorProps {
-  label: string;
+  label: ReactNode;
   values: Record<string, string>;
   onChange: (values: Record<string, string>) => void;
-  emptyLabel?: string;
+  emptyLabel?: ReactNode;
   className?: string;
   suggestions?: ApiKeyValueSuggestion[];
 }
@@ -140,17 +141,26 @@ export function ApiKeyValueEditor({
   return (
     <div className={cn("space-y-2", className)}>
       <div className="flex items-center justify-between">
-        <span className="text-xs font-medium text-muted-foreground">{label}</span>
+        <div className="text-xs font-medium text-muted-foreground flex items-center gap-1.5 select-none">
+          {label}
+        </div>
         {suggestions.length > 0 ? (
           <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <Button variant="ghost" size="xs" className="gap-1">
-                  <Plus className="size-3.5" />
-                  Add
-                </Button>
-              }
-            />
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <DropdownMenuTrigger
+                    render={
+                      <Button variant="ghost" size="xs" className="gap-1">
+                        <Plus className="size-3.5" />
+                        Add
+                      </Button>
+                    }
+                  />
+                }
+              />
+              <TooltipContent>Add a field</TooltipContent>
+            </Tooltip>
             <DropdownMenuContent align="end" className="w-72">
               {availableSuggestions.length === 0 ? (
                 <div className="px-2 py-2 text-xs text-muted-foreground">
@@ -180,10 +190,17 @@ export function ApiKeyValueEditor({
             </DropdownMenuContent>
           </DropdownMenu>
         ) : (
-          <Button variant="ghost" size="xs" onClick={handleAdd} className="gap-1">
-            <Plus className="size-3.5" />
-            Add
-          </Button>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button variant="ghost" size="xs" onClick={handleAdd} className="gap-1">
+                  <Plus className="size-3.5" />
+                  Add
+                </Button>
+              }
+            />
+            <TooltipContent>Add a field</TooltipContent>
+          </Tooltip>
         )}
       </div>
 

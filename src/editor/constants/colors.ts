@@ -60,4 +60,26 @@ export const COLORS = {
       text: 'text-rose-400',
     },
   },
+  HTTP_STATUS: {
+    info: {
+      bgSubtle: 'bg-sky-500/15',
+      text: 'text-sky-400',
+    },
+    success: {
+      bgSubtle: 'bg-emerald-500/15',
+      text: 'text-emerald-400',
+    },
+    redirect: {
+      bgSubtle: 'bg-indigo-500/15',
+      text: 'text-indigo-400',
+    },
+    clientError: {
+      bgSubtle: 'bg-amber-500/15',
+      text: 'text-amber-400',
+    },
+    serverError: {
+      bgSubtle: 'bg-rose-500/15',
+      text: 'text-rose-400',
+    },
+  },
 } as const;

@@ -185,7 +185,7 @@ export function Toolbar() {
     return (
       <div className="flex items-center gap-2 px-3 py-2 bg-secondary/30 border-b border-border">
         <div className="flex items-center gap-2">
-          <Label className="text-xs text-muted-foreground whitespace-nowrap hidden lg:block">
+          <Label className="text-xs text-muted-foreground whitespace-nowrap hidden lg:block select-none">
             Context:
           </Label>
           <ContextDropdown showCollector={false} showDevice={false} />
@@ -194,12 +194,12 @@ export function Toolbar() {
         <Separator orientation="vertical" className="h-8 mx-1" />
 
         <div className="flex items-center gap-2">
-          <Label className="text-xs text-muted-foreground whitespace-nowrap hidden lg:block">
+          <Label className="text-xs text-muted-foreground whitespace-nowrap hidden lg:block select-none">
             Pagination:
           </Label>
           <div className="flex items-center rounded-md border border-input bg-background/50 p-0.5 gap-1">
             <div className="flex items-center gap-2 px-2">
-              <span className="text-xs text-muted-foreground">Auto</span>
+              <span className="text-xs text-muted-foreground select-none">Auto</span>
               <Switch
                 checked={pagination?.enabled ?? false}
                 onCheckedChange={(checked) => updatePagination({ enabled: checked })}
@@ -207,7 +207,16 @@ export function Toolbar() {
             </div>
             <Separator orientation="vertical" className="h-8" />
             <div className="flex items-center gap-2 px-2">
-              <span className="text-xs text-muted-foreground whitespace-nowrap">Batch Size</span>
+              <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <span className="text-xs text-muted-foreground whitespace-nowrap select-none">
+                      Batch Size
+                    </span>
+                  }
+                />
+                <TooltipContent>Controls `size` when auto pagination is on.</TooltipContent>
+              </Tooltip>
               <Slider
                 value={[pagination?.pageSize ?? 25]}
                 onValueChange={(value) =>
@@ -218,7 +227,7 @@ export function Toolbar() {
                 step={25}
                 className="w-[120px]"
               />
-              <span className="text-xs text-muted-foreground w-6 text-right">
+              <span className="text-xs text-muted-foreground w-6 text-right select-none">
                 {pagination?.pageSize ?? 25}
               </span>
             </div>

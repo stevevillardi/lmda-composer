@@ -8,6 +8,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { Popover, PopoverContent, PopoverTrigger, PopoverHeader, PopoverTitle } from '@/components/ui/popover';
 import { Kbd } from '@/components/ui/kbd';
 import { cn } from '@/lib/utils';
+import { COLORS } from '@/editor/constants/colors';
 import { MAX_SCRIPT_LENGTH } from '@/shared/types';
 
 // Get extension version from manifest
@@ -196,11 +197,13 @@ export function StatusBar() {
   );
 
   if (isApiTab) {
-    const apiStatusVariant: 'default' | 'secondary' | 'destructive' | 'outline' = (() => {
-      if (isExecutingApi) return 'default';
-      if (!apiResponse) return 'secondary';
-      if (apiResponse.status >= 400) return 'destructive';
-      return 'default';
+    const apiStatusStyle = (() => {
+      if (!apiResponse) return null;
+      if (apiResponse.status >= 500) return COLORS.HTTP_STATUS.serverError;
+      if (apiResponse.status >= 400) return COLORS.HTTP_STATUS.clientError;
+      if (apiResponse.status >= 300) return COLORS.HTTP_STATUS.redirect;
+      if (apiResponse.status >= 200) return COLORS.HTTP_STATUS.success;
+      return COLORS.HTTP_STATUS.info;
     })();
 
     const apiStatusText = (() => {
@@ -216,7 +219,16 @@ export function StatusBar() {
         aria-label="API status bar"
       >
         <div className="flex items-center gap-3">
-          <Badge variant={apiStatusVariant} aria-live="polite" aria-atomic="true">
+          <Badge
+            variant="secondary"
+            className={cn(
+              "text-[10px] font-semibold",
+              apiStatusStyle?.bgSubtle,
+              apiStatusStyle?.text
+            )}
+            aria-live="polite"
+            aria-atomic="true"
+          >
             {apiStatusText}
           </Badge>
           {selectedPortalId && (

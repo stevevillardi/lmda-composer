@@ -1,10 +1,11 @@
 import { useMemo, useState, useEffect } from 'react';
-import { ChevronDown, ChevronRight, Search, Plug } from 'lucide-react';
+import { ChevronDown, ChevronRight, Search, Plug, ListX } from 'lucide-react';
 import { useEditorStore } from '@/editor/stores/editor-store';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/components/ui/empty';
 import { cn } from '@/lib/utils';
 import { API_SCHEMA, type ApiEndpointDefinition } from '@/editor/data/api-schema';
 import { generateExampleFromSchema } from '@/editor/utils/api-example';
@@ -115,16 +116,22 @@ export function ApiEndpointCatalog() {
       <ScrollArea className="flex-1 min-h-0">
         <div className="p-3 pb-6 space-y-4">
           {groups.length === 0 ? (
-            <div className="text-xs text-muted-foreground py-8 text-center">
-              No endpoints match your search.
-            </div>
+            <Empty className="border border-dashed border-border">
+              <EmptyHeader>
+                <EmptyMedia variant="icon">
+                  <ListX className="size-5" />
+                </EmptyMedia>
+                <EmptyTitle>No matching endpoints</EmptyTitle>
+                <EmptyDescription>Try a different search term or clear the filter.</EmptyDescription>
+              </EmptyHeader>
+            </Empty>
           ) : (
             groups.map((group) => {
               const isCollapsed = collapsedTags[group.tag] ?? true;
               return (
                 <div key={group.tag} className="space-y-2">
                   <button
-                    className="w-full flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-wide text-left cursor-pointer transition-colors hover:text-foreground"
+                    className="w-full flex items-center gap-2 text-xs text-muted-foreground uppercase tracking-wide text-left cursor-pointer transition-colors hover:text-foreground select-none"
                     onClick={() =>
                       setCollapsedTags((prev) => ({
                         ...prev,
@@ -133,8 +140,13 @@ export function ApiEndpointCatalog() {
                     }
                   >
                     {isCollapsed ? <ChevronRight className="size-3" /> : <ChevronDown className="size-3" />}
-                    <span className="flex-1 min-w-0 truncate text-left">{group.tag}</span>
-                    <Badge variant="secondary" className="text-[10px] font-normal ml-auto flex items-center gap-1">
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={<span className="flex-1 min-w-0 truncate text-left">{group.tag}</span>}
+                      />
+                      <TooltipContent>{group.tag}</TooltipContent>
+                    </Tooltip>
+                    <Badge variant="secondary" className="text-[10px] font-normal ml-auto flex items-center gap-1 select-none">
                       <Plug className="size-3" />
                       {group.endpoints.length}
                     </Badge>
@@ -181,15 +193,15 @@ export function ApiEndpointCatalog() {
                                 </button>
                               }
                             />
-                            <TooltipContent className="max-w-xs">
-                              <div className="space-y-1 text-background">
+                            <TooltipContent className="max-w-xs bg-popover text-popover-foreground border border-border">
+                              <div className="space-y-1">
                                 <div className="text-xs font-medium">
                                   {endpoint.method} {endpoint.path}
                                 </div>
                                 {endpoint.summary && (
-                                  <div className="text-[11px] text-background/80">{endpoint.summary}</div>
+                                  <div className="text-[11px] text-muted-foreground">{endpoint.summary}</div>
                                 )}
-                                <div className="text-[11px] text-background/70 space-y-1">
+                                <div className="text-[11px] text-muted-foreground space-y-1">
                                   {paramsByType.path?.length ? (
                                     <div>Path: {paramsByType.path.join(', ')}</div>
                                   ) : null}

@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import type { ApiRequestMethod } from '@/shared/types';
 import { API_SCHEMA } from '@/editor/data/api-schema';
+import { Braces, KeyRound, SlidersHorizontal } from 'lucide-react';
 import '../../monaco-loader';
 
 const METHOD_OPTIONS: ApiRequestMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
@@ -186,35 +187,50 @@ export function ApiRequestBuilder() {
             <div className="flex-1 min-h-0 flex flex-col gap-4 overflow-y-auto pr-2">
               <div className="grid grid-cols-2 gap-3">
                 <ApiKeyValueEditor
-                  label="Query Parameters"
-                    values={queryParams}
-                    onChange={(values) => updateApiTabRequest(activeTab.id, { queryParams: values })}
-                    emptyLabel="No query params"
-                    suggestions={queryParamSuggestions}
-                  />
-                  <ApiKeyValueEditor
-                    label="Headers"
-                    values={headerParams}
-                    onChange={(values) => updateApiTabRequest(activeTab.id, { headerParams: values })}
-                    emptyLabel="No headers"
-                    suggestions={headerParamSuggestions}
-                  />
-                </div>
+                  label={
+                    <>
+                      <SlidersHorizontal className="size-3.5" />
+                      Query Parameters
+                    </>
+                  }
+                  values={queryParams}
+                  onChange={(values) => updateApiTabRequest(activeTab.id, { queryParams: values })}
+                  emptyLabel="No query params"
+                  suggestions={queryParamSuggestions}
+                />
+                <ApiKeyValueEditor
+                  label={
+                    <>
+                      <KeyRound className="size-3.5" />
+                      Headers
+                    </>
+                  }
+                  values={headerParams}
+                  onChange={(values) => updateApiTabRequest(activeTab.id, { headerParams: values })}
+                  emptyLabel="No headers"
+                  suggestions={headerParamSuggestions}
+                />
+              </div>
 
-                <div className="border border-border rounded-md bg-background">
-                  <div className="flex items-center justify-between px-3 py-2 border-b border-border">
-                    <span className="text-xs text-muted-foreground">JSON Body (form)</span>
-                    <Badge variant="outline" className="text-[10px]">application/json</Badge>
-                  </div>
-                  <div className="p-3">
-                    <ApiKeyValueEditor
-                      label="Body Fields"
-                      values={parsedBody as Record<string, string>}
-                      onChange={handleFormBodyChange}
-                      emptyLabel="Add fields to build a JSON body."
-                    />
-                  </div>
+              <div className="border border-border rounded-md bg-background">
+                <div className="flex items-center justify-between px-3 py-2 border-b border-border">
+                  <span className="text-xs text-muted-foreground select-none">JSON Body (form)</span>
+                  <Badge variant="outline" className="text-[10px] select-none">application/json</Badge>
                 </div>
+                <div className="p-3">
+                  <ApiKeyValueEditor
+                    label={
+                      <>
+                        <Braces className="size-3.5" />
+                        Body Fields
+                      </>
+                    }
+                    values={parsedBody as Record<string, string>}
+                    onChange={handleFormBodyChange}
+                    emptyLabel="Add fields to build a JSON body."
+                  />
+                </div>
+              </div>
             </div>
           </TabsContent>
 
@@ -222,36 +238,46 @@ export function ApiRequestBuilder() {
             <div className="flex-1 min-h-0 flex flex-col gap-4 overflow-y-auto pr-2">
               <div className="grid grid-cols-2 gap-3">
                 <ApiKeyValueEditor
-                  label="Query Parameters"
-                    values={queryParams}
-                    onChange={(values) => updateApiTabRequest(activeTab.id, { queryParams: values })}
-                    emptyLabel="No query params"
-                    suggestions={queryParamSuggestions}
-                  />
-                  <ApiKeyValueEditor
-                    label="Headers"
-                    values={headerParams}
-                    onChange={(values) => updateApiTabRequest(activeTab.id, { headerParams: values })}
-                    emptyLabel="No headers"
-                    suggestions={headerParamSuggestions}
-                  />
-                </div>
+                  label={
+                    <>
+                      <SlidersHorizontal className="size-3.5" />
+                      Query Parameters
+                    </>
+                  }
+                  values={queryParams}
+                  onChange={(values) => updateApiTabRequest(activeTab.id, { queryParams: values })}
+                  emptyLabel="No query params"
+                  suggestions={queryParamSuggestions}
+                />
+                <ApiKeyValueEditor
+                  label={
+                    <>
+                      <KeyRound className="size-3.5" />
+                      Headers
+                    </>
+                  }
+                  values={headerParams}
+                  onChange={(values) => updateApiTabRequest(activeTab.id, { headerParams: values })}
+                  emptyLabel="No headers"
+                  suggestions={headerParamSuggestions}
+                />
+              </div>
 
-                <div className="border border-border rounded-md overflow-hidden flex flex-col flex-1 min-h-[260px]">
-                  <div className="px-3 py-2 border-b border-border text-[11px] text-muted-foreground">
-                    Raw JSON overrides form input.
-                  </div>
-                  <div className="flex-1 min-h-0">
-                    <Editor
-                      height="100%"
-                      language="json"
-                      theme={monacoTheme}
-                      value={body}
-                      onChange={handleBodyChange}
-                      options={editorOptions}
-                    />
-                  </div>
+              <div className="border border-border rounded-md overflow-hidden flex flex-col flex-1 min-h-[260px]">
+                <div className="px-3 py-2 border-b border-border text-[11px] text-muted-foreground select-none">
+                  Raw JSON overrides form input.
                 </div>
+                <div className="flex-1 min-h-0">
+                  <Editor
+                    height="100%"
+                    language="json"
+                    theme={monacoTheme}
+                    value={body}
+                    onChange={handleBodyChange}
+                    options={editorOptions}
+                  />
+                </div>
+              </div>
             </div>
           </TabsContent>
         </Tabs>
