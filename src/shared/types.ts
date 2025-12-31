@@ -186,6 +186,13 @@ export interface ApiResponseSummary {
   jsonPreview?: unknown;
   durationMs: number;
   timestamp: number;
+  truncated?: boolean;
+  truncationReason?: string;
+  truncationMeta?: {
+    itemsFetched?: number;
+    pagesFetched?: number;
+    limit?: number;
+  };
 }
 
 export interface ApiHistoryEntry {
@@ -435,10 +442,13 @@ export interface SearchModuleScriptsRequest {
   matchType: ModuleSearchMatchType;
   caseSensitive: boolean;
   moduleTypes: LogicModuleType[];
+  searchId?: string;
+  forceReindex?: boolean;
 }
 
 export interface SearchModuleScriptsResponse {
   results: ScriptSearchResult[];
+  indexInfo?: ModuleIndexInfo;
 }
 
 export interface SearchDatapointsRequest {
@@ -446,10 +456,34 @@ export interface SearchDatapointsRequest {
   query: string;
   matchType: ModuleSearchMatchType;
   caseSensitive: boolean;
+  searchId?: string;
+  forceReindex?: boolean;
 }
 
 export interface SearchDatapointsResponse {
   results: DataPointSearchResult[];
+  indexInfo?: ModuleIndexInfo;
+}
+
+export interface ModuleIndexInfo {
+  portalId: string;
+  indexedAt: number | null;
+  moduleCount: number;
+  isStale: boolean;
+}
+
+export interface ModuleSearchProgress {
+  searchId: string;
+  stage: 'indexing' | 'searching';
+  processed: number;
+  total?: number;
+  matched?: number;
+  moduleType?: LogicModuleType;
+}
+
+export interface RefreshModuleIndexRequest {
+  portalId: string;
+  searchId?: string;
 }
 
 export interface FetchDeviceByIdRequest {
@@ -505,6 +539,8 @@ export type EditorToSWMessage =
   | { type: 'FETCH_LINEAGE_VERSIONS'; payload: { portalId: string; moduleType: LogicModuleType; lineageId: string } }
   | { type: 'SEARCH_MODULE_SCRIPTS'; payload: SearchModuleScriptsRequest }
   | { type: 'SEARCH_DATAPOINTS'; payload: SearchDatapointsRequest }
+  | { type: 'CANCEL_MODULE_SEARCH'; payload: { searchId: string } }
+  | { type: 'REFRESH_MODULE_INDEX'; payload: RefreshModuleIndexRequest }
   | { type: 'OPEN_EDITOR'; payload?: DeviceContext };
 
 export type SWToEditorMessage =
@@ -534,6 +570,8 @@ export type SWToEditorMessage =
   | { type: 'MODULE_SCRIPT_SEARCH_ERROR'; payload: { error: string; code?: number } }
   | { type: 'DATAPOINT_SEARCH_RESULTS'; payload: SearchDatapointsResponse }
   | { type: 'DATAPOINT_SEARCH_ERROR'; payload: { error: string; code?: number } }
+  | { type: 'MODULE_SEARCH_PROGRESS'; payload: ModuleSearchProgress }
+  | { type: 'MODULE_INDEX_REFRESHED'; payload: ModuleIndexInfo }
   | { type: 'PORTAL_DISCONNECTED'; payload: { portalId: string; hostname: string } }
   | { type: 'ERROR'; payload: { code: string; message: string } };
 

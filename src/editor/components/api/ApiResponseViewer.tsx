@@ -13,6 +13,9 @@ import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/
 import { COLORS } from '@/editor/constants/colors';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { normalizeApiPath } from '@/shared/api-utils';
+import { buildApiVariableResolver } from '@/editor/utils/api-variables';
+import { buildMonacoOptions, getMonacoTheme } from '@/editor/utils/monaco-settings';
 import '../../monaco-loader';
 
 function formatJson(body: string): string {
@@ -24,17 +27,9 @@ function formatJson(body: string): string {
   }
 }
 
-function normalizePath(path: string) {
-  const trimmed = path.startsWith('/') ? path : `/${path}`;
-  if (trimmed.startsWith('/santaba/rest')) {
-    return trimmed;
-  }
-  return `/santaba/rest${trimmed}`;
-}
-
 function buildUrl(portalId: string | null, path: string, queryParams: Record<string, string>) {
   const base = portalId ? `https://${portalId}` : 'https://{portal}';
-  const normalizedPath = normalizePath(path);
+  const normalizedPath = normalizeApiPath(path);
   const url = new URL(`${base}${normalizedPath}`);
   Object.entries(queryParams).forEach(([key, value]) => {
     if (value !== undefined && value !== null && String(value).length > 0) {
@@ -125,27 +120,16 @@ export function ApiResponseViewer() {
   const response = activeTab?.api?.response;
   const request = activeTab?.api?.request;
 
-  const monacoTheme = useMemo(() => {
-    if (preferences.theme === 'light') return 'vs';
-    if (preferences.theme === 'dark') return 'vs-dark';
-    if (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches) {
-      return 'vs';
-    }
-    return 'vs-dark';
-  }, [preferences.theme]);
+  const monacoTheme = useMemo(() => getMonacoTheme(preferences), [preferences]);
 
-  const editorOptions = useMemo(() => ({
-    fontSize: preferences.fontSize,
-    fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
+  const editorOptions = useMemo(() => buildMonacoOptions(preferences, {
     minimap: { enabled: false },
     wordWrap: 'on' as const,
     readOnly: true,
-    automaticLayout: true,
-    scrollBeyondLastLine: false,
     padding: { top: 10, bottom: 10 },
     folding: true,
     showFoldingControls: 'always' as const,
-  }), [preferences.fontSize]);
+  }), [preferences]);
 
   const [activeView, setActiveView] = useState('json');
   const [fullscreenOpen, setFullscreenOpen] = useState(false);
@@ -155,13 +139,7 @@ export function ApiResponseViewer() {
     const envVars = selectedPortalId
       ? apiEnvironmentsByPortal[selectedPortalId]?.variables ?? []
       : [];
-    const resolveValue = (value: string) => {
-      if (!value) return value;
-      return value.replace(/\{\{\s*([\w.-]+)\s*\}\}/g, (match, key) => {
-        const variable = envVars.find(v => v.key === key);
-        return variable ? variable.value : match;
-      });
-    };
+    const resolveValue = buildApiVariableResolver(envVars);
 
     const resolvedPath = resolveValue(request.path);
     const resolvedQueryParams = Object.fromEntries(
@@ -203,6 +181,11 @@ export function ApiResponseViewer() {
     };
   }, [request, selectedPortalId, apiEnvironmentsByPortal]);
 
+  const formattedJson = useMemo(() => {
+    if (!response) return '';
+    return formatJson(response.body);
+  }, [response]);
+
   if (!activeTab || activeTab.kind !== 'api') {
     return (
       <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
@@ -220,6 +203,22 @@ export function ApiResponseViewer() {
     return COLORS.HTTP_STATUS.info;
   })();
 
+  const responseCap = response?.truncated
+    ? response.truncationMeta
+    : null;
+  const truncationMessage = (() => {
+    if (!response?.truncationReason) {
+      return 'Response capped to fit the size limit.';
+    }
+    if (response.truncationReason === 'size_limit') {
+      return 'Response capped to the configured size limit.';
+    }
+    if (response.truncationReason === 'max_pages') {
+      return 'Response capped at the maximum page limit.';
+    }
+    return `Response capped (${response.truncationReason}).`;
+  })();
+
   const renderHeader = (showFullscreen: boolean, showClose: boolean) => (
     <div className="flex items-center justify-between px-3 py-2 border-b border-border">
       <div className="flex items-center gap-2">
@@ -230,7 +229,7 @@ export function ApiResponseViewer() {
               render={
                 <Badge
                   className={cn(
-                    "text-[10px] font-semibold",
+                    "text-[10px] font-semibold select-none",
                     statusStyle?.bgSubtle,
                     statusStyle?.text
                   )}
@@ -240,6 +239,18 @@ export function ApiResponseViewer() {
               }
             />
             <TooltipContent>Status code</TooltipContent>
+          </Tooltip>
+        )}
+        {response?.truncated && (
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Badge className="text-[10px] font-semibold bg-amber-500/15 text-amber-500 select-none">
+                  Response truncated
+                </Badge>
+              }
+            />
+            <TooltipContent>{truncationMessage}</TooltipContent>
           </Tooltip>
         )}
       </div>
@@ -332,7 +343,7 @@ export function ApiResponseViewer() {
               height="100%"
               language="json"
               theme={monacoTheme}
-              value={formatJson(response.body)}
+              value={formattedJson}
               options={editorOptions}
             />
           </div>
@@ -357,6 +368,11 @@ export function ApiResponseViewer() {
                 {response.body}
               </pre>
             </ScrollArea>
+            {responseCap && (
+              <div className="border-t border-border px-3 py-2 text-xs text-muted-foreground">
+                Results capped at {responseCap.itemsFetched ?? 0} item{responseCap.itemsFetched === 1 ? '' : 's'} across {responseCap.pagesFetched ?? 0} page{responseCap.pagesFetched === 1 ? '' : 's'}.
+              </div>
+            )}
           </div>
         ) : (
           <Empty className="h-full border border-dashed border-border">
@@ -450,22 +466,24 @@ export function ApiResponseViewer() {
 
   return (
     <div className="h-full flex flex-col border-t border-border">
-      <div className={fullscreenOpen ? 'hidden' : 'flex flex-1 min-h-0 flex-col'}>
-        {renderHeader(true, false)}
-        {responseTabs}
-      </div>
-
-      <Dialog open={fullscreenOpen} onOpenChange={setFullscreenOpen}>
-        <DialogContent
-          className="max-w-none! w-[94vw]! h-[90vh]! min-h-0! flex! flex-col! overflow-hidden p-0"
-          showCloseButton={false}
-        >
-          <div className="h-full min-h-0 flex flex-col">
-            {renderHeader(false, true)}
-            {responseTabs}
-          </div>
-        </DialogContent>
-      </Dialog>
+      {fullscreenOpen ? (
+        <Dialog open={fullscreenOpen} onOpenChange={setFullscreenOpen}>
+          <DialogContent
+            className="max-w-none! w-[94vw]! h-[90vh]! min-h-0! flex! flex-col! overflow-hidden p-0"
+            showCloseButton={false}
+          >
+            <div className="h-full min-h-0 flex flex-col">
+              {renderHeader(false, true)}
+              {responseTabs}
+            </div>
+          </DialogContent>
+        </Dialog>
+      ) : (
+        <div className="flex flex-1 min-h-0 flex-col">
+          {renderHeader(true, false)}
+          {responseTabs}
+        </div>
+      )}
     </div>
   );
 }

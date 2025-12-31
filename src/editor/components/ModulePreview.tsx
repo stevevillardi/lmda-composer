@@ -1,7 +1,9 @@
 import Editor from '@monaco-editor/react';
+import { useMemo } from 'react';
 import { Download, Target, Activity, Database, Layers } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEditorStore } from '../stores/editor-store';
+import { buildMonacoOptions, getMonacoTheme } from '../utils/monaco-settings';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -16,7 +18,7 @@ interface ModulePreviewProps {
 }
 
 export function ModulePreview({ module }: ModulePreviewProps) {
-  const { loadModuleScript, openModuleScripts } = useEditorStore();
+  const { loadModuleScript, openModuleScripts, preferences } = useEditorStore();
 
   // Determine script language based on scriptType
   const language: ScriptLanguage = module.scriptType === 'powerShell' ? 'powershell' : 'groovy';
@@ -73,6 +75,24 @@ export function ModulePreview({ module }: ModulePreviewProps) {
 
   // If both AD and Collection scripts exist, show dual-pane
   const showDualPane = hasADScript && hasCollectionScript;
+
+  const monacoTheme = useMemo(() => getMonacoTheme(preferences), [preferences]);
+
+  const previewOptions = useMemo(() => buildMonacoOptions(preferences, {
+    readOnly: true,
+    fontSize: 12,
+    lineNumbers: 'on',
+    minimap: { enabled: false },
+    wordWrap: 'off',
+    tabSize: 4,
+    renderLineHighlight: 'none',
+    padding: { top: 8, bottom: 8 },
+    domReadOnly: true,
+    cursorStyle: 'line-thin',
+    selectionHighlight: false,
+    occurrencesHighlight: 'off',
+    scrollbar: { horizontal: 'auto', vertical: 'auto' },
+  }), [preferences]);
 
   return (
     <div className="flex flex-col h-full">
@@ -148,26 +168,9 @@ export function ModulePreview({ module }: ModulePreviewProps) {
               <Editor
                 height="100%"
                 language={monacoLanguage}
-                theme="vs-dark"
+                theme={monacoTheme}
                 value={module.adScript || '// No AD script'}
-                options={{
-                  readOnly: true,
-                  fontSize: 12,
-                  fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
-                  lineNumbers: 'on',
-                  minimap: { enabled: false },
-                  wordWrap: 'off',
-                  tabSize: 4,
-                  automaticLayout: true,
-                  scrollBeyondLastLine: false,
-                  renderLineHighlight: 'none',
-                  padding: { top: 8, bottom: 8 },
-                  domReadOnly: true,
-                  cursorStyle: 'line-thin',
-                  selectionHighlight: false,
-                  occurrencesHighlight: 'off',
-                  scrollbar: { horizontal: 'auto', vertical: 'auto' },
-                }}
+                options={previewOptions}
                 loading={
                   <div className="flex items-center justify-center h-full">
                     <div className="text-muted-foreground text-xs">Loading...</div>
@@ -209,26 +212,9 @@ export function ModulePreview({ module }: ModulePreviewProps) {
               <Editor
                 height="100%"
                 language={monacoLanguage}
-                theme="vs-dark"
+                theme={monacoTheme}
                 value={module.collectionScript || '// No collection script'}
-                options={{
-                  readOnly: true,
-                  fontSize: 12,
-                  fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
-                  lineNumbers: 'on',
-                  minimap: { enabled: false },
-                  wordWrap: 'off',
-                  tabSize: 4,
-                  automaticLayout: true,
-                  scrollBeyondLastLine: false,
-                  renderLineHighlight: 'none',
-                  padding: { top: 8, bottom: 8 },
-                  domReadOnly: true,
-                  cursorStyle: 'line-thin',
-                  selectionHighlight: false,
-                  occurrencesHighlight: 'off',
-                  scrollbar: { horizontal: 'auto', vertical: 'auto' },
-                }}
+                options={previewOptions}
                 loading={
                   <div className="flex items-center justify-center h-full">
                     <div className="text-muted-foreground text-xs">Loading...</div>
@@ -249,4 +235,3 @@ export function ModulePreview({ module }: ModulePreviewProps) {
     </div>
   );
 }
-

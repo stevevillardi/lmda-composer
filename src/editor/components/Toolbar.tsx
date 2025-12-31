@@ -197,7 +197,7 @@ export function Toolbar() {
           <Label className="text-xs text-muted-foreground whitespace-nowrap hidden lg:block select-none">
             Pagination:
           </Label>
-          <div className="flex items-center rounded-md border border-input bg-background/50 p-0.5 gap-1">
+          <div className="flex items-center rounded-md border border-input bg-background/50 gap-1">
             <div className="flex items-center gap-2 px-2">
               <span className="text-xs text-muted-foreground select-none">Auto</span>
               <Switch

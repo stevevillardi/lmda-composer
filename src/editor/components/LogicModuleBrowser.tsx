@@ -1,12 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { 
-  Database, 
-  FileText, 
-  Network, 
-  Settings2, 
-  FileCode, 
-  Stethoscope,
-  Bell,
+import {
   Search,
   AlertTriangle,
   FolderSearch,
@@ -43,23 +36,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { cn } from '@/lib/utils';
 import type { LogicModuleType, LogicModuleInfo } from '@/shared/types';
 import { ModulePreview } from './ModulePreview';
-
-interface ModuleTypeConfig {
-  value: LogicModuleType;
-  label: string;
-  shortLabel: string;
-  icon: typeof Database;
-}
-
-const MODULE_TYPES: ModuleTypeConfig[] = [
-  { value: 'datasource', label: 'DataSource', shortLabel: 'DS', icon: Database },
-  { value: 'configsource', label: 'ConfigSource', shortLabel: 'CS', icon: FileText },
-  { value: 'topologysource', label: 'TopologySource', shortLabel: 'TS', icon: Network },
-  { value: 'propertysource', label: 'PropertySource', shortLabel: 'PS', icon: Settings2 },
-  { value: 'logsource', label: 'LogSource', shortLabel: 'LS', icon: FileCode },
-  { value: 'diagnosticsource', label: 'DiagnosticSource', shortLabel: 'Diag', icon: Stethoscope },
-  { value: 'eventsource', label: 'EventSource', shortLabel: 'ES', icon: Bell },
-];
+import { LOGIC_MODULE_TYPES } from '../constants/logic-module-types';
 
 export function LogicModuleBrowser() {
   const {
@@ -141,12 +118,12 @@ export function LogicModuleBrowser() {
     }
     
     // Sort alphabetically by displayName or name (A-Z)
-    return filtered.sort((a, b) => {
+    return [...filtered].sort((a, b) => {
       const nameA = (a.displayName || a.name).toLowerCase();
       const nameB = (b.displayName || b.name).toLowerCase();
       return nameA.localeCompare(nameB);
     });
-  }, [modules, moduleSearchQuery]);
+  }, [modules, moduleSearchQuery, moduleMeta.hasMore, cachedSearch]);
 
   // Handle module refresh with loading state
   const handleRefreshModules = async () => {
@@ -204,7 +181,7 @@ export function LogicModuleBrowser() {
               variant="outline"
               className="w-full justify-start flex-wrap"
             >
-              {MODULE_TYPES.map((type) => {
+              {LOGIC_MODULE_TYPES.map((type) => {
                 const Icon = type.icon;
                 return (
                   <ToggleGroupItem

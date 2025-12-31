@@ -41,9 +41,10 @@ export class ModuleLoader {
     portalId: string,
     moduleType: LogicModuleType,
     offset: number = 0,
-    size: number = PAGE_SIZE,
+    size?: number,
     search: string = ''
   ): Promise<FetchModulesResponse> {
+    const pageSize = size ?? PAGE_SIZE;
     const tabId = await this.portalManager.getValidTabIdForPortal(portalId);
     if (!tabId) {
       return { items: [], total: 0, hasMore: false };
@@ -61,7 +62,7 @@ export class ModuleLoader {
       const results = await chrome.scripting.executeScript({
         target: { tabId },
         func: fetchModulesFromAPI,
-        args: [portal.csrfToken, endpoint, moduleType, needsFilter, offset, size, search],
+        args: [portal.csrfToken, endpoint, moduleType, needsFilter, offset, pageSize, search],
       });
 
       if (!results?.[0]?.result) {

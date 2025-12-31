@@ -160,20 +160,20 @@ export function StatusBar() {
         />
         <TooltipContent>Keyboard shortcuts</TooltipContent>
       </Tooltip>
-      <PopoverContent side="top" align="end" className="w-64 p-3">
+      <PopoverContent side="top" align="end" className="w-64 p-3 select-none gap-0">
         <PopoverHeader>
           <PopoverTitle className="text-sm">Keyboard Shortcuts</PopoverTitle>
         </PopoverHeader>
-        <div className="flex flex-col gap-3 mt-2">
-          {KEYBOARD_SHORTCUTS.map((section, sectionIdx) => (
+        <div className="flex flex-col gap-0 mt-2">
+          {KEYBOARD_SHORTCUTS.map((section,) => (
             <div key={section.label} className="space-y-2">
-              {sectionIdx > 0 && <Separator />}
-                  <div className="relative flex items-center gap-2">
-                    <span className="text-[10px] uppercase tracking-wide text-muted-foreground">
-                      {section.label}
-                    </span>
-                    <Separator className="flex-1 max-w-[120px]" />
-                  </div>
+              <div className="relative flex items-center gap-2 my-2">
+                <Separator className="flex-1" />
+                <span className="shrink-0 px-2 text-[10px] uppercase tracking-wide text-muted-foreground">
+                  {section.label}
+                </span>
+                <Separator className="flex-1" />
+              </div>
               <div className="flex flex-col gap-1.5">
                 {section.items.map((shortcut) => (
                   <div key={shortcut.action} className="flex items-center justify-between text-xs">
@@ -214,7 +214,7 @@ export function StatusBar() {
 
     return (
       <div 
-        className="flex items-center justify-between px-3 py-1.5 bg-secondary/30 border-t border-border text-xs"
+        className="flex items-center justify-between px-3 py-1.5 bg-secondary/30 border-t border-border text-xs select-none"
         role="status"
         aria-label="API status bar"
       >
@@ -263,7 +263,7 @@ export function StatusBar() {
 
   return (
     <div 
-      className="flex items-center justify-between px-3 py-1.5 bg-secondary/30 border-t border-border text-xs"
+      className="flex items-center justify-between px-3 py-1.5 bg-secondary/30 border-t border-border text-xs select-none"
       role="status"
       aria-label="Editor status bar"
     >

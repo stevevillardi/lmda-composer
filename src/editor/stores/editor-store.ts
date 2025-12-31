@@ -32,6 +32,8 @@ import type {
   ModuleSearchMatchType,
   ScriptSearchResult,
   DataPointSearchResult,
+  ModuleSearchProgress,
+  ModuleIndexInfo,
   ExecuteApiRequest,
   ExecuteApiResponse,
 } from '@/shared/types';
@@ -40,6 +42,8 @@ import { parseOutput, type ParseResult } from '../utils/output-parser';
 import * as fileHandleStore from '../utils/file-handle-store';
 import { APPLIES_TO_FUNCTIONS } from '../data/applies-to-functions';
 import { DEFAULT_GROOVY_TEMPLATE, DEFAULT_POWERSHELL_TEMPLATE, getDefaultScriptTemplate } from '../config/script-templates';
+import { buildApiVariableResolver } from '../utils/api-variables';
+import { appendItemsWithLimit } from '../utils/api-pagination';
 import type { editor } from 'monaco-editor';
 
 interface EditorState {
@@ -93,6 +97,9 @@ interface EditorState {
   moduleSearchCaseSensitive: boolean;
   moduleSearchModuleTypes: LogicModuleType[];
   isSearchingModules: boolean;
+  moduleSearchProgress: ModuleSearchProgress | null;
+  moduleSearchIndexInfo: ModuleIndexInfo | null;
+  moduleSearchExecutionId: string | null;
   moduleScriptSearchResults: ScriptSearchResult[];
   moduleDatapointSearchResults: DataPointSearchResult[];
   moduleSearchError: string | null;
@@ -217,6 +224,8 @@ interface EditorState {
   setSelectedScriptSearchResult: (result: ScriptSearchResult | null) => void;
   setSelectedDatapointSearchResult: (result: DataPointSearchResult | null) => void;
   clearModuleSearchResults: () => void;
+  refreshModuleSearchIndex: () => Promise<void>;
+  cancelModuleSearch: () => Promise<void>;
   
   // UI state actions
   setCommandPaletteOpen: (open: boolean) => void;
@@ -412,6 +421,9 @@ function createDefaultApiTab(): EditorTab {
   };
 }
 
+let activeDebugCommandListener: ((message: any) => boolean) | null = null;
+let activeModuleSearchListener: ((message: any) => boolean) | null = null;
+
 // No initial tab - WelcomeScreen will show instead
 
 export const useEditorStore = create<EditorState>((set, get) => ({
@@ -488,6 +500,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     'eventsource',
   ],
   isSearchingModules: false,
+  moduleSearchProgress: null,
+  moduleSearchIndexInfo: null,
+  moduleSearchExecutionId: null,
   moduleScriptSearchResults: [],
   moduleDatapointSearchResults: [],
   moduleSearchError: null,
@@ -576,18 +591,38 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       selectedCollectorId: null, 
       collectors: [],
       devices: [],
+      isFetchingDevices: false,
       hostname: '',
       // Clear module cache when portal changes
-        modulesCache: {
-          datasource: [],
-          configsource: [],
-          topologysource: [],
-          propertysource: [],
-          logsource: [],
-          diagnosticsource: [],
-          eventsource: [],
-        },
-      });
+      modulesCache: {
+        datasource: [],
+        configsource: [],
+        topologysource: [],
+        propertysource: [],
+        logsource: [],
+        diagnosticsource: [],
+        eventsource: [],
+      },
+      modulesMeta: {
+        datasource: { offset: 0, hasMore: true, total: 0 },
+        configsource: { offset: 0, hasMore: true, total: 0 },
+        topologysource: { offset: 0, hasMore: true, total: 0 },
+        propertysource: { offset: 0, hasMore: true, total: 0 },
+        logsource: { offset: 0, hasMore: true, total: 0 },
+        diagnosticsource: { offset: 0, hasMore: true, total: 0 },
+        eventsource: { offset: 0, hasMore: true, total: 0 },
+      },
+      modulesSearch: {
+        datasource: '',
+        configsource: '',
+        topologysource: '',
+        propertysource: '',
+        logsource: '',
+        diagnosticsource: '',
+        eventsource: '',
+      },
+      moduleSearchIndexInfo: null,
+    });
     if (portalId) {
       get().refreshCollectors();
     }
@@ -597,6 +632,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     set({ 
       selectedCollectorId: collectorId,
       devices: [],
+      isFetchingDevices: false,
       hostname: '',
     });
     // Fetch devices when collector changes
@@ -608,6 +644,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   fetchDevices: async () => {
     const { selectedPortalId, selectedCollectorId } = get();
     if (!selectedPortalId || !selectedCollectorId) return;
+
+    const fetchingPortal = selectedPortalId;
+    const fetchingCollector = selectedCollectorId;
 
     set({ isFetchingDevices: true });
 
@@ -621,6 +660,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       });
 
       if (response?.type === 'DEVICES_UPDATE') {
+        const currentPortal = get().selectedPortalId;
+        const currentCollector = get().selectedCollectorId;
+        if (currentPortal !== fetchingPortal || currentCollector !== fetchingCollector) {
+          return;
+        }
         const fetchResponse = response.payload as FetchDevicesResponse;
         
         // Check for error in response (portal tabs may be stale)
@@ -963,6 +1007,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         selectedCollectorId: null,
         collectors: [],
         devices: [],
+        isFetchingDevices: false,
         hostname: '',
         // Clear module cache since it was for this portal
         modulesCache: {
@@ -992,6 +1037,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           diagnosticsource: '',
           eventsource: '',
         },
+        moduleSearchIndexInfo: null,
       });
       
       // Show toast notification for the disconnected portal
@@ -1342,6 +1388,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         selectedScriptSearchResult: null,
         selectedDatapointSearchResult: null,
         isSearchingModules: false,
+        moduleSearchProgress: null,
+        moduleSearchExecutionId: null,
       });
     }
   },
@@ -1354,6 +1402,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       moduleDatapointSearchResults: [],
       selectedScriptSearchResult: null,
       selectedDatapointSearchResult: null,
+      moduleSearchProgress: null,
     });
   },
 
@@ -1390,11 +1439,31 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         selectedScriptSearchResult: null,
         moduleSearchError: null,
         isSearchingModules: false,
+        moduleSearchProgress: null,
       });
       return;
     }
 
-    set({ isSearchingModules: true, moduleSearchError: null });
+    const searchId = crypto.randomUUID();
+    set({
+      isSearchingModules: true,
+      moduleSearchError: null,
+      moduleSearchExecutionId: searchId,
+      moduleSearchProgress: { searchId, stage: 'searching', processed: 0, matched: 0 },
+    });
+
+    if (activeModuleSearchListener) {
+      chrome.runtime.onMessage.removeListener(activeModuleSearchListener);
+    }
+
+    activeModuleSearchListener = (message: any) => {
+      if (message.type === 'MODULE_SEARCH_PROGRESS' && message.payload?.searchId === searchId) {
+        set({ moduleSearchProgress: message.payload as ModuleSearchProgress });
+      }
+      return false;
+    };
+
+    chrome.runtime.onMessage.addListener(activeModuleSearchListener);
 
     try {
       const response = await chrome.runtime.sendMessage({
@@ -1405,8 +1474,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           matchType: moduleSearchMatchType,
           caseSensitive: moduleSearchCaseSensitive,
           moduleTypes: moduleSearchModuleTypes,
+          searchId,
         },
       });
+
+      const stillActive = get().moduleSearchExecutionId === searchId;
+      if (!stillActive) {
+        return;
+      }
 
       if (response?.type === 'MODULE_SCRIPT_SEARCH_RESULTS') {
         const results = response.payload.results as ScriptSearchResult[];
@@ -1414,16 +1489,31 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           moduleScriptSearchResults: results,
           selectedScriptSearchResult: results[0] || null,
           isSearchingModules: false,
+          moduleSearchProgress: null,
+          moduleSearchExecutionId: null,
+          moduleSearchIndexInfo: response.payload.indexInfo ?? null,
         });
       } else {
         const errorMessage = response?.payload?.error || 'Failed to search modules';
-        set({ moduleSearchError: errorMessage, isSearchingModules: false });
+        set({
+          moduleSearchError: errorMessage,
+          isSearchingModules: false,
+          moduleSearchProgress: null,
+          moduleSearchExecutionId: null,
+        });
       }
     } catch (error) {
       set({
         moduleSearchError: error instanceof Error ? error.message : 'Failed to search modules',
         isSearchingModules: false,
+        moduleSearchProgress: null,
+        moduleSearchExecutionId: null,
       });
+    } finally {
+      if (activeModuleSearchListener) {
+        chrome.runtime.onMessage.removeListener(activeModuleSearchListener);
+        activeModuleSearchListener = null;
+      }
     }
   },
 
@@ -1443,11 +1533,31 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         selectedDatapointSearchResult: null,
         moduleSearchError: null,
         isSearchingModules: false,
+        moduleSearchProgress: null,
       });
       return;
     }
 
-    set({ isSearchingModules: true, moduleSearchError: null });
+    const searchId = crypto.randomUUID();
+    set({
+      isSearchingModules: true,
+      moduleSearchError: null,
+      moduleSearchExecutionId: searchId,
+      moduleSearchProgress: { searchId, stage: 'searching', processed: 0, matched: 0 },
+    });
+
+    if (activeModuleSearchListener) {
+      chrome.runtime.onMessage.removeListener(activeModuleSearchListener);
+    }
+
+    activeModuleSearchListener = (message: any) => {
+      if (message.type === 'MODULE_SEARCH_PROGRESS' && message.payload?.searchId === searchId) {
+        set({ moduleSearchProgress: message.payload as ModuleSearchProgress });
+      }
+      return false;
+    };
+
+    chrome.runtime.onMessage.addListener(activeModuleSearchListener);
 
     try {
       const response = await chrome.runtime.sendMessage({
@@ -1457,8 +1567,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           query: trimmedQuery,
           matchType: moduleSearchMatchType,
           caseSensitive: moduleSearchCaseSensitive,
+          searchId,
         },
       });
+
+      const stillActive = get().moduleSearchExecutionId === searchId;
+      if (!stillActive) {
+        return;
+      }
 
       if (response?.type === 'DATAPOINT_SEARCH_RESULTS') {
         const results = response.payload.results as DataPointSearchResult[];
@@ -1466,16 +1582,31 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           moduleDatapointSearchResults: results,
           selectedDatapointSearchResult: results[0] || null,
           isSearchingModules: false,
+          moduleSearchProgress: null,
+          moduleSearchExecutionId: null,
+          moduleSearchIndexInfo: response.payload.indexInfo ?? null,
         });
       } else {
         const errorMessage = response?.payload?.error || 'Failed to search datapoints';
-        set({ moduleSearchError: errorMessage, isSearchingModules: false });
+        set({
+          moduleSearchError: errorMessage,
+          isSearchingModules: false,
+          moduleSearchProgress: null,
+          moduleSearchExecutionId: null,
+        });
       }
     } catch (error) {
       set({
         moduleSearchError: error instanceof Error ? error.message : 'Failed to search datapoints',
         isSearchingModules: false,
+        moduleSearchProgress: null,
+        moduleSearchExecutionId: null,
       });
+    } finally {
+      if (activeModuleSearchListener) {
+        chrome.runtime.onMessage.removeListener(activeModuleSearchListener);
+        activeModuleSearchListener = null;
+      }
     }
   },
 
@@ -1494,7 +1625,96 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       selectedScriptSearchResult: null,
       selectedDatapointSearchResult: null,
       moduleSearchError: null,
+      moduleSearchProgress: null,
     });
+  },
+
+  refreshModuleSearchIndex: async () => {
+    const { selectedPortalId } = get();
+    if (!selectedPortalId) return;
+
+    const searchId = crypto.randomUUID();
+    set({
+      moduleSearchProgress: { searchId, stage: 'indexing', processed: 0 },
+      moduleSearchExecutionId: searchId,
+      moduleSearchError: null,
+    });
+
+    if (activeModuleSearchListener) {
+      chrome.runtime.onMessage.removeListener(activeModuleSearchListener);
+    }
+
+    activeModuleSearchListener = (message: any) => {
+      if (message.type === 'MODULE_SEARCH_PROGRESS' && message.payload?.searchId === searchId) {
+        set({ moduleSearchProgress: message.payload as ModuleSearchProgress });
+      }
+      return false;
+    };
+
+    chrome.runtime.onMessage.addListener(activeModuleSearchListener);
+
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: 'REFRESH_MODULE_INDEX',
+        payload: { portalId: selectedPortalId, searchId },
+      });
+
+      if (response?.type === 'MODULE_INDEX_REFRESHED') {
+        set({
+          moduleSearchIndexInfo: response.payload as ModuleIndexInfo,
+          moduleSearchProgress: null,
+          moduleSearchExecutionId: null,
+        });
+        toast.success('Module search index refreshed');
+      } else if (response?.type === 'MODULE_SCRIPT_SEARCH_ERROR') {
+        set({
+          moduleSearchError: response.payload?.error || 'Failed to refresh module index',
+          moduleSearchProgress: null,
+          moduleSearchExecutionId: null,
+        });
+      } else {
+        set({
+          moduleSearchError: 'Failed to refresh module index',
+          moduleSearchProgress: null,
+          moduleSearchExecutionId: null,
+        });
+      }
+    } catch (error) {
+      set({
+        moduleSearchError: error instanceof Error ? error.message : 'Failed to refresh module index',
+        moduleSearchProgress: null,
+        moduleSearchExecutionId: null,
+      });
+    } finally {
+      if (activeModuleSearchListener) {
+        chrome.runtime.onMessage.removeListener(activeModuleSearchListener);
+        activeModuleSearchListener = null;
+      }
+    }
+  },
+
+  cancelModuleSearch: async () => {
+    const { moduleSearchExecutionId } = get();
+    if (!moduleSearchExecutionId) return;
+
+    try {
+      await chrome.runtime.sendMessage({
+        type: 'CANCEL_MODULE_SEARCH',
+        payload: { searchId: moduleSearchExecutionId },
+      });
+    } catch (error) {
+      console.error('Failed to cancel module search:', error);
+    } finally {
+      set({
+        isSearchingModules: false,
+        moduleSearchExecutionId: null,
+        moduleSearchProgress: null,
+      });
+      if (activeModuleSearchListener) {
+        chrome.runtime.onMessage.removeListener(activeModuleSearchListener);
+        activeModuleSearchListener = null;
+      }
+    }
   },
 
   // UI state actions
@@ -1713,13 +1933,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
     const request = tab.api.request;
     const envVars = apiEnvironmentsByPortal[selectedPortalId]?.variables ?? [];
-    const resolveValue = (value: string) => {
-      if (!value) return value;
-      return value.replace(/\{\{\s*([\w.-]+)\s*\}\}/g, (match, key) => {
-        const variable = envVars.find(v => v.key === key);
-        return variable ? variable.value : match;
-      });
-    };
+    const resolveValue = buildApiVariableResolver(envVars);
 
     const baseRequest: ApiRequestSpec = { ...DEFAULT_API_REQUEST, ...request };
     const resolvedRequest: ApiRequestSpec = {
@@ -1764,6 +1978,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       let finalPayload: ExecuteApiResponse | null = null;
       let finalBody = '';
 
+      let truncationReason: string | undefined;
+      let truncationMeta: ApiResponseSummary['truncationMeta'];
+
       if (resolvedRequest.pagination.enabled) {
         const sizeParam = resolvedRequest.pagination.sizeParam || 'size';
         const offsetParam = resolvedRequest.pagination.offsetParam || 'offset';
@@ -1771,7 +1988,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         const maxPages = 50;
         let offset = 0;
         let total: number | null = null;
-        const allItems: unknown[] = [];
+        const capEnabled = preferences.apiResponseSizeLimit > 0;
+        const limit = capEnabled ? preferences.apiResponseSizeLimit : Number.POSITIVE_INFINITY;
+        let aggregationState = { items: [] as unknown[], estimatedBytes: 0, truncated: false };
+        let pagesFetched = 0;
 
         for (let page = 0; page < maxPages; page += 1) {
           const pagedRequest: ApiRequestSpec = {
@@ -1786,6 +2006,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           const payload = await executeSingle(pagedRequest);
           finalPayload = payload;
           finalBody = payload.body;
+          pagesFetched += 1;
 
           let parsed: any;
           try {
@@ -1799,9 +2020,18 @@ export const useEditorStore = create<EditorState>((set, get) => ({
             break;
           }
 
-          allItems.push(...items);
+          if (capEnabled) {
+            aggregationState = appendItemsWithLimit(aggregationState, items, limit);
+          } else {
+            aggregationState.items.push(...items);
+          }
           if (typeof parsed?.total === 'number') {
             total = parsed.total;
+          }
+
+          if (aggregationState.truncated) {
+            truncationReason = 'size_limit';
+            break;
           }
 
           if (items.length < pageSize) {
@@ -1814,12 +2044,35 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           }
         }
 
-        if (finalPayload && allItems.length > 0) {
+        if (finalPayload && aggregationState.items.length > 0) {
+          if (!truncationReason && pagesFetched >= maxPages) {
+            const hasMorePages = total !== null ? offset < total : true;
+            if (hasMorePages) {
+              truncationReason = 'max_pages';
+            }
+          }
+          if (truncationReason) {
+            truncationMeta = {
+              itemsFetched: aggregationState.items.length,
+              pagesFetched,
+              limit: preferences.apiResponseSizeLimit,
+            };
+          }
+
           const aggregated = {
-            items: allItems,
-            total: total ?? allItems.length,
+            items: aggregationState.items,
+            total: total ?? aggregationState.items.length,
             pageSize,
-            pages: Math.ceil((total ?? allItems.length) / pageSize),
+            pages: Math.ceil((total ?? aggregationState.items.length) / pageSize),
+            ...(truncationReason ? {
+              _meta: {
+                truncated: true,
+                reason: truncationReason,
+                itemsFetched: aggregationState.items.length,
+                pagesFetched,
+                limit: preferences.apiResponseSizeLimit,
+              },
+            } : {}),
           };
           finalBody = JSON.stringify(aggregated, null, 2);
         }
@@ -1851,6 +2104,13 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         ? finalBody.slice(0, limit)
         : finalBody;
 
+      let effectiveTruncationReason = truncationReason;
+      let effectiveTruncationMeta = truncationMeta;
+      if (!effectiveTruncationReason && limit > 0 && finalBody.length > limit) {
+        effectiveTruncationReason = 'size_limit';
+        effectiveTruncationMeta = undefined;
+      }
+
       const summary: ApiResponseSummary = {
         status: finalPayload.status,
         headers: finalPayload.headers,
@@ -1858,6 +2118,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         jsonPreview,
         durationMs: Date.now() - startedAt,
         timestamp: Date.now(),
+        truncated: Boolean(effectiveTruncationReason),
+        truncationReason: effectiveTruncationReason,
+        truncationMeta: effectiveTruncationMeta,
       };
 
       set({
@@ -3547,6 +3810,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     };
 
     // Set up message listener for progress updates and completion
+    if (activeDebugCommandListener) {
+      chrome.runtime.onMessage.removeListener(activeDebugCommandListener);
+    }
+
     const progressListener = (message: any) => {
       // Only handle messages for this execution
       if (message.executionId && message.executionId !== executionId) {
@@ -3563,12 +3830,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           debugCommandExecutionId: null,
         });
         chrome.runtime.onMessage.removeListener(progressListener);
+        activeDebugCommandListener = null;
       } else if (message.type === 'ERROR' && message.payload.code === 'DEBUG_COMMAND_ERROR') {
         set({
           isExecutingDebugCommand: false,
           debugCommandExecutionId: null,
         });
         chrome.runtime.onMessage.removeListener(progressListener);
+        activeDebugCommandListener = null;
         toast.error('Debug command execution failed', {
           description: message.payload.message,
         });
@@ -3576,6 +3845,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       return false; // Don't keep channel open
     };
 
+    activeDebugCommandListener = progressListener;
     chrome.runtime.onMessage.addListener(progressListener);
 
     try {
@@ -3588,6 +3858,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     } catch (error) {
       set({ isExecutingDebugCommand: false, debugCommandExecutionId: null });
       chrome.runtime.onMessage.removeListener(progressListener);
+      activeDebugCommandListener = null;
       toast.error('Failed to execute debug command', {
         description: error instanceof Error ? error.message : 'Unknown error',
       });
@@ -3609,6 +3880,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         isExecutingDebugCommand: false,
         debugCommandExecutionId: null,
       });
+      if (activeDebugCommandListener) {
+        chrome.runtime.onMessage.removeListener(activeDebugCommandListener);
+        activeDebugCommandListener = null;
+      }
       toast.info('Debug command execution cancelled');
     } catch (error) {
       toast.error('Failed to cancel debug command', {

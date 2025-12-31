@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import type { ApiRequestMethod } from '@/shared/types';
 import { API_SCHEMA } from '@/editor/data/api-schema';
 import { Braces, KeyRound, SlidersHorizontal } from 'lucide-react';
+import { buildMonacoOptions, getMonacoTheme } from '@/editor/utils/monaco-settings';
 import '../../monaco-loader';
 
 const METHOD_OPTIONS: ApiRequestMethod[] = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'];
@@ -34,26 +35,15 @@ export function ApiRequestBuilder() {
   const queryParams = request?.queryParams ?? {};
   const headerParams = request?.headerParams ?? {};
 
-  const monacoTheme = useMemo(() => {
-    if (preferences.theme === 'light') return 'vs';
-    if (preferences.theme === 'dark') return 'vs-dark';
-    if (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches) {
-      return 'vs';
-    }
-    return 'vs-dark';
-  }, [preferences.theme]);
+  const monacoTheme = useMemo(() => getMonacoTheme(preferences), [preferences]);
 
-  const editorOptions = useMemo(() => ({
-    fontSize: preferences.fontSize,
-    fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
+  const editorOptions = useMemo(() => buildMonacoOptions(preferences, {
     minimap: { enabled: false },
     wordWrap: 'on' as const,
     tabSize: preferences.tabSize,
     insertSpaces: true,
-    automaticLayout: true,
-    scrollBeyondLastLine: false,
     padding: { top: 10, bottom: 10 },
-  }), [preferences.fontSize, preferences.tabSize]);
+  }), [preferences]);
 
   const endpoint = useMemo(() => {
     return API_SCHEMA.endpoints.find((entry) => entry.method === method && entry.path === path);

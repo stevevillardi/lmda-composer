@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useEditorStore } from '../stores/editor-store';
 import type { ExecutionHistoryEntry } from '@/shared/types';
 import { formatDuration, formatTimestamp, getModeLabel } from './execution-history-utils';
+import { buildMonacoOptions, getMonacoTheme } from '../utils/monaco-settings';
 
 // Import the loader config to use bundled Monaco (CSP-safe)
 import '../monaco-loader';
@@ -26,14 +27,39 @@ export function ExecutionHistoryDetailsDialog({
 }: ExecutionHistoryDetailsDialogProps) {
   const { preferences } = useEditorStore();
 
-  const monacoTheme = useMemo(() => {
-    if (preferences.theme === 'light') return 'vs';
-    if (preferences.theme === 'dark') return 'vs-dark';
-    if (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches) {
-      return 'vs';
-    }
-    return 'vs-dark';
-  }, [preferences.theme]);
+  const monacoTheme = useMemo(() => getMonacoTheme(preferences), [preferences]);
+
+  const scriptOptions = useMemo(() => buildMonacoOptions(preferences, {
+    readOnly: true,
+    fontSize: 12,
+    lineNumbers: 'on',
+    minimap: { enabled: false },
+    wordWrap: 'off',
+    tabSize: 2,
+    renderLineHighlight: 'none',
+    padding: { top: 8, bottom: 8 },
+    domReadOnly: true,
+    cursorStyle: 'line-thin',
+    selectionHighlight: false,
+    occurrencesHighlight: 'off',
+    scrollbar: { horizontal: 'auto', vertical: 'auto' },
+  }), [preferences]);
+
+  const outputOptions = useMemo(() => buildMonacoOptions(preferences, {
+    readOnly: true,
+    fontSize: 12,
+    lineNumbers: 'off',
+    minimap: { enabled: false },
+    wordWrap: 'on',
+    tabSize: 2,
+    renderLineHighlight: 'none',
+    padding: { top: 8, bottom: 8 },
+    domReadOnly: true,
+    cursorStyle: 'line-thin',
+    selectionHighlight: false,
+    occurrencesHighlight: 'off',
+    scrollbar: { horizontal: 'auto', vertical: 'auto' },
+  }), [preferences]);
 
   const monacoLanguage = entry?.language === 'groovy' ? 'groovy' : 'powershell';
 
@@ -86,24 +112,7 @@ export function ExecutionHistoryDetailsDialog({
                     language={monacoLanguage}
                     theme={monacoTheme}
                     value={entry.script}
-                    options={{
-                      readOnly: true,
-                      fontSize: 12,
-                      fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
-                      lineNumbers: 'on',
-                      minimap: { enabled: false },
-                      wordWrap: 'off',
-                      tabSize: 2,
-                      automaticLayout: true,
-                      scrollBeyondLastLine: false,
-                      renderLineHighlight: 'none',
-                      padding: { top: 8, bottom: 8 },
-                      domReadOnly: true,
-                      cursorStyle: 'line-thin',
-                      selectionHighlight: false,
-                      occurrencesHighlight: 'off',
-                      scrollbar: { horizontal: 'auto', vertical: 'auto' },
-                    }}
+                    options={scriptOptions}
                     loading={
                       <div className="flex items-center justify-center h-full">
                         <div className="text-muted-foreground text-xs">Loading...</div>
@@ -120,24 +129,7 @@ export function ExecutionHistoryDetailsDialog({
                     language="plaintext"
                     theme={monacoTheme}
                     value={entry.output || 'No output captured.'}
-                    options={{
-                      readOnly: true,
-                      fontSize: 12,
-                      fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
-                      lineNumbers: 'off',
-                      minimap: { enabled: false },
-                      wordWrap: 'on',
-                      tabSize: 2,
-                      automaticLayout: true,
-                      scrollBeyondLastLine: false,
-                      renderLineHighlight: 'none',
-                      padding: { top: 8, bottom: 8 },
-                      domReadOnly: true,
-                      cursorStyle: 'line-thin',
-                      selectionHighlight: false,
-                      occurrencesHighlight: 'off',
-                      scrollbar: { horizontal: 'auto', vertical: 'auto' },
-                    }}
+                    options={outputOptions}
                     loading={
                       <div className="flex items-center justify-center h-full">
                         <div className="text-muted-foreground text-xs">Loading...</div>

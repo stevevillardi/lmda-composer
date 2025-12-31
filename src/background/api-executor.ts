@@ -1,4 +1,5 @@
 import type { ExecuteApiRequest, ExecuteApiResponse } from '@/shared/types';
+import { normalizeApiPath } from '@/shared/api-utils';
 import type { ExecutorContext } from './script-executor';
 
 export class ApiExecutor {
@@ -44,7 +45,7 @@ export class ApiExecutor {
     request: ExecuteApiRequest,
     csrfToken: string
   ): Promise<{ status: number; headers: Record<string, string>; body: string }> {
-    const normalizedPath = this.normalizePath(request.path);
+    const normalizedPath = normalizeApiPath(request.path);
     const url = new URL(`https://${request.portalId}${normalizedPath}`);
 
     if (request.queryParams) {
@@ -62,7 +63,7 @@ export class ApiExecutor {
       ...request.headerParams,
     };
 
-    const canHaveBody = request.method !== 'GET' && request.method !== 'HEAD';
+    const canHaveBody = request.method !== 'GET';
     const hasBody = canHaveBody && request.body && request.body.trim().length > 0;
     if (hasBody && request.contentType) {
       headers['Content-Type'] = request.contentType;
@@ -86,14 +87,6 @@ export class ApiExecutor {
       headers: responseHeaders,
       body,
     };
-  }
-
-  private normalizePath(path: string): string {
-    const trimmed = path.startsWith('/') ? path : `/${path}`;
-    if (trimmed.startsWith('/santaba/rest')) {
-      return trimmed;
-    }
-    return `/santaba/rest${trimmed}`;
   }
 
   private async acquireCsrfToken(portalId: string): Promise<string | null> {

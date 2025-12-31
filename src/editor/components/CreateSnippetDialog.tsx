@@ -3,6 +3,7 @@ import Editor from '@monaco-editor/react';
 import { FilePlus, Code2 } from 'lucide-react';
 import { useEditorStore } from '../stores/editor-store';
 import { getDefaultScriptTemplate } from '../config/script-templates';
+import { buildMonacoOptions, getMonacoTheme } from '../utils/monaco-settings';
 import {
   Dialog,
   DialogContent,
@@ -97,14 +98,18 @@ export function CreateSnippetDialog() {
 
   const isValid = name.trim() && code.trim();
 
-  const monacoTheme = useMemo(() => {
-    if (preferences.theme === 'light') return 'vs';
-    if (preferences.theme === 'dark') return 'vs-dark';
-    if (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches) {
-      return 'vs';
-    }
-    return 'vs-dark';
-  }, [preferences.theme]);
+  const monacoTheme = useMemo(() => getMonacoTheme(preferences), [preferences]);
+
+  const editorOptions = useMemo(() => buildMonacoOptions(preferences, {
+    fontSize: 12,
+    lineNumbers: 'on',
+    minimap: { enabled: false },
+    wordWrap: 'off',
+    tabSize: 2,
+    renderLineHighlight: 'line',
+    padding: { top: 8, bottom: 8 },
+    scrollbar: { horizontal: 'auto', vertical: 'auto' },
+  }), [preferences]);
 
   const monacoLanguage =
     snippetLanguage === 'both' ? currentLanguage : snippetLanguage;
@@ -222,19 +227,7 @@ export function CreateSnippetDialog() {
                 theme={monacoTheme}
                 value={code}
                 onChange={(value) => setCode(value ?? '')}
-                options={{
-                  fontSize: 12,
-                  fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
-                  lineNumbers: 'on',
-                  minimap: { enabled: false },
-                  wordWrap: 'off',
-                  tabSize: 2,
-                  automaticLayout: true,
-                  scrollBeyondLastLine: false,
-                  renderLineHighlight: 'line',
-                  padding: { top: 8, bottom: 8 },
-                  scrollbar: { horizontal: 'auto', vertical: 'auto' },
-                }}
+                options={editorOptions}
                 loading={
                   <div className="flex items-center justify-center h-full">
                     <div className="text-muted-foreground text-xs">Loading...</div>

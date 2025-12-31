@@ -1,24 +1,20 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Editor from '@monaco-editor/react';
-import { 
+import {
   Download,
-  Database,
-  FileText,
-  Network,
-  Settings2,
-  FileCode,
-  Stethoscope,
-  Bell,
   AlertTriangle,
   Timer,
   Search,
   FilePlus,
   ChevronDown,
   ChevronRight,
+  Database,
   Braces,
   CaseSensitive,
   Target,
   Activity,
+  RefreshCw,
+  X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import type { editor } from 'monaco-editor';
@@ -34,29 +30,15 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Separator } from '@/components/ui/separator';
+import { Progress } from '@/components/ui/progress';
 import { LoadingState } from './shared/LoadingState';
 import { CopyButton } from './shared/CopyButton';
 import { cn } from '@/lib/utils';
 import { COLORS } from '../constants/colors';
+import { LOGIC_MODULE_TYPES } from '../constants/logic-module-types';
+import { buildMonacoOptions, getMonacoTheme } from '@/editor/utils/monaco-settings';
 
 import '../monaco-loader';
-
-interface ModuleTypeConfig {
-  value: LogicModuleType;
-  label: string;
-  shortLabel: string;
-  icon: typeof Database;
-}
-
-const MODULE_TYPES: ModuleTypeConfig[] = [
-  { value: 'datasource', label: 'DataSource', shortLabel: 'DS', icon: Database },
-  { value: 'configsource', label: 'ConfigSource', shortLabel: 'CS', icon: FileText },
-  { value: 'topologysource', label: 'TopologySource', shortLabel: 'TS', icon: Network },
-  { value: 'propertysource', label: 'PropertySource', shortLabel: 'PS', icon: Settings2 },
-  { value: 'logsource', label: 'LogSource', shortLabel: 'LS', icon: FileCode },
-  { value: 'diagnosticsource', label: 'DiagnosticSource', shortLabel: 'Diag', icon: Stethoscope },
-  { value: 'eventsource', label: 'EventSource', shortLabel: 'ES', icon: Bell },
-];
 
 const MATCH_LABELS = {
   substring: 'Substring',
@@ -174,6 +156,8 @@ export function LogicModuleSearch() {
     moduleSearchModuleTypes,
     setModuleSearchModuleTypes,
     isSearchingModules,
+    moduleSearchProgress,
+    moduleSearchIndexInfo,
     moduleScriptSearchResults,
     moduleDatapointSearchResults,
     moduleSearchError,
@@ -184,6 +168,8 @@ export function LogicModuleSearch() {
     clearModuleSearchResults,
     searchModuleScripts,
     searchDatapoints,
+    refreshModuleSearchIndex,
+    cancelModuleSearch,
     openModuleScripts,
     openTab,
     preferences,
@@ -195,14 +181,23 @@ export function LogicModuleSearch() {
   const adDecorationsRef = useRef<string[]>([]);
   const collectionDecorationsRef = useRef<string[]>([]);
 
-  const monacoTheme = useMemo(() => {
-    if (preferences.theme === 'light') return 'vs';
-    if (preferences.theme === 'dark') return 'vs-dark';
-    if (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches) {
-      return 'vs';
-    }
-    return 'vs-dark';
-  }, [preferences.theme]);
+  const monacoTheme = useMemo(() => getMonacoTheme(preferences), [preferences]);
+
+  const previewOptions = useMemo(() => buildMonacoOptions(preferences, {
+    readOnly: true,
+    fontSize: 12,
+    lineNumbers: 'on',
+    minimap: { enabled: false },
+    wordWrap: 'off',
+    tabSize: 4,
+    renderLineHighlight: 'none',
+    padding: { top: 8, bottom: 8 },
+    domReadOnly: true,
+    cursorStyle: 'line-thin',
+    selectionHighlight: false,
+    occurrencesHighlight: 'off',
+    scrollbar: { horizontal: 'auto', vertical: 'auto' },
+  }), [preferences]);
 
   useEffect(() => {
     if (moduleSearchOpen) {
@@ -354,6 +349,21 @@ export function LogicModuleSearch() {
     !moduleSearchTerm.trim() ||
     (moduleSearchMode === 'scripts' && moduleSearchModuleTypes.length === 0);
 
+  const progressValue = (() => {
+    if (!moduleSearchProgress?.total || moduleSearchProgress.total === 0) return undefined;
+    return Math.min(100, Math.round((moduleSearchProgress.processed / moduleSearchProgress.total) * 100));
+  })();
+
+  const indexAgeLabel = (() => {
+    const indexedAt = moduleSearchIndexInfo?.indexedAt;
+    if (!indexedAt) return 'Not indexed yet';
+    const ageMs = Date.now() - indexedAt;
+    if (ageMs < 60 * 1000) return 'Just now';
+    if (ageMs < 60 * 60 * 1000) return `${Math.round(ageMs / (60 * 1000))}m ago`;
+    if (ageMs < 24 * 60 * 60 * 1000) return `${Math.round(ageMs / (60 * 60 * 1000))}h ago`;
+    return `${Math.round(ageMs / (24 * 60 * 60 * 1000))}d ago`;
+  })();
+
   const renderResultsList = () => {
     if (isSearchingModules) {
       return (
@@ -426,7 +436,7 @@ export function LogicModuleSearch() {
 
       return (
         <div className="space-y-3 p-3">
-          {MODULE_TYPES.map((type) => {
+          {LOGIC_MODULE_TYPES.map((type) => {
             const results = groupedScriptResults.get(type.value) || [];
             if (!results.length) return null;
             const isOpen = !collapsedGroups[type.value];
@@ -765,24 +775,7 @@ export function LogicModuleSearch() {
                   theme={monacoTheme}
                   value={module.adScript || ''}
                   onMount={handleEditorMount('ad')}
-                  options={{
-                    readOnly: true,
-                    fontSize: 12,
-                    fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
-                    lineNumbers: 'on',
-                    minimap: { enabled: false },
-                    wordWrap: 'off',
-                    tabSize: 4,
-                    automaticLayout: true,
-                    scrollBeyondLastLine: false,
-                    renderLineHighlight: 'none',
-                    padding: { top: 8, bottom: 8 },
-                    domReadOnly: true,
-                    cursorStyle: 'line-thin',
-                    selectionHighlight: false,
-                    occurrencesHighlight: 'off',
-                    scrollbar: { horizontal: 'auto', vertical: 'auto' },
-                  }}
+                  options={previewOptions}
                   loading={
                     <div className="flex items-center justify-center h-full">
                       <div className="text-muted-foreground text-xs">Loading...</div>
@@ -837,24 +830,7 @@ export function LogicModuleSearch() {
                   theme={monacoTheme}
                   value={module.collectionScript || ''}
                   onMount={handleEditorMount('collection')}
-                  options={{
-                    readOnly: true,
-                    fontSize: 12,
-                    fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
-                    lineNumbers: 'on',
-                    minimap: { enabled: false },
-                    wordWrap: 'off',
-                    tabSize: 4,
-                    automaticLayout: true,
-                    scrollBeyondLastLine: false,
-                    renderLineHighlight: 'none',
-                    padding: { top: 8, bottom: 8 },
-                    domReadOnly: true,
-                    cursorStyle: 'line-thin',
-                    selectionHighlight: false,
-                    occurrencesHighlight: 'off',
-                    scrollbar: { horizontal: 'auto', vertical: 'auto' },
-                  }}
+                  options={previewOptions}
                   loading={
                     <div className="flex items-center justify-center h-full">
                       <div className="text-muted-foreground text-xs">Loading...</div>
@@ -969,6 +945,61 @@ export function LogicModuleSearch() {
               <Search className="size-4 mr-2" />
               Search
             </Button>
+            {(isSearchingModules || moduleSearchProgress?.stage === 'indexing') && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={cancelModuleSearch}
+                className="h-9"
+              >
+                <X className="size-4 mr-2" />
+                Cancel
+              </Button>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+            <div className="flex items-center gap-2">
+              <span>
+                Index: {indexAgeLabel}
+                {moduleSearchIndexInfo?.moduleCount
+                  ? ` (${moduleSearchIndexInfo.moduleCount.toLocaleString()} modules)`
+                  : ''}
+              </span>
+              {moduleSearchIndexInfo?.isStale && (
+                <Badge variant="outline" className="text-[10px] text-amber-500 border-amber-500/30">
+                  Stale
+                </Badge>
+              )}
+              <Button
+                variant="ghost"
+                size="xs"
+                onClick={refreshModuleSearchIndex}
+                className="gap-1 text-xs"
+                disabled={!selectedPortalId}
+              >
+                <RefreshCw className="size-3" />
+                Refresh index
+              </Button>
+            </div>
+            {moduleSearchProgress && (
+              <div className="flex items-center gap-2">
+                <span className="uppercase tracking-wide">
+                  {moduleSearchProgress.stage === 'indexing' ? 'Indexing' : 'Searching'}
+                </span>
+                <span>
+                  {moduleSearchProgress.processed.toLocaleString()}
+                  {moduleSearchProgress.total ? ` / ${moduleSearchProgress.total.toLocaleString()}` : ''}{' '}
+                  {moduleSearchProgress.stage === 'indexing' ? 'indexed' : 'scanned'}
+                  {typeof moduleSearchProgress.matched === 'number' ? ` • ${moduleSearchProgress.matched.toLocaleString()} matches` : ''}
+                </span>
+                {progressValue !== undefined && (
+                  <div className="w-24">
+                    <Progress value={progressValue} />
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {moduleSearchMode === 'scripts' && (
@@ -979,7 +1010,7 @@ export function LogicModuleSearch() {
                 variant="outline"
                 className="w-full justify-start flex-wrap"
               >
-                {MODULE_TYPES.map((type) => {
+                {LOGIC_MODULE_TYPES.map((type) => {
                   const Icon = type.icon;
                   return (
                     <ToggleGroupItem

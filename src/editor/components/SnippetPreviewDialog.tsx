@@ -14,6 +14,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import type { Snippet } from '@/shared/types';
 import { useEditorStore } from '../stores/editor-store';
+import { buildMonacoOptions, getMonacoTheme } from '../utils/monaco-settings';
 
 // Import the loader config to use bundled Monaco (CSP-safe)
 import '../monaco-loader';
@@ -46,14 +47,23 @@ export function SnippetPreviewDialog({
   const isCompatible =
     !snippet ? true : snippet.language === 'both' || snippet.language === currentLanguage;
 
-  const monacoTheme = useMemo(() => {
-    if (preferences.theme === 'light') return 'vs';
-    if (preferences.theme === 'dark') return 'vs-dark';
-    if (typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: light)').matches) {
-      return 'vs';
-    }
-    return 'vs-dark';
-  }, [preferences.theme]);
+  const monacoTheme = useMemo(() => getMonacoTheme(preferences), [preferences]);
+
+  const editorOptions = useMemo(() => buildMonacoOptions(preferences, {
+    readOnly: true,
+    fontSize: 12,
+    lineNumbers: 'on',
+    minimap: { enabled: false },
+    wordWrap: 'off',
+    tabSize: 2,
+    renderLineHighlight: 'none',
+    padding: { top: 8, bottom: 8 },
+    domReadOnly: true,
+    cursorStyle: 'line-thin',
+    selectionHighlight: false,
+    occurrencesHighlight: 'off',
+    scrollbar: { horizontal: 'auto', vertical: 'auto' },
+  }), [preferences]);
 
   const monacoLanguage =
     snippetLanguage === 'both' ? currentLanguage : snippetLanguage;
@@ -112,24 +122,7 @@ export function SnippetPreviewDialog({
             language={monacoLanguage === 'powershell' ? 'powershell' : 'groovy'}
             theme={monacoTheme}
             value={snippet.code}
-            options={{
-              readOnly: true,
-              fontSize: 12,
-              fontFamily: "'JetBrains Mono', 'Fira Code', 'Consolas', monospace",
-              lineNumbers: 'on',
-              minimap: { enabled: false },
-              wordWrap: 'off',
-              tabSize: 2,
-              automaticLayout: true,
-              scrollBeyondLastLine: false,
-              renderLineHighlight: 'none',
-              padding: { top: 8, bottom: 8 },
-              domReadOnly: true,
-              cursorStyle: 'line-thin',
-              selectionHighlight: false,
-              occurrencesHighlight: 'off',
-              scrollbar: { horizontal: 'auto', vertical: 'auto' },
-            }}
+            options={editorOptions}
             loading={
               <div className="flex items-center justify-center h-full">
                 <div className="text-muted-foreground text-xs">Loading...</div>

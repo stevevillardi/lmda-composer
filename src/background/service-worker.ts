@@ -2,7 +2,14 @@ import { PortalManager } from './portal-manager';
 import { ScriptExecutor, type ExecutorContext } from './script-executor';
 import { ApiExecutor } from './api-executor';
 import { ModuleLoader } from './module-loader';
-import { searchDatapoints, searchModuleScripts } from './module-searcher';
+import {
+  getIndexInfo,
+  rebuildModuleIndex,
+  searchDatapointsFromIndex,
+  searchModuleScriptsFromIndex,
+} from './module-search-index';
+import { isValidSender } from './sender-validation';
+import { clearRateLimitState } from './rate-limiter';
 import {
   fetchCustomFunctions,
   createCustomFunction,
@@ -29,6 +36,9 @@ import type {
   SearchModuleScriptsRequest,
   SearchDatapointsRequest,
   LogicModuleType,
+  ModuleIndexInfo,
+  ModuleSearchProgress,
+  RefreshModuleIndexRequest,
 } from '@/shared/types';
 
 // Initialize managers
@@ -50,36 +60,15 @@ const executorContext: ExecutorContext = {
 const scriptExecutor = new ScriptExecutor(executorContext);
 const apiExecutor = new ApiExecutor(executorContext);
 
-/**
- * Validate that a message sender is trusted.
- * Only accept messages from:
- * - Our own extension (editor window)
- * - LogicMonitor pages (content scripts)
- */
-function isValidSender(sender: chrome.runtime.MessageSender): boolean {
-  // Messages from our own extension (editor window)
-  if (sender.id === chrome.runtime.id) {
-    return true;
-  }
-  
-  // Messages from content scripts on LogicMonitor pages
-  if (sender.url) {
-    try {
-      const url = new URL(sender.url);
-      // Allow logicmonitor.com and our extension URLs
-      if (url.hostname.endsWith('logicmonitor.com') || 
-          url.protocol === 'chrome-extension:') {
-        return true;
-      }
-    } catch {
-      // Invalid URL, reject
-      return false;
-    }
-  }
-  
-  // Reject all other sources
-  console.warn('Rejected message from untrusted sender:', sender);
-  return false;
+const activeModuleSearches = new Map<string, AbortController>();
+
+function sendModuleSearchProgress(progress: ModuleSearchProgress) {
+  chrome.runtime.sendMessage({
+    type: 'MODULE_SEARCH_PROGRESS',
+    payload: progress,
+  }).catch(() => {
+    // Ignore errors if no listener (editor window might be closed)
+  });
 }
 
 // Handle messages from content scripts and editor
@@ -451,18 +440,35 @@ async function handleMessage(
       }
 
       case 'SEARCH_MODULE_SCRIPTS': {
-        const { portalId, query, matchType, caseSensitive, moduleTypes } =
+        const { portalId, query, matchType, caseSensitive, moduleTypes, searchId, forceReindex } =
           message.payload as SearchModuleScriptsRequest;
+        const executionId = searchId || crypto.randomUUID();
+        const abortController = new AbortController();
+        activeModuleSearches.set(executionId, abortController);
+
         try {
-          const results = await searchModuleScripts(
-            moduleLoader,
+          let indexInfo: ModuleIndexInfo = await getIndexInfo(portalId);
+          if (!indexInfo.indexedAt || forceReindex) {
+            indexInfo = await rebuildModuleIndex(portalId, moduleLoader, {
+              searchId: executionId,
+              abortSignal: abortController.signal,
+              onProgress: sendModuleSearchProgress,
+            });
+          }
+
+          const results = await searchModuleScriptsFromIndex(
             portalId,
+            moduleTypes,
             query,
             matchType,
             caseSensitive,
-            moduleTypes
+            {
+              searchId: executionId,
+              abortSignal: abortController.signal,
+              onProgress: sendModuleSearchProgress,
+            }
           );
-          sendResponse({ type: 'MODULE_SCRIPT_SEARCH_RESULTS', payload: { results } });
+          sendResponse({ type: 'MODULE_SCRIPT_SEARCH_RESULTS', payload: { results, indexInfo } });
         } catch (error) {
           sendResponse({
             type: 'MODULE_SCRIPT_SEARCH_ERROR',
@@ -471,22 +477,41 @@ async function handleMessage(
               code: 500,
             },
           });
+        } finally {
+          activeModuleSearches.delete(executionId);
         }
         break;
       }
 
       case 'SEARCH_DATAPOINTS': {
-        const { portalId, query, matchType, caseSensitive } =
+        const { portalId, query, matchType, caseSensitive, searchId, forceReindex } =
           message.payload as SearchDatapointsRequest;
+        const executionId = searchId || crypto.randomUUID();
+        const abortController = new AbortController();
+        activeModuleSearches.set(executionId, abortController);
+
         try {
-          const results = await searchDatapoints(
-            moduleLoader,
+          let indexInfo: ModuleIndexInfo = await getIndexInfo(portalId);
+          if (!indexInfo.indexedAt || forceReindex) {
+            indexInfo = await rebuildModuleIndex(portalId, moduleLoader, {
+              searchId: executionId,
+              abortSignal: abortController.signal,
+              onProgress: sendModuleSearchProgress,
+            });
+          }
+
+          const results = await searchDatapointsFromIndex(
             portalId,
             query,
             matchType,
-            caseSensitive
+            caseSensitive,
+            {
+              searchId: executionId,
+              abortSignal: abortController.signal,
+              onProgress: sendModuleSearchProgress,
+            }
           );
-          sendResponse({ type: 'DATAPOINT_SEARCH_RESULTS', payload: { results } });
+          sendResponse({ type: 'DATAPOINT_SEARCH_RESULTS', payload: { results, indexInfo } });
         } catch (error) {
           sendResponse({
             type: 'DATAPOINT_SEARCH_ERROR',
@@ -495,6 +520,47 @@ async function handleMessage(
               code: 500,
             },
           });
+        } finally {
+          activeModuleSearches.delete(executionId);
+        }
+        break;
+      }
+
+      case 'CANCEL_MODULE_SEARCH': {
+        const { searchId } = message.payload as { searchId: string };
+        const execution = activeModuleSearches.get(searchId);
+        if (execution) {
+          execution.abort();
+          activeModuleSearches.delete(searchId);
+          sendResponse({ success: true });
+        } else {
+          sendResponse({ success: false });
+        }
+        break;
+      }
+
+      case 'REFRESH_MODULE_INDEX': {
+        const { portalId, searchId } = message.payload as RefreshModuleIndexRequest;
+        const executionId = searchId || crypto.randomUUID();
+        const abortController = new AbortController();
+        activeModuleSearches.set(executionId, abortController);
+        try {
+          const indexInfo = await rebuildModuleIndex(portalId, moduleLoader, {
+            searchId: executionId,
+            abortSignal: abortController.signal,
+            onProgress: sendModuleSearchProgress,
+          });
+          sendResponse({ type: 'MODULE_INDEX_REFRESHED', payload: indexInfo });
+        } catch (error) {
+          sendResponse({
+            type: 'MODULE_SCRIPT_SEARCH_ERROR',
+            payload: {
+              error: error instanceof Error ? error.message : 'Failed to refresh module index',
+              code: 500,
+            },
+          });
+        } finally {
+          activeModuleSearches.delete(executionId);
         }
         break;
       }
@@ -636,6 +702,7 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   
   // If a portal was deleted (lost all tabs), notify the editor
   if (deletedPortal) {
+    clearRateLimitState(deletedPortal.hostname);
     chrome.runtime.sendMessage({
       type: 'PORTAL_DISCONNECTED',
       payload: {

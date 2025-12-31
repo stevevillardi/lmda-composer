@@ -48,6 +48,10 @@ export function getRateLimitState(portal: string): RateLimitState | undefined {
   return rateLimitStates.get(portal);
 }
 
+export function clearRateLimitState(portal: string): void {
+  rateLimitStates.delete(portal);
+}
+
 /**
  * Check if we should wait before making a request.
  * Returns the number of milliseconds to wait, or 0 if no wait needed.
@@ -145,4 +149,3 @@ export async function fetchWithRetry(
 function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
-
