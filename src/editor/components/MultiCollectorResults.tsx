@@ -330,7 +330,7 @@ export function MultiCollectorResults({ command, executedCommand, onBack }: Mult
                         </pre>
                       </div>
                     ) : (
-                      <div className="text-muted-foreground text-center py-8">
+                      <div className="text-muted-foreground text-center py-8 select-none">
                         No output available
                       </div>
                     )}
@@ -388,7 +388,7 @@ export function MultiCollectorResults({ command, executedCommand, onBack }: Mult
                     ) : result.error ? (
                       <p className="text-xs text-red-500 wrap-break-word">{result.error}</p>
                     ) : (
-                      <p className="text-xs text-muted-foreground">No output</p>
+                      <p className="text-xs text-muted-foreground select-none">No output</p>
                     )}
                   </ScrollArea>
                 </div>

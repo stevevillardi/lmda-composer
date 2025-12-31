@@ -188,7 +188,7 @@ export function ApiResponseViewer() {
 
   if (!activeTab || activeTab.kind !== 'api') {
     return (
-      <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
+      <div className="h-full flex items-center justify-center text-muted-foreground text-sm select-none">
         No response to show.
       </div>
     );
