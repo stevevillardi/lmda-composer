@@ -6,6 +6,9 @@ import {
   Eye,
   RefreshCw,
   CloudDownload,
+  Database,
+  Target,
+  Activity,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEditorStore } from '../stores/editor-store';
@@ -387,10 +390,47 @@ function ModuleListItem({ module, isSelected, onClick }: ModuleListItemProps) {
       </div>
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
         <span className="font-mono font-medium">{module.collectMethod}</span>
-        {module.hasAutoDiscovery && (
+        {(module.hasAutoDiscovery || module.collectMethod === 'batchscript' || module.collectMethod) && (
           <>
             <span className="text-muted-foreground/50">•</span>
-            <span className="text-green-500 font-medium">Active Discovery Enabled</span>
+            <div className="flex items-center gap-1">
+              {module.hasAutoDiscovery && (
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <span className="inline-flex items-center" aria-label="Active Discovery enabled">
+                        <Target className="size-3.5 text-blue-500" />
+                      </span>
+                    }
+                  />
+                  <TooltipContent>Active Discovery</TooltipContent>
+                </Tooltip>
+              )}
+              {module.collectMethod === 'batchscript' && (
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <span className="inline-flex items-center" aria-label="Batch collection">
+                        <Database className="size-3.5 text-purple-500" />
+                      </span>
+                    }
+                  />
+                  <TooltipContent>Batch collection</TooltipContent>
+                </Tooltip>
+              )}
+              {module.collectMethod !== 'batchscript' && (
+                <Tooltip>
+                  <TooltipTrigger
+                    render={
+                      <span className="inline-flex items-center" aria-label="Collection">
+                        <Activity className="size-3.5 text-green-500" />
+                      </span>
+                    }
+                  />
+                  <TooltipContent>Collection</TooltipContent>
+                </Tooltip>
+              )}
+            </div>
           </>
         )}
       </div>

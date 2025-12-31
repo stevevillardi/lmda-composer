@@ -483,14 +483,24 @@ export function LogicModuleSearch() {
                             </div>
                           </div>
                           <div className="flex items-center gap-1">
-                            {collectionCount > 0 && (
-                              <Badge variant="secondary" className="text-[10px] uppercase">
-                                Col {collectionCount}
+                            {adCount > 0 && (
+                              <Badge
+                                variant="secondary"
+                                className="text-[10px] flex items-center gap-1"
+                                aria-label={`${adCount} Active Discovery matches`}
+                              >
+                                <Target className="size-3 text-blue-500" />
+                                {adCount}
                               </Badge>
                             )}
-                            {adCount > 0 && (
-                              <Badge variant="secondary" className="text-[10px] uppercase">
-                                AD {adCount}
+                            {collectionCount > 0 && (
+                              <Badge
+                                variant="secondary"
+                                className="text-[10px] flex items-center gap-1"
+                                aria-label={`${collectionCount} Collection matches`}
+                              >
+                                <Activity className="size-3 text-green-500" />
+                                {collectionCount}
                               </Badge>
                             )}
                           </div>

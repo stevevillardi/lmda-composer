@@ -14,6 +14,7 @@ import {
 import { useEditorStore } from '../stores/editor-store';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { cn } from '@/lib/utils';
 import logoIcon from '@/assets/icon128.png';
 
@@ -276,15 +277,17 @@ export function WelcomeScreenV2() {
                     ))}
                   </div>
                 ) : (
-                  <div className="flex items-center justify-center py-10 text-muted-foreground">
-                    <div className="text-center">
-                      <FileCode className="size-8 mx-auto mb-2 opacity-50" />
-                      <p className="text-sm">No recent files</p>
-                      <p className="text-xs mt-1">
+                  <Empty className="border-0 py-10">
+                    <EmptyHeader>
+                      <EmptyMedia variant="icon">
+                        <FileCode className="size-5" />
+                      </EmptyMedia>
+                      <EmptyTitle className="text-sm">No recent files</EmptyTitle>
+                      <EmptyDescription className="text-xs">
                         Files you open or save will appear here
-                      </p>
-                    </div>
-                  </div>
+                      </EmptyDescription>
+                    </EmptyHeader>
+                  </Empty>
                 )}
               </CardContent>
             </Card>
