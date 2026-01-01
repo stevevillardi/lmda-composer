@@ -75,6 +75,7 @@ export function StatusBar() {
     selectedPortalId,
     collectors,
     selectedCollectorId,
+    devices,
     hostname,
   } = useEditorStore();
 
@@ -92,6 +93,10 @@ export function StatusBar() {
   // Get selected entities for display
   const selectedPortal = portals.find(p => p.id === selectedPortalId);
   const selectedCollector = collectors.find(c => c.id === selectedCollectorId);
+  const selectedDevice = useMemo(() => {
+    if (!hostname) return null;
+    return devices.find(d => d.name === hostname) ?? null;
+  }, [devices, hostname]);
 
   const charCount = script.length;
   const isOverLimit = charCount > MAX_SCRIPT_LENGTH;
@@ -261,6 +266,12 @@ export function StatusBar() {
     );
   }
 
+  const deviceLabel = selectedDevice
+    ? selectedDevice.displayName === selectedDevice.name
+      ? selectedDevice.name
+      : `${selectedDevice.displayName} (${selectedDevice.name})`
+    : hostname || '';
+
   return (
     <div 
       className="flex items-center justify-between px-3 py-1.5 bg-secondary/30 border-t border-border text-xs select-none"
@@ -288,7 +299,7 @@ export function StatusBar() {
             <span className="text-muted-foreground flex items-center gap-1.5" aria-label="Connection status">
               <span className="size-1.5 rounded-full bg-green-500" aria-hidden="true" />
               Connected to {selectedPortal?.hostname} via {selectedCollector?.description || selectedCollector?.hostname}
-              {hostname ? ` · ${hostname}` : ''}
+              {deviceLabel ? ` · ${deviceLabel}` : ''}
             </span>
           </>
         )}

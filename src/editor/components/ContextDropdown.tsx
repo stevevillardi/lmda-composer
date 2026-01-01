@@ -88,6 +88,10 @@ export function ContextDropdown({
   const selectedPortal = portals.find(p => p.id === selectedPortalId);
   const selectedCollector = collectors.find(c => c.id === selectedCollectorId);
   const selectedCollectorArch = selectedCollector?.arch;
+  const selectedDevice = useMemo(() => {
+    if (!hostname) return null;
+    return devices.find(device => device.name === hostname) ?? null;
+  }, [devices, hostname]);
 
   // Build items arrays for Select
   const portalItems = [
@@ -103,12 +107,21 @@ export function ContextDropdown({
     }))
   ];
 
+  const formatDeviceLabel = (deviceName: string) => {
+    const device = devices.find(d => d.name === deviceName);
+    if (!device) return deviceName;
+    if (!device.displayName || device.displayName === device.name) {
+      return device.name;
+    }
+    return `${device.displayName} (${device.name})`;
+  };
+
   // Build summary text for dropdown trigger
   const getSummaryText = () => {
     if (!selectedPortal) return 'No connected portal';
     if (!showCollector) return selectedPortal.hostname;
     if (!selectedCollector) return selectedPortal.hostname;
-    const device = showDevice && hostname ? ` → ${hostname}` : '';
+    const device = showDevice && hostname ? ` → ${formatDeviceLabel(hostname)}` : '';
     return `${selectedPortal.hostname} → ${selectedCollector.description || selectedCollector.hostname}${device}`;
   };
 
@@ -178,10 +191,10 @@ export function ContextDropdown({
                 </span>
               </div>
             )}
-            {showDevice && hostname && (
+              {showDevice && hostname && (
               <div className="flex items-center gap-2">
                 <span className="text-muted-foreground">Device:</span>
-                <span>{hostname}</span>
+                <span>{formatDeviceLabel(hostname)}</span>
               </div>
             )}
           </div>
@@ -414,6 +427,10 @@ export function ContextDropdown({
                     setHostname(value || '');
                     if (value) setDeviceSearchQuery('');
                   }}
+                  itemToStringLabel={(value) => {
+                    if (!value || typeof value !== 'string') return '';
+                    return formatDeviceLabel(value);
+                  }}
                   disabled={!selectedCollectorId}
                 >
                   <InputGroup className="w-full h-9" data-disabled={!selectedCollectorId}>
@@ -421,7 +438,7 @@ export function ContextDropdown({
                       <InputGroupAddon align="inline-start">
                         <Server className={cn(
                           "size-4 shrink-0",
-                          devices.find(d => d.name === hostname)?.hostStatus === 'normal'
+                          selectedDevice?.hostStatus === 'normal'
                             ? "text-green-500"
                             : "text-red-500"
                         )} />
