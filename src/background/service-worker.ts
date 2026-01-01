@@ -456,6 +456,11 @@ async function handleMessage(
         const { portalId, query, matchType, caseSensitive, moduleTypes, searchId, forceReindex } =
           message.payload as SearchModuleScriptsRequest;
         const executionId = searchId || crypto.randomUUID();
+        const existing = activeModuleSearches.get(executionId);
+        if (existing) {
+          existing.abort();
+          activeModuleSearches.delete(executionId);
+        }
         const abortController = new AbortController();
         activeModuleSearches.set(executionId, abortController);
 
@@ -500,6 +505,11 @@ async function handleMessage(
         const { portalId, query, matchType, caseSensitive, searchId, forceReindex } =
           message.payload as SearchDatapointsRequest;
         const executionId = searchId || crypto.randomUUID();
+        const existing = activeModuleSearches.get(executionId);
+        if (existing) {
+          existing.abort();
+          activeModuleSearches.delete(executionId);
+        }
         const abortController = new AbortController();
         activeModuleSearches.set(executionId, abortController);
 
@@ -555,6 +565,11 @@ async function handleMessage(
       case 'REFRESH_MODULE_INDEX': {
         const { portalId, searchId } = message.payload as RefreshModuleIndexRequest;
         const executionId = searchId || crypto.randomUUID();
+        const existing = activeModuleSearches.get(executionId);
+        if (existing) {
+          existing.abort();
+          activeModuleSearches.delete(executionId);
+        }
         const abortController = new AbortController();
         activeModuleSearches.set(executionId, abortController);
         try {
@@ -709,8 +724,14 @@ chrome.action.onClicked.addListener(async () => {
 
 // Handle tab updates for portal detection
 chrome.tabs.onUpdated.addListener(async (_tabId, changeInfo, tab) => {
-  if (changeInfo.status === 'complete' && tab.url?.includes('logicmonitor.com')) {
-    await portalManager.discoverPortals();
+  if (changeInfo.status !== 'complete') return;
+  try {
+    const url = tab.url ? new URL(tab.url) : null;
+    if (url?.hostname.endsWith('.logicmonitor.com')) {
+      await portalManager.discoverPortals();
+    }
+  } catch {
+    // Ignore invalid URLs
   }
 });
 

@@ -30,7 +30,10 @@ function safeSendMessage(message: ContentToSWMessage): boolean {
   }
   
   try {
-    chrome.runtime.sendMessage(message);
+    void chrome.runtime.sendMessage(message).catch((error) => {
+      console.error('LogicMonitor IDE: Failed to send message:', error);
+      showRefreshNotification();
+    });
     return true;
   } catch (error) {
     console.error('LogicMonitor IDE: Failed to send message:', error);
@@ -66,37 +69,81 @@ function showRefreshNotification() {
     max-width: 400px;
     animation: slideIn 0.3s ease;
   `;
-  
-  notification.innerHTML = `
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2">
-      <circle cx="12" cy="12" r="10"></circle>
-      <line x1="12" y1="8" x2="12" y2="12"></line>
-      <line x1="12" y1="16" x2="12.01" y2="16"></line>
-    </svg>
-    <div style="flex: 1;">
-      <div style="font-weight: 600; margin-bottom: 4px;">LMDA Composer Updated</div>
-      <div style="opacity: 0.8; font-size: 13px;">Please refresh the page to use LMDA Composer.</div>
-    </div>
-    <button style="
-      background: #3b82f6;
-      border: none;
-      color: white;
-      padding: 8px 16px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 13px;
-      font-weight: 500;
-    ">Refresh</button>
-    <button style="
-      background: transparent;
-      border: none;
-      color: #888;
-      cursor: pointer;
-      padding: 4px;
-      font-size: 18px;
-      line-height: 1;
-    ">×</button>
+
+  const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  icon.setAttribute('width', '20');
+  icon.setAttribute('height', '20');
+  icon.setAttribute('viewBox', '0 0 24 24');
+  icon.setAttribute('fill', 'none');
+  icon.setAttribute('stroke', '#f59e0b');
+  icon.setAttribute('stroke-width', '2');
+
+  const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+  circle.setAttribute('cx', '12');
+  circle.setAttribute('cy', '12');
+  circle.setAttribute('r', '10');
+
+  const line1 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  line1.setAttribute('x1', '12');
+  line1.setAttribute('y1', '8');
+  line1.setAttribute('x2', '12');
+  line1.setAttribute('y2', '12');
+
+  const line2 = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  line2.setAttribute('x1', '12');
+  line2.setAttribute('y1', '16');
+  line2.setAttribute('x2', '12.01');
+  line2.setAttribute('y2', '16');
+
+  icon.appendChild(circle);
+  icon.appendChild(line1);
+  icon.appendChild(line2);
+
+  const content = document.createElement('div');
+  content.style.flex = '1';
+
+  const title = document.createElement('div');
+  title.style.fontWeight = '600';
+  title.style.marginBottom = '4px';
+  title.textContent = 'LMDA Composer Updated';
+
+  const message = document.createElement('div');
+  message.style.opacity = '0.8';
+  message.style.fontSize = '13px';
+  message.textContent = 'Please refresh the page to use LMDA Composer.';
+
+  content.appendChild(title);
+  content.appendChild(message);
+
+  const refreshButton = document.createElement('button');
+  refreshButton.textContent = 'Refresh';
+  refreshButton.style.cssText = `
+    background: #3b82f6;
+    border: none;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
   `;
+
+  const closeButton = document.createElement('button');
+  closeButton.textContent = '×';
+  closeButton.style.cssText = `
+    background: transparent;
+    border: none;
+    color: #888;
+    cursor: pointer;
+    padding: 4px;
+    font-size: 18px;
+    line-height: 1;
+  `;
+
+  notification.appendChild(icon);
+  notification.appendChild(content);
+  notification.appendChild(refreshButton);
+  notification.appendChild(closeButton);
   
   // Add animation styles
   const style = document.createElement('style');
@@ -111,14 +158,12 @@ function showRefreshNotification() {
   document.body.appendChild(notification);
   
   // Handle refresh button
-  const refreshBtn = notification.querySelector('button:first-of-type');
-  refreshBtn?.addEventListener('click', () => {
+  refreshButton.addEventListener('click', () => {
     window.location.reload();
   });
   
   // Handle close button
-  const closeBtn = notification.querySelector('button:last-of-type');
-  closeBtn?.addEventListener('click', () => {
+  closeButton.addEventListener('click', () => {
     notification.remove();
   });
   
@@ -625,11 +670,21 @@ function injectIconButton(buttonBar: HTMLElement, editButtonContainer: HTMLEleme
   });
 }
 
+function onDocumentReady(callback: () => void) {
+  if (document.body) {
+    callback();
+    return;
+  }
+  window.addEventListener('DOMContentLoaded', callback, { once: true });
+}
+
 // Initialize
 sendCsrfToken();
-setupResourceTreeObserver();
-setupButtonBarObserver();
-setupIconButtonCleanupObserver();
+onDocumentReady(() => {
+  setupResourceTreeObserver();
+  setupButtonBarObserver();
+  setupIconButtonCleanupObserver();
+});
 
 // Listen for messages from service worker (only if context is valid)
 if (isExtensionContextValid()) {

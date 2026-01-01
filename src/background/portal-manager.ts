@@ -137,7 +137,8 @@ export class PortalManager {
       try {
         // Check if the tab still exists
         const tab = await chrome.tabs.get(tabId);
-        if (tab && tab.url?.includes('logicmonitor.com')) {
+        const url = tab?.url ? new URL(tab.url) : null;
+        if (url && url.hostname.endsWith('.logicmonitor.com')) {
           // Move this tab to the front if it wasn't already
           if (i > 0) {
             portal.tabIds.splice(i, 1);
@@ -145,6 +146,8 @@ export class PortalManager {
           }
           return tabId;
         }
+        portal.tabIds.splice(i, 1);
+        i--;
       } catch {
         portal.tabIds.splice(i, 1);
         i--;
@@ -156,11 +159,9 @@ export class PortalManager {
     return null;
   }
 
-  /**
-   * Get a valid tab ID for a portal, with auto-rediscovery if needed.
-   * Returns null if no valid tab is available.
-   */
-  async getValidTabIdForPortal(portalId: string): Promise<number | null> {
+  private async resolvePortalAndTab(
+    portalId: string
+  ): Promise<{ portal: Portal; tabId: number } | { error: 'PORTAL_NOT_FOUND' | 'NO_VALID_TAB' }> {
     let portal = this.portals.get(portalId);
 
     if (!portal || portal.tabIds.length === 0) {
@@ -168,17 +169,34 @@ export class PortalManager {
       portal = this.portals.get(portalId);
     }
 
-    if (!portal) return null;
+    if (!portal || portal.tabIds.length === 0) {
+      return { error: 'PORTAL_NOT_FOUND' };
+    }
 
     let tabId = await this.getValidTabId(portal);
     if (!tabId) {
       await this.discoverPortals();
       portal = this.portals.get(portalId);
-      if (!portal) return null;
+      if (!portal) {
+        return { error: 'PORTAL_NOT_FOUND' };
+      }
       tabId = await this.getValidTabId(portal);
+      if (!tabId) {
+        return { error: 'NO_VALID_TAB' };
+      }
     }
 
-    return tabId ?? null;
+    return { portal, tabId };
+  }
+
+  /**
+   * Get a valid tab ID for a portal, with auto-rediscovery if needed.
+   * Returns null if no valid tab is available.
+   */
+  async getValidTabIdForPortal(portalId: string): Promise<number | null> {
+    const resolved = await this.resolvePortalAndTab(portalId);
+    if ('error' in resolved) return null;
+    return resolved.tabId;
   }
 
   async discoverPortals(): Promise<Portal[]> {
@@ -404,6 +422,9 @@ export class PortalManager {
     const tabId = await this.getValidTabId(portal);
     if (!tabId) {
       portal.status = 'expired';
+      portal.csrfToken = null;
+      portal.csrfTokenTimestamp = null;
+      this.persistState();
       return;
     }
     
@@ -414,11 +435,20 @@ export class PortalManager {
         func: fetchCsrfToken,
       });
 
-      if (results?.[0]?.result) {
-        this.updateCsrfToken(portal.id, results[0].result);
+      const token = results?.[0]?.result ?? null;
+      if (token) {
+        this.updateCsrfToken(portal.id, token);
+        return;
       }
+      portal.csrfToken = null;
+      portal.csrfTokenTimestamp = null;
+      portal.status = 'expired';
+      this.persistState();
     } catch {
       portal.status = 'expired';
+      portal.csrfToken = null;
+      portal.csrfTokenTimestamp = null;
+      this.persistState();
     }
   }
 
@@ -438,39 +468,14 @@ export class PortalManager {
    * Includes auto-rediscovery if portal tabs are stale.
    */
   async getCollectors(portalId: string): Promise<Collector[]> {
-    // First attempt: try with current portal state
-    let portal = this.portals.get(portalId);
-    
-    // If portal not found or has no tabs, try to rediscover
-    if (!portal || portal.tabIds.length === 0) {
-      await this.discoverPortals();
-      portal = this.portals.get(portalId);
-    }
-    
-    if (!portal || portal.tabIds.length === 0) {
-      return [];
-    }
-
-    let tabId = await this.getValidTabId(portal);
-    
-    // If no valid tab, try rediscovery once
-    if (!tabId) {
-      await this.discoverPortals();
-      portal = this.portals.get(portalId);
-      if (!portal) {
-        return [];
-      }
-      tabId = await this.getValidTabId(portal);
-      if (!tabId) {
-        return [];
-      }
-    }
+    const resolved = await this.resolvePortalAndTab(portalId);
+    if ('error' in resolved) return [];
 
     try {
       const results = await chrome.scripting.executeScript({
-        target: { tabId },
+        target: { tabId: resolved.tabId },
         func: fetchCollectors,
-        args: [portal.csrfToken],
+        args: [resolved.portal.csrfToken],
       });
 
       return results?.[0]?.result ?? [];
@@ -484,39 +489,16 @@ export class PortalManager {
    * Includes auto-rediscovery if portal tabs are stale.
    */
   async getDevices(portalId: string, collectorId: number): Promise<{ items: DeviceInfo[]; total: number; error?: string }> {
-    // First attempt: try with current portal state
-    let portal = this.portals.get(portalId);
-    
-    // If portal not found or has no tabs, try to rediscover
-    if (!portal || portal.tabIds.length === 0) {
-      await this.discoverPortals();
-      portal = this.portals.get(portalId);
-    }
-    
-    if (!portal || portal.tabIds.length === 0) {
-      return { items: [], total: 0, error: 'PORTAL_NOT_FOUND' };
-    }
-
-    let tabId = await this.getValidTabId(portal);
-    
-    // If no valid tab, try rediscovery once
-    if (!tabId) {
-      await this.discoverPortals();
-      portal = this.portals.get(portalId);
-      if (!portal) {
-        return { items: [], total: 0, error: 'NO_VALID_TAB' };
-      }
-      tabId = await this.getValidTabId(portal);
-      if (!tabId) {
-        return { items: [], total: 0, error: 'NO_VALID_TAB' };
-      }
+    const resolved = await this.resolvePortalAndTab(portalId);
+    if ('error' in resolved) {
+      return { items: [], total: 0, error: resolved.error };
     }
 
     try {
       const results = await chrome.scripting.executeScript({
-        target: { tabId },
+        target: { tabId: resolved.tabId },
         func: fetchDevices,
-        args: [portal.csrfToken, collectorId],
+        args: [resolved.portal.csrfToken, collectorId],
       });
 
       return results?.[0]?.result ?? { items: [], total: 0 };
@@ -535,39 +517,14 @@ export class PortalManager {
     displayName: string;
     currentCollectorId: number;
   } | null> {
-    // First attempt: try with current portal state
-    let portal = this.portals.get(portalId);
-    
-    // If portal not found or has no tabs, try to rediscover
-    if (!portal || portal.tabIds.length === 0) {
-      await this.discoverPortals();
-      portal = this.portals.get(portalId);
-    }
-    
-    if (!portal || portal.tabIds.length === 0) {
-      return null;
-    }
-
-    let tabId = await this.getValidTabId(portal);
-    
-    // If no valid tab, try rediscovery once
-    if (!tabId) {
-      await this.discoverPortals();
-      portal = this.portals.get(portalId);
-      if (!portal) {
-        return null;
-      }
-      tabId = await this.getValidTabId(portal);
-      if (!tabId) {
-        return null;
-      }
-    }
+    const resolved = await this.resolvePortalAndTab(portalId);
+    if ('error' in resolved) return null;
 
     try {
       const results = await chrome.scripting.executeScript({
-        target: { tabId },
+        target: { tabId: resolved.tabId },
         func: fetchDeviceById,
-        args: [portal.csrfToken, resourceId],
+        args: [resolved.portal.csrfToken, resourceId],
       });
 
       return results?.[0]?.result ?? null;
@@ -582,39 +539,14 @@ export class PortalManager {
    * Includes auto-rediscovery if portal tabs are stale.
    */
   async getDeviceProperties(portalId: string, deviceId: number): Promise<DeviceProperty[]> {
-    // First attempt: try with current portal state
-    let portal = this.portals.get(portalId);
-    
-    // If portal not found or has no tabs, try to rediscover
-    if (!portal || portal.tabIds.length === 0) {
-      await this.discoverPortals();
-      portal = this.portals.get(portalId);
-    }
-    
-    if (!portal || portal.tabIds.length === 0) {
-      return [];
-    }
-
-    let tabId = await this.getValidTabId(portal);
-    
-    // If no valid tab, try rediscovery once
-    if (!tabId) {
-      await this.discoverPortals();
-      portal = this.portals.get(portalId);
-      if (!portal) {
-        return [];
-      }
-      tabId = await this.getValidTabId(portal);
-      if (!tabId) {
-        return [];
-      }
-    }
+    const resolved = await this.resolvePortalAndTab(portalId);
+    if ('error' in resolved) return [];
 
     try {
       const results = await chrome.scripting.executeScript({
-        target: { tabId },
+        target: { tabId: resolved.tabId },
         func: fetchDeviceProperties,
-        args: [portal.csrfToken, deviceId],
+        args: [resolved.portal.csrfToken, deviceId],
       });
 
       return results?.[0]?.result ?? [];
@@ -656,39 +588,17 @@ export class PortalManager {
     currentAppliesTo: string, 
     testFrom: AppliesToTestFrom
   ): Promise<{ result?: AppliesToTestResult; error?: AppliesToTestError }> {
-    // First attempt: try with current portal state
-    let portal = this.portals.get(portalId);
-    
-    // If portal not found or has no tabs, try to rediscover
-    if (!portal || portal.tabIds.length === 0) {
-      await this.discoverPortals();
-      portal = this.portals.get(portalId);
-    }
-    
-    if (!portal || portal.tabIds.length === 0) {
-      return { error: { errorMessage: 'Portal not found', errorCode: 404, errorDetail: null } };
-    }
-
-    let tabId = await this.getValidTabId(portal);
-    
-    // If no valid tab, try rediscovery once
-    if (!tabId) {
-      await this.discoverPortals();
-      portal = this.portals.get(portalId);
-      if (!portal) {
-        return { error: { errorMessage: 'No valid tab', errorCode: 404, errorDetail: null } };
-      }
-      tabId = await this.getValidTabId(portal);
-      if (!tabId) {
-        return { error: { errorMessage: 'No valid tab', errorCode: 404, errorDetail: null } };
-      }
+    const resolved = await this.resolvePortalAndTab(portalId);
+    if ('error' in resolved) {
+      const errorMessage = resolved.error === 'PORTAL_NOT_FOUND' ? 'Portal not found' : 'No valid tab';
+      return { error: { errorMessage, errorCode: 404, errorDetail: null } };
     }
 
     try {
       const results = await chrome.scripting.executeScript({
-        target: { tabId },
+        target: { tabId: resolved.tabId },
         func: testAppliesToExpression,
-        args: [portal.csrfToken, currentAppliesTo, testFrom],
+        args: [resolved.portal.csrfToken, currentAppliesTo, testFrom],
       });
 
       return results?.[0]?.result ?? { error: { errorMessage: 'Script execution failed', errorCode: 500, errorDetail: null } };

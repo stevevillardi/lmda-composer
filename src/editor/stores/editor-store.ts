@@ -1433,6 +1433,15 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     if (!selectedPortalId) return;
 
     const trimmedQuery = moduleSearchTerm.trim();
+    const previousSearchId = get().moduleSearchExecutionId;
+    if (previousSearchId) {
+      void chrome.runtime.sendMessage({
+        type: 'CANCEL_MODULE_SEARCH',
+        payload: { searchId: previousSearchId },
+      }).catch(() => {
+        // Ignore cancellation errors
+      });
+    }
     if (!trimmedQuery) {
       set({
         moduleScriptSearchResults: [],
@@ -1527,6 +1536,15 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     if (!selectedPortalId) return;
 
     const trimmedQuery = moduleSearchTerm.trim();
+    const previousSearchId = get().moduleSearchExecutionId;
+    if (previousSearchId) {
+      void chrome.runtime.sendMessage({
+        type: 'CANCEL_MODULE_SEARCH',
+        payload: { searchId: previousSearchId },
+      }).catch(() => {
+        // Ignore cancellation errors
+      });
+    }
     if (!trimmedQuery) {
       set({
         moduleDatapointSearchResults: [],
@@ -1632,6 +1650,16 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   refreshModuleSearchIndex: async () => {
     const { selectedPortalId } = get();
     if (!selectedPortalId) return;
+
+    const previousSearchId = get().moduleSearchExecutionId;
+    if (previousSearchId) {
+      void chrome.runtime.sendMessage({
+        type: 'CANCEL_MODULE_SEARCH',
+        payload: { searchId: previousSearchId },
+      }).catch(() => {
+        // Ignore cancellation errors
+      });
+    }
 
     const searchId = crypto.randomUUID();
     set({
@@ -2357,6 +2385,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const { selectedPortalId } = get();
     if (!selectedPortalId) return;
 
+    const fetchingPortal = selectedPortalId;
+    const fetchingDevice = deviceId;
+
     set({ isFetchingProperties: true, selectedDeviceId: deviceId });
 
     try {
@@ -2364,6 +2395,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         type: 'GET_DEVICE_PROPERTIES',
         payload: { portalId: selectedPortalId, deviceId },
       });
+
+      const current = get();
+      if (current.selectedPortalId !== fetchingPortal || current.selectedDeviceId !== fetchingDevice) {
+        return;
+      }
 
       if (response?.type === 'DEVICE_PROPERTIES_LOADED') {
         set({ deviceProperties: response.payload, isFetchingProperties: false });
@@ -2373,6 +2409,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       }
     } catch (error) {
       console.error('Error fetching device properties:', error);
+      const current = get();
+      if (current.selectedPortalId !== fetchingPortal || current.selectedDeviceId !== fetchingDevice) {
+        return;
+      }
       set({ deviceProperties: [], isFetchingProperties: false });
     }
   },
@@ -2382,7 +2422,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   clearDeviceProperties: () => {
-    set({ deviceProperties: [], selectedDeviceId: null, propertiesSearchQuery: '' });
+    set({ deviceProperties: [], selectedDeviceId: null, propertiesSearchQuery: '', isFetchingProperties: false });
   },
 
   insertPropertyAccess: (propertyName) => {
