@@ -9,20 +9,20 @@ import { buildPortalEditUrl } from '@/shared/module-type-schemas';
 import { useEditorStore } from '../../stores/editor-store';
 import type { LogicModuleType } from '@/shared/types';
 
-interface ModuleDetailsDatapointsProps {
+interface ModuleDetailsConfigChecksProps {
   tabId: string;
   moduleId: number;
   moduleType: LogicModuleType;
 }
 
-export function ModuleDetailsDatapoints({ tabId, moduleId, moduleType }: ModuleDetailsDatapointsProps) {
+export function ModuleDetailsConfigChecks({ tabId, moduleId, moduleType }: ModuleDetailsConfigChecksProps) {
   const { portals, selectedPortalId, moduleDetailsDraftByTabId } = useEditorStore();
   const draft = moduleDetailsDraftByTabId[tabId];
-  const datapoints = draft?.draft?.dataPoints || [];
+  const configChecks = draft?.draft?.configChecks || [];
 
   const handleOpenPortal = () => {
     if (!selectedPortalId) return;
-    
+
     const portal = portals.find(p => p.id === selectedPortalId);
     if (!portal) return;
 
@@ -30,19 +30,13 @@ export function ModuleDetailsDatapoints({ tabId, moduleId, moduleType }: ModuleD
     window.open(url, '_blank');
   };
 
-  // Data type labels
-  const dataTypeLabels: Record<number, string> = {
-    0: 'Unknown',
-    1: 'Counter',
-    2: 'Gauge',
-    3: 'Derive',
-    5: 'Status',
-    6: 'Compute',
-    7: 'Counter32',
-    8: 'Counter64',
+  const alertLevelLabels: Record<number, string> = {
+    1: 'No Alert',
+    2: 'Warn',
+    3: 'Error',
+    4: 'Critical',
   };
 
-  // Truncate description helper
   const truncateDescription = (description: string | undefined, maxLength: number = 60): string => {
     if (!description) return '-';
     if (description.length <= maxLength) return description;
@@ -55,17 +49,17 @@ export function ModuleDetailsDatapoints({ tabId, moduleId, moduleType }: ModuleD
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Database className="size-5" />
-            Datapoints
+            Config Checks
           </CardTitle>
           <CardDescription>
-            View datapoints configured for this module (read-only). Datapoint editing is not currently supported in LMDA Composer. Edit in Portal to make changes.
+            View config checks configured for this module (read-only). Config check editing is not currently supported in LMDA Composer. Edit in Portal to make changes.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {datapoints.length === 0 ? (
+          {configChecks.length === 0 ? (
             <Alert>
               <AlertDescription className="flex items-center justify-between">
-                <span>No datapoints found. Datapoint editing is not currently supported in LMDA Composer.</span>
+                <span>No config checks found. Config check editing is not currently supported in LMDA Composer. Edit in Portal to make changes.</span>
                 <Button
                   onClick={handleOpenPortal}
                   disabled={!selectedPortalId}
@@ -82,7 +76,7 @@ export function ModuleDetailsDatapoints({ tabId, moduleId, moduleType }: ModuleD
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <p className="text-sm text-muted-foreground">
-                  {datapoints.length} datapoint{datapoints.length !== 1 ? 's' : ''} configured
+                  {configChecks.length} config check{configChecks.length !== 1 ? 's' : ''} configured
                 </p>
                 <Button
                   onClick={handleOpenPortal}
@@ -95,44 +89,34 @@ export function ModuleDetailsDatapoints({ tabId, moduleId, moduleType }: ModuleD
                   Edit in Portal
                 </Button>
               </div>
-              
+
               <div className="border rounded-md overflow-hidden">
                 <Table>
                   <TableHeader>
                     <TableRow>
                       <TableHead>Name</TableHead>
                       <TableHead>Type</TableHead>
-                      <TableHead>Post Processor</TableHead>
+                      <TableHead>Alert Level</TableHead>
+                      <TableHead>ACK Clear</TableHead>
                       <TableHead>Description</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {datapoints.map((dp) => {
-                      const description = dp.description;
+                    {configChecks.map((check) => {
+                      const description = check.description;
                       const truncatedDesc = truncateDescription(description);
                       const isTruncated = description && description.length > 60;
-                      const postProcessor = (() => {
-                        const method = dp.postProcessorMethod;
-                        const param = (dp as { postProcessorParam?: string }).postProcessorParam;
-                        if (!method || method === 'none') {
-                          return 'none';
-                        }
-                        if (param) {
-                          return `${method}(${param})`;
-                        }
-                        return method;
-                      })();
+                      const alertLabel = alertLevelLabels[check.alertLevel as number] || `Level ${check.alertLevel}`;
 
                       return (
-                        <TableRow key={dp.id}>
-                          <TableCell className="font-medium">{dp.name}</TableCell>
+                        <TableRow key={check.id}>
+                          <TableCell className="font-medium">{check.name}</TableCell>
+                          <TableCell className="text-muted-foreground">{check.type || '-'}</TableCell>
                           <TableCell>
-                            <Badge variant="outline">
-                              {dataTypeLabels[dp.type as number] || `Type ${dp.type}`}
-                            </Badge>
+                            <Badge variant="outline">{alertLabel}</Badge>
                           </TableCell>
-                          <TableCell className="text-muted-foreground font-mono text-xs">
-                            {postProcessor}
+                          <TableCell className="text-muted-foreground">
+                            {check.ackClearAlert ? 'Yes' : 'No'}
                           </TableCell>
                           <TableCell className="text-muted-foreground text-left">
                             {isTruncated ? (
@@ -163,4 +147,3 @@ export function ModuleDetailsDatapoints({ tabId, moduleId, moduleType }: ModuleD
     </div>
   );
 }
-

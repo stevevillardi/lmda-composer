@@ -152,7 +152,6 @@ export function ModuleDetailsOverview({ tabId, moduleType }: ModuleDetailsOvervi
     if (!interval) return undefined;
     return collectIntervalOptions.find(opt => opt.value === interval)?.value.toString();
   }, [draftData.collectInterval, collectIntervalOptions]);
-  
   const selectedCollectIntervalLabel = useMemo(() => {
     const interval = draftData.collectInterval;
     if (!interval) return undefined;
@@ -244,26 +243,26 @@ export function ModuleDetailsOverview({ tabId, moduleType }: ModuleDetailsOvervi
                 <Label htmlFor="module-collect-interval" className="text-sm font-medium">
                   Collect Interval <span className="text-destructive">*</span>
                 </Label>
-                {collectIntervalOptions.length > 0 ? (
-                  <Select
-                    value={selectedCollectInterval}
-                    onValueChange={(value) => {
-                      const option = collectIntervalOptions.find(opt => opt.value.toString() === value);
-                      if (option) {
-                        handleFieldChange('collectInterval', option.value);
-                      }
-                    }}
-                  >
+              {collectIntervalOptions.length > 0 ? (
+                <Select
+                  value={selectedCollectInterval}
+                  onValueChange={(value) => {
+                    const option = collectIntervalOptions.find(opt => opt.value.toString() === value);
+                    if (option) {
+                      handleFieldChange('collectInterval', option.value);
+                    }
+                  }}
+                >
                     <SelectTrigger id="module-collect-interval" className={validationErrors.collectInterval ? 'border-destructive' : ''}>
                       <SelectValue>
                         {selectedCollectIntervalLabel || 'Select collect interval'}
                       </SelectValue>
                     </SelectTrigger>
-                    <SelectContent>
-                      {collectIntervalOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value.toString()}>
-                          {option.label}
-                        </SelectItem>
+                  <SelectContent>
+                    {collectIntervalOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value.toString()}>
+                        {option.label}
+                      </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>

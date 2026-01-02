@@ -44,6 +44,7 @@ import { APPLIES_TO_FUNCTIONS } from '../data/applies-to-functions';
 import { DEFAULT_GROOVY_TEMPLATE, DEFAULT_POWERSHELL_TEMPLATE, getDefaultScriptTemplate } from '../config/script-templates';
 import { buildApiVariableResolver } from '../utils/api-variables';
 import { appendItemsWithLimit } from '../utils/api-pagination';
+import { MODULE_TYPE_SCHEMAS, getSchemaFieldName } from '@/shared/module-type-schemas';
 import type { editor } from 'monaco-editor';
 
 const normalizeAccessGroupIds = (value: unknown): number[] => {
@@ -88,12 +89,13 @@ const getModuleTabIds = (tabs: EditorTab[], tabId: string): string[] => {
   if (!tab || tab.source?.type !== 'module' || !tab.source.moduleId || !tab.source.moduleType) {
     return [tabId];
   }
+  const source = tab.source;
   return tabs
     .filter(
       (t) =>
         t.source?.type === 'module' &&
-        t.source.moduleId === tab.source.moduleId &&
-        t.source.moduleType === tab.source.moduleType
+        t.source.moduleId === source.moduleId &&
+        t.source.moduleType === source.moduleType
     )
     .map((t) => t.id);
 };
@@ -439,14 +441,29 @@ interface EditorState {
       collectInterval?: number;
       accessGroupIds?: number[] | string;
       version?: number;
+      alertSubjectTemplate?: string;
+      alertBodyTemplate?: string;
+      alertLevel?: string;
+      clearAfterAck?: boolean;
+      alertEffectiveIval?: number;
       enableAutoDiscovery?: boolean;
       autoDiscoveryConfig?: {
         scheduleInterval?: number;
+        persistentInstance?: boolean;
         deleteInactiveInstance?: boolean;
         showDeletedInstanceDays?: number;
         disableInstance?: boolean;
         instanceAutoGroupMethod?: string;
         instanceAutoGroupMethodParams?: string;
+        method?: {
+          name?: string;
+          type?: string;
+          winScript?: string | null;
+          winCmdline?: string | null;
+          linuxCmdline?: string | null;
+          linuxScript?: string | null;
+          groovyScript?: string | null;
+        };
         filters?: Array<{
           comment?: string;
           attribute: string;
@@ -467,14 +484,29 @@ interface EditorState {
       collectInterval?: number;
       accessGroupIds?: number[] | string;
       version?: number;
+      alertSubjectTemplate?: string;
+      alertBodyTemplate?: string;
+      alertLevel?: string;
+      clearAfterAck?: boolean;
+      alertEffectiveIval?: number;
       enableAutoDiscovery?: boolean;
       autoDiscoveryConfig?: {
         scheduleInterval?: number;
+        persistentInstance?: boolean;
         deleteInactiveInstance?: boolean;
         showDeletedInstanceDays?: number;
         disableInstance?: boolean;
         instanceAutoGroupMethod?: string;
         instanceAutoGroupMethodParams?: string;
+        method?: {
+          name?: string;
+          type?: string;
+          winScript?: string | null;
+          winCmdline?: string | null;
+          linuxCmdline?: string | null;
+          linuxScript?: string | null;
+          groovyScript?: string | null;
+        };
         filters?: Array<{
           comment?: string;
           attribute: string;
@@ -488,6 +520,19 @@ interface EditorState {
         type?: number;
         description?: string;
         postProcessorMethod?: string;
+        [key: string]: unknown;
+      }>;
+      configChecks?: Array<{
+        id: number;
+        name: string;
+        description?: string;
+        alertLevel?: number;
+        type?: string;
+        ackClearAlert?: boolean;
+        alertEffectiveIval?: number;
+        alertTransitionInterval?: number;
+        script?: unknown;
+        originId?: string | null;
         [key: string]: unknown;
       }>;
     }>;
@@ -1383,6 +1428,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           search: options?.search ?? '',
           pages: 1,
         });
+        if (!get().modulesMeta[type].hasMore) {
+          break;
+        }
       }
       return;
     }
@@ -3755,6 +3803,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       set({ moduleDetailsError: 'Tab is not a module tab' });
       return;
     }
+    const source = tab.source;
+    const moduleType = source.moduleType!;
+    const moduleId = source.moduleId!;
 
     const existingDraft = findModuleDraftForTab(get().moduleDetailsDraftByTabId, tabs, tabId);
     if (existingDraft) {
@@ -3796,31 +3847,64 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         type: 'FETCH_MODULE_DETAILS',
         payload: {
           portalId: selectedPortalId,
-          moduleType: tab.source.moduleType,
-          moduleId: tab.source.moduleId,
+          moduleType,
+          moduleId,
           tabId: lmTab.id,
         },
       });
 
       if (response?.type === 'MODULE_DETAILS_FETCHED') {
         const module = response.payload.module;
+        const schema = MODULE_TYPE_SCHEMAS[moduleType];
+        const intervalField = schema.intervalField || 'collectInterval';
+        const intervalValue =
+          module[intervalField as keyof typeof module] ??
+          module.collectInterval ??
+          module[getSchemaFieldName(schema, 'collectInterval') as keyof typeof module];
+        const collectIntervalValue =
+          schema.intervalFormat === 'object' && typeof intervalValue === 'object' && intervalValue
+            ? (intervalValue as { offset?: number }).offset
+            : intervalValue;
+        const appliesToValue = module[getSchemaFieldName(schema, 'appliesTo') as keyof typeof module];
+        const technologyValue = module[getSchemaFieldName(schema, 'technology') as keyof typeof module];
+        const displayNameValue = module[getSchemaFieldName(schema, 'displayName') as keyof typeof module];
+        const descriptionValue = module[getSchemaFieldName(schema, 'description') as keyof typeof module];
+        const groupValue = module[getSchemaFieldName(schema, 'group') as keyof typeof module];
+        const tagsValue = module[getSchemaFieldName(schema, 'tags') as keyof typeof module];
+        const dataPoints = schema.readOnlyList === 'datapoints' ? module.dataPoints || [] : [];
+        const configChecks = schema.readOnlyList === 'configChecks' ? module.configChecks || [] : [];
+        const autoDiscoveryConfig = schema.autoDiscoveryDefaults
+          ? {
+              ...schema.autoDiscoveryDefaults,
+              ...(module.autoDiscoveryConfig || {}),
+              method: {
+                ...(module.autoDiscoveryConfig?.method || {}),
+              },
+            }
+          : module.autoDiscoveryConfig;
         
         // Extract metadata fields only
         const metadata = {
           id: module.id,
           name: module.name || '',
-          displayName: module.displayName,
-          description: module.description,
-          appliesTo: module.appliesTo,
-          group: module.group,
-          technology: module.technology,
-          tags: module.tags,
-          collectInterval: module.collectInterval,
+          displayName: displayNameValue,
+          description: descriptionValue,
+          appliesTo: appliesToValue,
+          group: groupValue,
+          technology: technologyValue,
+          tags: tagsValue,
+          collectInterval: collectIntervalValue,
           accessGroupIds: module.accessGroupIds,
           version: module.version,
           enableAutoDiscovery: module.enableAutoDiscovery,
-          autoDiscoveryConfig: module.autoDiscoveryConfig,
-          dataPoints: module.dataPoints || [],
+          autoDiscoveryConfig,
+          dataPoints,
+          configChecks,
+          alertSubjectTemplate: module.alertSubjectTemplate,
+          alertBodyTemplate: module.alertBodyTemplate,
+          alertLevel: module.alertLevel,
+          clearAfterAck: module.clearAfterAck,
+          alertEffectiveIval: module.alertEffectiveIval,
         };
 
         // Initialize draft
@@ -3836,8 +3920,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
             dirtyFields: new Set(dirtyFields),
             loadedAt: Date.now(),
             tabId: id,
-            moduleId: tab.source.moduleId,
-            moduleType: tab.source.moduleType,
+            moduleId,
+            moduleType,
             version: module.version || 0,
           };
         });
@@ -4141,7 +4225,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         appliesTo?: string;
         group?: string;
         technology?: string;
-        tags?: string;
+        tags?: string | string[];
         collectInterval?: number;
         accessGroupIds?: number[] | string;
         enableAutoDiscovery?: boolean;
@@ -4162,14 +4246,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       }> | undefined;
 
       if (hasModuleDetailsChanges && moduleDetailsDraft) {
-        // Import buildModuleDetailsPatchPayload from module-api
-        // For now, build it inline
+        const schema = MODULE_TYPE_SCHEMAS[tab.source.moduleType];
         const payload: Record<string, unknown> = {};
         for (const field of moduleDetailsDraft.dirtyFields) {
           const draftValue = moduleDetailsDraft.draft[field as keyof typeof moduleDetailsDraft.draft];
           const originalValue = moduleDetailsDraft.original?.[field as keyof typeof moduleDetailsDraft.original];
+          const actualField = getSchemaFieldName(schema, field);
           
-          if (draftValue !== originalValue) {
+          if (!Object.is(draftValue, originalValue)) {
             if (field === 'accessGroupIds') {
               if (Array.isArray(draftValue)) {
                 payload.accessGroupIds = draftValue;
@@ -4177,10 +4261,25 @@ export const useEditorStore = create<EditorState>((set, get) => ({
                 payload.accessGroupIds = draftValue;
               }
             } else if (field === 'autoDiscoveryConfig') {
-              // For nested objects, include the entire object if any field changed
-              payload.autoDiscoveryConfig = draftValue;
+              const draftConfig = isPlainObject(draftValue) ? draftValue : {};
+              const baseConfig = schema.autoDiscoveryDefaults
+                ? { ...schema.autoDiscoveryDefaults, ...draftConfig }
+                : draftConfig;
+              payload.autoDiscoveryConfig = baseConfig;
+            } else if (field === 'tags' && tab.source.moduleType === 'logsource') {
+              const tagsText = Array.isArray(draftValue) ? draftValue.join(',') : String(draftValue ?? '');
+              const tagsArray = tagsText
+                .split(',')
+                .map((tag) => tag.trim())
+                .filter(Boolean);
+              payload.tags = tagsArray;
+            } else if (field === 'collectInterval' && schema.intervalFormat === 'object' && actualField === 'collectionInterval') {
+              payload.collectionInterval = {
+                units: 'SECONDS',
+                offset: draftValue,
+              };
             } else {
-              payload[field] = draftValue;
+              payload[actualField] = draftValue;
             }
           }
         }

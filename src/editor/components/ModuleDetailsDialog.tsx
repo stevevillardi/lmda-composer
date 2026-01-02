@@ -13,7 +13,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ConfirmationDialog } from './ConfirmationDialog';
 import { ModuleDetailsSidebar } from './ModuleDetailsSidebar';
 import { useEditorStore } from '../stores/editor-store';
-import { MODULE_TYPE_SCHEMAS } from '@/shared/module-type-schemas';
+import { MODULE_TYPE_SCHEMAS, type ModuleDetailsSection } from '@/shared/module-type-schemas';
 import type { LogicModuleType } from '@/shared/types';
 import { ModuleDetailsBasicInfo } from './ModuleDetailsSections/BasicInfo';
 import { ModuleDetailsOrganization } from './ModuleDetailsSections/Organization';
@@ -21,6 +21,8 @@ import { ModuleDetailsAccess } from './ModuleDetailsSections/Access';
 import { ModuleDetailsAppliesTo } from './ModuleDetailsSections/AppliesTo';
 import { ModuleDetailsActiveDiscovery } from './ModuleDetailsSections/ActiveDiscovery';
 import { ModuleDetailsDatapoints } from './ModuleDetailsSections/Datapoints';
+import { ModuleDetailsConfigChecks } from './ModuleDetailsSections/ConfigChecks';
+import { ModuleDetailsAlertSettings } from './ModuleDetailsSections/AlertSettings';
 
 export function ModuleDetailsDialog() {
   const {
@@ -44,7 +46,6 @@ export function ModuleDetailsDialog() {
   // Determine available sections and default to first one
   const schema = activeTab?.source?.moduleType ? MODULE_TYPE_SCHEMAS[activeTab.source.moduleType as LogicModuleType] : null;
   const enableAutoDiscovery = draft?.draft?.enableAutoDiscovery || false;
-  const hasDatapoints = schema?.sections.includes('datapoints') || false;
   
   // Map fields to sections to track which sections have changes
   const dirtySections = useMemo(() => {
@@ -74,9 +75,20 @@ export function ModuleDetailsDialog() {
       sections.add('appliesTo');
     }
     
-    // Active Discovery fields
-    if (dirtyFields.has('autoDiscoveryConfig') || dirtyFields.has('enableAutoDiscovery')) {
-      sections.add('activeDiscovery');
+  // Active Discovery fields
+  if (dirtyFields.has('autoDiscoveryConfig') || dirtyFields.has('enableAutoDiscovery')) {
+    sections.add('activeDiscovery');
+  }
+
+  // Alert Settings fields
+    if (
+      dirtyFields.has('alertSubjectTemplate') ||
+      dirtyFields.has('alertBodyTemplate') ||
+      dirtyFields.has('alertLevel') ||
+      dirtyFields.has('clearAfterAck') ||
+      dirtyFields.has('alertEffectiveIval')
+    ) {
+      sections.add('alertSettings');
     }
     
     // Datapoints are read-only, so no dirty tracking needed
@@ -84,18 +96,26 @@ export function ModuleDetailsDialog() {
     return sections;
   }, [draft]);
   
-  const availableSections = useMemo(() => {
-    const sections = ['basic', 'organization', 'access', 'appliesTo'];
-    if (enableAutoDiscovery && schema?.supportsAutoDiscovery) {
-      sections.push('activeDiscovery');
-    }
-    if (hasDatapoints) {
-      sections.push('datapoints');
-    }
-    return sections;
-  }, [enableAutoDiscovery, schema, hasDatapoints]);
+  const availableSections = useMemo<ModuleDetailsSection[]>(() => {
+    if (!schema) return [];
+    return schema.sections.filter((section) => {
+      if (section === 'activeDiscovery') {
+        return enableAutoDiscovery && schema.supportsAutoDiscovery;
+      }
+      if (section === 'datapoints') {
+        return schema.readOnlyList === 'datapoints';
+      }
+      if (section === 'configChecks') {
+        return schema.readOnlyList === 'configChecks';
+      }
+      if (section === 'alertSettings') {
+        return schema.supportsAlertSettings;
+      }
+      return true;
+    });
+  }, [enableAutoDiscovery, schema]);
   
-  const [activeSection, setActiveSection] = useState<string>(availableSections[0] || 'basic');
+  const [activeSection, setActiveSection] = useState<ModuleDetailsSection>(availableSections[0] || 'basic');
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
   
   // Reset to first available section when dialog opens or sections change
@@ -134,6 +154,14 @@ export function ModuleDetailsDialog() {
     // Technology (Technical Notes) max 4096 characters
     if (draftData.technology && draftData.technology.length > 4096) {
       return true;
+    }
+
+    // Clear After ACK validation (EventSource)
+    if (schema.requiredFields.includes('alertEffectiveIval')) {
+      const value = draftData.alertEffectiveIval;
+      if (value === undefined || value === null || (typeof value === 'number' && (value < 5 || value > 5760))) {
+        return true;
+      }
     }
     
     return false;
@@ -190,14 +218,12 @@ export function ModuleDetailsDialog() {
 
         <div className="flex-1 flex min-h-0 border-t border-border">
           {/* Sidebar Navigation */}
-          <ModuleDetailsSidebar
-            activeSection={activeSection}
-            onSectionChange={setActiveSection}
-            moduleType={activeTab.source.moduleType}
-            enableAutoDiscovery={enableAutoDiscovery}
-            hasDatapoints={hasDatapoints}
-            dirtySections={dirtySections}
-          />
+            <ModuleDetailsSidebar
+              activeSection={activeSection}
+              onSectionChange={(section) => setActiveSection(section)}
+              sections={availableSections}
+              dirtySections={dirtySections}
+            />
 
           {/* Main Content Area */}
           <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
@@ -232,8 +258,14 @@ export function ModuleDetailsDialog() {
                 {activeSection === 'activeDiscovery' && enableAutoDiscovery && (
                   <ModuleDetailsActiveDiscovery tabId={activeTabId!} moduleType={activeTab.source.moduleType} />
                 )}
-                {activeSection === 'datapoints' && hasDatapoints && (
+                {activeSection === 'datapoints' && schema?.readOnlyList === 'datapoints' && (
                   <ModuleDetailsDatapoints tabId={activeTabId!} moduleId={activeTab.source.moduleId} moduleType={activeTab.source.moduleType} />
+                )}
+                {activeSection === 'configChecks' && schema?.readOnlyList === 'configChecks' && (
+                  <ModuleDetailsConfigChecks tabId={activeTabId!} moduleId={activeTab.source.moduleId} moduleType={activeTab.source.moduleType} />
+                )}
+                {activeSection === 'alertSettings' && schema?.supportsAlertSettings && (
+                  <ModuleDetailsAlertSettings tabId={activeTabId!} moduleType={activeTab.source.moduleType} />
                 )}
               </div>
             ) : (

@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Upload, Loader2, AlertCircle, Info, FolderTree, Shield, Filter, Target, Database } from 'lucide-react';
+import { Upload, Loader2, AlertCircle, Info, FolderTree, Shield, Filter, Target, Database, Bell } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -106,7 +106,8 @@ export function ModuleCommitConfirmationDialog({
     return false;
   };
 
-  const collectIntervalOptions = MODULE_TYPE_SCHEMAS[moduleType].collectIntervalOptions || [];
+  const schema = MODULE_TYPE_SCHEMAS[moduleType];
+  const collectIntervalOptions = schema.collectIntervalOptions || [];
   const scheduleIntervalOptions = [
     { label: 'On host/data source change (0 min)', value: 0 },
     { label: '15 minutes', value: 15 },
@@ -192,6 +193,13 @@ export function ModuleCommitConfirmationDialog({
       });
     };
 
+    const formatTags = (val: unknown) => {
+      if (val === null || val === undefined) return '(none)';
+      if (Array.isArray(val)) return val.length ? val.join(', ') : '(none)';
+      const text = String(val).trim();
+      return text.length ? text : '(none)';
+    };
+
     for (const field of moduleDetailsDraft.dirtyFields) {
       const original = moduleDetailsDraft.original?.[field as keyof typeof moduleDetailsDraft.original];
       const modified = moduleDetailsDraft.draft[field as keyof typeof moduleDetailsDraft.draft];
@@ -206,26 +214,46 @@ export function ModuleCommitConfirmationDialog({
         case 'description':
           pushChange(field, 'Basic', 'Description', original, modified);
           break;
-        case 'collectInterval':
+        case 'collectInterval': {
+          const intervalLabel = schema.intervalLabel || 'Collect Interval';
           changes.push({
             key: field,
             section: 'Basic',
-            label: 'Collect Interval',
+            label: intervalLabel,
             original: formatCollectInterval(original),
             modified: formatCollectInterval(modified),
           });
           break;
+        }
         case 'group':
           pushChange(field, 'Organization', 'Group', original, modified);
           break;
         case 'tags':
-          pushChange(field, 'Organization', 'Tags', original, modified);
+          changes.push({
+            key: field,
+            section: 'Organization',
+            label: 'Tags',
+            original: formatTags(original),
+            modified: formatTags(modified),
+          });
           break;
         case 'technology':
-          pushChange(field, 'Organization', 'Technical Notes', original, modified);
+          pushChange(
+            field,
+            'Organization',
+            schema.fieldAliases?.technology === 'technicalNotes' ? 'Technical Notes' : 'Technology',
+            original,
+            modified
+          );
           break;
         case 'appliesTo':
-          pushChange(field, 'Applies To', 'Applies To', original, modified);
+          pushChange(
+            field,
+            'Applies To',
+            schema.fieldAliases?.appliesTo === 'appliesToScript' ? 'Applies To Script' : 'Applies To',
+            original,
+            modified
+          );
           break;
         case 'accessGroupIds':
           changes.push({
@@ -245,6 +273,21 @@ export function ModuleCommitConfirmationDialog({
             modified: formatBoolean(modified),
           });
           break;
+        case 'alertSubjectTemplate':
+          pushChange(field, 'Alert Settings', 'Alert Subject Template', original, modified);
+          break;
+        case 'alertBodyTemplate':
+          pushChange(field, 'Alert Settings', 'Alert Body Template', original, modified);
+          break;
+        case 'alertLevel':
+          pushChange(field, 'Alert Settings', 'Alert Level', original, modified);
+          break;
+        case 'clearAfterAck':
+          pushChange(field, 'Alert Settings', 'Clear After ACK', formatBoolean(original), formatBoolean(modified));
+          break;
+        case 'alertEffectiveIval':
+          pushChange(field, 'Alert Settings', 'Auto Clear After (minutes)', original, modified);
+          break;
         case 'autoDiscoveryConfig': {
           const originalConfig = (original || {}) as Record<string, unknown>;
           const modifiedConfig = (modified || {}) as Record<string, unknown>;
@@ -254,6 +297,7 @@ export function ModuleCommitConfirmationDialog({
             format: (value: unknown) => string;
           }> = [
             { key: 'scheduleInterval', label: 'Schedule Interval', format: formatScheduleInterval },
+            { key: 'persistentInstance', label: 'Persistent Instance', format: formatBoolean },
             { key: 'deleteInactiveInstance', label: 'Delete Inactive Instance', format: formatBoolean },
             { key: 'showDeletedInstanceDays', label: 'Show Deleted Instance Days', format: (val) => (val === 30 ? '30 days' : '0 days') },
             { key: 'disableInstance', label: 'Disable Instance', format: formatBoolean },
@@ -287,7 +331,7 @@ export function ModuleCommitConfirmationDialog({
     }
 
     return changes;
-  }, [moduleDetailsDraft, hasModuleDetailsChanges, accessGroups, collectIntervalOptions]);
+  }, [moduleDetailsDraft, hasModuleDetailsChanges, accessGroups, collectIntervalOptions, schema]);
 
   const groupedReadableChanges = useMemo(() => {
     const groups = new Map<string, typeof readableModuleDetailsChanges>();
@@ -398,6 +442,7 @@ export function ModuleCommitConfirmationDialog({
     'Applies To': Filter,
     'Active Discovery': Target,
     Datapoints: Database,
+    'Alert Settings': Bell,
   };
 
   // Map theme preference to Monaco theme
@@ -441,6 +486,7 @@ export function ModuleCommitConfirmationDialog({
     onOpenChange(false);
   };
 
+  const hasDetailsSection = hasModuleDetailsChanges || hasAdConfigPayload;
   const hasChanges = hasScriptChanges || hasModuleDetailsChanges;
 
   return (
@@ -534,7 +580,7 @@ export function ModuleCommitConfirmationDialog({
           )}
 
           {/* Module Details Changes */}
-          {(hasModuleDetailsChanges || hasAdConfigPayload) && (
+          {hasDetailsSection && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <Label className="text-sm font-medium">

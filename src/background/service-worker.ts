@@ -686,7 +686,7 @@ async function handleMessage(
             appliesTo?: string;
             group?: string;
             technology?: string;
-            tags?: string;
+            tags?: string | string[];
             collectInterval?: number;
             accessGroupIds?: number[] | string;
           }>;

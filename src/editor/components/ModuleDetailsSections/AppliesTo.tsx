@@ -24,6 +24,7 @@ export function ModuleDetailsAppliesTo({ tabId, moduleType }: ModuleDetailsAppli
   const draft = moduleDetailsDraftByTabId[tabId];
   const schema = MODULE_TYPE_SCHEMAS[moduleType];
   const draftData = draft?.draft || {};
+  const appliesToLabel = schema.fieldAliases?.appliesTo === 'appliesToScript' ? 'Applies To Script' : 'Applies To';
 
   const handleFieldChange = (field: string, value: unknown) => {
     updateModuleDetailsField(tabId, field, value);
@@ -47,7 +48,7 @@ export function ModuleDetailsAppliesTo({ tabId, moduleType }: ModuleDetailsAppli
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Filter className="size-5" />
-            Applies To
+            {appliesToLabel}
           </CardTitle>
           <CardDescription>
             Define which devices this module applies to using LogicMonitor expressions
@@ -77,4 +78,3 @@ export function ModuleDetailsAppliesTo({ tabId, moduleType }: ModuleDetailsAppli
     </div>
   );
 }
-

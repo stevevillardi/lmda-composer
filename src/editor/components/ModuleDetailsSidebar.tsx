@@ -1,52 +1,49 @@
-import { Info, FolderTree, Shield, Filter, Database, Target } from 'lucide-react';
+import { Info, FolderTree, Shield, Filter, Database, Target, Bell } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import type { LogicModuleType } from '@/shared/types';
+import type { ModuleDetailsSection } from '@/shared/module-type-schemas';
 
 interface ModuleDetailsSidebarProps {
-  activeSection: string;
-  onSectionChange: (section: string) => void;
-  moduleType: LogicModuleType;
-  enableAutoDiscovery: boolean;
-  hasDatapoints: boolean;
+  activeSection: ModuleDetailsSection;
+  onSectionChange: (section: ModuleDetailsSection) => void;
+  sections: ModuleDetailsSection[];
   dirtySections?: Set<string>;
 }
 
 interface SectionItem {
-  id: string;
+  id: ModuleDetailsSection;
   label: string;
   icon: typeof Info;
-  available: boolean;
 }
 
 export function ModuleDetailsSidebar({
   activeSection,
   onSectionChange,
-  enableAutoDiscovery,
-  hasDatapoints,
+  sections,
   dirtySections = new Set(),
 }: ModuleDetailsSidebarProps) {
-  const sections: SectionItem[] = [
-    { id: 'basic', label: 'Basic Info', icon: Info, available: true },
-    { id: 'organization', label: 'Organization', icon: FolderTree, available: true },
-    { id: 'access', label: 'Access', icon: Shield, available: true },
-    { id: 'appliesTo', label: 'Applies To', icon: Filter, available: true },
-    { id: 'activeDiscovery', label: 'Active Discovery', icon: Target, available: enableAutoDiscovery },
-    { id: 'datapoints', label: 'Datapoints', icon: Database, available: hasDatapoints },
-  ];
-
-  const availableSections = sections.filter(s => s.available);
+  const sectionMetadata: Record<ModuleDetailsSection, SectionItem> = {
+    basic: { id: 'basic', label: 'Basic Info', icon: Info },
+    organization: { id: 'organization', label: 'Organization', icon: FolderTree },
+    access: { id: 'access', label: 'Access', icon: Shield },
+    appliesTo: { id: 'appliesTo', label: 'Applies To', icon: Filter },
+    activeDiscovery: { id: 'activeDiscovery', label: 'Active Discovery', icon: Target },
+    datapoints: { id: 'datapoints', label: 'Datapoints', icon: Database },
+    configChecks: { id: 'configChecks', label: 'Config Checks', icon: Database },
+    alertSettings: { id: 'alertSettings', label: 'Alert Settings', icon: Bell },
+  };
 
   return (
     <div className="w-64 shrink-0 border-r border-border bg-muted/20 flex flex-col">
       <nav className="flex-1 overflow-y-auto p-3 space-y-1">
-        {availableSections.map((section) => {
+        {sections.map((sectionId) => {
+          const section = sectionMetadata[sectionId];
           const Icon = section.icon;
           const isActive = activeSection === section.id;
           
           return (
             <button
-              key={section.id}
-              onClick={() => onSectionChange(section.id)}
+              key={sectionId}
+              onClick={() => onSectionChange(sectionId)}
               className={cn(
                 'w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-all relative text-left',
                 'hover:bg-accent hover:text-accent-foreground',
@@ -67,4 +64,3 @@ export function ModuleDetailsSidebar({
     </div>
   );
 }
-

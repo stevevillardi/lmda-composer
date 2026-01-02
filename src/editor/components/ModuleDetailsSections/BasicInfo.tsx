@@ -60,11 +60,12 @@ export function ModuleDetailsBasicInfo({ tabId, moduleType }: ModuleDetailsBasic
     
     // Collect interval validation
     if (schema.requiredFields.includes('collectInterval')) {
+      const intervalLabel = schema.intervalLabel || 'Collect interval';
       const interval = draftData.collectInterval;
       if (interval === undefined || interval === null) {
-        errors.collectInterval = 'Collect interval is required';
+        errors.collectInterval = `${intervalLabel} is required`;
       } else if (typeof interval === 'number' && interval <= 0) {
-        errors.collectInterval = 'Collect interval must be greater than 0';
+        errors.collectInterval = `${intervalLabel} must be greater than 0`;
       }
     }
     
@@ -156,7 +157,7 @@ export function ModuleDetailsBasicInfo({ tabId, moduleType }: ModuleDetailsBasic
             {schema.editableFields.includes('collectInterval') && (
               <div className="space-y-2">
                 <Label htmlFor="module-collect-interval" className="text-sm font-medium">
-                  Collect Interval <span className="text-destructive">*</span>
+                  {schema.intervalLabel || 'Collect Interval'} <span className="text-destructive">*</span>
                 </Label>
                 {collectIntervalOptions.length > 0 ? (
                   <Select

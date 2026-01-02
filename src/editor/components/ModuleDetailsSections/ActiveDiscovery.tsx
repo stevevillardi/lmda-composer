@@ -27,10 +27,13 @@ export function ModuleDetailsActiveDiscovery({ tabId, moduleType }: ModuleDetail
   const schema = MODULE_TYPE_SCHEMAS[moduleType];
   const draftData = draft?.draft || {};
   const adConfig = draftData.autoDiscoveryConfig || {};
+  const adEditableFields = schema.autoDiscoveryEditableFields;
+  const isEditable = (field: string) => !adEditableFields || adEditableFields.includes(field);
   
   // Read boolean values directly - ensure they're always boolean, never undefined
   const deleteInactiveInstance = Boolean(adConfig.deleteInactiveInstance);
   const disableInstance = Boolean(adConfig.disableInstance);
+  const persistentInstance = Boolean(adConfig.persistentInstance);
 
   const handleFieldChange = (field: string, value: unknown) => {
     updateModuleDetailsField(tabId, field, value);
@@ -174,52 +177,75 @@ export function ModuleDetailsActiveDiscovery({ tabId, moduleType }: ModuleDetail
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Schedule Interval */}
-            <div className="space-y-2">
-              <Label htmlFor="ad-schedule-interval" className="text-sm font-medium">
-                Schedule Interval
-              </Label>
-              <Select
-                value={currentScheduleInterval}
-                onValueChange={(value) => {
-                  if (value) {
-                    handleADFieldChange('scheduleInterval', parseInt(value, 10));
-                  }
-                }}
-              >
-                <SelectTrigger id="ad-schedule-interval">
-                  <SelectValue>
-                    {selectedScheduleIntervalLabel || 'Select schedule interval'}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {scheduleIntervalOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value.toString()}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {isEditable('scheduleInterval') && (
+              <div className="space-y-2">
+                <Label htmlFor="ad-schedule-interval" className="text-sm font-medium">
+                  Schedule Interval
+                </Label>
+                <Select
+                  value={currentScheduleInterval}
+                  onValueChange={(value) => {
+                    if (value) {
+                      handleADFieldChange('scheduleInterval', parseInt(value, 10));
+                    }
+                  }}
+                >
+                  <SelectTrigger id="ad-schedule-interval">
+                    <SelectValue>
+                      {selectedScheduleIntervalLabel || 'Select schedule interval'}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {scheduleIntervalOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value.toString()}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {/* Delete Inactive Instance */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="ad-delete-inactive" className="text-sm font-medium">
-                  Delete Inactive Instance
-                </Label>
-                <Switch
-                  id="ad-delete-inactive"
-                  checked={deleteInactiveInstance}
-                  onCheckedChange={handleDeleteInactiveChange}
-                />
+            {isEditable('deleteInactiveInstance') && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="ad-delete-inactive" className="text-sm font-medium">
+                    Delete Inactive Instance
+                  </Label>
+                  <Switch
+                    id="ad-delete-inactive"
+                    checked={deleteInactiveInstance}
+                    onCheckedChange={handleDeleteInactiveChange}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Automatically delete instances that are no longer discovered
+                </p>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Automatically delete instances that are no longer discovered
-              </p>
-            </div>
+            )}
+
+            {/* Persistent Instance */}
+            {isEditable('persistentInstance') && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="ad-persistent-instance" className="text-sm font-medium">
+                    Persistent Instance
+                  </Label>
+                  <Switch
+                    id="ad-persistent-instance"
+                    checked={persistentInstance}
+                    onCheckedChange={(checked) => handleADFieldChange('persistentInstance', checked)}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Keep instances even when they are no longer discovered
+                </p>
+              </div>
+            )}
 
             {/* Show Deleted Instance Days */}
-            {deleteInactiveInstance && (
+            {isEditable('showDeletedInstanceDays') && deleteInactiveInstance && (
               <div className="space-y-2">
                 <Label htmlFor="ad-show-deleted-days" className="text-sm font-medium">
                   Show Deleted Instance Days
@@ -246,48 +272,52 @@ export function ModuleDetailsActiveDiscovery({ tabId, moduleType }: ModuleDetail
             )}
 
             {/* Disable Instance */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="ad-disable-instance" className="text-sm font-medium">
-                  Disable Instance
-                </Label>
-                <Switch
-                  id="ad-disable-instance"
-                  checked={disableInstance}
-                  onCheckedChange={(checked) => handleADFieldChange('disableInstance', checked)}
-                />
+            {isEditable('disableInstance') && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="ad-disable-instance" className="text-sm font-medium">
+                    Disable Instance
+                  </Label>
+                  <Switch
+                    id="ad-disable-instance"
+                    checked={disableInstance}
+                    onCheckedChange={(checked) => handleADFieldChange('disableInstance', checked)}
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Disable discovered instances by default
+                </p>
               </div>
-              <p className="text-xs text-muted-foreground">
-                Disable discovered instances by default
-              </p>
-            </div>
+            )}
 
             {/* Instance Auto Group Method */}
-            <div className="space-y-2 md:col-span-2">
-              <Label htmlFor="ad-auto-group-method" className="text-sm font-medium">
-                Instance Auto Group Method
-              </Label>
-              <Select
-                value={currentAutoGroupMethod}
-                onValueChange={(value) => handleADFieldChange('instanceAutoGroupMethod', value)}
-              >
-                <SelectTrigger id="ad-auto-group-method">
-                  <SelectValue>
-                    {selectedAutoGroupMethodLabel || 'Select method'}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {instanceAutoGroupMethodOptions.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {isEditable('instanceAutoGroupMethod') && (
+              <div className="space-y-2 md:col-span-2">
+                <Label htmlFor="ad-auto-group-method" className="text-sm font-medium">
+                  Instance Auto Group Method
+                </Label>
+                <Select
+                  value={currentAutoGroupMethod}
+                  onValueChange={(value) => handleADFieldChange('instanceAutoGroupMethod', value)}
+                >
+                  <SelectTrigger id="ad-auto-group-method">
+                    <SelectValue>
+                      {selectedAutoGroupMethodLabel || 'Select method'}
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    {instanceAutoGroupMethodOptions.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {/* Instance Auto Group Method Params */}
-            {adConfig.instanceAutoGroupMethod && adConfig.instanceAutoGroupMethod !== 'none' && (
+            {isEditable('instanceAutoGroupMethodParams') && adConfig.instanceAutoGroupMethod && adConfig.instanceAutoGroupMethod !== 'none' && (
               <div className="space-y-2 md:col-span-2">
                 <Label htmlFor="ad-auto-group-params" className="text-sm font-medium">
                   Instance Auto Group Method Parameters
@@ -303,7 +333,8 @@ export function ModuleDetailsActiveDiscovery({ tabId, moduleType }: ModuleDetail
           </div>
 
           {/* Filters */}
-          <div className="space-y-3 pt-2 border-t border-border">
+          {isEditable('filters') && (
+            <div className="space-y-3 pt-2 border-t border-border">
             <div className="flex items-center justify-between">
               <div>
                 <Label className="text-sm font-medium">Filters</Label>
@@ -442,10 +473,10 @@ export function ModuleDetailsActiveDiscovery({ tabId, moduleType }: ModuleDetail
                 </Table>
               </div>
             )}
-          </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
   );
 }
-

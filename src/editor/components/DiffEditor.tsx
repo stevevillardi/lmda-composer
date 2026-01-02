@@ -7,7 +7,7 @@ import type { ScriptLanguage } from '@/shared/types';
 interface DiffEditorProps {
   original: string;
   modified: string;
-  language?: ScriptLanguage;
+  language?: ScriptLanguage | 'json';
   height?: string;
   theme?: string;
   readOnly?: boolean;
