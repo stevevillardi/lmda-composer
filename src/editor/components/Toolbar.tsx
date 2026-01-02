@@ -14,6 +14,7 @@ import {
   PanelRightOpen,
   Upload,
   History,
+  Settings,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEditorStore } from '../stores/editor-store';
@@ -89,6 +90,7 @@ export function Toolbar() {
     fetchLineageVersions,
     setModuleLineageDialogOpen,
     isFetchingLineage,
+    setModuleDetailsDialogOpen,
   } = useEditorStore();
 
   // Get active tab data
@@ -423,6 +425,31 @@ export function Toolbar() {
             />
             <TooltipContent>
               {isFetchingLineage ? 'Loading lineage...' : 'View historical versions'}
+            </TooltipContent>
+          </Tooltip>
+        )}
+
+        {/* Module Details Button - shown for module tabs */}
+        {isModuleTab && (
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setModuleDetailsDialogOpen(true);
+                  }}
+                  className={cn("gap-1.5", SIZES.BUTTON_TOOLBAR)}
+                  aria-label="Open module details"
+                >
+                  <Settings className={SIZES.ICON_MEDIUM} />
+                  Module Details
+                </Button>
+              }
+            />
+            <TooltipContent>
+              Edit module metadata (name, description, appliesTo, etc.)
             </TooltipContent>
           </Tooltip>
         )}

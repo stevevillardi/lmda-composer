@@ -20,6 +20,7 @@ import { AppliesToTester } from './components/AppliesToTester';
 import { DebugCommandsDialog } from './components/DebugCommandsDialog';
 import { ModuleCommitConfirmationDialog } from './components/ModuleCommitConfirmationDialog';
 import { ModuleLineageDialog } from './components/ModuleLineageDialog';
+import { ModuleDetailsDialog } from './components/ModuleDetailsDialog';
 import { useEditorStore } from './stores/editor-store';
 import { isFileSystemAccessSupported } from './utils/file-handle-store';
 import { isBraveBrowser, isVivaldiBrowser } from './utils/browser-detection';
@@ -512,9 +513,9 @@ export function App() {
         <ModuleCommitConfirmationDialog
           open={moduleCommitConfirmationOpen}
           onOpenChange={setModuleCommitConfirmationOpen}
-          onConfirm={async () => {
+          onConfirm={async (reason) => {
             if (activeTabId) {
-              await commitModuleScript(activeTabId);
+              await commitModuleScript(activeTabId, reason);
             }
           }}
           moduleName={loadedModuleForCommit.name}
@@ -530,6 +531,7 @@ export function App() {
       {activeTab && activeTab.source?.type === 'module' && (
         <ModuleLineageDialog activeTab={activeTab} />
       )}
+      <ModuleDetailsDialog />
       <BraveFileSystemWarning
         open={showBraveWarning}
         onOpenChange={setShowBraveWarning}

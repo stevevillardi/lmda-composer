@@ -29,25 +29,57 @@ interface APIModule {
   id: number;
   name: string;
   displayName?: string;
+  description?: string;
   appliesTo?: string;
+  group?: string;
+  technology?: string;
+  tags?: string;
+  collectInterval?: number;
   collectMethod?: string;
   enableAutoDiscovery?: boolean;
-  dataPoints?: Array<{
+  accessGroupIds?: number[] | string;
+  accessGroups?: Array<{
     id: number;
     name: string;
     description?: string;
+    createdOn?: number;
+    updatedOn?: number;
+    createdBy?: string;
+    tenantId?: string | null;
+  }>;
+  version?: number;
+  dataPoints?: Array<{
+    id: number;
+    name: string;
+    type?: number;
+    description?: string;
+    postProcessorMethod?: string;
     alertForNoData?: number | boolean;
     alertExpr?: string;
     alertTransitionInterval?: number;
     alertClearTransitionInterval?: number;
+    [key: string]: unknown;
   }>;
   autoDiscoveryConfig?: {
-    scheduleInterval?: number;
+    persistentInstance?: boolean;
+    scheduleInterval?: number; // 0|15|60|1440 minutes
+    deleteInactiveInstance?: boolean;
     method?: {
+      name?: string;
       groovyScript?: string;
       linuxScript?: string;
       winScript?: string;
     };
+    instanceAutoGroupMethod?: string; // none|netscaler|netscalerservicegroup|regex|esx|ilp
+    instanceAutoGroupMethodParams?: string;
+    filters?: Array<{
+      comment?: string;
+      attribute: string;
+      operation: string; // Equal|NotEqual|GreaterThan|GreaterEqual|LessThan|LessEqual|Contain|NotContain|NotExist|RegexMatch|RegexNotMatch
+      value?: string;
+    }>;
+    disableInstance?: boolean;
+    showDeletedInstanceDays?: number; // 0 or 30
   };
   // DataSource, ConfigSource, TopologySource use collectorAttribute
   collectorAttribute?: {
@@ -72,6 +104,16 @@ interface APIModule {
   // LogSource specific
   collectionMethod?: string;  // uppercase version (e.g., "SCRIPT")
   appliesToScript?: string;   // LogSource uses this instead of appliesTo
+}
+
+interface AccessGroup {
+  id: number;
+  name: string;
+  description?: string;
+  createdOn?: number;
+  updatedOn?: number;
+  createdBy?: string;
+  tenantId?: string | null;
 }
 
 interface LineageResponse {
@@ -328,11 +370,13 @@ function updateModuleInAPI(
   endpoint: string,
   moduleId: number,
   payload: Partial<APIModule>,
-  apiVersion: string
+  apiVersion: string,
+  reason?: string | null
 ): Promise<{ success: boolean; error?: string }> {
   return new Promise((resolve) => {
     const xhr = new XMLHttpRequest();
-    xhr.open('PATCH', `/santaba/rest${endpoint}/${moduleId}`, true);
+    const reasonParam = reason ? `?reason=${encodeURIComponent(reason.slice(0, 4096))}` : '';
+    xhr.open('PATCH', `/santaba/rest${endpoint}/${moduleId}${reasonParam}`, true);
     xhr.setRequestHeader('Content-Type', 'application/json');
     xhr.setRequestHeader('X-version', apiVersion);
     xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
@@ -346,7 +390,10 @@ function updateModuleInAPI(
       } else {
         try {
           const errorData = JSON.parse(xhr.responseText);
-          const errorMessage = errorData.errorMessage || errorData.message || `Failed to update module: ${xhr.status}`;
+          const baseMessage = errorData.errorMessage || errorData.message || `Failed to update module: ${xhr.status}`;
+          const detailMessage = errorData.errorDetail ? `\n${errorData.errorDetail}` : '';
+          const codeMessage = errorData.errorCode ? `\nError code: ${errorData.errorCode}` : '';
+          const errorMessage = `${baseMessage}${detailMessage}${codeMessage}`;
           resolve({ success: false, error: errorMessage });
         } catch {
           resolve({ success: false, error: `Failed to update module: ${xhr.status}` });
@@ -443,7 +490,7 @@ export async function fetchModuleById(
 }
 
 /**
- * Commit script changes to a module
+ * Commit script changes to a module (optionally with module details changes)
  */
 export async function commitModuleScript(
   portalId: string,
@@ -451,8 +498,10 @@ export async function commitModuleScript(
   moduleType: LogicModuleType,
   moduleId: number,
   scriptType: 'collection' | 'ad',
-  newScript: string,
-  tabId: number
+  newScript: string | undefined,
+  tabId: number,
+  moduleDetails?: Partial<APIModule>,
+  reason?: string
 ): Promise<{ success: boolean; error?: string }> {
   const endpoint = ENDPOINTS[moduleType];
 
@@ -465,7 +514,61 @@ export async function commitModuleScript(
   }
 
   // Build the update payload
-  const payload = buildUpdatePayload(currentModule, moduleType, scriptType, newScript);
+  let payload: Partial<APIModule> = {};
+  
+  // Add script changes if provided
+  if (newScript !== undefined) {
+    const scriptPayload = buildUpdatePayload(currentModule, moduleType, scriptType, newScript);
+    payload = { ...payload, ...scriptPayload };
+  }
+  
+  // Merge module details changes if provided
+  if (moduleDetails) {
+    const fullModuleDetails = { ...moduleDetails };
+    if (moduleDetails.autoDiscoveryConfig) {
+      fullModuleDetails.autoDiscoveryConfig = {
+        ...(currentModule.autoDiscoveryConfig || {}),
+        ...moduleDetails.autoDiscoveryConfig,
+        method: {
+          ...(currentModule.autoDiscoveryConfig?.method || {}),
+          ...(moduleDetails.autoDiscoveryConfig.method || {}),
+        },
+      };
+    }
+
+    if (payload.autoDiscoveryConfig && fullModuleDetails.autoDiscoveryConfig) {
+      payload = {
+        ...payload,
+        ...fullModuleDetails,
+        autoDiscoveryConfig: {
+          ...fullModuleDetails.autoDiscoveryConfig,
+          ...payload.autoDiscoveryConfig,
+          method: {
+            ...(fullModuleDetails.autoDiscoveryConfig.method || {}),
+            ...(payload.autoDiscoveryConfig.method || {}),
+          },
+        },
+      };
+    } else {
+      payload = { ...payload, ...fullModuleDetails };
+    }
+  }
+
+  if (payload.autoDiscoveryConfig && currentModule.autoDiscoveryConfig) {
+    payload.autoDiscoveryConfig = {
+      ...currentModule.autoDiscoveryConfig,
+      ...payload.autoDiscoveryConfig,
+      method: {
+        ...(currentModule.autoDiscoveryConfig.method || {}),
+        ...(payload.autoDiscoveryConfig.method || {}),
+      },
+    };
+  }
+
+  // If no changes, return success
+  if (Object.keys(payload).length === 0) {
+    return { success: true };
+  }
 
   // Update the module
   try {
@@ -477,10 +580,11 @@ export async function commitModuleScript(
       return { success: false, error: `Tab ${tabId} is not accessible. Please refresh the LogicMonitor page.` };
     }
 
+    const reasonArg = reason ?? null;
     const results = await chrome.scripting.executeScript({
       target: { tabId },
       func: updateModuleInAPI,
-      args: [csrfToken, endpoint, moduleId, payload, API_VERSION],
+      args: [csrfToken, endpoint, moduleId, payload, API_VERSION, reasonArg],
     });
 
     if (!results || results.length === 0) {
@@ -578,4 +682,169 @@ export async function fetchLineageVersions(
     console.error('[fetchLineageVersions] Error fetching lineage versions:', error);
     return null;
   }
+}
+
+/**
+ * Fetch module details (metadata only) for editing
+ */
+export async function fetchModuleDetails(
+  portalId: string,
+  csrfToken: string | null,
+  moduleType: LogicModuleType,
+  moduleId: number,
+  tabId: number
+): Promise<APIModule | null> {
+  // Reuse fetchModuleById which already fetches full module
+  // We'll only use the metadata fields in the UI
+  return await fetchModuleById(portalId, csrfToken, moduleType, moduleId, tabId);
+}
+
+/**
+ * Function injected into the page context to fetch access groups list
+ */
+function fetchAccessGroupsFromAPI(
+  csrfToken: string | null,
+  apiVersion: string
+): Promise<{ items: AccessGroup[]; total?: number } | { error: string; status?: number; responseText?: string }> {
+  return new Promise((resolve) => {
+    const url = `/santaba/rest/setting/accessgroup?size=1000`;
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', url, true);
+    try {
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.setRequestHeader('X-version', apiVersion);
+      if (csrfToken) {
+        xhr.setRequestHeader('X-CSRF-Token', csrfToken);
+      }
+    } catch (headerError) {
+      console.error(`[fetchAccessGroupsFromAPI] Error setting headers:`, headerError);
+      resolve({ error: `Failed to set headers: ${headerError instanceof Error ? headerError.message : 'Unknown'}` });
+      return;
+    }
+
+    xhr.onload = () => {
+      if (xhr.status === 200) {
+        try {
+          const response = JSON.parse(xhr.responseText);
+          const items = response.items || response.data?.items || [];
+          resolve({ items, total: response.total });
+        } catch (error) {
+          console.error('[fetchAccessGroupsFromAPI] Error parsing response:', error, 'Response text:', xhr.responseText);
+          resolve({ error: 'Parse error', status: xhr.status, responseText: xhr.responseText });
+        }
+      } else {
+        console.error(`[fetchAccessGroupsFromAPI] Failed to fetch access groups, status: ${xhr.status}, response:`, xhr.responseText);
+        resolve({ error: `HTTP ${xhr.status}`, status: xhr.status, responseText: xhr.responseText });
+      }
+    };
+
+    xhr.onerror = () => {
+      console.error(`[fetchAccessGroupsFromAPI] XHR error for ${url}`);
+      resolve({ error: 'Network error' });
+    };
+    
+    xhr.ontimeout = () => {
+      console.error(`[fetchAccessGroupsFromAPI] XHR timeout for ${url}`);
+      resolve({ error: 'Request timeout' });
+    };
+    
+    try {
+      xhr.send();
+    } catch (sendError) {
+      console.error(`[fetchAccessGroupsFromAPI] Error calling xhr.send():`, sendError);
+      resolve({ error: `Failed to send request: ${sendError instanceof Error ? sendError.message : 'Unknown error'}` });
+    }
+  });
+}
+
+/**
+ * Fetch access groups list
+ */
+export async function fetchAccessGroups(
+  _portalId: string,
+  csrfToken: string | null,
+  tabId: number
+): Promise<AccessGroup[]> {
+  try {
+    // Check if tab exists and is accessible
+    try {
+      await chrome.tabs.get(tabId);
+    } catch (tabError) {
+      console.error(`[fetchAccessGroups] Tab ${tabId} is not accessible:`, tabError);
+      return [];
+    }
+
+    const results = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: fetchAccessGroupsFromAPI,
+      args: [csrfToken, API_VERSION],
+    });
+
+    if (!results || results.length === 0) {
+      console.error(`[fetchAccessGroups] No results array from injected script`);
+      return [];
+    }
+
+    const result = results[0]?.result;
+    if (!result) {
+      console.error(`[fetchAccessGroups] No result from injected script`);
+      return [];
+    }
+
+    // Check if result is an error object
+    if (typeof result === 'object' && 'error' in result) {
+      const errorResult = result as { error: string; status?: number; responseText?: string };
+      console.error(`[fetchAccessGroups] Error from injected script:`, errorResult);
+      return [];
+    }
+
+    const response = result as { items: AccessGroup[]; total?: number };
+    return response.items || [];
+  } catch (error) {
+    console.error('[fetchAccessGroups] Error fetching access groups:', error);
+    return [];
+  }
+}
+
+/**
+ * Build PATCH payload with only changed metadata fields
+ */
+export function buildModuleDetailsPatchPayload(
+  original: Partial<APIModule> | null,
+  draft: Partial<APIModule>,
+  dirtyFields: Set<string>
+): Partial<APIModule> {
+  if (!original) {
+    return draft;
+  }
+
+  const payload: Partial<APIModule> = {};
+
+  // Only include changed fields
+  for (const field of dirtyFields) {
+    const draftValue = draft[field as keyof APIModule];
+    const originalValue = original[field as keyof APIModule];
+
+    // Only include if value actually changed
+    if (draftValue !== originalValue) {
+      // Handle accessGroupIds - can be array of numbers or comma-separated string
+      if (field === 'accessGroupIds') {
+        if (Array.isArray(draftValue)) {
+          // Ensure it's an array of numbers, not objects
+          const numericIds = draftValue.map((id: unknown) => {
+            if (typeof id === 'number') return id;
+            if (typeof id === 'object' && id !== null && 'id' in id) return (id as { id: number }).id;
+            return Number(id);
+          }).filter((id: number) => !isNaN(id));
+          payload.accessGroupIds = numericIds;
+        } else if (typeof draftValue === 'string') {
+          payload.accessGroupIds = draftValue;
+        }
+      } else {
+        (payload as Record<string, unknown>)[field] = draftValue;
+      }
+    }
+  }
+
+  return payload;
 }

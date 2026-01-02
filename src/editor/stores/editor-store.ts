@@ -46,6 +46,75 @@ import { buildApiVariableResolver } from '../utils/api-variables';
 import { appendItemsWithLimit } from '../utils/api-pagination';
 import type { editor } from 'monaco-editor';
 
+const normalizeAccessGroupIds = (value: unknown): number[] => {
+  if (Array.isArray(value)) {
+    return value
+      .map((id) => (typeof id === 'string' ? parseInt(id, 10) : id))
+      .filter((id) => typeof id === 'number' && !Number.isNaN(id))
+      .sort((a, b) => a - b);
+  }
+  if (typeof value === 'string') {
+    return value
+      .split(',')
+      .map((id) => parseInt(id.trim(), 10))
+      .filter((id) => !Number.isNaN(id))
+      .sort((a, b) => a - b);
+  }
+  return [];
+};
+
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const deepEqual = (a: unknown, b: unknown): boolean => {
+  if (Object.is(a, b)) {
+    return true;
+  }
+  if (Array.isArray(a) && Array.isArray(b)) {
+    if (a.length !== b.length) return false;
+    return a.every((item, index) => deepEqual(item, b[index]));
+  }
+  if (isPlainObject(a) && isPlainObject(b)) {
+    const keysA = Object.keys(a);
+    const keysB = Object.keys(b);
+    if (keysA.length !== keysB.length) return false;
+    return keysA.every((key) => deepEqual(a[key], b[key]));
+  }
+  return false;
+};
+
+const getModuleTabIds = (tabs: EditorTab[], tabId: string): string[] => {
+  const tab = tabs.find((t) => t.id === tabId);
+  if (!tab || tab.source?.type !== 'module' || !tab.source.moduleId || !tab.source.moduleType) {
+    return [tabId];
+  }
+  return tabs
+    .filter(
+      (t) =>
+        t.source?.type === 'module' &&
+        t.source.moduleId === tab.source.moduleId &&
+        t.source.moduleType === tab.source.moduleType
+    )
+    .map((t) => t.id);
+};
+
+const findModuleDraftForTab = (
+  drafts: Record<string, EditorState['moduleDetailsDraftByTabId'][string]>,
+  tabs: EditorTab[],
+  tabId: string
+) => {
+  const tab = tabs.find((t) => t.id === tabId);
+  if (!tab || tab.source?.type !== 'module' || !tab.source.moduleId || !tab.source.moduleType) {
+    return null;
+  }
+  return (
+    Object.values(drafts).find(
+      (draft) =>
+        draft.moduleId === tab.source?.moduleId && draft.moduleType === tab.source?.moduleType
+    ) || null
+  );
+};
+
 interface EditorState {
   // Portal/Collector selection
   portals: Portal[];
@@ -356,15 +425,101 @@ interface EditorState {
   isFetchingLineage: boolean;
   lineageError: string | null;
   
+  // Module details state
+  moduleDetailsDraftByTabId: Record<string, {
+    original: Partial<{
+      id: number;
+      name: string;
+      displayName?: string;
+      description?: string;
+      appliesTo?: string;
+      group?: string;
+      technology?: string;
+      tags?: string;
+      collectInterval?: number;
+      accessGroupIds?: number[] | string;
+      version?: number;
+      enableAutoDiscovery?: boolean;
+      autoDiscoveryConfig?: {
+        scheduleInterval?: number;
+        deleteInactiveInstance?: boolean;
+        showDeletedInstanceDays?: number;
+        disableInstance?: boolean;
+        instanceAutoGroupMethod?: string;
+        instanceAutoGroupMethodParams?: string;
+        filters?: Array<{
+          comment?: string;
+          attribute: string;
+          operation: string;
+          value?: string;
+        }>;
+      };
+    }> | null;
+    draft: Partial<{
+      id: number;
+      name: string;
+      displayName?: string;
+      description?: string;
+      appliesTo?: string;
+      group?: string;
+      technology?: string;
+      tags?: string;
+      collectInterval?: number;
+      accessGroupIds?: number[] | string;
+      version?: number;
+      enableAutoDiscovery?: boolean;
+      autoDiscoveryConfig?: {
+        scheduleInterval?: number;
+        deleteInactiveInstance?: boolean;
+        showDeletedInstanceDays?: number;
+        disableInstance?: boolean;
+        instanceAutoGroupMethod?: string;
+        instanceAutoGroupMethodParams?: string;
+        filters?: Array<{
+          comment?: string;
+          attribute: string;
+          operation: string;
+          value?: string;
+        }>;
+      };
+      dataPoints?: Array<{
+        id: number;
+        name: string;
+        type?: number;
+        description?: string;
+        postProcessorMethod?: string;
+        [key: string]: unknown;
+      }>;
+    }>;
+    dirtyFields: Set<string>;
+    loadedAt: number;
+    tabId: string;
+    moduleId: number;
+    moduleType: LogicModuleType;
+    version: number;
+  }>;
+  moduleDetailsDialogOpen: boolean;
+  moduleDetailsLoading: boolean;
+  moduleDetailsError: string | null;
+  accessGroups: Array<{ id: number; name: string; description?: string; createdOn?: number; updatedOn?: number; createdBy?: string; tenantId?: string | null }>;
+  isLoadingAccessGroups: boolean;
+  
   // Module commit actions
   fetchModuleForCommit: (tabId: string) => Promise<void>;
-  commitModuleScript: (tabId: string) => Promise<void>;
+  commitModuleScript: (tabId: string, reason?: string) => Promise<void>;
   canCommitModule: (tabId: string) => boolean;
   setModuleCommitConfirmationOpen: (open: boolean) => void;
 
   // Module lineage actions
   fetchLineageVersions: (tabId: string) => Promise<number>;
   setModuleLineageDialogOpen: (open: boolean) => void;
+  
+  // Module details actions
+  setModuleDetailsDialogOpen: (open: boolean) => void;
+  loadModuleDetails: (tabId: string) => Promise<void>;
+  updateModuleDetailsField: (tabId: string, field: string, value: unknown) => void;
+  resetModuleDetailsDraft: (tabId: string) => void;
+  fetchAccessGroups: () => Promise<void>;
 }
 
 // Storage keys
@@ -573,6 +728,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   lineageVersions: [],
   isFetchingLineage: false,
   lineageError: null,
+  
+  // Module details initial state
+  moduleDetailsDraftByTabId: {},
+  moduleDetailsDialogOpen: false,
+  moduleDetailsLoading: false,
+  moduleDetailsError: null,
+  accessGroups: [],
+  isLoadingAccessGroups: false,
   
   // Debug commands initial state
   debugCommandsDialogOpen: false,
@@ -3571,12 +3734,264 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     }
   },
 
+  // Module details actions
+  setModuleDetailsDialogOpen: (open: boolean) => {
+    set({ moduleDetailsDialogOpen: open });
+    if (!open) {
+      set({ moduleDetailsError: null });
+    }
+  },
+
+  loadModuleDetails: async (tabId: string) => {
+    const { tabs, selectedPortalId } = get();
+    const tab = tabs.find(t => t.id === tabId);
+    
+    if (!tab || !selectedPortalId) {
+      set({ moduleDetailsError: 'Tab not found or portal not selected' });
+      return;
+    }
+
+    if (tab.source?.type !== 'module' || !tab.source.moduleId || !tab.source.moduleType) {
+      set({ moduleDetailsError: 'Tab is not a module tab' });
+      return;
+    }
+
+    const existingDraft = findModuleDraftForTab(get().moduleDetailsDraftByTabId, tabs, tabId);
+    if (existingDraft) {
+      set({
+        moduleDetailsDraftByTabId: {
+          ...get().moduleDetailsDraftByTabId,
+          [tabId]: {
+            ...existingDraft,
+            dirtyFields: new Set(existingDraft.dirtyFields),
+            tabId,
+          },
+        },
+      });
+      return;
+    }
+
+    set({ moduleDetailsLoading: true, moduleDetailsError: null });
+
+    try {
+      // Get portal info for CSRF token
+      const portal = get().portals.find(p => p.id === selectedPortalId);
+      if (!portal) {
+        throw new Error('Portal not found');
+      }
+
+      // Get current tab for CSRF token
+      const currentTabs = await chrome.tabs.query({ url: `https://${portal.hostname}/*` });
+      if (currentTabs.length === 0) {
+        throw new Error('No LogicMonitor tab found');
+      }
+      const lmTab = currentTabs[0];
+      if (!lmTab.id) {
+        throw new Error('Invalid tab ID');
+      }
+
+      // Get CSRF token from portal manager
+      // Fetch module details
+      const response = await chrome.runtime.sendMessage({
+        type: 'FETCH_MODULE_DETAILS',
+        payload: {
+          portalId: selectedPortalId,
+          moduleType: tab.source.moduleType,
+          moduleId: tab.source.moduleId,
+          tabId: lmTab.id,
+        },
+      });
+
+      if (response?.type === 'MODULE_DETAILS_FETCHED') {
+        const module = response.payload.module;
+        
+        // Extract metadata fields only
+        const metadata = {
+          id: module.id,
+          name: module.name || '',
+          displayName: module.displayName,
+          description: module.description,
+          appliesTo: module.appliesTo,
+          group: module.group,
+          technology: module.technology,
+          tags: module.tags,
+          collectInterval: module.collectInterval,
+          accessGroupIds: module.accessGroupIds,
+          version: module.version,
+          enableAutoDiscovery: module.enableAutoDiscovery,
+          autoDiscoveryConfig: module.autoDiscoveryConfig,
+          dataPoints: module.dataPoints || [],
+        };
+
+        // Initialize draft
+        const draft = { ...metadata };
+        const dirtyFields = new Set<string>();
+
+        const moduleTabIds = getModuleTabIds(get().tabs, tabId);
+        const updatedDrafts = { ...get().moduleDetailsDraftByTabId };
+        moduleTabIds.forEach((id) => {
+          updatedDrafts[id] = {
+            original: metadata,
+            draft,
+            dirtyFields: new Set(dirtyFields),
+            loadedAt: Date.now(),
+            tabId: id,
+            moduleId: tab.source.moduleId,
+            moduleType: tab.source.moduleType,
+            version: module.version || 0,
+          };
+        });
+
+        set({
+          moduleDetailsDraftByTabId: updatedDrafts,
+          moduleDetailsLoading: false,
+        });
+      } else if (response?.type === 'MODULE_DETAILS_ERROR') {
+        const error = response.payload.error || 'Failed to fetch module details';
+        set({ moduleDetailsError: error, moduleDetailsLoading: false });
+      } else {
+        set({ moduleDetailsError: 'Unknown error occurred', moduleDetailsLoading: false });
+      }
+    } catch (error) {
+      console.error('[loadModuleDetails] Error:', error);
+      set({ 
+        moduleDetailsError: error instanceof Error ? error.message : 'Failed to load module details',
+        moduleDetailsLoading: false,
+      });
+    }
+  },
+
+  updateModuleDetailsField: (tabId: string, field: string, value: unknown) => {
+    const draft = get().moduleDetailsDraftByTabId[tabId];
+    if (!draft) return;
+
+    const normalizedValue = field === 'accessGroupIds' ? normalizeAccessGroupIds(value) : value;
+    const newDraft = { ...draft.draft, [field]: normalizedValue };
+    const newDirtyFields = new Set(draft.dirtyFields);
+    
+    // Check if value changed from original
+    const originalValue = draft.original?.[field as keyof typeof draft.original];
+    let isDirty = false;
+    if (field === 'accessGroupIds') {
+      const originalIds = normalizeAccessGroupIds(originalValue);
+      const currentIds = normalizeAccessGroupIds(normalizedValue);
+      isDirty = !deepEqual(originalIds, currentIds);
+    } else if (field === 'autoDiscoveryConfig') {
+      isDirty = !deepEqual(originalValue, normalizedValue);
+    } else {
+      isDirty = !Object.is(originalValue, normalizedValue);
+    }
+
+    if (isDirty) {
+      newDirtyFields.add(field);
+    } else {
+      newDirtyFields.delete(field);
+    }
+
+    const moduleTabIds = getModuleTabIds(get().tabs, tabId);
+    const updatedDrafts = { ...get().moduleDetailsDraftByTabId };
+    moduleTabIds.forEach((id) => {
+      updatedDrafts[id] = {
+        ...draft,
+        draft: newDraft,
+        dirtyFields: new Set(newDirtyFields),
+        tabId: id,
+      };
+    });
+
+    set({ moduleDetailsDraftByTabId: updatedDrafts });
+  },
+
+  resetModuleDetailsDraft: (tabId: string) => {
+    const draft = get().moduleDetailsDraftByTabId[tabId];
+    if (!draft) return;
+
+    const moduleTabIds = getModuleTabIds(get().tabs, tabId);
+    const updatedDrafts = { ...get().moduleDetailsDraftByTabId };
+    moduleTabIds.forEach((id) => {
+      updatedDrafts[id] = {
+        ...draft,
+        draft: draft.original ? { ...draft.original } : {},
+        dirtyFields: new Set<string>(),
+        tabId: id,
+      };
+    });
+
+    set({ moduleDetailsDraftByTabId: updatedDrafts });
+  },
+
+  fetchAccessGroups: async () => {
+    const { selectedPortalId } = get();
+    
+    if (!selectedPortalId) {
+      set({ moduleDetailsError: 'Please select a portal first' });
+      return;
+    }
+
+    set({ isLoadingAccessGroups: true });
+
+    try {
+      // Get portal info
+      const portal = get().portals.find(p => p.id === selectedPortalId);
+      if (!portal) {
+        throw new Error('Portal not found');
+      }
+
+      // Get current tab for CSRF token
+      const currentTabs = await chrome.tabs.query({ url: `https://${portal.hostname}/*` });
+      if (currentTabs.length === 0) {
+        throw new Error('No LogicMonitor tab found');
+      }
+      const lmTab = currentTabs[0];
+      if (!lmTab.id) {
+        throw new Error('Invalid tab ID');
+      }
+
+      // Get CSRF token from portal manager
+      // Fetch access groups
+      const response = await chrome.runtime.sendMessage({
+        type: 'FETCH_ACCESS_GROUPS',
+        payload: {
+          portalId: selectedPortalId,
+          tabId: lmTab.id,
+        },
+      });
+
+      if (response?.type === 'ACCESS_GROUPS_FETCHED') {
+        set({ 
+          accessGroups: response.payload.accessGroups || [],
+          isLoadingAccessGroups: false,
+        });
+      } else if (response?.type === 'ACCESS_GROUPS_ERROR') {
+        const error = response.payload.error || 'Failed to fetch access groups';
+        set({ moduleDetailsError: error, isLoadingAccessGroups: false });
+      } else {
+        set({ moduleDetailsError: 'Unknown error occurred', isLoadingAccessGroups: false });
+      }
+    } catch (error) {
+      console.error('[fetchAccessGroups] Error:', error);
+      set({ 
+        moduleDetailsError: error instanceof Error ? error.message : 'Failed to fetch access groups',
+        isLoadingAccessGroups: false,
+      });
+    }
+  },
+
   canCommitModule: (tabId: string) => {
     const tab = get().tabs.find(t => t.id === tabId);
     if (!tab) return false;
     if (tab.source?.type !== 'module') return false;
     if (!get().selectedPortalId) return false;
-    return get().getTabDirtyState(tab);
+    
+    // Check for script changes
+    const hasScriptChanges = get().getTabDirtyState(tab);
+    
+    // Check for module details changes
+    const moduleDetailsDraft = get().moduleDetailsDraftByTabId[tabId];
+    const hasModuleDetailsChanges = moduleDetailsDraft && moduleDetailsDraft.dirtyFields.size > 0;
+    
+    // Can commit if either scripts or module details have changes
+    return hasScriptChanges || hasModuleDetailsChanges;
   },
 
   fetchModuleForCommit: async (tabId: string) => {
@@ -3692,8 +4107,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     }
   },
 
-  commitModuleScript: async (tabId: string) => {
-    const { tabs, selectedPortalId } = get();
+  commitModuleScript: async (tabId: string, reason?: string) => {
+    const { tabs, selectedPortalId, moduleDetailsDraftByTabId } = get();
     const tab = tabs.find(t => t.id === tabId);
     
     if (!tab || !selectedPortalId) {
@@ -3707,6 +4122,73 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     set({ isCommittingModule: true, moduleCommitError: null });
     
     try {
+      // Check if there are module details changes
+      const moduleDetailsDraft = moduleDetailsDraftByTabId[tabId];
+      const hasModuleDetailsChanges = moduleDetailsDraft && moduleDetailsDraft.dirtyFields.size > 0;
+      
+      // Check if script has changes
+      const hasScriptChanges = tab.content !== tab.originalContent;
+      
+      if (!hasScriptChanges && !hasModuleDetailsChanges) {
+        throw new Error('No changes to commit');
+      }
+
+      // Build module details payload if there are changes
+      let moduleDetailsPayload: Partial<{
+        name: string;
+        displayName?: string;
+        description?: string;
+        appliesTo?: string;
+        group?: string;
+        technology?: string;
+        tags?: string;
+        collectInterval?: number;
+        accessGroupIds?: number[] | string;
+        enableAutoDiscovery?: boolean;
+        autoDiscoveryConfig?: {
+          scheduleInterval?: number;
+          deleteInactiveInstance?: boolean;
+          showDeletedInstanceDays?: number;
+          disableInstance?: boolean;
+          instanceAutoGroupMethod?: string;
+          instanceAutoGroupMethodParams?: string;
+          filters?: Array<{
+            comment?: string;
+            attribute: string;
+            operation: string;
+            value?: string;
+          }>;
+        };
+      }> | undefined;
+
+      if (hasModuleDetailsChanges && moduleDetailsDraft) {
+        // Import buildModuleDetailsPatchPayload from module-api
+        // For now, build it inline
+        const payload: Record<string, unknown> = {};
+        for (const field of moduleDetailsDraft.dirtyFields) {
+          const draftValue = moduleDetailsDraft.draft[field as keyof typeof moduleDetailsDraft.draft];
+          const originalValue = moduleDetailsDraft.original?.[field as keyof typeof moduleDetailsDraft.original];
+          
+          if (draftValue !== originalValue) {
+            if (field === 'accessGroupIds') {
+              if (Array.isArray(draftValue)) {
+                payload.accessGroupIds = draftValue;
+              } else if (typeof draftValue === 'string') {
+                payload.accessGroupIds = draftValue;
+              }
+            } else if (field === 'autoDiscoveryConfig') {
+              // For nested objects, include the entire object if any field changed
+              payload.autoDiscoveryConfig = draftValue;
+            } else {
+              payload[field] = draftValue;
+            }
+          }
+        }
+        moduleDetailsPayload = payload;
+      }
+
+      const trimmedReason = reason?.trim();
+      const limitedReason = trimmedReason ? trimmedReason.slice(0, 4096) : undefined;
       const response = await chrome.runtime.sendMessage({
         type: 'COMMIT_MODULE_SCRIPT',
         payload: {
@@ -3714,18 +4196,38 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           moduleType: tab.source.moduleType,
           moduleId: tab.source.moduleId,
           scriptType: tab.source.scriptType,
-          newScript: tab.content,
+          newScript: hasScriptChanges ? tab.content : undefined,
+          moduleDetails: moduleDetailsPayload,
+          reason: limitedReason,
         },
       });
       
       if (response?.type === 'MODULE_COMMITTED') {
         // Update originalContent to reflect the committed state
+        const updatedTabs = tabs.map(t => 
+          t.id === tabId 
+            ? { ...t, originalContent: t.content }
+            : t
+        );
+        
+        // Clear module details draft if committed
+        const updatedDrafts = { ...moduleDetailsDraftByTabId };
+        const moduleTabIds = getModuleTabIds(tabs, tabId);
+        if (hasModuleDetailsChanges && moduleDetailsDraft) {
+          // Update original to match draft after successful commit across module tabs
+          moduleTabIds.forEach((id) => {
+            updatedDrafts[id] = {
+              ...moduleDetailsDraft,
+              original: moduleDetailsDraft.draft,
+              dirtyFields: new Set<string>(),
+              tabId: id,
+            };
+          });
+        }
+        
         set({
-          tabs: tabs.map(t => 
-            t.id === tabId 
-              ? { ...t, originalContent: t.content }
-              : t
-          ),
+          tabs: updatedTabs,
+          moduleDetailsDraftByTabId: updatedDrafts,
           isCommittingModule: false,
           moduleCommitConfirmationOpen: false,
           loadedModuleForCommit: null,

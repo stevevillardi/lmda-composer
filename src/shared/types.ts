@@ -535,12 +535,14 @@ export type EditorToSWMessage =
   | { type: 'EXECUTE_DEBUG_COMMAND'; payload: ExecuteDebugCommandRequest & { executionId?: string } }
   | { type: 'CANCEL_DEBUG_COMMAND'; payload: { executionId: string } }
   | { type: 'FETCH_MODULE'; payload: { portalId: string; moduleType: LogicModuleType; moduleId: number } }
-  | { type: 'COMMIT_MODULE_SCRIPT'; payload: { portalId: string; moduleType: LogicModuleType; moduleId: number; scriptType: 'collection' | 'ad'; newScript: string } }
+  | { type: 'COMMIT_MODULE_SCRIPT'; payload: { portalId: string; moduleType: LogicModuleType; moduleId: number; scriptType: 'collection' | 'ad'; newScript?: string; moduleDetails?: Record<string, unknown>; reason?: string } }
   | { type: 'FETCH_LINEAGE_VERSIONS'; payload: { portalId: string; moduleType: LogicModuleType; lineageId: string } }
   | { type: 'SEARCH_MODULE_SCRIPTS'; payload: SearchModuleScriptsRequest }
   | { type: 'SEARCH_DATAPOINTS'; payload: SearchDatapointsRequest }
   | { type: 'CANCEL_MODULE_SEARCH'; payload: { searchId: string } }
   | { type: 'REFRESH_MODULE_INDEX'; payload: RefreshModuleIndexRequest }
+  | { type: 'FETCH_MODULE_DETAILS'; payload: { portalId: string; moduleType: LogicModuleType; moduleId: number; tabId: number } }
+  | { type: 'FETCH_ACCESS_GROUPS'; payload: { portalId: string; tabId: number } }
   | { type: 'OPEN_EDITOR'; payload?: DeviceContext };
 
 export type SWToEditorMessage =

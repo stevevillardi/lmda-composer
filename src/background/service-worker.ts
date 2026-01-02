@@ -20,6 +20,8 @@ import {
   fetchModuleById,
   commitModuleScript,
   fetchLineageVersions,
+  fetchModuleDetails,
+  fetchAccessGroups,
 } from './module-api';
 import type { 
   EditorToSWMessage, 
@@ -593,15 +595,104 @@ async function handleMessage(
         break;
       }
 
+      case 'FETCH_MODULE_DETAILS': {
+        const { portalId, moduleType, moduleId, tabId } = message.payload as {
+          portalId: string;
+          moduleType: LogicModuleType;
+          moduleId: number;
+          tabId: number;
+        };
+        try {
+          const portal = portalManager.getPortal(portalId);
+          if (!portal) {
+            sendResponse({
+              type: 'MODULE_DETAILS_ERROR',
+              payload: { error: 'Portal not found', code: 404 },
+            });
+            break;
+          }
+          const csrfToken = await portalManager.getCsrfToken(portalId);
+          const module = await fetchModuleDetails(
+            portal.hostname,
+            csrfToken,
+            moduleType,
+            moduleId,
+            tabId
+          );
+          if (module) {
+            sendResponse({ type: 'MODULE_DETAILS_FETCHED', payload: { module } });
+          } else {
+            sendResponse({
+              type: 'MODULE_DETAILS_ERROR',
+              payload: { error: 'Module not found', code: 404 },
+            });
+          }
+        } catch (error) {
+          sendResponse({
+            type: 'MODULE_DETAILS_ERROR',
+            payload: {
+              error: error instanceof Error ? error.message : 'Failed to fetch module details',
+              code: 500,
+            },
+          });
+        }
+        break;
+      }
+
+      case 'FETCH_ACCESS_GROUPS': {
+        const { portalId, tabId } = message.payload as {
+          portalId: string;
+          tabId: number;
+        };
+        try {
+          const portal = portalManager.getPortal(portalId);
+          if (!portal) {
+            sendResponse({
+              type: 'ACCESS_GROUPS_ERROR',
+              payload: { error: 'Portal not found', code: 404 },
+            });
+            break;
+          }
+          const csrfToken = await portalManager.getCsrfToken(portalId);
+          const accessGroups = await fetchAccessGroups(
+            portal.hostname,
+            csrfToken,
+            tabId
+          );
+          sendResponse({ type: 'ACCESS_GROUPS_FETCHED', payload: { accessGroups } });
+        } catch (error) {
+          sendResponse({
+            type: 'ACCESS_GROUPS_ERROR',
+            payload: {
+              error: error instanceof Error ? error.message : 'Failed to fetch access groups',
+              code: 500,
+            },
+          });
+        }
+        break;
+      }
+
       case 'COMMIT_MODULE_SCRIPT': {
-        const { portalId, moduleType, moduleId, scriptType, newScript } = message.payload as { 
+        const { portalId, moduleType, moduleId, scriptType, newScript, moduleDetails, reason } = message.payload as { 
           portalId: string; 
           moduleType: LogicModuleType; 
           moduleId: number;
           scriptType: 'collection' | 'ad';
-          newScript: string;
+          newScript?: string;
+          moduleDetails?: Partial<{
+            name: string;
+            displayName?: string;
+            description?: string;
+            appliesTo?: string;
+            group?: string;
+            technology?: string;
+            tags?: string;
+            collectInterval?: number;
+            accessGroupIds?: number[] | string;
+          }>;
+          reason?: string;
         };
-        console.log(`[SW] COMMIT_MODULE_SCRIPT: portalId=${portalId}, moduleType=${moduleType}, moduleId=${moduleId}, scriptType=${scriptType}`);
+        console.log(`[SW] COMMIT_MODULE_SCRIPT: portalId=${portalId}, moduleType=${moduleType}, moduleId=${moduleId}, scriptType=${scriptType}, hasScriptChanges=${newScript !== undefined}, hasModuleDetails=${!!moduleDetails}, hasReason=${!!reason}`);
         try {
           const portal = portalManager.getPortal(portalId);
           const tabId = await portalManager.getValidTabIdForPortal(portalId);
@@ -623,7 +714,9 @@ async function handleMessage(
             moduleId, 
             scriptType, 
             newScript,
-            tabId
+            tabId,
+            moduleDetails,
+            reason
           );
           console.log(`[SW] Commit result:`, result);
           if (result.success) {
