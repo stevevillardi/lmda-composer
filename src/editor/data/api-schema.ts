@@ -1,6 +1,4 @@
-import { parse } from 'yaml';
 import type { ApiRequestMethod } from '@/shared/types';
-import schemaText from '../../../docs/logicmonitor-api.yaml?raw';
 
 export interface ApiEndpointDefinition {
   id: string;
@@ -97,8 +95,37 @@ function buildEndpoints(schema: OpenApiSchema): ApiEndpointDefinition[] {
   return endpoints;
 }
 
-const parsedSchema = parse(schemaText) as OpenApiSchema;
+export interface ApiSchema {
+  endpoints: ApiEndpointDefinition[];
+}
 
-export const API_SCHEMA = {
-  endpoints: buildEndpoints(parsedSchema),
-};
+const API_SCHEMA_URL = 'https://www.logicmonitor.com/swagger-ui-master/api-v3/dist/swagger.json';
+
+let cachedSchema: ApiSchema | null = null;
+let pendingSchema: Promise<ApiSchema> | null = null;
+
+export function resetApiSchemaCache(): void {
+  cachedSchema = null;
+  pendingSchema = null;
+}
+
+export async function loadApiSchema(): Promise<ApiSchema> {
+  if (cachedSchema) return cachedSchema;
+  if (!pendingSchema) {
+    pendingSchema = (async () => {
+      const response = await fetch(API_SCHEMA_URL, {
+        headers: {
+          Accept: 'application/json',
+        },
+      });
+      if (!response.ok) {
+        throw new Error(`Failed to load API schema (${response.status})`);
+      }
+      const parsedSchema = (await response.json()) as OpenApiSchema;
+      const apiSchema = { endpoints: buildEndpoints(parsedSchema) };
+      cachedSchema = apiSchema;
+      return apiSchema;
+    })();
+  }
+  return pendingSchema;
+}

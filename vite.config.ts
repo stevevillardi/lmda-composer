@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import { crx } from '@crxjs/vite-plugin';
 import tailwindcss from '@tailwindcss/vite';
 import { resolve } from 'path';
+import { visualizer } from 'rollup-plugin-visualizer';
 import manifest from './src/manifest.json';
 
 export default defineConfig({
@@ -18,6 +19,19 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
+      plugins: [
+        visualizer({
+          filename: 'dist/stats.html',
+          open: false,
+          gzipSize: true,
+          brotliSize: true,
+        }),
+      ],
+      output: {
+        manualChunks: {
+          monaco: ['monaco-editor', '@monaco-editor/react'],
+        },
+      },
       input: {
         editor: resolve(__dirname, 'src/editor/index.html'),
         onboarding: resolve(__dirname, 'src/onboarding/index.html'),

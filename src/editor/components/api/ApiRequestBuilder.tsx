@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import type { ApiRequestMethod } from '@/shared/types';
-import { API_SCHEMA } from '@/editor/data/api-schema';
+import { useApiSchema } from '@/editor/hooks/useApiSchema';
 import { Braces, KeyRound, SlidersHorizontal } from 'lucide-react';
 import { buildMonacoOptions, getMonacoTheme } from '@/editor/utils/monaco-settings';
 import '../../monaco-loader';
@@ -36,6 +36,7 @@ export function ApiRequestBuilder() {
   const headerParams = request?.headerParams ?? {};
 
   const monacoTheme = useMemo(() => getMonacoTheme(preferences), [preferences]);
+  const { schema } = useApiSchema();
 
   const editorOptions = useMemo(() => buildMonacoOptions(preferences, {
     minimap: { enabled: false },
@@ -46,8 +47,8 @@ export function ApiRequestBuilder() {
   }), [preferences]);
 
   const endpoint = useMemo(() => {
-    return API_SCHEMA.endpoints.find((entry) => entry.method === method && entry.path === path);
-  }, [method, path]);
+    return schema?.endpoints.find((entry) => entry.method === method && entry.path === path);
+  }, [method, path, schema]);
 
   const queryParamSuggestions = useMemo(
     () =>

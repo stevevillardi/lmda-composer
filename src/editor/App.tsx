@@ -1,25 +1,18 @@
-import { useEffect, useState, useRef, useCallback, useMemo } from 'react';
-import { FileWarning, RotateCcw } from 'lucide-react';
+import { useEffect, useState, useRef, useCallback, useMemo, Suspense, lazy } from 'react';
+import { FileWarning, RotateCcw, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Toolbar } from './components/Toolbar';
-import { EditorPanel } from './components/EditorPanel';
 import { OutputPanel } from './components/OutputPanel';
 import { StatusBar } from './components/StatusBar';
 import { ExecutionContextDialog } from './components/ExecutionContextDialog';
 import { LogicModuleBrowser } from './components/LogicModuleBrowser';
-import { LogicModuleSearch } from './components/LogicModuleSearch';
 import { CommandPalette } from './components/CommandPalette';
 import { SettingsDialog } from './components/SettingsDialog';
 import { RightSidebar } from './components/RightSidebar';
 import { TabBar } from './components/TabBar';
 import { WelcomeScreenV2 } from './components/WelcomeScreenV2';
-import { ApiExplorerPanel } from './components/api/ApiExplorerPanel';
-import { ApiRightSidebar } from './components/api/ApiRightSidebar';
 import { BraveFileSystemWarning } from './components/BraveFileSystemWarning';
-import { AppliesToTester } from './components/AppliesToTester';
 import { DebugCommandsDialog } from './components/DebugCommandsDialog';
-import { ModuleCommitConfirmationDialog } from './components/ModuleCommitConfirmationDialog';
-import { ModuleLineageDialog } from './components/ModuleLineageDialog';
 import { ModuleDetailsDialog } from './components/ModuleDetailsDialog';
 import { useEditorStore } from './stores/editor-store';
 import { isFileSystemAccessSupported } from './utils/file-handle-store';
@@ -42,6 +35,23 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import type { DraftScript, DraftTabs, LogicModuleInfo, ScriptType } from '@/shared/types';
+
+const EditorPanelLazy = lazy(() => import('./components/EditorPanel').then((mod) => ({ default: mod.EditorPanel })));
+const LogicModuleSearchLazy = lazy(() => import('./components/LogicModuleSearch').then((mod) => ({ default: mod.LogicModuleSearch })));
+const ApiExplorerPanelLazy = lazy(() => import('./components/api/ApiExplorerPanel').then((mod) => ({ default: mod.ApiExplorerPanel })));
+const ApiRightSidebarLazy = lazy(() => import('./components/api/ApiRightSidebar').then((mod) => ({ default: mod.ApiRightSidebar })));
+const AppliesToTesterLazy = lazy(() => import('./components/AppliesToTester').then((mod) => ({ default: mod.AppliesToTester })));
+const ModuleCommitConfirmationDialogLazy = lazy(() => import('./components/ModuleCommitConfirmationDialog').then((mod) => ({ default: mod.ModuleCommitConfirmationDialog })));
+const ModuleLineageDialogLazy = lazy(() => import('./components/ModuleLineageDialog').then((mod) => ({ default: mod.ModuleLineageDialog })));
+
+const panelLoadingFallback = (
+  <div className="flex items-center justify-center h-full">
+    <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground shadow-sm">
+      <Loader2 className="size-4 animate-spin" />
+      Loading workspace…
+    </div>
+  </div>
+);
 
 export function App() {
   const { 
@@ -468,11 +478,15 @@ export function App() {
           >
             <ResizablePanel defaultSize={rightSidebarOpen ? "78.5%" : "100%"} minSize="50%">
               {activeTab?.kind === 'api' ? (
-                <ApiExplorerPanel />
+                <Suspense fallback={panelLoadingFallback}>
+                  <ApiExplorerPanelLazy />
+                </Suspense>
               ) : (
                 <ResizablePanelGroup direction="vertical" className="h-full">
                   <ResizablePanel defaultSize="80%" minSize="20%">
-                    <EditorPanel />
+                    <Suspense fallback={panelLoadingFallback}>
+                      <EditorPanelLazy />
+                    </Suspense>
                   </ResizablePanel>
 
                   <ResizableHandle withHandle />
@@ -490,7 +504,13 @@ export function App() {
               <>
                 <ResizableHandle withVerticalHandle />
                 <ResizablePanel defaultSize="21.5%" minSize="21.5%" maxSize="40%">
-                  {activeTab?.kind === 'api' ? <ApiRightSidebar /> : <RightSidebar />}
+                  {activeTab?.kind === 'api' ? (
+                    <Suspense fallback={panelLoadingFallback}>
+                      <ApiRightSidebarLazy />
+                    </Suspense>
+                  ) : (
+                    <RightSidebar />
+                  )}
                 </ResizablePanel>
               </>
             )}
@@ -504,32 +524,40 @@ export function App() {
       {/* Dialogs */}
       <ExecutionContextDialog />
       <LogicModuleBrowser />
-      <LogicModuleSearch />
+      <Suspense fallback={null}>
+        <LogicModuleSearchLazy />
+      </Suspense>
       <CommandPalette />
       <SettingsDialog />
-      <AppliesToTester />
+      <Suspense fallback={null}>
+        <AppliesToTesterLazy />
+      </Suspense>
       <DebugCommandsDialog />
       {activeTab && activeTab.source?.type === 'module' && loadedModuleForCommit && (
-        <ModuleCommitConfirmationDialog
-          open={moduleCommitConfirmationOpen}
-          onOpenChange={setModuleCommitConfirmationOpen}
-          onConfirm={async (reason) => {
-            if (activeTabId) {
-              await commitModuleScript(activeTabId, reason);
-            }
-          }}
-          moduleName={loadedModuleForCommit.name}
-          moduleType={loadedModuleForCommit.moduleType}
-          scriptType={activeTab.source.scriptType || 'collection'}
-          scriptLanguage={loadedModuleForCommit.scriptType === 'powerShell' ? 'powershell' : 'groovy'}
-          originalScript={activeTab.originalContent || ''}
-          newScript={activeTab.content}
-          hasConflict={false}
-          isCommitting={isCommittingModule}
-        />
+        <Suspense fallback={null}>
+          <ModuleCommitConfirmationDialogLazy
+            open={moduleCommitConfirmationOpen}
+            onOpenChange={setModuleCommitConfirmationOpen}
+            onConfirm={async (reason) => {
+              if (activeTabId) {
+                await commitModuleScript(activeTabId, reason);
+              }
+            }}
+            moduleName={loadedModuleForCommit.name}
+            moduleType={loadedModuleForCommit.moduleType}
+            scriptType={activeTab.source.scriptType || 'collection'}
+            scriptLanguage={loadedModuleForCommit.scriptType === 'powerShell' ? 'powershell' : 'groovy'}
+            originalScript={activeTab.originalContent || ''}
+            newScript={activeTab.content}
+            hasConflict={false}
+            isCommitting={isCommittingModule}
+          />
+        </Suspense>
       )}
       {activeTab && activeTab.source?.type === 'module' && (
-        <ModuleLineageDialog activeTab={activeTab} />
+        <Suspense fallback={null}>
+          <ModuleLineageDialogLazy activeTab={activeTab} />
+        </Suspense>
       )}
       <ModuleDetailsDialog />
       <BraveFileSystemWarning

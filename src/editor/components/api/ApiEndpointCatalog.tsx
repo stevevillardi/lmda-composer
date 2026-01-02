@@ -4,10 +4,12 @@ import { useEditorStore } from '@/editor/stores/editor-store';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/components/ui/empty';
 import { cn } from '@/lib/utils';
-import { API_SCHEMA, type ApiEndpointDefinition } from '@/editor/data/api-schema';
+import type { ApiEndpointDefinition } from '@/editor/data/api-schema';
+import { useApiSchema } from '@/editor/hooks/useApiSchema';
 import { generateExampleFromSchema } from '@/editor/utils/api-example';
 import { COLORS } from '@/editor/constants/colors';
 
@@ -18,11 +20,13 @@ interface EndpointGroup {
 
 export function ApiEndpointCatalog() {
   const { tabs, activeTabId, updateApiTabRequest, renameTab, setApiTabResponse } = useEditorStore();
+  const { schema, isLoading, error, retry } = useApiSchema();
   const [query, setQuery] = useState('');
   const [collapsedTags, setCollapsedTags] = useState<Record<string, boolean>>({});
+  const endpoints = schema?.endpoints ?? [];
 
   const groups = useMemo<EndpointGroup[]>(() => {
-    const filtered = API_SCHEMA.endpoints.filter((endpoint) => {
+    const filtered = endpoints.filter((endpoint) => {
       if (!query.trim()) return true;
       const q = query.toLowerCase();
       return (
@@ -44,9 +48,9 @@ export function ApiEndpointCatalog() {
       tag,
       endpoints,
     }));
-  }, [query]);
+  }, [endpoints, query]);
 
-  const totalCount = API_SCHEMA.endpoints.length;
+  const totalCount = endpoints.length;
   const filteredCount = useMemo(() => groups.reduce((sum, group) => sum + group.endpoints.length, 0), [groups]);
 
   useEffect(() => {
@@ -109,7 +113,7 @@ export function ApiEndpointCatalog() {
         </div>
         <Badge variant="outline" className="text-[10px] font-normal flex items-center gap-1 select-none">
           <Plug className="size-3" />
-          {filteredCount}/{totalCount}
+          {isLoading ? 'Loading' : `${filteredCount}/${totalCount}`}
         </Badge>
       </div>
 
@@ -121,8 +125,21 @@ export function ApiEndpointCatalog() {
                 <EmptyMedia variant="icon">
                   <ListX className="size-5" />
                 </EmptyMedia>
-                <EmptyTitle>No matching endpoints</EmptyTitle>
-                <EmptyDescription>Try a different search term or clear the filter.</EmptyDescription>
+                <EmptyTitle>{error ? 'Failed to load schema' : 'No matching endpoints'}</EmptyTitle>
+                <EmptyDescription>
+                  {error
+                    ? 'Please reopen the API Explorer to try again.'
+                    : isLoading
+                      ? 'Loading API schema...'
+                      : 'Try a different search term or clear the filter.'}
+                </EmptyDescription>
+                {error && (
+                  <div className="pt-3">
+                    <Button size="sm" variant="outline" onClick={retry}>
+                      Retry
+                    </Button>
+                  </div>
+                )}
               </EmptyHeader>
             </Empty>
           ) : (
