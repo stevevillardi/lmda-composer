@@ -8,6 +8,7 @@ import {
   Target,
   Activity,
   Database,
+  Layers,
   Terminal,
   Bell,
   Filter,
@@ -18,6 +19,10 @@ import {
   XCircle,
   AlertTriangle,
   Upload,
+  FileText,
+  Network,
+  Tag,
+  ScrollText,
   type LucideProps,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -43,7 +48,32 @@ export function CollectionIcon({ className, ...props }: LucideProps) {
 
 /** Batch Collection script mode - bulk data collection */
 export function BatchCollectionIcon({ className, ...props }: LucideProps) {
-  return <Database className={cn('text-purple-500', className)} {...props} />;
+  return <Layers className={cn('text-purple-500', className)} {...props} />;
+}
+
+/** ConfigSource mode - configuration collection */
+export function ConfigSourceIcon({ className, ...props }: LucideProps) {
+  return <FileText className={cn('text-slate-500', className)} {...props} />;
+}
+
+/** EventSource mode - event generation */
+export function EventSourceIcon({ className, ...props }: LucideProps) {
+  return <Bell className={cn('text-orange-500', className)} {...props} />;
+}
+
+/** TopologySource mode - network topology */
+export function TopologySourceIcon({ className, ...props }: LucideProps) {
+  return <Network className={cn('text-cyan-500', className)} {...props} />;
+}
+
+/** PropertySource mode - property discovery */
+export function PropertySourceIcon({ className, ...props }: LucideProps) {
+  return <Tag className={cn('text-pink-500', className)} {...props} />;
+}
+
+/** LogSource mode - log collection */
+export function LogSourceIcon({ className, ...props }: LucideProps) {
+  return <ScrollText className={cn('text-teal-500', className)} {...props} />;
 }
 
 // ============================================================================
@@ -126,6 +156,7 @@ export {
   Target as TargetIcon,
   Activity as ActivityIcon,
   Database as DatabaseIcon,
+  Layers as LayersIcon,
   Terminal as TerminalIcon,
   Bell as BellIcon,
   Filter as FilterIcon,
@@ -136,5 +167,9 @@ export {
   XCircle as XCircleIcon,
   AlertTriangle as AlertTriangleIcon,
   Upload as UploadIcon,
+  FileText as FileTextIcon,
+  Network as NetworkIcon,
+  Tag as TagIcon,
+  ScrollText as ScrollTextIcon,
 };
 

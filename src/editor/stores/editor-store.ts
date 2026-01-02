@@ -46,6 +46,7 @@ import { buildApiVariableResolver } from '../utils/api-variables';
 import { appendItemsWithLimit } from '../utils/api-pagination';
 import { getPortalBindingStatus } from '../utils/portal-binding';
 import { getExtensionForLanguage, getLanguageFromFilename } from '../utils/file-extensions';
+import { normalizeMode } from '../utils/mode-utils';
 import { MODULE_TYPE_SCHEMAS, getSchemaFieldName } from '@/shared/module-type-schemas';
 import type { editor } from 'monaco-editor';
 
@@ -1332,7 +1333,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     set({ currentExecution: null, parsedOutput: null });
   },
 
-  // Parse the current execution output based on mode
+  // Parse the current execution output based on mode and module type
   parseCurrentOutput: () => {
     const { currentExecution, tabs, activeTabId } = get();
     const activeTab = tabs.find(t => t.id === activeTabId);
@@ -1343,7 +1344,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       return;
     }
     
-    const result = parseOutput(currentExecution.rawOutput, mode);
+    // Pass module type for specialized parsing within collection mode
+    const result = parseOutput(currentExecution.rawOutput, {
+      mode,
+      moduleType: activeTab?.source?.moduleType,
+      scriptType: activeTab?.source?.scriptType,
+    });
     set({ parsedOutput: result });
   },
 
@@ -2162,7 +2168,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       displayName,
       content: entry.script,
       language: entry.language,
-      mode: entry.mode,
+      mode: normalizeMode(entry.mode),
       source: {
         type: 'history',
       },
@@ -2618,7 +2624,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       displayName: `Recovered.${extension}`,
       content: draft.script,
       language: draft.language,
-      mode: draft.mode,
+      mode: normalizeMode(draft.mode),
     };
     
     set({
@@ -2632,8 +2638,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
   
   restoreDraftTabs: (draftTabs) => {
+    // Normalize any legacy mode values to valid modes
+    const normalizedTabs = draftTabs.tabs.map(tab => ({
+      ...tab,
+      mode: normalizeMode(tab.mode),
+    }));
+    
     set({
-      tabs: draftTabs.tabs,
+      tabs: normalizedTabs,
       activeTabId: draftTabs.activeTabId,
       hasSavedDraft: true, // Mark as having saved draft so auto-save will update it
     });
@@ -3139,6 +3151,23 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const language: ScriptLanguage = module.scriptType === 'powerShell' ? 'powershell' : 'groovy';
     const portal = portals.find((entry) => entry.id === selectedPortalId);
     
+    // Determine the appropriate mode based on module type, script type and collect method
+    // Note: The parser uses source.moduleType for specialized validation within 'collection' mode
+    const getModeForScript = (scriptType: 'ad' | 'collection'): ScriptMode => {
+      // AD scripts always use 'ad' mode
+      if (scriptType === 'ad') return 'ad';
+      
+      // Batch scripts (datasource/configsource only)
+      if (module.collectMethod === 'batchscript') {
+        return 'batchcollection';
+      }
+      
+      // All collection scripts use 'collection' mode
+      // The parser will use moduleType from tab.source for specialized parsing
+      // (topology, event, property, log, config all parse within 'collection' mode)
+      return 'collection';
+    };
+    
     const newTabs: EditorTab[] = scripts.map(script => {
       const scriptType: 'collection' | 'ad' = script.type === 'ad' ? 'ad' : 'collection';
       return {
@@ -3146,7 +3175,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         displayName: `${module.name}/${script.type}.${extension}`,
         content: script.content,
         language,
-        mode: script.type === 'ad' ? 'ad' as ScriptMode : (module.collectMethod === 'batchscript' ? 'batchcollection' : 'collection') as ScriptMode,
+        mode: getModeForScript(scriptType),
         originalContent: script.content, // Store original content for dirty detection
         source: {
           type: 'module' as const,

@@ -34,8 +34,14 @@ export function ModulePreview({ module }: ModulePreviewProps) {
   const hasCollectionScript = !!module.collectionScript?.trim();
 
   // Determine the appropriate mode for collection script
+  // Note: The parser uses source.moduleType for specialized validation within 'collection' mode
   const getCollectionMode = (): ScriptMode => {
-    if (module.collectMethod === 'batchscript') return 'batchcollection';
+    // Batch scripts (datasource/configsource only)
+    if (module.collectMethod === 'batchscript') {
+      return 'batchcollection';
+    }
+    // All collection scripts use 'collection' mode
+    // The parser will use moduleType from tab.source for specialized parsing
     return 'collection';
   };
 

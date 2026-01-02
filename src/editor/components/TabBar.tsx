@@ -26,6 +26,7 @@ import { cn } from '@/lib/utils';
 import type { EditorTab, Portal } from '@/shared/types';
 import { getDefaultScriptTemplate } from '../config/script-templates';
 import { getPortalBindingStatus } from '../utils/portal-binding';
+import { normalizeMode } from '../utils/mode-utils';
 
 // Language icons (using simple text badges for now)
 function LanguageIcon({ language }: { language: EditorTab['language'] }) {
@@ -51,14 +52,16 @@ function ApiBadge() {
 
 // Mode badge for execution mode indication
 function ModeBadge({ mode }: { mode: EditorTab['mode'] }) {
-  const modeColors = {
+  const normalizedMode = normalizeMode(mode);
+  
+  const modeColors: Record<string, string> = {
     ad: 'bg-purple-500/20 text-purple-400',
     collection: 'bg-green-500/20 text-green-400',
     batchcollection: 'bg-amber-500/20 text-amber-400',
     freeform: 'bg-gray-500/20 text-gray-400',
   };
   
-  const modeLabels = {
+  const modeLabels: Record<string, string> = {
     ad: 'Active Discovery',
     collection: 'Collection',
     batchcollection: 'Batch Collection',
@@ -68,9 +71,9 @@ function ModeBadge({ mode }: { mode: EditorTab['mode'] }) {
   return (
     <span className={cn(
       "text-[10px] font-medium px-1 py-0.5 rounded",
-      modeColors[mode]
+      modeColors[normalizedMode]
     )}>
-      {modeLabels[mode]}
+      {modeLabels[normalizedMode]}
     </span>
   );
 }

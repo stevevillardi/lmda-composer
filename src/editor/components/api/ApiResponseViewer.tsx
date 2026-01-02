@@ -313,27 +313,34 @@ export function ApiResponseViewer() {
     </div>
   );
 
-  const responseTabs = (
+  const renderTabs = (isFullscreen: boolean) => (
     <Tabs value={activeView} onValueChange={setActiveView} className="flex-1 min-h-0 flex flex-col">
-      <div className="px-3 pt-2">
-        <TabsList variant="line">
-          <TabsTrigger value="json">
-            <Braces className="size-3.5 mr-1" />
-            JSON
-          </TabsTrigger>
-          <TabsTrigger value="raw">
-            <FileText className="size-3.5 mr-1" />
-            Raw
-          </TabsTrigger>
-          <TabsTrigger value="headers">
-            <ListTree className="size-3.5 mr-1" />
-            Headers
-          </TabsTrigger>
-          <TabsTrigger value="snippets">
-            <Code2 className="size-3.5 mr-1" />
-            Snippets
-          </TabsTrigger>
-        </TabsList>
+      <div className={cn(
+        "px-3 pt-2 pb-1",
+        isFullscreen && "bg-card"
+      )}>
+        <div className={cn(
+          isFullscreen && "bg-muted/50 rounded-lg px-2 py-1 inline-block"
+        )}>
+          <TabsList variant="line">
+            <TabsTrigger value="json">
+              <Braces className="size-3.5 mr-1" />
+              JSON
+            </TabsTrigger>
+            <TabsTrigger value="raw">
+              <FileText className="size-3.5 mr-1" />
+              Raw
+            </TabsTrigger>
+            <TabsTrigger value="headers">
+              <ListTree className="size-3.5 mr-1" />
+              Headers
+            </TabsTrigger>
+            <TabsTrigger value="snippets">
+              <Code2 className="size-3.5 mr-1" />
+              Snippets
+            </TabsTrigger>
+          </TabsList>
+        </div>
       </div>
 
       <TabsContent value="json" className="flex-1 min-h-0 px-3 pb-3">
@@ -474,14 +481,14 @@ export function ApiResponseViewer() {
           >
             <div className="h-full min-h-0 flex flex-col">
               {renderHeader(false, true)}
-              {responseTabs}
+              {renderTabs(true)}
             </div>
           </DialogContent>
         </Dialog>
       ) : (
         <div className="flex flex-1 min-h-0 flex-col">
           {renderHeader(true, false)}
-          {responseTabs}
+          {renderTabs(false)}
         </div>
       )}
     </div>

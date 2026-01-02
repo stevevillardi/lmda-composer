@@ -1,7 +1,6 @@
 import { loader } from '@monaco-editor/react';
 import * as monaco from 'monaco-editor/esm/vs/editor/editor.api';
 import EditorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
-import 'monaco-editor/esm/vs/basic-languages/powershell/powershell';
 
 const mockWorker = {
   postMessage: () => {},
@@ -34,10 +33,21 @@ self.MonacoEnvironment = {
 // This is required for Chrome extensions due to CSP restrictions
 loader.config({ monaco });
 
-// Register Groovy language (Monaco doesn't have built-in support)
-// We'll define a Groovy language based on Java with Groovy-specific additions
-loader.init().then((monaco) => {
-  // Register the Groovy language
+// Register languages after Monaco is initialized
+loader.init().then(async (monaco) => {
+  // Register PowerShell language (needs explicit registration in bundled mode)
+  // Dynamic import to avoid TypeScript module resolution issues
+  const powershellModule = await import('monaco-editor/esm/vs/basic-languages/powershell/powershell.js');
+  
+  monaco.languages.register({ 
+    id: 'powershell',
+    extensions: ['.ps1', '.psm1', '.psd1'],
+    aliases: ['PowerShell', 'powershell', 'ps', 'ps1'],
+  });
+  monaco.languages.setMonarchTokensProvider('powershell', powershellModule.language);
+  monaco.languages.setLanguageConfiguration('powershell', powershellModule.conf);
+
+  // Register Groovy language (Monaco doesn't have built-in support)
   monaco.languages.register({ id: 'groovy' });
 
   // Define Groovy tokens (based on Java with Groovy additions)

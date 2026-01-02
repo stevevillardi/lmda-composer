@@ -72,7 +72,7 @@ export function ValidationContent() {
           </EmptyTitle>
           <EmptyDescription>
             {mode === 'freeform' 
-              ? 'Switch to AD or Collection mode to validate output'
+              ? 'Switch to a specific mode to validate output'
               : 'Run a script to see validation results'}
           </EmptyDescription>
         </EmptyHeader>
@@ -85,6 +85,21 @@ export function ValidationContent() {
 
 interface ValidationSummaryProps {
   result: ParseResult;
+}
+
+function getItemLabel(type: ParseResult['type']): string {
+  switch (type) {
+    case 'ad': return 'instances';
+    case 'collection':
+    case 'batchcollection': return 'datapoints';
+    case 'topology': return 'topology elements';
+    case 'event': return 'events';
+    case 'property': return 'properties';
+    case 'log': return 'log entries';
+    case 'config': return 'configuration';
+    case 'script_error': return 'execution';
+    default: return 'items';
+  }
 }
 
 function ValidationSummary({ result }: ValidationSummaryProps) {
@@ -134,7 +149,7 @@ function ValidationSummary({ result }: ValidationSummaryProps) {
             <div>
               <div className="font-medium text-green-600">All Valid</div>
               <div className="text-sm text-muted-foreground">
-                All {summary.total} {result.type === 'ad' ? 'instances' : 'datapoints'} passed validation.
+                All {summary.total} {getItemLabel(result.type)} passed validation.
               </div>
             </div>
           </CardContent>

@@ -245,7 +245,11 @@ export interface FilePermissionStatus {
 
 export type ScriptLanguage = 'groovy' | 'powershell';
 
-export type ScriptMode = 'ad' | 'collection' | 'batchcollection' | 'freeform';
+export type ScriptMode = 
+  | 'freeform'           // No parsing - raw output
+  | 'ad'                 // Active Discovery (DataSource/ConfigSource)
+  | 'collection'         // Collection (all module types except batch)
+  | 'batchcollection';   // BatchScript (DataSource/ConfigSource)
 
 export interface ExecuteScriptRequest {
   portalId: string;
@@ -330,6 +334,8 @@ export interface LogicModuleInfo {
     alertTransitionInterval?: number;
     alertClearTransitionInterval?: number;
   }>;
+  // EventSource specific: collector type (e.g., "scriptevent" for script-based)
+  collector?: string;
 }
 
 export type CollectMethod = 

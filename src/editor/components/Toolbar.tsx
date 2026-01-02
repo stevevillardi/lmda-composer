@@ -16,7 +16,7 @@ import {
   TerminalIcon,
   TargetIcon,
   ActivityIcon,
-  DatabaseIcon,
+  LayersIcon,
 } from '../constants/icons';
 import { toast } from 'sonner';
 import { useEditorStore } from '../stores/editor-store';
@@ -51,6 +51,7 @@ import type { ScriptLanguage, ScriptMode } from '@/shared/types';
 import { ContextDropdown } from './ContextDropdown';
 import { ActionsDropdown } from './ActionsDropdown';
 import { getPortalBindingStatus } from '../utils/portal-binding';
+import { normalizeMode } from '../utils/mode-utils';
 
 interface ModeItem {
   value: ScriptMode;
@@ -62,7 +63,7 @@ const MODE_ITEMS: ModeItem[] = [
   { value: 'freeform', label: 'Freeform', icon: TerminalIcon },
   { value: 'ad', label: 'Active Discovery', icon: TargetIcon },
   { value: 'collection', label: 'Collection', icon: ActivityIcon },
-  { value: 'batchcollection', label: 'Batch Collection', icon: DatabaseIcon },
+  { value: 'batchcollection', label: 'Batch Collection', icon: LayersIcon },
 ];
 
 export function Toolbar() {
@@ -110,7 +111,8 @@ export function Toolbar() {
   const isApiTab = activeTab?.kind === 'api';
 
   const language = activeTab?.language ?? 'groovy';
-  const mode = activeTab?.mode ?? 'freeform';
+  const rawMode = activeTab?.mode ?? 'freeform';
+  const mode = normalizeMode(rawMode);
   const selectedCollector = collectors.find(c => c.id === selectedCollectorId);
   const isWindowsCollector = selectedCollector?.arch?.toLowerCase().includes('win') ?? true;
   const powerShellBlocked = language === 'powershell' && !isWindowsCollector;

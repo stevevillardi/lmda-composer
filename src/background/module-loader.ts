@@ -83,8 +83,9 @@ export class ModuleLoader {
         items = items.filter(item => item.scriptType === 'embed');
       }
 
+      // EventSource: only include script-based eventsources (collector === 'scriptevent')
       if (moduleType === 'eventsource') {
-        items = items.filter(item => item.scriptType === 'embed');
+        items = items.filter(item => item.collector === 'scriptevent');
       }
 
       return {
@@ -152,6 +153,8 @@ interface APIModule {
   // LogSource specific
   collectionMethod?: string;  // uppercase version (e.g., "SCRIPT")
   appliesToScript?: string;   // LogSource uses this instead of appliesTo
+  // EventSource specific
+  collector?: string;         // e.g., "scriptevent" for script-based eventsources
 }
 
 /**
@@ -177,6 +180,7 @@ function fetchModulesFromAPI(
     scriptType: string;
     collectionScript?: string;
     adScript?: string;
+    collector?: string;
   }>;
   total: number;
   hasMore: boolean;
@@ -302,6 +306,7 @@ function fetchModulesFromAPI(
               collectionScript,
               adScript,
               dataPoints: m.dataPoints,
+              collector: m.collector, // EventSource uses this to distinguish script vs non-script
             };
           });
 
