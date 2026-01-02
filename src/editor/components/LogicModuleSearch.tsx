@@ -8,14 +8,16 @@ import {
   FilePlus,
   ChevronDown,
   ChevronRight,
-  Database,
   Braces,
   CaseSensitive,
-  Target,
-  Activity,
   RefreshCw,
   X,
 } from 'lucide-react';
+import {
+  ActiveDiscoveryIcon,
+  CollectionIcon,
+  DatapointsIcon,
+} from '../constants/icons';
 import { toast } from 'sonner';
 import type { editor } from 'monaco-editor';
 import type { LogicModuleType, ModuleSearchMatchType, ScriptSearchResult, ScriptMatchRange } from '@/shared/types';
@@ -322,6 +324,7 @@ export function LogicModuleSearch() {
     toast.success('Script loaded', {
       description: selectedScriptSearchResult.module.displayName || selectedScriptSearchResult.module.name,
     });
+    setModuleSearchOpen(false);
   };
 
   const handleCreateFile = (scriptType: 'ad' | 'collection') => {
@@ -342,6 +345,7 @@ export function LogicModuleSearch() {
     toast.success('New file created', {
       description: `Created from ${module.displayName || module.name}`,
     });
+    setModuleSearchOpen(false);
   };
 
   const isSearchDisabled =
@@ -489,7 +493,7 @@ export function LogicModuleSearch() {
                                 className="text-[10px] flex items-center gap-1"
                                 aria-label={`${adCount} Active Discovery matches`}
                               >
-                                <Target className="size-3 text-blue-500" />
+                                <ActiveDiscoveryIcon className="size-3" />
                                 {adCount}
                               </Badge>
                             )}
@@ -499,7 +503,7 @@ export function LogicModuleSearch() {
                                 className="text-[10px] flex items-center gap-1"
                                 aria-label={`${collectionCount} Collection matches`}
                               >
-                                <Activity className="size-3 text-green-500" />
+                                <CollectionIcon className="size-3" />
                                 {collectionCount}
                               </Badge>
                             )}
@@ -525,7 +529,7 @@ export function LogicModuleSearch() {
       return (
         <Empty>
           <EmptyMedia>
-            <Database className="size-8 text-muted-foreground" />
+            <DatapointsIcon className="size-8 text-muted-foreground" />
           </EmptyMedia>
           <EmptyHeader>
             <EmptyTitle>No datapoints found</EmptyTitle>
@@ -551,7 +555,7 @@ export function LogicModuleSearch() {
               <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted/50">
                 <span className="flex items-center gap-2">
                   {isOpen ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
-                  <Database className="size-3.5" />
+                  <DatapointsIcon className="size-3.5" />
                   {moduleName}
                 </span>
                 <Badge variant="outline" className="text-xs">
@@ -589,7 +593,7 @@ export function LogicModuleSearch() {
         return (
           <Empty>
             <EmptyMedia>
-              <Database className="size-8 text-muted-foreground" />
+              <DatapointsIcon className="size-8 text-muted-foreground" />
             </EmptyMedia>
             <EmptyHeader>
               <EmptyTitle>Select a datapoint</EmptyTitle>
@@ -747,7 +751,7 @@ export function LogicModuleSearch() {
             <div className={`flex flex-col ${showDualPane ? 'w-1/2 min-w-0 border-r border-border' : 'flex-1'}`}>
               <div className="px-3 py-2 border-b border-border bg-muted/30 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Target className="size-4 text-blue-500" />
+                  <ActiveDiscoveryIcon className="size-4" />
                   <span className="text-xs font-medium">Active Discovery</span>
                 </div>
                 <div className="flex items-center gap-1.5">
@@ -802,7 +806,7 @@ export function LogicModuleSearch() {
             <div className={`flex flex-col ${showDualPane ? 'w-1/2 min-w-0' : 'flex-1'}`}>
               <div className="px-3 py-2 border-b border-border bg-muted/30 flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Activity className="size-4 text-green-500" />
+                  <CollectionIcon className="size-4" />
                   <span className="text-xs font-medium">Collection</span>
                 </div>
                 <div className="flex items-center gap-1.5">
@@ -942,8 +946,18 @@ export function LogicModuleSearch() {
                     handleSearch();
                   }
                 }}
-                className="pl-8 pr-2 h-9"
+                className="pl-8 pr-7 h-9"
               />
+              {moduleSearchTerm.trim() && (
+                <button
+                  type="button"
+                  onClick={() => setModuleSearchTerm('')}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  aria-label="Clear search"
+                >
+                  ×
+                </button>
+              )}
             </div>
             <Button
               variant="default"

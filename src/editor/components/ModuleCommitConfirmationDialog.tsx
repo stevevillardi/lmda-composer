@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Upload, Loader2, AlertCircle, Info, FolderTree, Shield, Filter, Target, Database, Bell } from 'lucide-react';
+import { Upload, Loader2, AlertCircle, type LucideIcon, Info, FolderTree, Shield, Filter, Target, Database, Bell } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -435,7 +435,7 @@ export function ModuleCommitConfirmationDialog({
     );
   };
 
-  const sectionIcons: Record<string, typeof Info> = {
+  const sectionIcons: Record<string, LucideIcon> = {
     Basic: Info,
     Organization: FolderTree,
     Access: Shield,

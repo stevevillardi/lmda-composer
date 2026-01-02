@@ -1,6 +1,11 @@
 import Editor from '@monaco-editor/react';
 import { useMemo } from 'react';
-import { Download, Target, Activity, Database, Layers } from 'lucide-react';
+import { Download, Layers } from 'lucide-react';
+import {
+  ActiveDiscoveryIcon,
+  CollectionIcon,
+  BatchCollectionIcon,
+} from '../constants/icons';
 import { toast } from 'sonner';
 import { useEditorStore } from '../stores/editor-store';
 import { buildMonacoOptions, getMonacoTheme } from '../utils/monaco-settings';
@@ -151,7 +156,7 @@ export function ModulePreview({ module }: ModulePreviewProps) {
           <div className={`flex flex-col ${showDualPane ? 'w-1/2 min-w-0 border-r border-border' : 'flex-1'}`}>
             <div className="px-3 py-2 border-b border-border bg-muted/30 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Target className="size-4 text-blue-500" />
+                <ActiveDiscoveryIcon className="size-4" />
                 <span className="text-xs font-medium">Active Discovery</span>
               </div>
               <Button
@@ -190,9 +195,9 @@ export function ModulePreview({ module }: ModulePreviewProps) {
             <div className="px-3 py-2 border-b border-border bg-muted/30 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 {module.collectMethod === 'batchscript' ? (
-                  <Database className="size-4 text-purple-500" />
+                  <BatchCollectionIcon className="size-4" />
                 ) : (
-                  <Activity className="size-4 text-green-500" />
+                  <CollectionIcon className="size-4" />
                 )}
                 <span className="text-xs font-medium">
                   Collection {module.collectMethod === 'batchscript' && '(Batch)'}

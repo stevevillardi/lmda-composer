@@ -1,15 +1,17 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   Search,
-  AlertTriangle,
   FolderSearch,
   Eye,
   RefreshCw,
   CloudDownload,
-  Database,
-  Target,
-  Activity,
 } from 'lucide-react';
+import {
+  ActiveDiscoveryIcon,
+  CollectionIcon,
+  BatchCollectionIcon,
+  WarningIcon,
+} from '../constants/icons';
 import { toast } from 'sonner';
 import { useEditorStore } from '../stores/editor-store';
 import { LoadingState } from './shared/LoadingState';
@@ -338,7 +340,7 @@ export function LogicModuleBrowser() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogMedia className="bg-amber-500/10">
-              <AlertTriangle className="size-8 text-amber-500" />
+              <WarningIcon className="size-8" />
             </AlertDialogMedia>
             <AlertDialogTitle>Load script?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -399,7 +401,7 @@ function ModuleListItem({ module, isSelected, onClick }: ModuleListItemProps) {
                   <TooltipTrigger
                     render={
                       <span className="inline-flex items-center" aria-label="Active Discovery enabled">
-                        <Target className="size-3.5 text-blue-500" />
+                        <ActiveDiscoveryIcon className="size-3.5" />
                       </span>
                     }
                   />
@@ -411,7 +413,7 @@ function ModuleListItem({ module, isSelected, onClick }: ModuleListItemProps) {
                   <TooltipTrigger
                     render={
                       <span className="inline-flex items-center" aria-label="Batch collection">
-                        <Database className="size-3.5 text-purple-500" />
+                        <BatchCollectionIcon className="size-3.5" />
                       </span>
                     }
                   />
@@ -423,7 +425,7 @@ function ModuleListItem({ module, isSelected, onClick }: ModuleListItemProps) {
                   <TooltipTrigger
                     render={
                       <span className="inline-flex items-center" aria-label="Collection">
-                        <Activity className="size-3.5 text-green-500" />
+                        <CollectionIcon className="size-3.5" />
                       </span>
                     }
                   />

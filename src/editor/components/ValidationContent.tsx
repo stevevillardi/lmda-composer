@@ -1,4 +1,5 @@
-import { CheckCircle2, XCircle, AlertTriangle, Info, FileText, Play, Terminal } from 'lucide-react';
+import { Info, FileText, Play, Terminal } from 'lucide-react';
+import { SuccessIcon, ErrorIcon, CheckCircle2Icon, XCircleIcon, AlertTriangleIcon } from '../constants/icons';
 import { useMemo } from 'react';
 import { useEditorStore } from '../stores/editor-store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -46,7 +47,7 @@ export function ValidationContent() {
         <Card className="border-red-500/30 bg-red-500/5">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm flex items-center gap-2 text-red-500">
-              <XCircle className="size-4" />
+              <ErrorIcon className="size-4" />
               Execution Failed
             </CardTitle>
           </CardHeader>
@@ -108,19 +109,19 @@ function ValidationSummary({ result }: ValidationSummaryProps) {
         <SummaryCard
           title="Valid"
           value={summary.valid}
-          icon={CheckCircle2}
+          icon={CheckCircle2Icon}
           className={summary.valid > 0 ? 'bg-green-500/10 text-green-600' : 'bg-muted/30'}
         />
         <SummaryCard
           title="Errors"
           value={summary.errors}
-          icon={XCircle}
+          icon={XCircleIcon}
           className={summary.errors > 0 ? 'bg-red-500/10 text-red-500' : 'bg-muted/30'}
         />
         <SummaryCard
           title="Warnings"
           value={summary.warnings}
-          icon={AlertTriangle}
+          icon={AlertTriangleIcon}
           className={summary.warnings > 0 ? 'bg-yellow-500/10 text-yellow-500' : 'bg-muted/30'}
         />
       </div>
@@ -129,7 +130,7 @@ function ValidationSummary({ result }: ValidationSummaryProps) {
       {allValid && (
         <Card className="border-green-500/30 bg-green-500/5">
           <CardContent className="py-4 flex items-center gap-3">
-            <CheckCircle2 className="size-6 text-green-600" />
+            <SuccessIcon className="size-6" />
             <div>
               <div className="font-medium text-green-600">All Valid</div>
               <div className="text-sm text-muted-foreground">
@@ -148,7 +149,7 @@ function ValidationSummary({ result }: ValidationSummaryProps) {
             <IssueSection
               title="Errors"
               issues={errors}
-              icon={XCircle}
+              icon={XCircleIcon}
               iconClass="text-red-500"
               badgeVariant="destructive"
             />
@@ -159,7 +160,7 @@ function ValidationSummary({ result }: ValidationSummaryProps) {
             <IssueSection
               title="Warnings"
               issues={warnings}
-              icon={AlertTriangle}
+              icon={AlertTriangleIcon}
               iconClass="text-yellow-500"
               badgeVariant="outline"
               badgeClass="text-yellow-500 border-yellow-500/30"

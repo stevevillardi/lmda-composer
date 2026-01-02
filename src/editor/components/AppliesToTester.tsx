@@ -6,7 +6,6 @@ import {
   ChevronDown,
   ChevronRight,
   AlertCircle,
-  CheckCircle2,
   Play,
   HelpCircle,
   Copy,
@@ -17,6 +16,7 @@ import {
   Upload,
   X,
 } from 'lucide-react';
+import { SuccessIcon } from '../constants/icons';
 import { toast } from 'sonner';
 import { useEditorStore } from '../stores/editor-store';
 import {
@@ -923,7 +923,7 @@ export function AppliesToTester() {
                   <Empty className="h-full border-0">
                     <EmptyHeader>
                       <EmptyMedia variant="icon">
-                        <CheckCircle2 className="text-green-500" />
+                        <SuccessIcon />
                       </EmptyMedia>
                       <EmptyTitle className="text-base">No Matches Found</EmptyTitle>
                       <EmptyDescription>
@@ -975,7 +975,7 @@ export function AppliesToTester() {
               {/* Success indicator when results exist */}
               {appliesToResults.length > 0 && !appliesToError && (
                 <div className="flex items-center gap-2 text-sm text-green-500">
-                  <CheckCircle2 className="size-4" />
+                  <SuccessIcon className="size-4" />
                   <span>Expression is valid</span>
                 </div>
               )}

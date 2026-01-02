@@ -1,4 +1,5 @@
-import { CheckCircle2, XCircle, AlertTriangle, Info, ChevronDown, ChevronRight, Play, Terminal, ListX } from 'lucide-react';
+import { Info, ChevronDown, ChevronRight, Play, Terminal, ListX } from 'lucide-react';
+import { SuccessIcon, ErrorIcon, WarningIcon, XCircleIcon, AlertTriangleIcon } from '../constants/icons';
 import { useState, useMemo } from 'react';
 import { useEditorStore } from '../stores/editor-store';
 import {
@@ -53,7 +54,7 @@ export function ParsedContent() {
       <Empty className="border-none h-full">
         <EmptyHeader>
           <EmptyMedia variant="icon">
-            <XCircle className="size-5 text-red-500" />
+            <ErrorIcon className="size-5" />
           </EmptyMedia>
           <EmptyTitle className="text-base">Execution failed</EmptyTitle>
           <EmptyDescription>
@@ -129,19 +130,19 @@ function ADParseResultTable({ result }: ADParseResultTableProps) {
         </span>
         {summary.valid > 0 && (
           <Badge variant="outline" className="gap-1 text-green-600 border-green-600/30">
-            <CheckCircle2 className="size-3" />
+            <SuccessIcon className="size-3" />
             {summary.valid} valid
           </Badge>
         )}
         {summary.errors > 0 && (
           <Badge variant="outline" className="gap-1 text-red-500 border-red-500/30">
-            <XCircle className="size-3" />
+            <ErrorIcon className="size-3" />
             {summary.errors} error{summary.errors !== 1 ? 's' : ''}
           </Badge>
         )}
         {summary.warnings > 0 && (
           <Badge variant="outline" className="gap-1 text-yellow-500 border-yellow-500/30">
-            <AlertTriangle className="size-3" />
+            <WarningIcon className="size-3" />
             {summary.warnings} warning{summary.warnings !== 1 ? 's' : ''}
           </Badge>
         )}
@@ -310,19 +311,19 @@ function CollectionParseResultTable({ result }: CollectionParseResultTableProps)
         </span>
         {summary.valid > 0 && (
           <Badge variant="outline" className="gap-1 text-green-600 border-green-600/30">
-            <CheckCircle2 className="size-3" />
+            <SuccessIcon className="size-3" />
             {summary.valid} valid
           </Badge>
         )}
         {summary.errors > 0 && (
           <Badge variant="outline" className="gap-1 text-red-500 border-red-500/30">
-            <XCircle className="size-3" />
+            <ErrorIcon className="size-3" />
             {summary.errors} error{summary.errors !== 1 ? 's' : ''}
           </Badge>
         )}
         {summary.warnings > 0 && (
           <Badge variant="outline" className="gap-1 text-yellow-500 border-yellow-500/30">
-            <AlertTriangle className="size-3" />
+            <WarningIcon className="size-3" />
             {summary.warnings} warning{summary.warnings !== 1 ? 's' : ''}
           </Badge>
         )}
@@ -449,12 +450,12 @@ function StatusIcon({ issues }: StatusIconProps) {
   const hasWarnings = issues.some(i => i.severity === 'warning');
 
   if (hasErrors) {
-    return <XCircle className="size-4 text-red-500" />;
+    return <ErrorIcon className="size-4" />;
   }
   if (hasWarnings) {
-    return <AlertTriangle className="size-4 text-yellow-500" />;
+    return <WarningIcon className="size-4" />;
   }
-  return <CheckCircle2 className="size-4 text-green-600" />;
+  return <SuccessIcon className="size-4" />;
 }
 
 interface IssueDisplayProps {
@@ -468,8 +469,8 @@ function IssueDisplay({ issue }: IssueDisplayProps) {
     info: 'text-blue-500',
   };
   const icons = {
-    error: XCircle,
-    warning: AlertTriangle,
+    error: XCircleIcon,
+    warning: AlertTriangleIcon,
     info: Info,
   };
   const Icon = icons[issue.severity];

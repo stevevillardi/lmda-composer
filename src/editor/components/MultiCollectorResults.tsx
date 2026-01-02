@@ -1,8 +1,6 @@
 import { useState, useMemo } from 'react';
 import {
   ArrowLeft,
-  CheckCircle2,
-  XCircle,
   Loader2,
   Copy,
   Download,
@@ -10,6 +8,7 @@ import {
   List,
   StopCircle,
 } from 'lucide-react';
+import { SuccessIcon, ErrorIcon } from '../constants/icons';
 import { toast } from 'sonner';
 import { useEditorStore } from '../stores/editor-store';
 import { Button } from '@/components/ui/button';
@@ -228,7 +227,7 @@ export function MultiCollectorResults({ command, executedCommand, onBack }: Mult
               </>
             ) : (
               <>
-                <XCircle className="size-12 mx-auto mb-4 opacity-50" />
+                <ErrorIcon className="size-12 mx-auto mb-4 opacity-50" />
                 <p className="text-lg font-medium mb-2">No results</p>
                 <p className="text-sm">Execute a command to see results</p>
               </>
@@ -249,9 +248,9 @@ export function MultiCollectorResults({ command, executedCommand, onBack }: Mult
                 className="gap-2"
               >
                 {result.success ? (
-                  <CheckCircle2 className="size-4 text-green-500" />
+                  <SuccessIcon className="size-4" />
                 ) : (
-                  <XCircle className="size-4 text-red-500" />
+                  <ErrorIcon className="size-4" />
                 )}
                 <span className="truncate max-w-[150px]">
                   {collector?.description || `Collector ${collectorId}`}
@@ -276,12 +275,12 @@ export function MultiCollectorResults({ command, executedCommand, onBack }: Mult
                       </h3>
                       {result.success ? (
                         <Badge variant="default" className="bg-green-500">
-                          <CheckCircle2 className="size-3 mr-1" />
+                          <SuccessIcon className="size-3 mr-1" />
                           Success
                         </Badge>
                       ) : (
                         <Badge variant="destructive">
-                          <XCircle className="size-3 mr-1" />
+                          <ErrorIcon className="size-3 mr-1" />
                           Error
                         </Badge>
                       )}
@@ -358,9 +357,9 @@ export function MultiCollectorResults({ command, executedCommand, onBack }: Mult
                     </p>
                   </div>
                   {result.success ? (
-                    <CheckCircle2 className="size-5 text-green-500 shrink-0 ml-2" />
+                    <SuccessIcon className="size-5 shrink-0 ml-2" />
                   ) : (
-                    <XCircle className="size-5 text-red-500 shrink-0 ml-2" />
+                    <ErrorIcon className="size-5 shrink-0 ml-2" />
                   )}
                 </div>
 

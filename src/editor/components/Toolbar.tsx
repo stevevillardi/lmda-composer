@@ -1,12 +1,7 @@
 import { useMemo, useState } from 'react';
 import { 
   Play, 
-  AlertTriangle,
-  Terminal,
-  Activity,
-  Database,
   type LucideIcon,
-  Target,
   Send,
   Loader2,
   StopCircle,
@@ -16,6 +11,13 @@ import {
   History,
   Settings,
 } from 'lucide-react';
+import {
+  WarningIcon,
+  TerminalIcon,
+  TargetIcon,
+  ActivityIcon,
+  DatabaseIcon,
+} from '../constants/icons';
 import { toast } from 'sonner';
 import { useEditorStore } from '../stores/editor-store';
 import { DEFAULT_GROOVY_TEMPLATE, DEFAULT_POWERSHELL_TEMPLATE } from '../config/script-templates';
@@ -57,10 +59,10 @@ interface ModeItem {
 }
 
 const MODE_ITEMS: ModeItem[] = [
-  { value: 'freeform', label: 'Freeform', icon: Terminal },
-  { value: 'ad', label: 'Active Discovery', icon: Target },
-  { value: 'collection', label: 'Collection', icon: Activity },
-  { value: 'batchcollection', label: 'Batch Collection', icon: Database },
+  { value: 'freeform', label: 'Freeform', icon: TerminalIcon },
+  { value: 'ad', label: 'Active Discovery', icon: TargetIcon },
+  { value: 'collection', label: 'Collection', icon: ActivityIcon },
+  { value: 'batchcollection', label: 'Batch Collection', icon: DatabaseIcon },
 ];
 
 export function Toolbar() {
@@ -252,7 +254,7 @@ export function Toolbar() {
             size="sm"
             variant="execute"
             className={cn(
-              "gap-1.5",
+              "gap-1.5 text-xs",
               SIZES.BUTTON_TOOLBAR,
               "px-4 font-medium"
             )}
@@ -422,10 +424,14 @@ export function Toolbar() {
                     }
                   }}
                   disabled={isFetchingLineage || !isPortalBoundActive}
-                  className={cn("gap-1.5", SIZES.BUTTON_TOOLBAR)}
+                  className={cn("gap-1.5 text-xs", SIZES.BUTTON_TOOLBAR)}
                   aria-label="View module lineage"
                 >
-                  <History className={cn(SIZES.ICON_MEDIUM, isFetchingLineage && "animate-spin")} />
+                  {isFetchingLineage ? (
+                    <Loader2 className={cn(SIZES.ICON_MEDIUM, "animate-spin")} />
+                  ) : (
+                    <History className={SIZES.ICON_MEDIUM} />
+                  )}
                   {isFetchingLineage ? 'Loading...' : 'View Lineage'}
                 </Button>
               }
@@ -452,7 +458,7 @@ export function Toolbar() {
                     setModuleDetailsDialogOpen(true);
                   }}
                   disabled={!isPortalBoundActive}
-                  className={cn("gap-1.5", SIZES.BUTTON_TOOLBAR)}
+                  className={cn("gap-1.5 text-xs", SIZES.BUTTON_TOOLBAR)}
                   aria-label="Open module details"
                 >
                   <Settings className={SIZES.ICON_MEDIUM} />
@@ -489,7 +495,7 @@ export function Toolbar() {
                   }}
                   disabled={!canCommit}
                   className={cn(
-                    "gap-1.5",
+                    "gap-1.5 text-xs",
                     SIZES.BUTTON_TOOLBAR,
                     "px-3 font-medium"
                   )}
@@ -520,7 +526,7 @@ export function Toolbar() {
           size="sm"
           variant="execute"
           className={cn(
-            "gap-1.5",
+            "gap-1.5 text-xs",
             SIZES.BUTTON_TOOLBAR,
             "px-4 font-medium"
           )}
@@ -543,7 +549,7 @@ export function Toolbar() {
                   variant="destructive"
                   size="sm"
                   onClick={() => setCancelDialogOpen(true)}
-                  className={cn("gap-1.5", SIZES.BUTTON_TOOLBAR)}
+                  className={cn("gap-1.5 text-xs", SIZES.BUTTON_TOOLBAR)}
                   aria-label="Cancel script execution"
                 >
                   <StopCircle className={SIZES.ICON_MEDIUM} />
@@ -594,7 +600,7 @@ export function Toolbar() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogMedia className="bg-amber-500/10">
-              <AlertTriangle className="size-8 text-amber-500" />
+              <WarningIcon className="size-8" />
             </AlertDialogMedia>
             <AlertDialogTitle>
               Switch to {pendingLanguage === 'groovy' ? 'Groovy' : 'PowerShell'}?
