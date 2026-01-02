@@ -23,6 +23,7 @@ import { ModuleDetailsActiveDiscovery } from './ModuleDetailsSections/ActiveDisc
 import { ModuleDetailsDatapoints } from './ModuleDetailsSections/Datapoints';
 import { ModuleDetailsConfigChecks } from './ModuleDetailsSections/ConfigChecks';
 import { ModuleDetailsAlertSettings } from './ModuleDetailsSections/AlertSettings';
+import { PortalBindingOverlay } from './PortalBindingOverlay';
 
 export function ModuleDetailsDialog() {
   const {
@@ -171,7 +172,7 @@ export function ModuleDetailsDialog() {
   useEffect(() => {
     if (moduleDetailsDialogOpen && activeTabId && isModuleTab && !draft) {
       loadModuleDetails(activeTabId);
-      fetchAccessGroups();
+      fetchAccessGroups(activeTabId);
     }
   }, [moduleDetailsDialogOpen, activeTabId, isModuleTab, draft, loadModuleDetails, fetchAccessGroups]);
 
@@ -201,113 +202,116 @@ export function ModuleDetailsDialog() {
 
   return (
     <Dialog open={moduleDetailsDialogOpen} onOpenChange={setModuleDetailsDialogOpen}>
-      <DialogContent className="w-[95vw] max-w-[1600px]! h-[90vh] flex flex-col gap-0 p-0" showCloseButton={false}>
-        <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
-          <div className="flex items-center justify-between">
-            <div>
-              <DialogTitle className="flex items-center gap-2">
-                <Settings className="size-5" />
-                Module Details
-              </DialogTitle>
-              <DialogDescription className="mt-1">
-                Edit module metadata for {activeTab.source.moduleName}
-              </DialogDescription>
+      <DialogContent className="w-[95vw] max-w-[1600px]! h-[90vh] flex flex-col gap-0 p-0" showCloseButton>
+        <div className="relative flex flex-col h-full">
+          <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
+            <div className="flex items-center justify-between">
+              <div>
+                <DialogTitle className="flex items-center gap-2">
+                  <Settings className="size-5" />
+                  Module Details
+                </DialogTitle>
+                <DialogDescription className="mt-1">
+                  Edit module metadata for {activeTab.source.moduleName}
+                </DialogDescription>
+              </div>
             </div>
-          </div>
-        </DialogHeader>
+          </DialogHeader>
 
-        <div className="flex-1 flex min-h-0 border-t border-border">
-          {/* Sidebar Navigation */}
-            <ModuleDetailsSidebar
-              activeSection={activeSection}
-              onSectionChange={(section) => setActiveSection(section)}
-              sections={availableSections}
-              dirtySections={dirtySections}
-            />
+          <div className="flex-1 flex min-h-0 border-t border-border">
+            {/* Sidebar Navigation */}
+              <ModuleDetailsSidebar
+                activeSection={activeSection}
+                onSectionChange={(section) => setActiveSection(section)}
+                sections={availableSections}
+                dirtySections={dirtySections}
+              />
 
-          {/* Main Content Area */}
-          <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-            {moduleDetailsLoading ? (
-              <div className="flex items-center justify-center h-full">
-                <div className="flex flex-col items-center gap-3">
-                  <Loader2 className="size-8 animate-spin text-muted-foreground" />
-                  <p className="text-sm text-muted-foreground">Loading module details...</p>
+            {/* Main Content Area */}
+            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+              {moduleDetailsLoading ? (
+                <div className="flex items-center justify-center h-full">
+                  <div className="flex flex-col items-center gap-3">
+                    <Loader2 className="size-8 animate-spin text-muted-foreground" />
+                    <p className="text-sm text-muted-foreground">Loading module details...</p>
+                  </div>
                 </div>
-              </div>
-            ) : moduleDetailsError ? (
-              <div className="p-6">
-                <Alert variant="destructive">
-                  <AlertCircle className="size-4" />
-                  <AlertDescription>{moduleDetailsError}</AlertDescription>
-                </Alert>
-              </div>
-            ) : draft ? (
-              <div className="flex-1 overflow-y-auto p-6">
-                {activeSection === 'basic' && (
-                  <ModuleDetailsBasicInfo tabId={activeTabId!} moduleType={activeTab.source.moduleType} />
-                )}
-                {activeSection === 'organization' && (
-                  <ModuleDetailsOrganization tabId={activeTabId!} moduleType={activeTab.source.moduleType} />
-                )}
-                {activeSection === 'access' && (
-                  <ModuleDetailsAccess tabId={activeTabId!} moduleType={activeTab.source.moduleType} />
-                )}
-                {activeSection === 'appliesTo' && (
-                  <ModuleDetailsAppliesTo tabId={activeTabId!} moduleType={activeTab.source.moduleType} />
-                )}
-                {activeSection === 'activeDiscovery' && enableAutoDiscovery && (
-                  <ModuleDetailsActiveDiscovery tabId={activeTabId!} moduleType={activeTab.source.moduleType} />
-                )}
-                {activeSection === 'datapoints' && schema?.readOnlyList === 'datapoints' && (
-                  <ModuleDetailsDatapoints tabId={activeTabId!} moduleId={activeTab.source.moduleId} moduleType={activeTab.source.moduleType} />
-                )}
-                {activeSection === 'configChecks' && schema?.readOnlyList === 'configChecks' && (
-                  <ModuleDetailsConfigChecks tabId={activeTabId!} moduleId={activeTab.source.moduleId} moduleType={activeTab.source.moduleType} />
-                )}
-                {activeSection === 'alertSettings' && schema?.supportsAlertSettings && (
-                  <ModuleDetailsAlertSettings tabId={activeTabId!} moduleType={activeTab.source.moduleType} />
-                )}
-              </div>
-            ) : (
-              <div className="flex items-center justify-center h-full text-muted-foreground">
-                No module details loaded
-              </div>
-            )}
+              ) : moduleDetailsError ? (
+                <div className="p-6">
+                  <Alert variant="destructive">
+                    <AlertCircle className="size-4" />
+                    <AlertDescription>{moduleDetailsError}</AlertDescription>
+                  </Alert>
+                </div>
+              ) : draft ? (
+                <div className="flex-1 overflow-y-auto p-6">
+                  {activeSection === 'basic' && (
+                    <ModuleDetailsBasicInfo tabId={activeTabId!} moduleType={activeTab.source.moduleType} />
+                  )}
+                  {activeSection === 'organization' && (
+                    <ModuleDetailsOrganization tabId={activeTabId!} moduleType={activeTab.source.moduleType} />
+                  )}
+                  {activeSection === 'access' && (
+                    <ModuleDetailsAccess tabId={activeTabId!} moduleType={activeTab.source.moduleType} />
+                  )}
+                  {activeSection === 'appliesTo' && (
+                    <ModuleDetailsAppliesTo tabId={activeTabId!} moduleType={activeTab.source.moduleType} />
+                  )}
+                  {activeSection === 'activeDiscovery' && enableAutoDiscovery && (
+                    <ModuleDetailsActiveDiscovery tabId={activeTabId!} moduleType={activeTab.source.moduleType} />
+                  )}
+                  {activeSection === 'datapoints' && schema?.readOnlyList === 'datapoints' && (
+                    <ModuleDetailsDatapoints tabId={activeTabId!} moduleId={activeTab.source.moduleId} moduleType={activeTab.source.moduleType} />
+                  )}
+                  {activeSection === 'configChecks' && schema?.readOnlyList === 'configChecks' && (
+                    <ModuleDetailsConfigChecks tabId={activeTabId!} moduleId={activeTab.source.moduleId} moduleType={activeTab.source.moduleType} />
+                  )}
+                  {activeSection === 'alertSettings' && schema?.supportsAlertSettings && (
+                    <ModuleDetailsAlertSettings tabId={activeTabId!} moduleType={activeTab.source.moduleType} />
+                  )}
+                </div>
+              ) : (
+                <div className="flex items-center justify-center h-full text-muted-foreground">
+                  No module details loaded
+                </div>
+              )}
+            </div>
           </div>
-        </div>
 
-        <DialogFooter className="px-6 pb-6 pt-4 border-t shrink-0">
-          <div className="flex items-center justify-between w-full">
-            <div className="text-xs text-muted-foreground">
-              {hasChanges && (
-                <span className="text-amber-500">You have changes that have not been staged</span>
-              )}
-            </div>
-            <div className="flex items-center gap-2 ml-auto">
-              {hasChanges && (
-                <Button variant="outline" onClick={() => setResetDialogOpen(true)}>
-                  Reset Changes
+          <DialogFooter className="px-6 pb-6 pt-4 border-t shrink-0">
+            <div className="flex items-center justify-between w-full">
+              <div className="text-xs text-muted-foreground">
+                {hasChanges && (
+                  <span className="text-amber-500">You have changes that have not been staged</span>
+                )}
+              </div>
+              <div className="flex items-center gap-2 ml-auto">
+                {hasChanges && (
+                  <Button variant="outline" onClick={() => setResetDialogOpen(true)}>
+                    Reset Changes
+                  </Button>
+                )}
+                <Button variant="ghost" onClick={handleClose}>
+                  Cancel
                 </Button>
-              )}
-              <Button variant="ghost" onClick={handleClose}>
-                Cancel
-              </Button>
-              <Button onClick={handleSave} disabled={!hasChanges || hasValidationErrors}>
-                Stage Changes
-              </Button>
+                <Button onClick={handleSave} disabled={!hasChanges || hasValidationErrors}>
+                  Stage Changes
+                </Button>
+              </div>
             </div>
-          </div>
-        </DialogFooter>
-        <ConfirmationDialog
-          open={resetDialogOpen}
-          onOpenChange={setResetDialogOpen}
-          title="Reset module detail changes?"
-          description="This will discard all unsaved changes in the Module Details dialog and restore the last loaded values."
-          confirmLabel="Reset Changes"
-          cancelLabel="Keep Editing"
-          variant="warning"
-          onConfirm={handleReset}
-        />
+          </DialogFooter>
+          <ConfirmationDialog
+            open={resetDialogOpen}
+            onOpenChange={setResetDialogOpen}
+            title="Reset module detail changes?"
+            description="This will discard all unsaved changes in the Module Details dialog and restore the last loaded values."
+            confirmLabel="Reset Changes"
+            cancelLabel="Keep Editing"
+            variant="warning"
+            onConfirm={handleReset}
+          />
+          <PortalBindingOverlay tabId={activeTabId} />
+        </div>
       </DialogContent>
     </Dialog>
   );

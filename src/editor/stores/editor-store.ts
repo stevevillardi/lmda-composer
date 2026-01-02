@@ -44,6 +44,7 @@ import { APPLIES_TO_FUNCTIONS } from '../data/applies-to-functions';
 import { DEFAULT_GROOVY_TEMPLATE, DEFAULT_POWERSHELL_TEMPLATE, getDefaultScriptTemplate } from '../config/script-templates';
 import { buildApiVariableResolver } from '../utils/api-variables';
 import { appendItemsWithLimit } from '../utils/api-pagination';
+import { getPortalBindingStatus } from '../utils/portal-binding';
 import { MODULE_TYPE_SCHEMAS, getSchemaFieldName } from '@/shared/module-type-schemas';
 import type { editor } from 'monaco-editor';
 
@@ -84,18 +85,32 @@ const deepEqual = (a: unknown, b: unknown): boolean => {
   return false;
 };
 
+const ensurePortalBindingActive = (
+  tab: EditorTab,
+  selectedPortalId: string | null,
+  portals: Portal[]
+) => {
+  const binding = getPortalBindingStatus(tab, selectedPortalId, portals);
+  if (!binding.isActive) {
+    throw new Error(binding.reason || 'Portal is not active for this tab.');
+  }
+  return binding;
+};
+
 const getModuleTabIds = (tabs: EditorTab[], tabId: string): string[] => {
   const tab = tabs.find((t) => t.id === tabId);
   if (!tab || tab.source?.type !== 'module' || !tab.source.moduleId || !tab.source.moduleType) {
     return [tabId];
   }
   const source = tab.source;
+  const portalId = source.portalId;
   return tabs
     .filter(
       (t) =>
         t.source?.type === 'module' &&
         t.source.moduleId === source.moduleId &&
-        t.source.moduleType === source.moduleType
+        t.source.moduleType === source.moduleType &&
+        t.source.portalId === portalId
     )
     .map((t) => t.id);
 };
@@ -112,7 +127,9 @@ const findModuleDraftForTab = (
   return (
     Object.values(drafts).find(
       (draft) =>
-        draft.moduleId === tab.source?.moduleId && draft.moduleType === tab.source?.moduleType
+        draft.moduleId === tab.source?.moduleId &&
+        draft.moduleType === tab.source?.moduleType &&
+        draft.portalId === tab.source?.portalId
     ) || null
   );
 };
@@ -541,6 +558,7 @@ interface EditorState {
     tabId: string;
     moduleId: number;
     moduleType: LogicModuleType;
+    portalId?: string;
     version: number;
   }>;
   moduleDetailsDialogOpen: boolean;
@@ -564,7 +582,8 @@ interface EditorState {
   loadModuleDetails: (tabId: string) => Promise<void>;
   updateModuleDetailsField: (tabId: string, field: string, value: unknown) => void;
   resetModuleDetailsDraft: (tabId: string) => void;
-  fetchAccessGroups: () => Promise<void>;
+  fetchAccessGroups: (tabId: string) => Promise<void>;
+  createLocalCopyFromTab: (tabId: string, options?: { activate?: boolean }) => string | null;
 }
 
 // Storage keys
@@ -588,6 +607,17 @@ function createDefaultTab(language: ScriptLanguage = 'groovy', mode: ScriptMode 
     language,
     mode,
   };
+}
+
+function getUniqueUntitledName(tabs: EditorTab[], language: ScriptLanguage): string {
+  const extension = language === 'groovy' ? 'groovy' : 'ps1';
+  let counter = 0;
+  let displayName = `Untitled.${extension}`;
+  while (tabs.some((tab) => tab.displayName === displayName)) {
+    counter += 1;
+    displayName = `Untitled ${counter}.${extension}`;
+  }
+  return displayName;
 }
 
 const DEFAULT_API_REQUEST: ApiRequestSpec = {
@@ -1033,6 +1063,27 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       return;
     }
 
+    let executionPortalId = state.selectedPortalId;
+    if (activeTab.source?.type === 'module') {
+      const binding = getPortalBindingStatus(activeTab, state.selectedPortalId, state.portals);
+      if (!binding.isActive || !binding.portalId) {
+        set({
+          currentExecution: {
+            id: crypto.randomUUID(),
+            status: 'error',
+            rawOutput: '',
+            duration: 0,
+            startTime: Date.now(),
+            error: binding.reason || 'The bound portal is not active for this tab.',
+          },
+          outputTab: 'raw',
+          parsedOutput: null,
+        });
+        return;
+      }
+      executionPortalId = binding.portalId;
+    }
+
     if (language === 'powershell' && !isWindowsCollector) {
       set({
         currentExecution: {
@@ -1055,7 +1106,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       set({
         executionContextDialogOpen: true,
         pendingExecution: {
-          portalId: state.selectedPortalId,
+          portalId: executionPortalId,
           collectorId: state.selectedCollectorId,
           script,
           language,
@@ -1082,7 +1133,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       const response = await chrome.runtime.sendMessage({
         type: 'EXECUTE_SCRIPT',
         payload: {
-          portalId: state.selectedPortalId,
+          portalId: executionPortalId,
           collectorId: state.selectedCollectorId,
           script,
           language,
@@ -1101,7 +1152,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         // Add to history
         const selectedCollector = get().collectors.find(c => c.id === state.selectedCollectorId);
         get().addToHistory({
-          portal: state.selectedPortalId,
+          portal: executionPortalId,
           collector: selectedCollector?.description || `Collector ${state.selectedCollectorId}`,
           collectorId: state.selectedCollectorId,
           hostname: state.hostname || undefined,
@@ -1503,7 +1554,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   loadModuleScript: (script, language, mode) => {
-    const { selectedModule } = get();
+    const { selectedModule, selectedPortalId, portals } = get();
+    const portal = portals.find((entry) => entry.id === selectedPortalId);
     
     // Create a new tab for the loaded script
     const moduleName = selectedModule?.name || 'Module';
@@ -1528,6 +1580,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         moduleType: selectedModule.moduleType,
         scriptType,
         lineageId: selectedModule.lineageId,
+        portalId: selectedPortalId || undefined,
+        portalHostname: portal?.hostname,
       } : undefined,
     };
     
@@ -1543,8 +1597,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   confirmModuleLoad: () => {
-    const { pendingModuleLoad, selectedModule } = get();
+    const { pendingModuleLoad, selectedModule, selectedPortalId, portals } = get();
     if (!pendingModuleLoad) return;
+    const portal = portals.find((entry) => entry.id === selectedPortalId);
 
     // Create a new tab for the loaded script
     const moduleName = selectedModule?.name || 'Module';
@@ -1569,6 +1624,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         moduleType: selectedModule.moduleType,
         scriptType,
         lineageId: selectedModule.lineageId,
+        portalId: selectedPortalId || undefined,
+        portalHostname: portal?.hostname,
       } : undefined,
     };
     
@@ -3049,9 +3106,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   openModuleScripts: (module, scripts) => {
-    const { tabs } = get();
+    const { tabs, selectedPortalId, portals } = get();
     const extension = module.scriptType === 'powerShell' ? 'ps1' : 'groovy';
     const language: ScriptLanguage = module.scriptType === 'powerShell' ? 'powershell' : 'groovy';
+    const portal = portals.find((entry) => entry.id === selectedPortalId);
     
     const newTabs: EditorTab[] = scripts.map(script => {
       const scriptType: 'collection' | 'ad' = script.type === 'ad' ? 'ad' : 'collection';
@@ -3069,6 +3127,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           moduleType: module.moduleType,
           scriptType,
           lineageId: module.lineageId,
+          portalId: selectedPortalId || undefined,
+          portalHostname: portal?.hostname,
         },
       };
     });
@@ -3522,6 +3582,31 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       activeTabId: newTab.id,
     });
   },
+
+  createLocalCopyFromTab: (tabId: string, options) => {
+    const { tabs } = get();
+    const tab = tabs.find((entry) => entry.id === tabId);
+    if (!tab || tab.kind === 'api') return null;
+
+    const displayName = getUniqueUntitledName(tabs, tab.language);
+    const newTab: EditorTab = {
+      id: crypto.randomUUID(),
+      kind: 'script',
+      displayName,
+      content: tab.content,
+      language: tab.language,
+      mode: tab.mode,
+      originalContent: tab.content,
+      isLocalFile: true,
+    };
+
+    set({
+      tabs: [...tabs, newTab],
+      activeTabId: options?.activate === false ? get().activeTabId : newTab.id,
+    });
+
+    return newTab.id;
+  },
   
   // AppliesTo tester actions
   setAppliesToTesterOpen: (open: boolean) => {
@@ -3791,11 +3876,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   loadModuleDetails: async (tabId: string) => {
-    const { tabs, selectedPortalId } = get();
+    const { tabs, selectedPortalId, portals } = get();
     const tab = tabs.find(t => t.id === tabId);
-    
-    if (!tab || !selectedPortalId) {
-      set({ moduleDetailsError: 'Tab not found or portal not selected' });
+    if (!tab) {
+      set({ moduleDetailsError: 'Tab not found' });
       return;
     }
 
@@ -3825,8 +3909,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     set({ moduleDetailsLoading: true, moduleDetailsError: null });
 
     try {
+      const binding = ensurePortalBindingActive(tab, selectedPortalId, portals);
       // Get portal info for CSRF token
-      const portal = get().portals.find(p => p.id === selectedPortalId);
+      const portal = portals.find(p => p.id === binding.portalId);
       if (!portal) {
         throw new Error('Portal not found');
       }
@@ -3846,7 +3931,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       const response = await chrome.runtime.sendMessage({
         type: 'FETCH_MODULE_DETAILS',
         payload: {
-          portalId: selectedPortalId,
+          portalId: binding.portalId,
           moduleType,
           moduleId,
           tabId: lmTab.id,
@@ -3922,6 +4007,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
             tabId: id,
             moduleId,
             moduleType,
+            portalId: source.portalId,
             version: module.version || 0,
           };
         });
@@ -4004,19 +4090,19 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     set({ moduleDetailsDraftByTabId: updatedDrafts });
   },
 
-  fetchAccessGroups: async () => {
-    const { selectedPortalId } = get();
-    
-    if (!selectedPortalId) {
-      set({ moduleDetailsError: 'Please select a portal first' });
+  fetchAccessGroups: async (tabId: string) => {
+    const { tabs, selectedPortalId, portals } = get();
+    const tab = tabs.find((entry) => entry.id === tabId);
+    if (!tab || tab.source?.type !== 'module') {
+      set({ moduleDetailsError: 'Tab not found or not a module tab' });
       return;
     }
 
     set({ isLoadingAccessGroups: true });
 
     try {
-      // Get portal info
-      const portal = get().portals.find(p => p.id === selectedPortalId);
+      const binding = ensurePortalBindingActive(tab, selectedPortalId, portals);
+      const portal = portals.find((entry) => entry.id === binding.portalId);
       if (!portal) {
         throw new Error('Portal not found');
       }
@@ -4036,7 +4122,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       const response = await chrome.runtime.sendMessage({
         type: 'FETCH_ACCESS_GROUPS',
         payload: {
-          portalId: selectedPortalId,
+          portalId: binding.portalId,
           tabId: lmTab.id,
         },
       });
@@ -4062,10 +4148,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   canCommitModule: (tabId: string) => {
-    const tab = get().tabs.find(t => t.id === tabId);
+    const { tabs, selectedPortalId, portals } = get();
+    const tab = tabs.find(t => t.id === tabId);
     if (!tab) return false;
     if (tab.source?.type !== 'module') return false;
-    if (!get().selectedPortalId) return false;
+    const binding = getPortalBindingStatus(tab, selectedPortalId, portals);
+    if (!binding.isActive) return false;
     
     // Check for script changes
     const hasScriptChanges = get().getTabDirtyState(tab);
@@ -4079,16 +4167,18 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   fetchModuleForCommit: async (tabId: string) => {
-    const { tabs, selectedPortalId } = get();
+    const { tabs, selectedPortalId, portals } = get();
     const tab = tabs.find(t => t.id === tabId);
     
-    if (!tab || !selectedPortalId) {
-      throw new Error('Tab not found or portal not selected');
+    if (!tab) {
+      throw new Error('Tab not found');
     }
     
     if (tab.source?.type !== 'module' || !tab.source.moduleId || !tab.source.moduleType || !tab.source.scriptType) {
       throw new Error('Tab is not a module tab');
     }
+
+    const binding = ensurePortalBindingActive(tab, selectedPortalId, portals);
     
     set({ moduleCommitError: null });
     
@@ -4096,7 +4186,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       const response = await chrome.runtime.sendMessage({
         type: 'FETCH_MODULE',
         payload: {
-          portalId: selectedPortalId,
+          portalId: binding.portalId,
           moduleType: tab.source.moduleType,
           moduleId: tab.source.moduleId,
         },
@@ -4192,16 +4282,18 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   commitModuleScript: async (tabId: string, reason?: string) => {
-    const { tabs, selectedPortalId, moduleDetailsDraftByTabId } = get();
+    const { tabs, selectedPortalId, portals, moduleDetailsDraftByTabId } = get();
     const tab = tabs.find(t => t.id === tabId);
     
-    if (!tab || !selectedPortalId) {
-      throw new Error('Tab not found or portal not selected');
+    if (!tab) {
+      throw new Error('Tab not found');
     }
     
     if (tab.source?.type !== 'module' || !tab.source.moduleId || !tab.source.moduleType || !tab.source.scriptType) {
       throw new Error('Tab is not a module tab');
     }
+
+    const binding = ensurePortalBindingActive(tab, selectedPortalId, portals);
     
     set({ isCommittingModule: true, moduleCommitError: null });
     
@@ -4291,7 +4383,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       const response = await chrome.runtime.sendMessage({
         type: 'COMMIT_MODULE_SCRIPT',
         payload: {
-          portalId: selectedPortalId,
+          portalId: binding.portalId,
           moduleType: tab.source.moduleType,
           moduleId: tab.source.moduleId,
           scriptType: tab.source.scriptType,
@@ -4358,16 +4450,18 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   fetchLineageVersions: async (tabId: string): Promise<number> => {
-    const { tabs, selectedPortalId } = get();
+    const { tabs, selectedPortalId, portals } = get();
     const tab = tabs.find(t => t.id === tabId);
 
-    if (!tab || !selectedPortalId) {
-      throw new Error('Tab not found or portal not selected');
+    if (!tab) {
+      throw new Error('Tab not found');
     }
 
     if (tab.source?.type !== 'module' || !tab.source.moduleType || !tab.source.lineageId) {
       throw new Error('Lineage is only available for LMX-loaded modules');
     }
+
+    const binding = ensurePortalBindingActive(tab, selectedPortalId, portals);
 
     set({ isFetchingLineage: true, lineageError: null });
 
@@ -4375,7 +4469,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       const response = await chrome.runtime.sendMessage({
         type: 'FETCH_LINEAGE_VERSIONS',
         payload: {
-          portalId: selectedPortalId,
+          portalId: binding.portalId,
           moduleType: tab.source.moduleType,
           lineageId: tab.source.lineageId,
         },

@@ -3,6 +3,8 @@ import { useEditorStore } from '../stores/editor-store';
 import type { editor } from 'monaco-editor';
 import { useCallback, useRef, useMemo, useEffect } from 'react';
 import { buildMonacoOptions, getMonacoTheme } from '@/editor/utils/monaco-settings';
+import { getPortalBindingStatus } from '../utils/portal-binding';
+import { PortalBindingOverlay } from './PortalBindingOverlay';
 
 // Import the loader config to use bundled Monaco (CSP-safe)
 import '../monaco-loader';
@@ -14,6 +16,8 @@ export function EditorPanel() {
     updateActiveTabContent, 
     executeScript, 
     preferences,
+    selectedPortalId,
+    portals,
     setEditorInstance,
   } = useEditorStore();
   
@@ -45,11 +49,17 @@ export function EditorPanel() {
     editor.focus();
   }, [executeScript, setEditorInstance]);
 
+  const isPortalLocked = useMemo(() => {
+    if (!activeTab || activeTab.source?.type !== 'module') return false;
+    const binding = getPortalBindingStatus(activeTab, selectedPortalId, portals);
+    return !binding.isActive;
+  }, [activeTab, selectedPortalId, portals]);
+
   const handleEditorChange = useCallback((value: string | undefined) => {
-    if (value !== undefined) {
+    if (value !== undefined && !isPortalLocked) {
       updateActiveTabContent(value);
     }
-  }, [updateActiveTabContent]);
+  }, [updateActiveTabContent, isPortalLocked]);
 
   // Map our language to Monaco language ID
   const monacoLanguage = activeTab?.language === 'groovy' ? 'groovy' : 'powershell';
@@ -73,7 +83,8 @@ export function EditorPanel() {
       bracketPairs: true,
       indentation: true,
     },
-  }), [preferences]);
+    readOnly: isPortalLocked,
+  }), [preferences, isPortalLocked]);
 
   useEffect(() => {
     if (!activeTab) {
@@ -82,7 +93,7 @@ export function EditorPanel() {
   }, [activeTab, setEditorInstance]);
 
   return (
-    <div className="h-full w-full flex flex-col">
+    <div className="h-full w-full flex flex-col relative">
       {/* Monaco Editor */}
       <div className="flex-1 min-h-0" role="region" aria-label="Code editor">
         {activeTab ? (
@@ -107,6 +118,7 @@ export function EditorPanel() {
           </div>
         )}
       </div>
+      <PortalBindingOverlay tabId={activeTabId} />
     </div>
   );
 }

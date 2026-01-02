@@ -48,6 +48,7 @@ import { SIZES } from '../constants/sizes';
 import type { ScriptLanguage, ScriptMode } from '@/shared/types';
 import { ContextDropdown } from './ContextDropdown';
 import { ActionsDropdown } from './ActionsDropdown';
+import { getPortalBindingStatus } from '../utils/portal-binding';
 
 interface ModeItem {
   value: ScriptMode;
@@ -66,6 +67,7 @@ export function Toolbar() {
   const {
     selectedPortalId,
     selectedCollectorId,
+    portals,
     tabs,
     activeTabId,
     collectors,
@@ -97,6 +99,12 @@ export function Toolbar() {
   const activeTab = useMemo(() => {
     return tabs.find(t => t.id === activeTabId) ?? null;
   }, [tabs, activeTabId]);
+
+  const portalBinding = useMemo(() => {
+    if (!activeTab || activeTab.source?.type !== 'module') return null;
+    return getPortalBindingStatus(activeTab, selectedPortalId, portals);
+  }, [activeTab, selectedPortalId, portals]);
+  const isPortalBoundActive = portalBinding?.isActive ?? true;
   const isApiTab = activeTab?.kind === 'api';
 
   const language = activeTab?.language ?? 'groovy';
@@ -414,7 +422,7 @@ export function Toolbar() {
                       });
                     }
                   }}
-                  disabled={isFetchingLineage}
+                  disabled={isFetchingLineage || !isPortalBoundActive}
                   className={cn("gap-1.5", SIZES.BUTTON_TOOLBAR)}
                   aria-label="View module lineage"
                 >
@@ -424,7 +432,11 @@ export function Toolbar() {
               }
             />
             <TooltipContent>
-              {isFetchingLineage ? 'Loading lineage...' : 'View historical versions'}
+              {!isPortalBoundActive
+                ? 'Portal mismatch: switch to the bound portal to view lineage'
+                : isFetchingLineage
+                  ? 'Loading lineage...'
+                  : 'View historical versions'}
             </TooltipContent>
           </Tooltip>
         )}
@@ -440,6 +452,7 @@ export function Toolbar() {
                   onClick={() => {
                     setModuleDetailsDialogOpen(true);
                   }}
+                  disabled={!isPortalBoundActive}
                   className={cn("gap-1.5", SIZES.BUTTON_TOOLBAR)}
                   aria-label="Open module details"
                 >
@@ -449,7 +462,9 @@ export function Toolbar() {
               }
             />
             <TooltipContent>
-              Edit module metadata (name, description, appliesTo, etc.)
+              {!isPortalBoundActive
+                ? 'Portal mismatch: switch to the bound portal to edit details'
+                : 'Edit module metadata (name, description, appliesTo, etc.)'}
             </TooltipContent>
           </Tooltip>
         )}
@@ -489,9 +504,11 @@ export function Toolbar() {
               }
             />
             <TooltipContent>
-              {canCommit 
-                ? 'Commit changes back to LogicMonitor module'
-                : 'No changes to commit'}
+              {!isPortalBoundActive
+                ? 'Portal mismatch: switch to the bound portal to commit'
+                : canCommit
+                  ? 'Commit changes back to LogicMonitor module'
+                  : 'No changes to commit'}
             </TooltipContent>
           </Tooltip>
         )}

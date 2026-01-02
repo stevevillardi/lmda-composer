@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState, useCallback, KeyboardEvent } from 'react';
-import { X, Plus, Pencil, Circle, Save, Upload, Trash2, AlertTriangle, Braces } from 'lucide-react';
+import { X, Plus, Pencil, Circle, Save, Upload, Trash2, AlertTriangle, Braces, Link2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEditorStore } from '../stores/editor-store';
 import { Button } from '@/components/ui/button';
@@ -23,8 +23,9 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
-import type { EditorTab } from '@/shared/types';
+import type { EditorTab, Portal } from '@/shared/types';
 import { getDefaultScriptTemplate } from '../config/script-templates';
+import { getPortalBindingStatus } from '../utils/portal-binding';
 
 // Language icons (using simple text badges for now)
 function LanguageIcon({ language }: { language: EditorTab['language'] }) {
@@ -80,6 +81,8 @@ interface TabItemProps {
   isRenaming: boolean;
   isDirty: boolean;
   canRename: boolean;
+  selectedPortalId: string | null;
+  portals: Portal[];
   onActivate: () => void;
   onClose: () => void;
   onCloseOthers: () => void;
@@ -95,6 +98,8 @@ function TabItem({
   isRenaming,
   isDirty,
   canRename,
+  selectedPortalId,
+  portals,
   onActivate, 
   onClose, 
   onCloseOthers, 
@@ -148,6 +153,13 @@ function TabItem({
       onCancelRename();
     }
   }, [handleRenameSubmit, onCancelRename]);
+
+  const portalBinding = tab.source?.type === 'module'
+    ? getPortalBindingStatus(tab, selectedPortalId, portals)
+    : null;
+  const isPortalBound = !!portalBinding;
+  const isPortalActive = portalBinding?.isActive ?? true;
+  const portalLabel = portalBinding?.portalHostname || portalBinding?.portalId;
 
   // Build tooltip content
   const tooltipContent = tab.source?.moduleName 
@@ -213,6 +225,18 @@ function TabItem({
                       <span className="text-[10px] text-muted-foreground ml-1 opacity-70">(local)</span>
                     )}
                   </span>
+
+                  {isPortalBound && (
+                    <span
+                      className={cn(
+                        'flex items-center justify-center size-4 rounded-sm',
+                        isPortalActive ? 'text-muted-foreground' : 'text-amber-500'
+                      )}
+                      aria-label={isPortalActive ? 'Portal bound' : 'Portal mismatch'}
+                    >
+                      <Link2 className="size-3" />
+                    </span>
+                  )}
                   
                   {/* Close/Dirty indicator */}
                   <span
@@ -289,6 +313,11 @@ function TabItem({
       </ContextMenu>
       <TooltipContent side="bottom" className="max-w-xs">
         <div className="text-xs">{tooltipContent}</div>
+        {isPortalBound && (
+          <div className="text-[10px] text-muted-foreground mt-1">
+            {isPortalActive ? 'Portal bound' : 'Portal mismatch'} • {portalLabel || 'Unknown portal'}
+          </div>
+        )}
         <div className="text-[10px] text-muted-foreground mt-0.5">
           {tab.kind === 'api'
             ? 'API request tab'
@@ -305,6 +334,8 @@ export function TabBar() {
   const {
     tabs,
     activeTabId,
+    selectedPortalId,
+    portals,
     setActiveTab,
     closeTab,
     closeOtherTabs,
@@ -542,6 +573,8 @@ export function TabBar() {
             isRenaming={renamingTabId === tab.id}
             isDirty={getTabDirtyState(tab)}
             canRename={!tab.hasFileHandle}
+            selectedPortalId={selectedPortalId}
+            portals={portals}
             onActivate={() => setActiveTab(tab.id)}
             onClose={() => handleTabClose(tab.id)}
             onCloseOthers={() => closeOtherTabs(tab.id)}

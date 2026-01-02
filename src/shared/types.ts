@@ -125,6 +125,8 @@ export interface EditorTabSource {
   moduleType?: LogicModuleType;
   scriptType?: 'collection' | 'ad';
   lineageId?: string;
+  portalId?: string;
+  portalHostname?: string;
 }
 
 export interface EditorTabContextOverride {

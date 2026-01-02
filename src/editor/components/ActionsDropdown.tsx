@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEditorStore } from '../stores/editor-store';
+import { getPortalBindingStatus } from '../utils/portal-binding';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -35,6 +36,7 @@ export function ActionsDropdown() {
     tabs,
     activeTabId,
     selectedPortalId,
+    portals,
     setActiveTab,
     setModuleBrowserOpen,
     setModuleSearchOpen,
@@ -59,6 +61,10 @@ export function ActionsDropdown() {
   const hasOpenTabs = tabs.length > 0;
   const activeTab = tabs.find(t => t.id === activeTabId);
   const isModuleTab = activeTab?.source?.type === 'module';
+  const portalBinding = activeTab && isModuleTab
+    ? getPortalBindingStatus(activeTab, selectedPortalId, portals)
+    : null;
+  const isPortalBoundActive = portalBinding?.isActive ?? true;
   const canCommit = activeTabId && isModuleTab && canCommitModule(activeTabId);
   const isApiActive = activeTab?.kind === 'api';
   const canSendApi = Boolean(
@@ -329,9 +335,11 @@ export function ActionsDropdown() {
                   />
                   {(!selectedPortalId || !canCommit) && (
                     <TooltipContent>
-                      {selectedPortalId && !canCommit 
-                        ? 'No changes detected' 
-                        : 'Portal connection required'}
+                      {!isPortalBoundActive
+                        ? 'Portal mismatch: switch to the bound portal to commit'
+                        : selectedPortalId && !canCommit 
+                          ? 'No changes detected' 
+                          : 'Portal connection required'}
                     </TooltipContent>
                   )}
                 </Tooltip>
