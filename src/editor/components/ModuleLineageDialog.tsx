@@ -206,9 +206,9 @@ export function ModuleLineageDialog({ activeTab }: ModuleLineageDialogProps) {
           </Button>
           <Button
             type="button"
+            variant="commit"
             onClick={handleRestore}
             disabled={!selectedVersion || !selectedVersionScript}
-            className="bg-blue-600 hover:bg-blue-500 text-white"
           >
             <RotateCcw className="size-4 mr-2" />
             Restore Version

@@ -187,9 +187,9 @@ export function UpdateFunctionConfirmationDialog({
           </Button>
           <Button 
             type="button" 
+            variant="commit"
             onClick={handleConfirm} 
             disabled={isUpdating || !hasCodeChanges}
-            className="bg-blue-600 hover:bg-blue-500 text-white"
           >
             {isUpdating ? (
               <>

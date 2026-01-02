@@ -242,7 +242,7 @@ export function CreateSnippetDialog() {
           <Button variant="outline" onClick={handleClose}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={!isValid}>
+          <Button variant="commit" onClick={handleSubmit} disabled={!isValid}>
             {editingSnippet ? 'Save Changes' : 'Create Snippet'}
           </Button>
         </DialogFooter>

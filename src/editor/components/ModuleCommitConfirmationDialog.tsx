@@ -697,9 +697,9 @@ export function ModuleCommitConfirmationDialog({
           </Button>
           <Button 
             type="button" 
+            variant="commit"
             onClick={handleConfirm} 
             disabled={isCommitting || !hasChanges}
-            className="bg-blue-600 hover:bg-blue-500 text-white"
           >
             {isCommitting ? (
               <>

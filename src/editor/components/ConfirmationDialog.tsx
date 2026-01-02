@@ -30,17 +30,17 @@ const variantStyles = {
   default: {
     iconBg: 'bg-muted',
     iconColor: 'text-foreground',
-    buttonClass: '',
+    buttonVariant: 'default' as const,
   },
   warning: {
     iconBg: 'bg-amber-500/10',
     iconColor: 'text-amber-500',
-    buttonClass: 'bg-amber-600 hover:bg-amber-500',
+    buttonVariant: 'warning' as const,
   },
   destructive: {
     iconBg: 'bg-destructive/10',
     iconColor: 'text-destructive',
-    buttonClass: 'bg-destructive hover:bg-destructive/90',
+    buttonVariant: 'destructive' as const,
   },
 };
 
@@ -84,7 +84,7 @@ export function ConfirmationDialog({
           </AlertDialogCancel>
           <AlertDialogAction
             onClick={handleConfirm}
-            className={styles.buttonClass}
+            variant={styles.buttonVariant}
           >
             {confirmLabel}
           </AlertDialogAction>

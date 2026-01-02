@@ -103,6 +103,7 @@ export function AppliesToTester() {
   }, [appliesToTesterOpen, selectedPortalId, fetchCustomFunctions]);
 
   // Get all functions (built-in + custom)
+  // Re-compute when customFunctions changes (getAllFunctions reads current state from store)
   const allFunctions = useMemo(() => {
     return getAllFunctions();
   }, [getAllFunctions, customFunctions]);
@@ -828,10 +829,10 @@ export function AppliesToTester() {
               <div className="flex items-center justify-end gap-2">
                 {loadedFunction ? (
                   <Button
-                    variant="default"
+                    variant="commit"
                     onClick={handleUpdateFunctionClick}
                     disabled={!hasExpressionChanged || !canSaveAsFunction || !selectedPortalId}
-                    className="gap-2 bg-blue-600 hover:bg-blue-500 text-white"
+                    className="gap-2"
                   >
                     <Upload className="size-4" />
                     Commit Function
@@ -1135,7 +1136,7 @@ export function AppliesToTester() {
             <AlertDialogAction
               onClick={handleDeleteFunction}
               disabled={isDeletingFunction}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              variant="destructive"
             >
               {isDeletingFunction ? 'Deleting...' : 'Delete'}
             </AlertDialogAction>

@@ -14,6 +14,10 @@ const buttonVariants = cva(
         ghost: "hover:bg-muted hover:text-foreground dark:hover:bg-muted/50 aria-expanded:bg-muted aria-expanded:text-foreground",
         destructive: "bg-destructive/10 hover:bg-destructive/20 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/20 text-destructive focus-visible:border-destructive/40 dark:hover:bg-destructive/30",
         link: "text-primary underline-offset-4 hover:underline",
+        // Semantic action variants
+        commit: "bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-60",
+        execute: "bg-green-600 hover:bg-green-500 text-white disabled:opacity-60",
+        warning: "bg-amber-600 hover:bg-amber-500 text-white disabled:opacity-60",
       },
       size: {
         default: "h-9 gap-1.5 px-2.5 in-data-[slot=button-group]:rounded-md has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",

@@ -647,7 +647,8 @@ export function TabBar() {
               {isLocalFile && (
                 <AlertDialogAction
                   onClick={handleSaveAndClose}
-                  className="bg-blue-600 hover:bg-blue-500 text-white gap-2"
+                  variant="commit"
+                  className="gap-2"
                 >
                   <Save className="size-4" />
                   Save & Close
@@ -656,7 +657,8 @@ export function TabBar() {
               {isModuleTab && canCommit && (
                 <AlertDialogAction
                   onClick={handlePreviewCommit}
-                  className="bg-blue-600 hover:bg-blue-500 text-white gap-2"
+                  variant="commit"
+                  className="gap-2"
                 >
                   <Upload className="size-4" />
                   Preview Commit
@@ -665,7 +667,8 @@ export function TabBar() {
               {isModuleTab && !canCommit && (
                 <AlertDialogAction
                   onClick={handleSaveAndClose}
-                  className="bg-blue-600 hover:bg-blue-500 text-white gap-2"
+                  variant="commit"
+                  className="gap-2"
                 >
                   <Save className="size-4" />
                   Save a Local Copy & Close
@@ -674,7 +677,8 @@ export function TabBar() {
               {!isLocalFile && !isModuleTab && (
                 <AlertDialogAction
                   onClick={handleSaveAndClose}
-                  className="bg-blue-600 hover:bg-blue-500 text-white gap-2"
+                  variant="commit"
+                  className="gap-2"
                 >
                   <Save className="size-4" />
                   Save Locally
@@ -682,7 +686,8 @@ export function TabBar() {
               )}
               <AlertDialogAction
                 onClick={handleDiscardAndClose}
-                className="bg-destructive hover:bg-destructive/90 text-destructive-foreground gap-2"
+                variant="destructive"
+                className="gap-2"
               >
                 <Trash2 className="size-4" />
                 Discard

@@ -250,12 +250,11 @@ export function Toolbar() {
             onClick={() => executeApiRequest(activeTabId ?? undefined)}
             disabled={!canSendApi}
             size="sm"
+            variant="execute"
             className={cn(
               "gap-1.5",
               SIZES.BUTTON_TOOLBAR,
-              "px-4 font-medium",
-              "bg-green-600 hover:bg-green-500 text-white",
-              "disabled:bg-green-600/50 disabled:text-white/70"
+              "px-4 font-medium"
             )}
             aria-label={isExecutingApi ? 'Sending request' : 'Send request'}
           >
@@ -475,7 +474,7 @@ export function Toolbar() {
             <TooltipTrigger
               render={
                 <Button
-                  variant="default"
+                  variant="commit"
                   size="sm"
                   onClick={async () => {
                     if (!activeTabId) return;
@@ -492,9 +491,7 @@ export function Toolbar() {
                   className={cn(
                     "gap-1.5",
                     SIZES.BUTTON_TOOLBAR,
-                    "px-3 font-medium",
-                    "bg-blue-600 hover:bg-blue-500 text-white",
-                    "disabled:bg-blue-600/50 disabled:text-white/70"
+                    "px-3 font-medium"
                   )}
                   aria-label="Commit changes to module"
                 >
@@ -521,12 +518,11 @@ export function Toolbar() {
           onClick={handleRunClick}
           disabled={!canExecute}
           size="sm"
+          variant="execute"
           className={cn(
             "gap-1.5",
             SIZES.BUTTON_TOOLBAR,
-            "px-4 font-medium",
-            "bg-green-600 hover:bg-green-500 text-white",
-            "disabled:bg-green-600/50 disabled:text-white/70"
+            "px-4 font-medium"
           )}
           aria-label={isExecuting ? 'Running script' : 'Run script'}
         >
@@ -615,7 +611,7 @@ export function Toolbar() {
             </AlertDialogCancel>
             <AlertDialogAction 
               onClick={confirmLanguageSwitch}
-              className="bg-amber-600 hover:bg-amber-500"
+              variant="warning"
             >
               Switch & Reset
             </AlertDialogAction>
@@ -642,7 +638,7 @@ export function Toolbar() {
             </AlertDialogCancel>
             <AlertDialogAction 
               onClick={cancelExecution}
-              className="bg-destructive hover:bg-destructive/90"
+              variant="destructive"
             >
               Cancel Execution
             </AlertDialogAction>

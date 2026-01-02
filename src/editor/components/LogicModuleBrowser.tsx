@@ -352,7 +352,7 @@ export function LogicModuleBrowser() {
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmModuleLoad}
-              className="bg-amber-600 hover:bg-amber-500"
+              variant="warning"
             >
               Load & Replace
             </AlertDialogAction>

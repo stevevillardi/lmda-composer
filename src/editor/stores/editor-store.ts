@@ -45,6 +45,7 @@ import { DEFAULT_GROOVY_TEMPLATE, DEFAULT_POWERSHELL_TEMPLATE, getDefaultScriptT
 import { buildApiVariableResolver } from '../utils/api-variables';
 import { appendItemsWithLimit } from '../utils/api-pagination';
 import { getPortalBindingStatus } from '../utils/portal-binding';
+import { getExtensionForLanguage, getLanguageFromFilename } from '../utils/file-extensions';
 import { MODULE_TYPE_SCHEMAS, getSchemaFieldName } from '@/shared/module-type-schemas';
 import type { editor } from 'monaco-editor';
 
@@ -919,7 +920,16 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         set({ devices: [], isFetchingDevices: false });
       }
     } catch (error) {
+      // Check if portal/collector changed during fetch - discard stale errors
+      const current = get();
+      if (current.selectedPortalId !== fetchingPortal || 
+          current.selectedCollectorId !== fetchingCollector) {
+        return;
+      }
       console.error('Error fetching devices:', error);
+      toast.error('Failed to load devices', {
+        description: 'Check that you are connected to the portal',
+      });
       set({ devices: [], isFetchingDevices: false });
     }
   },
@@ -1225,6 +1235,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       }
     } catch (error) {
       console.error('Failed to refresh portals:', error);
+      toast.error('Failed to refresh portals', {
+        description: 'Make sure you have a LogicMonitor portal tab open',
+      });
     }
   },
 
@@ -1537,10 +1550,16 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         });
       } else {
         console.error('Failed to fetch modules:', response);
+        toast.error('Failed to load modules', {
+          description: 'Unable to fetch modules from the portal',
+        });
         set({ isFetchingModules: false });
       }
     } catch (error) {
       console.error('Error fetching modules:', error);
+      toast.error('Failed to load modules', {
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
       set({ isFetchingModules: false });
     }
   },
@@ -2061,7 +2080,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           const newLanguage = mergedPrefs.defaultLanguage;
           const newMode = mergedPrefs.defaultMode;
           const newScript = newLanguage === 'groovy' ? DEFAULT_GROOVY_TEMPLATE : DEFAULT_POWERSHELL_TEMPLATE;
-          const extension = newLanguage === 'groovy' ? '.groovy' : '.ps1';
+          const extension = getExtensionForLanguage(newLanguage);
           
           // Update the active tab with new language, mode, and content
           set({ 
@@ -2093,6 +2112,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       await chrome.storage.local.set({ [STORAGE_KEYS.PREFERENCES]: preferences });
     } catch (error) {
       console.error('Failed to save preferences:', error);
+      toast.error('Failed to save settings', {
+        description: 'Your preferences could not be saved',
+      });
     }
   },
 
@@ -2624,7 +2646,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const activeTab = tabs.find(t => t.id === activeTabId);
     if (!activeTab) return;
     
-    const extension = activeTab.language === 'groovy' ? '.groovy' : '.ps1';
+    const extension = getExtensionForLanguage(activeTab.language);
     const baseName = activeTab.displayName.replace(/\.(groovy|ps1)$/, '');
     const fileName = `${baseName}${extension}`;
 
@@ -2673,6 +2695,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         set({ deviceProperties: response.payload, isFetchingProperties: false });
       } else {
         console.error('Failed to fetch device properties:', response);
+        toast.error('Failed to load properties', {
+          description: 'Unable to fetch device properties',
+        });
         set({ deviceProperties: [], isFetchingProperties: false });
       }
     } catch (error) {
@@ -2681,6 +2706,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       if (current.selectedPortalId !== fetchingPortal || current.selectedDeviceId !== fetchingDevice) {
         return;
       }
+      toast.error('Failed to load properties', {
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
       set({ deviceProperties: [], isFetchingProperties: false });
     }
   },
@@ -3023,7 +3051,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     
     // Add extension if missing for script tabs
     if (tab.kind !== 'api' && !displayName.endsWith('.groovy') && !displayName.endsWith('.ps1')) {
-      displayName += tab.language === 'groovy' ? '.groovy' : '.ps1';
+      displayName += getExtensionForLanguage(tab.language);
     }
     
     set({
@@ -3331,7 +3359,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     }
 
     try {
-      const extension = tab.language === 'groovy' ? '.groovy' : '.ps1';
+      const extension = getExtensionForLanguage(tab.language);
       const baseName = tab.displayName.replace(/\.(groovy|ps1)$/, '');
       const suggestedName = baseName + extension;
       
@@ -3341,9 +3369,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         types: [
           {
             description: 'Script Files',
-            accept: tab.language === 'groovy' 
-              ? { 'text/plain': ['.groovy'] }
-              : { 'text/plain': ['.ps1'] },
+            accept: { 'text/plain': [extension] },
           },
         ],
       });
@@ -3545,7 +3571,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       // Read file content
       const content = await fileHandleStore.readFromHandle(handle);
       const fileName = handle.name;
-      const language: ScriptLanguage = fileName.endsWith('.ps1') ? 'powershell' : 'groovy';
+      const language: ScriptLanguage = getLanguageFromFilename(fileName);
 
       // Update lastAccessed
       await fileHandleStore.saveHandle(tabId, handle, fileName);
