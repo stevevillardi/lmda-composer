@@ -1,4 +1,4 @@
-import { Trash2, XCircle, Clock, Loader2, Play, CheckCircle2, Maximize2, X } from 'lucide-react';
+import { Trash2, XCircle, Clock, Loader2, Play, CheckCircle2, Maximize2, X, Network } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { toast } from 'sonner';
 import { useEditorStore } from '../stores/editor-store';
@@ -11,8 +11,9 @@ import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/
 import { cn } from '@/lib/utils';
 import { ParsedContent } from './ParsedContent';
 import { ValidationContent } from './ValidationContent';
+import { TopologyGraphView } from './TopologyGraphView';
 import { CopyButton } from './shared/CopyButton';
-import type { ParseResult } from '../utils/output-parser';
+import type { ParseResult, TopologyParseResult } from '../utils/output-parser';
 
 // Helper to get parsed tab status indicator
 function getParsedTabIndicator(parsedOutput: ParseResult | null): React.ReactNode {
@@ -80,13 +81,18 @@ export function OutputPanel() {
   }, [tabs, activeTabId]);
 
   const isFreeformMode = mode === 'freeform';
+  const isTopologyResult = parsedOutput?.type === 'topology';
 
-  // Auto-switch to 'raw' tab when switching to freeform mode
+  // Auto-switch to 'raw' tab when switching to freeform mode or when graph tab is no longer valid
   useEffect(() => {
-    if (isFreeformMode && (outputTab === 'parsed' || outputTab === 'validation')) {
+    if (isFreeformMode && (outputTab === 'parsed' || outputTab === 'validation' || outputTab === 'graph')) {
       setOutputTab('raw');
     }
-  }, [isFreeformMode, outputTab, setOutputTab]);
+    // Switch away from graph tab if result is no longer topology
+    if (outputTab === 'graph' && !isTopologyResult) {
+      setOutputTab('parsed');
+    }
+  }, [isFreeformMode, isTopologyResult, outputTab, setOutputTab]);
 
   const renderHeader = (showFullscreen: boolean, showClose: boolean) => {
     const isFullscreen = showClose;
@@ -148,6 +154,13 @@ export function OutputPanel() {
             <TabsTrigger value="validation" id="output-tab-validation" aria-controls="output-panel-validation" className="flex items-center">
               Validation
               {getValidationTabIndicator(parsedOutput)}
+            </TabsTrigger>
+          )}
+          {/* Graph tab - only for topology results */}
+          {isTopologyResult && (
+            <TabsTrigger value="graph" id="output-tab-graph" aria-controls="output-panel-graph" className="flex items-center gap-1">
+              <Network className="size-3.5" />
+              Graph
             </TabsTrigger>
           )}
         </TabsList>
@@ -268,6 +281,18 @@ export function OutputPanel() {
       >
         <ValidationContent />
       </TabsContent>
+
+      {/* Graph tab - only for topology results */}
+      {isTopologyResult && (
+        <TabsContent
+          value="graph"
+          className="h-full overflow-hidden"
+          role="tabpanel"
+          aria-labelledby="output-tab-graph"
+        >
+          <TopologyGraphView result={parsedOutput as TopologyParseResult} />
+        </TabsContent>
+      )}
     </div>
   );
 

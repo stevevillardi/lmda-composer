@@ -64,6 +64,17 @@ export interface TopologyVertex {
   issues: ValidationIssue[];
 }
 
+export interface TopologyHealthMetric {
+  Tx?: Record<string, string>;
+  Rx?: Record<string, string>;
+}
+
+export interface TopologyHealthData {
+  Utilization?: TopologyHealthMetric;
+  'Packet Loss'?: TopologyHealthMetric;
+  Throughput?: TopologyHealthMetric;
+}
+
 export interface TopologyEdge {
   from: string;
   to: string;
@@ -71,6 +82,12 @@ export interface TopologyEdge {
   displayType?: string;
   fromInstance?: string;
   toInstance?: string;
+  fromInstanceEdgeType?: string;
+  toInstanceEdgeType?: string;
+  instanceEdgeType?: string;
+  healthData?: TopologyHealthData;
+  metaData?: Record<string, string>;
+  metricReportingNode?: string;
   issues: ValidationIssue[];
 }
 
@@ -722,6 +739,12 @@ function parseTopologyOutput(output: string): TopologyParseResult {
           displayType: e.displayType,
           fromInstance: e.fromInstance,
           toInstance: e.toInstance,
+          fromInstanceEdgeType: e.fromInstanceEdgeType,
+          toInstanceEdgeType: e.toInstanceEdgeType,
+          instanceEdgeType: e.instanceEdgeType,
+          healthData: e.fromHealthData || e.toHealthData,
+          metaData: e.metaData,
+          metricReportingNode: e.metricReportingNode,
           issues: [],
         };
         

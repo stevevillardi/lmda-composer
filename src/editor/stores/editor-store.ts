@@ -204,7 +204,7 @@ interface EditorState {
   } | null;
   
   // UI state
-  outputTab: 'raw' | 'parsed' | 'validation';
+  outputTab: 'raw' | 'parsed' | 'validation' | 'graph';
   commandPaletteOpen: boolean;
   settingsDialogOpen: boolean;
   executionHistoryOpen: boolean;
@@ -276,7 +276,7 @@ interface EditorState {
   setDatasourceId: (datasourceId: string) => void;
   setLanguage: (language: ScriptLanguage, force?: boolean) => void;
   setMode: (mode: ScriptMode) => void;
-  setOutputTab: (tab: 'raw' | 'parsed' | 'validation') => void;
+  setOutputTab: (tab: 'raw' | 'parsed' | 'validation' | 'graph') => void;
   setEditorInstance: (editor: editor.IStandaloneCodeEditor | null) => void;
   executeScript: () => Promise<void>;
   refreshPortals: () => Promise<void>;
@@ -1005,7 +1005,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     
     // Clear parsed output and switch to raw tab if in freeform mode
     const updates: Partial<EditorState> = { parsedOutput: null };
-    if (mode === 'freeform' && (outputTab === 'parsed' || outputTab === 'validation')) {
+    if (mode === 'freeform' && (outputTab === 'parsed' || outputTab === 'validation' || outputTab === 'graph')) {
       updates.outputTab = 'raw';
     }
     
