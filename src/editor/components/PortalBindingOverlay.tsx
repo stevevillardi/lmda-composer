@@ -1,8 +1,7 @@
 import { useMemo, useState } from 'react';
-import { Lock, Link2 } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Lock, Link2, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ConfirmationDialog } from './ConfirmationDialog';
 import { useEditorStore } from '../stores/editor-store';
 import { getPortalBindingStatus } from '../utils/portal-binding';
@@ -12,7 +11,7 @@ interface PortalBindingOverlayProps {
 }
 
 export function PortalBindingOverlay({ tabId }: PortalBindingOverlayProps) {
-  const { tabs, selectedPortalId, portals, createLocalCopyFromTab, closeTab, setActiveTab } = useEditorStore();
+  const { tabs, selectedPortalId, portals, createLocalCopyFromTab, closeTab, setActiveTab, switchToPortalWithContext } = useEditorStore();
   const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
   const [portalTabId, setPortalTabId] = useState<string | null>(null);
   const [localTabId, setLocalTabId] = useState<string | null>(null);
@@ -35,6 +34,22 @@ export function PortalBindingOverlay({ tabId }: PortalBindingOverlayProps) {
   const boundPortalLabel = binding.portalHostname || binding.portalId || 'Unknown portal';
   const activePortalLabel = activePortal?.hostname || 'No active portal';
   const reason = binding.reason || 'The active portal does not match this tab.';
+  
+  // Check if the bound portal is available (just not selected)
+  const boundPortal = binding.portalId 
+    ? portals.find(p => p.id === binding.portalId && p.status === 'active')
+    : null;
+  const canSwitchToPortal = !!boundPortal;
+
+  const handleSwitchPortal = () => {
+    if (boundPortal) {
+      // Pass the tab's context override to restore collector and hostname
+      switchToPortalWithContext(boundPortal.id, {
+        collectorId: tab.contextOverride?.collectorId,
+        hostname: tab.contextOverride?.hostname,
+      });
+    }
+  };
 
   const handleConvert = () => {
     const newTabId = createLocalCopyFromTab(tab.id, { activate: false });
@@ -65,34 +80,57 @@ export function PortalBindingOverlay({ tabId }: PortalBindingOverlayProps) {
 
   return (
     <>
-      <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/70 backdrop-blur-sm">
-        <Card className="max-w-md w-full shadow-lg">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Lock className="size-5" />
-              Portal Bound Tab
-            </CardTitle>
-            <CardDescription>
-              This tab is locked until its portal is active.
-            </CardDescription>
+      <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+        <Card className="max-w-lg w-full mx-4 shadow-xl border-amber-500/30 bg-card">
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-3">
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-amber-500/15">
+                <Lock className="size-5 text-amber-500" />
+              </div>
+              <div>
+                <CardTitle className="text-base">Portal Bound Tab</CardTitle>
+                <p className="text-sm text-muted-foreground mt-0.5">
+                  This tab is locked until its portal is active
+                </p>
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Alert>
-              <AlertDescription className="space-y-2">
-                <div>{reason}</div>
-                <div className="text-sm text-muted-foreground">
-                  Bound to <strong>{boundPortalLabel}</strong>. Active portal: <strong>{activePortalLabel}</strong>.
+            <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3">
+              <div className="flex items-start gap-2">
+                <AlertTriangle className="size-4 text-amber-500 mt-0.5 shrink-0" />
+                <div className="space-y-1 min-w-0">
+                  <p className="text-sm text-foreground">{reason}</p>
+                  <div className="text-xs text-muted-foreground space-y-0.5">
+                    <p>Bound to: <span className="text-foreground font-medium">{boundPortalLabel}</span></p>
+                    <p>Active portal: <span className="text-foreground font-medium">{activePortalLabel}</span></p>
+                  </div>
                 </div>
-              </AlertDescription>
-            </Alert>
-            <div className="flex items-center justify-between gap-3">
-              <Button onClick={handleConvert} variant="secondary" className="gap-2">
-                <Link2 className="size-4" />
-                Convert to Local File
-              </Button>
-              <span className="text-xs text-muted-foreground">
-                Reconnect and set the bound portal active to continue editing.
-              </span>
+              </div>
+            </div>
+            <div className="flex flex-col gap-2">
+              {canSwitchToPortal ? (
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Button onClick={handleSwitchPortal} variant="default" className="gap-2 flex-1">
+                    <RefreshCw className="size-4" />
+                    Switch Portal
+                  </Button>
+                  <Button onClick={handleConvert} variant="secondary" className="gap-2">
+                    <Link2 className="size-4" />
+                    Convert to Local
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Button onClick={handleConvert} variant="secondary" className="gap-2 w-full">
+                    <Link2 className="size-4" />
+                    Convert to Local File
+                  </Button>
+                  <p className="text-xs text-muted-foreground text-center">
+                    The bound portal is not available. Open a tab to that portal to reconnect.
+                  </p>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

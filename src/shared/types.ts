@@ -102,6 +102,18 @@ export interface ExecutionHistoryEntry {
   output: string;
   status: 'success' | 'error';
   duration: number;
+  /** Tab display name for meaningful identification in history */
+  tabDisplayName?: string;
+  /** Module binding info (present if executed from a module-bound tab) */
+  moduleSource?: {
+    moduleId: number;
+    moduleName: string;
+    moduleType: LogicModuleType;
+    scriptType: 'collection' | 'ad';
+    lineageId?: string;
+    portalId: string;
+    portalHostname: string;
+  };
 }
 
 // Draft Auto-save

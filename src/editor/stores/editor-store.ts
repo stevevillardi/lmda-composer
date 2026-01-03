@@ -19,6 +19,7 @@ import type {
   DraftScript,
   DraftTabs,
   EditorTab,
+  EditorTabSource,
   ApiRequestSpec,
   ApiResponseSummary,
   ApiHistoryEntry,
@@ -269,6 +270,7 @@ interface EditorState {
   
   // Actions
   setSelectedPortal: (portalId: string | null) => void;
+  switchToPortalWithContext: (portalId: string, context?: { collectorId?: number; hostname?: string }) => Promise<void>;
   setSelectedCollector: (collectorId: number | null) => void;
   fetchDevices: () => Promise<void>;
   setHostname: (hostname: string) => void;
@@ -332,6 +334,7 @@ interface EditorState {
   clearHistory: () => void;
   loadHistory: () => Promise<void>;
   reloadFromHistory: (entry: ExecutionHistoryEntry) => void;
+  reloadFromHistoryWithoutBinding: (entry: ExecutionHistoryEntry) => void;
 
   // API Explorer actions
   openApiExplorerTab: () => string;
@@ -597,7 +600,37 @@ const STORAGE_KEYS = {
   DRAFT: 'lm-ide-draft',           // Legacy single-file draft
   DRAFT_TABS: 'lm-ide-draft-tabs', // Multi-tab draft
   USER_SNIPPETS: 'lm-ide-user-snippets',
+  LAST_CONTEXT: 'lm-ide-last-context', // Last selected portal/collector/device
 } as const;
+
+// Interface for persisted context
+interface LastContextState {
+  portalId: string | null;
+  collectorId: number | null;
+  hostname: string;
+}
+
+// Debounced context persistence
+let contextPersistTimeout: ReturnType<typeof setTimeout> | null = null;
+const CONTEXT_PERSIST_DELAY = 1000; // 1 second debounce
+
+function persistContext(context: LastContextState) {
+  if (contextPersistTimeout) {
+    clearTimeout(contextPersistTimeout);
+  }
+  contextPersistTimeout = setTimeout(() => {
+    chrome.storage.local.set({ [STORAGE_KEYS.LAST_CONTEXT]: context }).catch(console.error);
+  }, CONTEXT_PERSIST_DELAY);
+}
+
+async function loadLastContext(): Promise<LastContextState | null> {
+  try {
+    const result = await chrome.storage.local.get(STORAGE_KEYS.LAST_CONTEXT);
+    return result[STORAGE_KEYS.LAST_CONTEXT] as LastContextState | null;
+  } catch {
+    return null;
+  }
+}
 
 // Helper to create a default tab
 function createDefaultTab(language: ScriptLanguage = 'groovy', mode: ScriptMode = 'freeform'): EditorTab {
@@ -866,15 +899,115 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     if (portalId) {
       get().refreshCollectors();
     }
+    // Persist context (null out collector/hostname when portal changes)
+    persistContext({ portalId, collectorId: null, hostname: '' });
+  },
+
+  switchToPortalWithContext: async (portalId, context) => {
+    // Switch portal first (this clears collectors, devices, etc.)
+    set({ 
+      selectedPortalId: portalId, 
+      selectedCollectorId: null, 
+      collectors: [],
+      devices: [],
+      isFetchingDevices: false,
+      hostname: '',
+      // Clear module cache when portal changes
+      modulesCache: {
+        datasource: [],
+        configsource: [],
+        topologysource: [],
+        propertysource: [],
+        logsource: [],
+        diagnosticsource: [],
+        eventsource: [],
+      },
+      modulesMeta: {
+        datasource: { offset: 0, hasMore: true, total: 0 },
+        configsource: { offset: 0, hasMore: true, total: 0 },
+        topologysource: { offset: 0, hasMore: true, total: 0 },
+        propertysource: { offset: 0, hasMore: true, total: 0 },
+        logsource: { offset: 0, hasMore: true, total: 0 },
+        diagnosticsource: { offset: 0, hasMore: true, total: 0 },
+        eventsource: { offset: 0, hasMore: true, total: 0 },
+      },
+      modulesSearch: {
+        datasource: '',
+        configsource: '',
+        topologysource: '',
+        propertysource: '',
+        logsource: '',
+        diagnosticsource: '',
+        eventsource: '',
+      },
+      moduleSearchIndexInfo: null,
+    });
+
+    // Fetch collectors for the new portal
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: 'GET_COLLECTORS',
+        payload: { portalId },
+      });
+      
+      // Prevent race conditions when portal changes while fetching
+      const currentPortal = get().selectedPortalId;
+      if (currentPortal !== portalId) return;
+      
+      if (response?.payload) {
+        const collectors = response.payload as Collector[];
+        set({ collectors });
+        
+        // Try to restore the specific collector from context
+        let selectedCollector: Collector | null = null;
+        if (context?.collectorId) {
+          selectedCollector = collectors.find(c => c.id === context.collectorId) || null;
+        }
+        
+        // If requested collector not found, fall back to first non-down collector
+        if (!selectedCollector && collectors.length > 0) {
+          selectedCollector = collectors.find(c => !c.isDown) || collectors[0];
+        }
+        
+        if (selectedCollector) {
+          set({ selectedCollectorId: selectedCollector.id });
+          
+          // Fetch devices for the selected collector
+          await get().fetchDevices();
+          
+          // Restore hostname if provided and devices are loaded
+          if (context?.hostname) {
+            const { devices } = get();
+            const device = devices.find(d => d.name === context.hostname);
+            if (device) {
+              set({ hostname: context.hostname });
+              get().fetchDeviceProperties(device.id);
+            }
+          }
+          
+          // Persist the restored context
+          persistContext({ 
+            portalId, 
+            collectorId: selectedCollector.id, 
+            hostname: context?.hostname || '' 
+          });
+        }
+      }
+    } catch {
+      // Silently handle - collectors will remain empty
+    }
   },
 
   setSelectedCollector: (collectorId) => {
+    const { selectedPortalId } = get();
     set({ 
       selectedCollectorId: collectorId,
       devices: [],
       isFetchingDevices: false,
       hostname: '',
     });
+    // Persist context
+    persistContext({ portalId: selectedPortalId, collectorId, hostname: '' });
     // Fetch devices when collector changes
     if (collectorId) {
       get().fetchDevices();
@@ -936,7 +1069,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   setHostname: (hostname) => {
+    const { selectedPortalId, selectedCollectorId } = get();
     set({ hostname });
+    
+    // Persist context
+    persistContext({ portalId: selectedPortalId, collectorId: selectedCollectorId, hostname });
     
     // Auto-fetch device properties when a device is selected
     if (hostname) {
@@ -1162,6 +1299,20 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         
         // Add to history
         const selectedCollector = get().collectors.find(c => c.id === state.selectedCollectorId);
+        
+        // Build module source info if this is a module-bound tab
+        const moduleSource = activeTab.source?.type === 'module' && activeTab.source.moduleId && activeTab.source.moduleName && activeTab.source.moduleType && activeTab.source.scriptType && activeTab.source.portalId && activeTab.source.portalHostname
+          ? {
+              moduleId: activeTab.source.moduleId,
+              moduleName: activeTab.source.moduleName,
+              moduleType: activeTab.source.moduleType,
+              scriptType: activeTab.source.scriptType,
+              lineageId: activeTab.source.lineageId,
+              portalId: activeTab.source.portalId,
+              portalHostname: activeTab.source.portalHostname,
+            }
+          : undefined;
+        
         get().addToHistory({
           portal: executionPortalId,
           collector: selectedCollector?.description || `Collector ${state.selectedCollectorId}`,
@@ -1173,6 +1324,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           output: execution.rawOutput,
           status: execution.status === 'complete' ? 'success' : 'error',
           duration: execution.duration,
+          tabDisplayName: activeTab.displayName,
+          moduleSource,
         });
         
         // Auto-parse output if not in freeform mode and execution succeeded
@@ -1225,13 +1378,56 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     try {
       const response = await chrome.runtime.sendMessage({ type: 'DISCOVER_PORTALS' });
       if (response?.payload) {
-        set({ portals: response.payload });
+        const portals = response.payload as Portal[];
+        set({ portals });
         
-        // Auto-select first portal if none selected
         const state = get();
-        if (!state.selectedPortalId && response.payload.length > 0) {
-          set({ selectedPortalId: response.payload[0].id });
-          get().refreshCollectors();
+        
+        // Try to restore last context if no portal selected
+        if (!state.selectedPortalId && portals.length > 0) {
+          const lastContext = await loadLastContext();
+          
+          // Check if last portal is still available
+          const lastPortal = lastContext?.portalId 
+            ? portals.find(p => p.id === lastContext.portalId)
+            : null;
+          
+          if (lastPortal) {
+            // Restore last portal
+            set({ selectedPortalId: lastPortal.id });
+            
+            // Refresh collectors, then try to restore collector and hostname
+            const collectorsResponse = await chrome.runtime.sendMessage({
+              type: 'GET_COLLECTORS',
+              payload: { portalId: lastPortal.id },
+            });
+            
+            if (collectorsResponse?.payload && lastContext) {
+              const collectors = collectorsResponse.payload as Collector[];
+              set({ collectors });
+              
+              // Check if last collector is still available
+              const lastCollector = lastContext.collectorId
+                ? collectors.find(c => c.id === lastContext.collectorId)
+                : null;
+              
+              if (lastCollector) {
+                set({ selectedCollectorId: lastCollector.id });
+                
+                // Restore hostname if it was set
+                if (lastContext.hostname) {
+                  set({ hostname: lastContext.hostname });
+                }
+                
+                // Fetch devices for the restored collector
+                get().fetchDevices();
+              }
+            }
+          } else {
+            // Fallback to first available portal
+            set({ selectedPortalId: portals[0].id });
+            get().refreshCollectors();
+          }
         }
       }
     } catch (error) {
@@ -1259,7 +1455,22 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       if (currentPortal !== fetchingForPortal) return;
       
       if (response?.payload) {
-        set({ collectors: response.payload });
+        const collectors = response.payload as Collector[];
+        set({ collectors });
+        
+        // Auto-select first collector if none selected and collectors are available
+        const { selectedCollectorId } = get();
+        if (!selectedCollectorId && collectors.length > 0) {
+          // Find the first non-down collector, or just use the first one
+          const activeCollector = collectors.find(c => !c.isDown) || collectors[0];
+          set({ selectedCollectorId: activeCollector.id });
+          
+          // Persist context with the auto-selected collector
+          persistContext({ portalId: selectedPortalId, collectorId: activeCollector.id, hostname: '' });
+          
+          // Fetch devices for the auto-selected collector
+          get().fetchDevices();
+        }
       }
     } catch {
       // Silently handle - collectors will remain empty
@@ -2161,7 +2372,25 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   reloadFromHistory: (entry) => {
     const extension = entry.language === 'groovy' ? 'groovy' : 'ps1';
     const timestamp = new Date(entry.timestamp).toLocaleTimeString();
-    const displayName = `History ${timestamp}.${extension}`;
+    
+    // Use module name if module-bound, otherwise use tab display name or fallback to timestamp
+    const displayName = entry.moduleSource
+      ? `${entry.moduleSource.moduleName} (${entry.moduleSource.scriptType === 'ad' ? 'AD' : 'Collection'}).${extension}`
+      : entry.tabDisplayName || `History ${timestamp}.${extension}`;
+    
+    // Build source info: restore module binding if present, otherwise mark as history
+    const source: EditorTabSource = entry.moduleSource
+      ? {
+          type: 'module',
+          moduleId: entry.moduleSource.moduleId,
+          moduleName: entry.moduleSource.moduleName,
+          moduleType: entry.moduleSource.moduleType,
+          scriptType: entry.moduleSource.scriptType,
+          lineageId: entry.moduleSource.lineageId,
+          portalId: entry.moduleSource.portalId,
+          portalHostname: entry.moduleSource.portalHostname,
+        }
+      : { type: 'history' };
     
     const newTab: EditorTab = {
       id: crypto.randomUUID(),
@@ -2169,9 +2398,36 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       content: entry.script,
       language: entry.language,
       mode: normalizeMode(entry.mode),
-      source: {
-        type: 'history',
-      },
+      source,
+      contextOverride: entry.hostname ? {
+        hostname: entry.hostname,
+        collectorId: entry.collectorId,
+      } : undefined,
+    };
+    
+    const { tabs } = get();
+    set({
+      tabs: [...tabs, newTab],
+      activeTabId: newTab.id,
+      hostname: entry.hostname || '',
+      executionHistoryOpen: false,
+    });
+  },
+
+  reloadFromHistoryWithoutBinding: (entry) => {
+    const extension = entry.language === 'groovy' ? 'groovy' : 'ps1';
+    const timestamp = new Date(entry.timestamp).toLocaleTimeString();
+    
+    // Use tab display name or fallback to timestamp (ignore module binding)
+    const displayName = entry.tabDisplayName || `History ${timestamp}.${extension}`;
+    
+    const newTab: EditorTab = {
+      id: crypto.randomUUID(),
+      displayName,
+      content: entry.script,
+      language: entry.language,
+      mode: normalizeMode(entry.mode),
+      source: { type: 'history' }, // Always mark as history, no module binding
       contextOverride: entry.hostname ? {
         hostname: entry.hostname,
         collectorId: entry.collectorId,

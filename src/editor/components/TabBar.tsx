@@ -23,10 +23,38 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
-import type { EditorTab, Portal } from '@/shared/types';
+import type { EditorTab, Portal, LogicModuleType } from '@/shared/types';
 import { getDefaultScriptTemplate } from '../config/script-templates';
 import { getPortalBindingStatus } from '../utils/portal-binding';
 import { normalizeMode } from '../utils/mode-utils';
+import {
+  CollectionIcon,
+  ConfigSourceIcon,
+  EventSourceIcon,
+  TopologySourceIcon,
+  PropertySourceIcon,
+  LogSourceIcon,
+} from '../constants/icons';
+
+/** Returns the appropriate module type icon component for a given LogicModuleType */
+function getModuleTypeIcon(moduleType: LogicModuleType) {
+  switch (moduleType) {
+    case 'datasource':
+      return CollectionIcon;
+    case 'configsource':
+      return ConfigSourceIcon;
+    case 'eventsource':
+      return EventSourceIcon;
+    case 'topologysource':
+      return TopologySourceIcon;
+    case 'propertysource':
+      return PropertySourceIcon;
+    case 'logsource':
+      return LogSourceIcon;
+    default:
+      return CollectionIcon;
+  }
+}
 
 // Language icons (using simple text badges for now)
 function LanguageIcon({ language }: { language: EditorTab['language'] }) {
@@ -163,6 +191,10 @@ function TabItem({
   const isPortalBound = !!portalBinding;
   const isPortalActive = portalBinding?.isActive ?? true;
   const portalLabel = portalBinding?.portalHostname || portalBinding?.portalId;
+  
+  // Get module type icon for module-bound tabs
+  const isModuleBound = tab.source?.type === 'module' && tab.source?.moduleType;
+  const ModuleIcon = isModuleBound ? getModuleTypeIcon(tab.source!.moduleType!) : null;
 
   // Build tooltip content
   const tooltipContent = tab.source?.moduleName 
@@ -179,7 +211,13 @@ function TabItem({
           "bg-background text-foreground border-b-2 border-b-primary"
         )}
       >
-        {tab.kind === 'api' ? <ApiBadge /> : <LanguageIcon language={tab.language} />}
+        {tab.kind === 'api' ? (
+          <ApiBadge />
+        ) : isModuleBound && ModuleIcon ? (
+          <ModuleIcon className="size-4 shrink-0" />
+        ) : (
+          <LanguageIcon language={tab.language} />
+        )}
         <input
           ref={inputRef}
           type="text"
@@ -218,8 +256,14 @@ function TabItem({
                       : "bg-secondary/30 text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
                   )}
                 >
-                  {/* Language indicator */}
-                  {tab.kind === 'api' ? <ApiBadge /> : <LanguageIcon language={tab.language} />}
+                  {/* Language/Module type indicator */}
+                  {tab.kind === 'api' ? (
+                    <ApiBadge />
+                  ) : isModuleBound && ModuleIcon ? (
+                    <ModuleIcon className="size-4 shrink-0" />
+                  ) : (
+                    <LanguageIcon language={tab.language} />
+                  )}
                   
                   {/* Tab name */}
                   <span className="truncate flex-1 text-left">

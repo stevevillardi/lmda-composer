@@ -1,16 +1,59 @@
 import { useMemo } from 'react';
 import Editor from '@monaco-editor/react';
-import { Play } from 'lucide-react';
+import { Play, Link, TestTubeDiagonal, Server } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import { useEditorStore } from '../stores/editor-store';
-import type { ExecutionHistoryEntry } from '@/shared/types';
+import type { ExecutionHistoryEntry, LogicModuleType } from '@/shared/types';
 import { formatDuration, formatTimestamp, getModeLabel } from './execution-history-utils';
 import { buildMonacoOptions, getMonacoTheme } from '../utils/monaco-settings';
+import {
+  CollectionIcon,
+  ConfigSourceIcon,
+  EventSourceIcon,
+  TopologySourceIcon,
+  PropertySourceIcon,
+  LogSourceIcon,
+} from '../constants/icons';
 
 // Import the loader config to use bundled Monaco (CSP-safe)
 import '../monaco-loader';
+
+/** Returns the appropriate module type icon component for a given LogicModuleType */
+function getModuleTypeIcon(moduleType: LogicModuleType) {
+  switch (moduleType) {
+    case 'datasource':
+      return CollectionIcon;
+    case 'configsource':
+      return ConfigSourceIcon;
+    case 'eventsource':
+      return EventSourceIcon;
+    case 'topologysource':
+      return TopologySourceIcon;
+    case 'propertysource':
+      return PropertySourceIcon;
+    case 'logsource':
+      return LogSourceIcon;
+    default:
+      return CollectionIcon;
+  }
+}
+
+/** Returns a human-readable label for module types */
+function getModuleTypeLabel(moduleType: LogicModuleType): string {
+  switch (moduleType) {
+    case 'datasource': return 'DataSource';
+    case 'configsource': return 'ConfigSource';
+    case 'eventsource': return 'EventSource';
+    case 'topologysource': return 'TopologySource';
+    case 'propertysource': return 'PropertySource';
+    case 'logsource': return 'LogSource';
+    case 'diagnosticsource': return 'DiagnosticSource';
+    default: return moduleType;
+  }
+}
 
 interface ExecutionHistoryDetailsDialogProps {
   open: boolean;
@@ -67,19 +110,69 @@ export function ExecutionHistoryDetailsDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-5xl! h-[80vh] flex flex-col gap-0 p-0">
         <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
-          <DialogTitle className="text-base">
-            {entry?.hostname || 'No hostname'}
-          </DialogTitle>
-          {entry && (
-            <div className="text-xs text-muted-foreground flex flex-wrap items-center gap-2">
-              <span>{entry.collector}</span>
-              <span>•</span>
-              <span>{getModeLabel(entry.mode)}</span>
-              <span>•</span>
-              <span>{formatTimestamp(entry.timestamp)}</span>
-              <span>•</span>
-              <span>{formatDuration(entry.duration)}</span>
-            </div>
+          {entry?.moduleSource ? (
+            <>
+              {/* Module-bound script header */}
+              <DialogTitle className="text-base flex items-center gap-2">
+                {(() => {
+                  const ModuleIcon = getModuleTypeIcon(entry.moduleSource.moduleType);
+                  return <ModuleIcon className="size-5" />;
+                })()}
+                {entry.moduleSource.moduleName}
+                <Badge variant="outline" className="text-xs font-normal ml-1">
+                  {entry.moduleSource.scriptType === 'ad' ? 'Active Discovery' : 'Collection'}
+                </Badge>
+              </DialogTitle>
+              <div className="text-xs text-muted-foreground flex flex-col gap-1 mt-2">
+                <div className="flex items-center gap-1.5">
+                  <Link className="size-3" />
+                  <span>{entry.moduleSource.portalHostname}</span>
+                  <span className="text-muted-foreground/60">•</span>
+                  <span>{getModuleTypeLabel(entry.moduleSource.moduleType)}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <TestTubeDiagonal className="size-3" />
+                  <span>{entry.hostname || 'No hostname'}</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <Server className="size-3" />
+                  <span>via {entry.collector}</span>
+                </div>
+                <div className="flex items-center gap-2 mt-1">
+                  <span>{getModeLabel(entry.mode)}</span>
+                  <span>•</span>
+                  <span>{formatTimestamp(entry.timestamp)}</span>
+                  <span>•</span>
+                  <span>{formatDuration(entry.duration)}</span>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              {/* Non-module script header */}
+              <DialogTitle className="text-base">
+                {entry?.tabDisplayName || entry?.hostname || 'No hostname'}
+              </DialogTitle>
+              {entry && (
+                <div className="text-xs text-muted-foreground flex flex-col gap-1 mt-2">
+                  <div className="flex items-center gap-1.5">
+                    <TestTubeDiagonal className="size-3" />
+                    <span>{entry.hostname || 'No hostname'}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <Server className="size-3" />
+                    <span>via {entry.collector}</span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span>{getModeLabel(entry.mode)}</span>
+                    <span>•</span>
+                    <span>{formatTimestamp(entry.timestamp)}</span>
+                    <span>•</span>
+                    <span>{formatDuration(entry.duration)}</span>
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </DialogHeader>
 

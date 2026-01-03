@@ -267,7 +267,7 @@ export function Toolbar() {
             ) : (
               <Send className={SIZES.ICON_MEDIUM} />
             )}
-            {isExecutingApi ? 'Sending...' : 'Send'}
+            {isExecutingApi ? 'Sending...' : 'Send Request'}
           </Button>
           <Tooltip>
             <TooltipTrigger
@@ -517,6 +517,9 @@ export function Toolbar() {
             </TooltipContent>
           </Tooltip>
         )}
+
+        {/* Separator between module actions and general actions */}
+        {isModuleTab && <Separator orientation="vertical" className="h-8 mx-1" aria-hidden="true" />}
         
         {/* Actions Dropdown */}
         <ActionsDropdown />
@@ -539,7 +542,7 @@ export function Toolbar() {
           ) : (
             <Play className={SIZES.ICON_MEDIUM} />
           )}
-          {isExecuting ? 'Running...' : 'Run'}
+          {isExecuting ? 'Running...' : 'Run Script'}
         </Button>
 
         {/* Cancel button - only visible when executing */}
