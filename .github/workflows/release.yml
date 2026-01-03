@@ -1,0 +1,56 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  test-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Set release version
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          node -e "const fs=require('fs'); const tag=process.env.RELEASE_TAG||''; const version=tag.replace(/^v/, ''); if(!version) { throw new Error('Missing release tag'); } const pkg=JSON.parse(fs.readFileSync('package.json','utf8')); pkg.version=version; fs.writeFileSync('package.json', JSON.stringify(pkg,null,2)+'\n'); const manifest=JSON.parse(fs.readFileSync('src/manifest.json','utf8')); manifest.version=version; fs.writeFileSync('src/manifest.json', JSON.stringify(manifest,null,2)+'\n');"
+
+      - name: Build extension
+        run: npm run build
+
+      - name: Package extension
+        run: |
+          cd dist
+          zip -r ../extension.zip .
+
+      - name: Upload release asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ github.event.release.upload_url }}
+          asset_path: extension.zip
+          asset_name: extension.zip
+          asset_content_type: application/zip
+
+      - name: Upload and publish to Chrome Web Store
+        env:
+          EXTENSION_ID: ${{ secrets.CWS_EXTENSION_ID }}
+          CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
+          CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
+          REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
+        run: npx chrome-webstore-upload-cli --source extension.zip
