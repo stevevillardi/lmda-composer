@@ -4,3 +4,8 @@ lm-ide-extension-1.0.0.zip
 *.png
 .DS_Store
 *.zip
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
