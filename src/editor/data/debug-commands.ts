@@ -21,9 +21,22 @@ export interface DebugCommand {
   example: string;
   parameters?: DebugCommandParameter[];
   category: 'discovery' | 'system' | 'network' | 'health' | 'misc' | 'scripting' | 'fileops' | 'diagnostics' | 'windows' | 'query' | 'taskmgmt';
+  /** Special command type for custom handling */
+  type?: 'healthcheck';
 }
 
 export const DEBUG_COMMANDS: DebugCommand[] = [
+  // Health Check - Special Command
+  {
+    id: 'healthcheck',
+    name: 'Collector Health Check',
+    command: '!healthcheck',
+    description: 'Comprehensive collector health diagnostic that analyzes task threads, collection performance, configuration, and logs. Returns a detailed JSON report with visualizations.',
+    example: '!healthcheck',
+    category: 'health',
+    type: 'healthcheck'
+  },
+
   // Discovery Commands
   {
     id: 'adlist',

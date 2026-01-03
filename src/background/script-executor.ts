@@ -5,7 +5,7 @@
  */
 
 import type { ExecuteScriptRequest, ExecutionResult, ExecuteDebugCommandRequest, DebugCommandResult } from '@/shared/types';
-import { executeAndPoll, buildGroovyCommand, buildPowerShellCommand, buildDebugCommand, executeOnMultipleCollectors } from './debug-api';
+import { executeAndPoll, buildGroovyCommand, buildPowerShellCommand, buildDebugCommand, buildHealthCheckCommand, executeOnMultipleCollectors } from './debug-api';
 import { hasTokens, substituteTokens, substituteWithEmpty, type SubstitutionResult } from './token-substitutor';
 import { fetchDeviceProperties } from './property-prefetcher';
 
@@ -321,8 +321,14 @@ export class ScriptExecutor {
         throw new Error('No CSRF token available - please ensure you are logged into the LogicMonitor portal');
       }
 
-      // Build command string
-      const cmdline = buildDebugCommand(request.command, request.parameters, request.positionalArgs);
+      // Build command string - check for health check command
+      let cmdline: string;
+      if (request.command === '!healthcheck') {
+        // Health check uses a special Groovy script that outputs JSON
+        cmdline = buildHealthCheckCommand();
+      } else {
+        cmdline = buildDebugCommand(request.command, request.parameters, request.positionalArgs);
+      }
 
       // Execute on multiple collectors (portalId is the hostname)
       const results = await executeOnMultipleCollectors(

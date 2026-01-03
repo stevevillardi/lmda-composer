@@ -45,8 +45,8 @@ function ResultContent({
   // If we have valid health check data, render the visual report
   if (healthCheckData) {
     return (
-      <div className="flex-1 border rounded-md overflow-hidden">
-        <HealthCheckReport data={healthCheckData} rawOutput={result.output} />
+      <div className="flex-1 flex flex-col min-h-0 border rounded-md overflow-hidden">
+        <HealthCheckReport data={healthCheckData} />
       </div>
     );
   }
@@ -212,7 +212,7 @@ export function MultiCollectorResults({ command, executedCommand, onBack }: Mult
                   {isExecutingDebugCommand ? (command.type === 'healthcheck' ? 'Analyzing...' : 'Executing...') : 'Complete'}
                 </Badge>
                 {command.type === 'healthcheck' && !isExecutingDebugCommand && (
-                  <Badge className="bg-gradient-to-r from-emerald-500 to-cyan-500 text-white">
+                  <Badge className="bg-linear-to-r from-emerald-500 to-cyan-500 text-white">
                     Visual Report
                   </Badge>
                 )}
@@ -264,7 +264,7 @@ export function MultiCollectorResults({ command, executedCommand, onBack }: Mult
                 Export All
               </Button>
             )}
-            {executedCommand && (
+            {executedCommand && command.type !== 'healthcheck' && (
               <Button variant="outline" size="sm" onClick={copyExecutedCommand}>
                 <Copy className="size-4 mr-2" />
                 Copy Command
@@ -332,7 +332,7 @@ export function MultiCollectorResults({ command, executedCommand, onBack }: Mult
                         {collector?.description || `Collector ${collectorId}`}
                       </h3>
                       {result.success ? (
-                        <Badge variant="default" className="bg-green-500">
+                        <Badge variant="default">
                           <SuccessIcon className="size-3 mr-1" />
                           Success
                         </Badge>

@@ -5,6 +5,10 @@ import {
   Play,
   Loader2,
   ChevronRight,
+  HeartPulse,
+  Sparkles,
+  RefreshCw,
+  ChevronDown,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEditorStore } from '../stores/editor-store';
@@ -22,6 +26,8 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   Select,
   SelectContent,
@@ -36,6 +42,9 @@ import {
   type DebugCommand,
 } from '../data/debug-commands';
 import { MultiCollectorResults } from './MultiCollectorResults';
+
+// Find the health check command
+const HEALTH_CHECK_COMMAND = DEBUG_COMMANDS.find(cmd => cmd.type === 'healthcheck');
 
 const CATEGORY_LABELS: Record<string, string> = {
   discovery: 'Discovery',
@@ -62,6 +71,7 @@ export function DebugCommandsDialog() {
     setDebugCommandsDialogOpen,
     selectedPortalId,
     collectors,
+    refreshCollectors,
     executeDebugCommand,
     isExecutingDebugCommand,
   } = useEditorStore();
@@ -73,6 +83,8 @@ export function DebugCommandsDialog() {
   const [selectedCollectorIds, setSelectedCollectorIds] = useState<number[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [executedCommand, setExecutedCommand] = useState<string | null>(null);
+  const [isRefreshingCollectors, setIsRefreshingCollectors] = useState(false);
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
 
   // Reset state when dialog opens/closes
   useEffect(() => {
@@ -102,7 +114,8 @@ export function DebugCommandsDialog() {
 
   // Filter commands by search and category
   const filteredCommands = useMemo(() => {
-    let commands = DEBUG_COMMANDS;
+    // Exclude healthcheck from the list since it has a special card
+    let commands = DEBUG_COMMANDS.filter(cmd => cmd.type !== 'healthcheck');
 
     // Filter by search query
     if (searchQuery.trim()) {
@@ -116,6 +129,45 @@ export function DebugCommandsDialog() {
 
     return commands;
   }, [searchQuery, selectedCategory]);
+
+  const collectorsByGroup = useMemo(() => {
+    const grouped: Record<string, typeof collectors> = {};
+    for (const collector of collectors) {
+      const groupName =
+        collector.collectorGroupName && collector.collectorGroupName !== '@default'
+          ? collector.collectorGroupName
+          : 'Ungrouped';
+      if (!grouped[groupName]) {
+        grouped[groupName] = [];
+      }
+      grouped[groupName].push(collector);
+    }
+    return grouped;
+  }, [collectors]);
+
+  const collectorGroupOrder = useMemo(() => {
+    const groups = Object.keys(collectorsByGroup);
+    return groups.sort((a, b) => {
+      if (a === 'Ungrouped') return -1;
+      if (b === 'Ungrouped') return 1;
+      return a.localeCompare(b);
+    });
+  }, [collectorsByGroup]);
+
+  const allCollectorIds = useMemo(() => collectors.map(collector => collector.id), [collectors]);
+  const allCollectorsSelected = collectors.length > 0 && selectedCollectorIds.length === collectors.length;
+
+  useEffect(() => {
+    setCollapsedGroups(prev => {
+      const next = { ...prev };
+      for (const groupName of collectorGroupOrder) {
+        if (next[groupName] === undefined) {
+          next[groupName] = false;
+        }
+      }
+      return next;
+    });
+  }, [collectorGroupOrder]);
 
   // Group commands by category
   const commandsByCategory = useMemo(() => {
@@ -157,6 +209,44 @@ export function DebugCommandsDialog() {
         return [...prev, collectorId];
       }
     });
+  };
+
+  const handleSelectAllCollectors = () => {
+    setSelectedCollectorIds(allCollectorsSelected ? [] : allCollectorIds);
+  };
+
+  const handleToggleGroupSelection = (groupName: string) => {
+    const groupCollectors = collectorsByGroup[groupName] ?? [];
+    if (groupCollectors.length === 0) return;
+    setSelectedCollectorIds(prev => {
+      const selectedSet = new Set(prev);
+      const groupIds = groupCollectors.map(collector => collector.id);
+      const allSelected = groupIds.every(id => selectedSet.has(id));
+      if (allSelected) {
+        groupIds.forEach(id => selectedSet.delete(id));
+      } else {
+        groupIds.forEach(id => selectedSet.add(id));
+      }
+      return Array.from(selectedSet);
+    });
+  };
+
+  const handleToggleGroupCollapse = (groupName: string, isOpen: boolean) => {
+    setCollapsedGroups(prev => ({
+      ...prev,
+      [groupName]: !isOpen,
+    }));
+  };
+
+  const handleRefreshCollectors = async () => {
+    setIsRefreshingCollectors(true);
+    try {
+      await refreshCollectors();
+    } finally {
+      setTimeout(() => {
+        setIsRefreshingCollectors(false);
+      }, 300);
+    }
   };
 
   // Handle execute
@@ -291,6 +381,31 @@ export function DebugCommandsDialog() {
               </div>
             )}
 
+            {/* Health Check Quick Action */}
+            {!searchQuery && HEALTH_CHECK_COMMAND && (
+              <div className="p-3 border-b shrink-0">
+                <button
+                  onClick={() => handleSelectCommand(HEALTH_CHECK_COMMAND)}
+                  className={cn(
+                    "w-full p-3 rounded-lg border-2 text-left transition-all",
+                    "bg-linear-to-r from-emerald-500/10 to-cyan-500/10",
+                    "hover:from-emerald-500/20 hover:to-cyan-500/20",
+                    "border-emerald-500/30 hover:border-emerald-500/50",
+                    selectedCommand?.id === 'healthcheck' && "border-emerald-500 from-emerald-500/20 to-cyan-500/20"
+                  )}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <HeartPulse className="size-5 text-emerald-500" />
+                    <span className="font-semibold text-sm">Collector Health Check</span>
+
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Comprehensive diagnostic with visual reports
+                  </p>
+                </button>
+              </div>
+            )}
+
             {/* Command List */}
             <div className="flex-1 min-h-0 overflow-hidden">
               <ScrollArea className="h-full">
@@ -314,12 +429,17 @@ export function DebugCommandsDialog() {
                             className={cn(
                               "w-full text-left px-3 py-2 rounded-md text-sm transition-colors",
                               "hover:bg-accent",
-                              selectedCommand?.id === cmd.id && "bg-accent font-medium"
+                              selectedCommand?.id === cmd.id && "bg-accent font-medium",
+                              cmd.type === 'healthcheck' && "border-l-2 border-emerald-500"
                             )}
                           >
                             <div className="flex items-center justify-between">
                               <span className="font-mono text-xs">{cmd.command}</span>
-                              <ChevronRight className="size-4 text-muted-foreground" />
+                              {cmd.type === 'healthcheck' ? (
+                                <HeartPulse className="size-4 text-emerald-500" />
+                              ) : (
+                                <ChevronRight className="size-4 text-muted-foreground" />
+                              )}
                             </div>
                             <div className="text-xs text-muted-foreground mt-0.5 truncate">
                               {cmd.name}
@@ -347,8 +467,16 @@ export function DebugCommandsDialog() {
                           {/* Command Header */}
                           <div>
                             <div className="flex items-center gap-2 mb-2">
+                              {selectedCommand.type === 'healthcheck' ? (
+                                <HeartPulse className="size-6 text-emerald-500" />
+                              ) : null}
                               <code className="text-lg font-mono font-semibold">{selectedCommand.command}</code>
                               <Badge variant="secondary">{getCategoryLabel(selectedCommand.category)}</Badge>
+                              {selectedCommand.type === 'healthcheck' && (
+                                <Badge className="bg-linear-to-r from-emerald-500 to-cyan-500 text-white">
+                                  Visual Report
+                                </Badge>
+                              )}
                             </div>
                             <h3 className="text-lg font-semibold">{selectedCommand.name}</h3>
                             <p className="text-sm text-muted-foreground mt-1">{selectedCommand.description}</p>
@@ -356,13 +484,34 @@ export function DebugCommandsDialog() {
 
                           <Separator />
 
-                          {/* Example */}
-                          <div>
-                            <Label className="text-sm font-semibold mb-2 block">Example</Label>
-                            <code className="block p-3 bg-muted rounded-md text-sm font-mono">
-                              {selectedCommand.example}
-                            </code>
-                          </div>
+                          {/* Health Check Special Info */}
+                          {selectedCommand.type === 'healthcheck' && (
+                            <div className="p-4 rounded-lg bg-linear-to-r from-emerald-500/10 to-cyan-500/10 border border-emerald-500/20">
+                              <h4 className="font-semibold mb-2 flex items-center gap-2">
+                                <Sparkles className="size-4 text-cyan-500" />
+                                What this report includes:
+                              </h4>
+                              <ul className="text-sm text-muted-foreground space-y-1">
+                                <li>• Collection summary with thread counts by type</li>
+                                <li>• Top failing modules with visual charts</li>
+                                <li>• Longest-running task analysis</li>
+                                <li>• Device capacity limits and sizing recommendations</li>
+                                <li>• Agent configuration vs defaults comparison</li>
+                                <li>• Helpful AppliesTo queries for troubleshooting</li>
+                                <li>• Collector logs (wrapper, sbproxy, watchdog)</li>
+                              </ul>
+                            </div>
+                          )}
+
+                          {/* Example - hide for health check */}
+                          {selectedCommand.type !== 'healthcheck' && (
+                            <div>
+                              <Label className="text-sm font-semibold mb-2 block">Example</Label>
+                              <code className="block p-3 bg-muted rounded-md text-sm font-mono">
+                                {selectedCommand.example}
+                              </code>
+                            </div>
+                          )}
 
                           {/* Parameters */}
                           {selectedCommand.parameters && selectedCommand.parameters.length > 0 && (
@@ -401,45 +550,121 @@ export function DebugCommandsDialog() {
 
                           {/* Collector Selection */}
                           <div>
-                            <Label className="text-sm font-semibold mb-3 block">
-                              Select Collectors ({selectedCollectorIds.length} selected)
-                            </Label>
+                            <div className="flex items-center justify-between mb-3">
+                              <Label className="text-sm font-semibold">
+                                Select Collectors ({selectedCollectorIds.length} selected)
+                              </Label>
+                              <div className="flex items-center gap-2">
+                                <Tooltip>
+                                  <TooltipTrigger
+                                    render={
+                                      <Button
+                                        variant="ghost"
+                                        size="xs"
+                                        onClick={handleRefreshCollectors}
+                                        disabled={isRefreshingCollectors || !selectedPortalId}
+                                        className={cn(
+                                          "transition-all duration-200",
+                                          isRefreshingCollectors && "opacity-70"
+                                        )}
+                                      >
+                                        <RefreshCw
+                                          className={cn(
+                                            "size-3 transition-transform duration-200",
+                                            isRefreshingCollectors && "animate-spin"
+                                          )}
+                                        />
+                                        Refresh
+                                      </Button>
+                                    }
+                                  />
+                                  <TooltipContent>
+                                    {isRefreshingCollectors ? 'Refreshing collectors...' : 'Refresh collectors'}
+                                  </TooltipContent>
+                                </Tooltip>
+                                <Button
+                                  variant="ghost"
+                                  size="xs"
+                                  onClick={handleSelectAllCollectors}
+                                  disabled={collectors.length === 0}
+                                >
+                                  {allCollectorsSelected ? 'Clear' : 'Select all'}
+                                </Button>
+                              </div>
+                            </div>
                             {collectors.length === 0 ? (
                               <div className="p-4 text-center text-sm text-muted-foreground border rounded-md">
                                 No collectors available. Please select a portal first.
                               </div>
                             ) : (
-                              <div className="h-48 border rounded-md overflow-hidden">
+                              <div className="h-96 border rounded-md overflow-hidden">
                                 <ScrollArea className="h-full">
-                                  <div className="p-2 space-y-2">
-                                    {collectors.map(collector => (
-                                      <div
-                                        key={collector.id}
-                                        className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent"
+                                  <div className="p-2 space-y-3">
+                                    {collectorGroupOrder.map(groupName => (
+                                      <Collapsible
+                                        key={groupName}
+                                        open={!collapsedGroups[groupName]}
+                                        onOpenChange={(isOpen) => handleToggleGroupCollapse(groupName, isOpen)}
                                       >
-                                        <Checkbox
-                                          id={`collector-${collector.id}`}
-                                          checked={selectedCollectorIds.includes(collector.id)}
-                                          onCheckedChange={() => handleCollectorToggle(collector.id)}
-                                        />
-                                        <Label
-                                          htmlFor={`collector-${collector.id}`}
-                                          className="flex-1 cursor-pointer"
-                                        >
-                                          <div className="flex items-center justify-between">
-                                            <span className="font-medium">{collector.description}</span>
-                                            <Badge
-                                              variant={collector.isDown ? 'destructive' : 'default'}
-                                              className="ml-2"
+                                        <div className="flex items-center justify-between px-2 py-1 rounded-md bg-muted/30 hover:bg-muted/50 transition-colors">
+                                          <CollapsibleTrigger className="flex items-center gap-2 text-xs font-semibold text-muted-foreground uppercase cursor-pointer hover:text-foreground transition-colors">
+                                            <ChevronDown
+                                              className={cn(
+                                                "size-3 transition-transform",
+                                                collapsedGroups[groupName] && "-rotate-90"
+                                              )}
+                                            />
+                                            <span>{groupName}</span>
+                                            <span className="text-[10px] font-medium normal-case text-muted-foreground/70">
+                                              ({collectorsByGroup[groupName]?.length ?? 0})
+                                            </span>
+                                          </CollapsibleTrigger>
+                                          <Button
+                                            variant="ghost"
+                                            size="xs"
+                                            onClick={() => handleToggleGroupSelection(groupName)}
+                                          >
+                                            {collectorsByGroup[groupName]?.every(collector =>
+                                              selectedCollectorIds.includes(collector.id)
+                                            )
+                                              ? 'Clear group'
+                                              : 'Select group'}
+                                          </Button>
+                                        </div>
+                                        <CollapsibleContent className="space-y-2 pt-2">
+                                          {collectorsByGroup[groupName]?.map(collector => (
+                                            <div
+                                              key={collector.id}
+                                              className="flex items-center space-x-2 p-2 rounded-md hover:bg-accent"
                                             >
-                                              {collector.isDown ? 'Offline' : 'Online'}
-                                            </Badge>
-                                          </div>
-                                          <div className="text-xs text-muted-foreground mt-0.5">
-                                            {collector.hostname}
-                                          </div>
-                                        </Label>
-                                      </div>
+                                              <Checkbox
+                                                id={`collector-${collector.id}`}
+                                                checked={selectedCollectorIds.includes(collector.id)}
+                                                onCheckedChange={() => handleCollectorToggle(collector.id)}
+                                              />
+                                              <Label
+                                                htmlFor={`collector-${collector.id}`}
+                                                className="flex-1 cursor-pointer"
+                                              >
+                                                <div className="flex items-center justify-between">
+                                                  <div className="flex items-center gap-2">
+                                                    <span className="font-medium">{collector.description}</span>
+                                                    <span className="text-xs text-muted-foreground">
+                                                      ({collector.hostname})
+                                                    </span>
+                                                    <span className="text-muted-foreground">•</span>
+                                                    <Badge
+                                                      variant={collector.isDown ? 'destructive' : 'default'}
+                                                    >
+                                                      {collector.isDown ? 'Offline' : 'Online'}
+                                                    </Badge>
+                                                  </div>
+                                                </div>
+                                              </Label>
+                                            </div>
+                                          ))}
+                                        </CollapsibleContent>
+                                      </Collapsible>
                                     ))}
                                   </div>
                                 </ScrollArea>
@@ -461,17 +686,24 @@ export function DebugCommandsDialog() {
                       <Button
                         onClick={handleExecute}
                         disabled={!canExecute}
-                        className="gap-2"
+                        className={cn(
+                          "gap-2",
+                          selectedCommand?.type === 'healthcheck' && "bg-linear-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600"
+                        )}
                       >
                         {isExecutingDebugCommand ? (
                           <>
                             <Loader2 className="size-4 animate-spin" />
-                            Executing...
+                            {selectedCommand?.type === 'healthcheck' ? 'Analyzing...' : 'Executing...'}
                           </>
                         ) : (
                           <>
-                            <Play className="size-4" />
-                            Execute
+                            {selectedCommand?.type === 'healthcheck' ? (
+                              <HeartPulse className="size-4" />
+                            ) : (
+                              <Play className="size-4" />
+                            )}
+                            {selectedCommand?.type === 'healthcheck' ? 'Run Health Check' : 'Execute'}
                           </>
                         )}
                       </Button>

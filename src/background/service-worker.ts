@@ -23,6 +23,8 @@ import {
   fetchModuleDetails,
   fetchAccessGroups,
 } from './module-api';
+// Initialize the health check script
+import './health-check-script';
 import type { 
   EditorToSWMessage, 
   ContentToSWMessage,

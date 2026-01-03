@@ -256,6 +256,31 @@ export function buildPowerShellCommand(script: string): string {
 }
 
 /**
+ * Build the Collector Health Check command.
+ * This embeds a comprehensive Groovy script that analyzes collector health
+ * and returns structured JSON data.
+ */
+export function buildHealthCheckCommand(): string {
+  // Import the health check script dynamically to avoid circular dependencies
+  // The script is defined in health-check-script.ts
+  return `!groovy hostId=null \n${getHealthCheckScript()}`;
+}
+
+// Health check script getter - will be populated by the script module
+let _healthCheckScript: string | null = null;
+
+export function setHealthCheckScript(script: string): void {
+  _healthCheckScript = script;
+}
+
+export function getHealthCheckScript(): string {
+  if (!_healthCheckScript) {
+    throw new Error('Health check script not initialized');
+  }
+  return _healthCheckScript;
+}
+
+/**
  * Build a debug command string with optional parameters.
  * Parameters are formatted as key=value pairs.
  * 
