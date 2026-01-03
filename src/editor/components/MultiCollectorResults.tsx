@@ -7,6 +7,7 @@ import {
   LayoutGrid,
   List,
   StopCircle,
+  HeartPulse,
 } from 'lucide-react';
 import { SuccessIcon, ErrorIcon } from '../constants/icons';
 import { toast } from 'sonner';
@@ -19,11 +20,60 @@ import { Separator } from '@/components/ui/separator';
 import type { DebugCommand } from '../data/debug-commands';
 import type { DebugCommandResult } from '@/shared/types';
 import { ConfirmationDialog } from './ConfirmationDialog';
+import { HealthCheckReport, parseHealthCheckData, type HealthCheckData } from './health-check';
 
 interface MultiCollectorResultsProps {
   command: DebugCommand;
   executedCommand?: string;
   onBack: () => void;
+}
+
+// Component to render result content, with special handling for health check
+function ResultContent({ 
+  result, 
+  isHealthCheck 
+}: { 
+  result: DebugCommandResult; 
+  isHealthCheck: boolean;
+}) {
+  // Try to parse as health check data if it's a health check command
+  const healthCheckData = useMemo<HealthCheckData | null>(() => {
+    if (!isHealthCheck || !result.success || !result.output) return null;
+    return parseHealthCheckData(result.output);
+  }, [isHealthCheck, result.success, result.output]);
+
+  // If we have valid health check data, render the visual report
+  if (healthCheckData) {
+    return (
+      <div className="flex-1 border rounded-md overflow-hidden">
+        <HealthCheckReport data={healthCheckData} rawOutput={result.output} />
+      </div>
+    );
+  }
+
+  // Default text output
+  return (
+    <div className="flex-1 border rounded-md overflow-hidden">
+      <ScrollArea className="h-full p-4">
+        {result.success && result.output ? (
+          <pre className="text-sm font-mono whitespace-pre-wrap wrap-break-word">
+            {result.output}
+          </pre>
+        ) : result.error ? (
+          <div className="text-red-500">
+            <p className="font-semibold mb-2">Error:</p>
+            <pre className="text-sm font-mono whitespace-pre-wrap wrap-break-word">
+              {result.error}
+            </pre>
+          </div>
+        ) : (
+          <div className="text-muted-foreground text-center py-8 select-none">
+            No output available
+          </div>
+        )}
+      </ScrollArea>
+    </div>
+  );
 }
 
 export function MultiCollectorResults({ command, executedCommand, onBack }: MultiCollectorResultsProps) {
@@ -154,10 +204,18 @@ export function MultiCollectorResults({ command, executedCommand, onBack }: Mult
             <Separator orientation="vertical" className="h-6" />
             <div>
               <div className="flex items-center gap-2">
+                {command.type === 'healthcheck' && (
+                  <HeartPulse className="size-5 text-emerald-500" />
+                )}
                 <code className="font-mono font-semibold">{command.command}</code>
                 <Badge variant={isExecutingDebugCommand ? 'default' : 'secondary'}>
-                  {isExecutingDebugCommand ? 'Executing...' : 'Complete'}
+                  {isExecutingDebugCommand ? (command.type === 'healthcheck' ? 'Analyzing...' : 'Executing...') : 'Complete'}
                 </Badge>
+                {command.type === 'healthcheck' && !isExecutingDebugCommand && (
+                  <Badge className="bg-gradient-to-r from-emerald-500 to-cyan-500 text-white">
+                    Visual Report
+                  </Badge>
+                )}
               </div>
               <p className="text-sm text-muted-foreground mt-0.5">
                 {resultsWithCollectors.length} collector{resultsWithCollectors.length !== 1 ? 's' : ''}
@@ -315,26 +373,10 @@ export function MultiCollectorResults({ command, executedCommand, onBack }: Mult
                 </div>
 
                 {/* Result Content */}
-                <div className="flex-1 border rounded-md overflow-hidden">
-                  <ScrollArea className="h-full p-4">
-                    {result.success && result.output ? (
-                      <pre className="text-sm font-mono whitespace-pre-wrap wrap-break-word">
-                        {result.output}
-                      </pre>
-                    ) : result.error ? (
-                      <div className="text-red-500">
-                        <p className="font-semibold mb-2">Error:</p>
-                        <pre className="text-sm font-mono whitespace-pre-wrap wrap-break-word">
-                          {result.error}
-                        </pre>
-                      </div>
-                    ) : (
-                      <div className="text-muted-foreground text-center py-8 select-none">
-                        No output available
-                      </div>
-                    )}
-                  </ScrollArea>
-                </div>
+                <ResultContent 
+                  result={result} 
+                  isHealthCheck={command.type === 'healthcheck'} 
+                />
               </div>
             </TabsContent>
           ))}
