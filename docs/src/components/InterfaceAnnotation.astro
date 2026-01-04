@@ -1,0 +1,150 @@
+---
+import { Image } from 'astro:assets';
+
+interface Callout {
+  id: string;
+  label: string;
+  x: string; // CSS position (e.g., "10%", "50px")
+  y: string;
+}
+
+interface Props {
+  src: ImageMetadata;
+  alt: string;
+  callouts?: Callout[];
+}
+
+const { src, alt, callouts = [] } = Astro.props;
+---
+
+<div class="interface-annotation">
+  <div class="image-container">
+    <Image src={src} alt={alt} class="annotated-image" />
+    {callouts.map((callout) => (
+      <div 
+        class="callout-marker" 
+        style={`left: ${callout.x}; top: ${callout.y};`}
+        data-label={callout.label}
+      >
+        <span class="callout-id">{callout.id}</span>
+        <span class="callout-tooltip">{callout.label}</span>
+      </div>
+    ))}
+  </div>
+  {callouts.length > 0 && (
+    <div class="callout-legend">
+      {callouts.map((callout) => (
+        <div class="legend-item">
+          <span class="legend-id">{callout.id}</span>
+          <span class="legend-label">{callout.label}</span>
+        </div>
+      ))}
+    </div>
+  )}
+</div>
+
+<style>
+  .interface-annotation {
+    margin: 1.5rem 0;
+  }
+
+  .image-container {
+    position: relative;
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.75rem;
+    overflow: hidden;
+    background: var(--sl-color-gray-6);
+  }
+
+  .annotated-image {
+    width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  .callout-marker {
+    position: absolute;
+    transform: translate(-50%, -50%);
+    z-index: 10;
+  }
+
+  .callout-id {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 50%;
+    background: var(--sl-color-accent);
+    color: var(--sl-color-black);
+    font-weight: 700;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: transform 0.15s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  .callout-marker:hover .callout-id {
+    transform: scale(1.15);
+  }
+
+  .callout-tooltip {
+    position: absolute;
+    left: 2rem;
+    top: 50%;
+    transform: translateY(-50%);
+    background: var(--sl-color-bg);
+    border: 1px solid var(--sl-color-gray-5);
+    padding: 0.375rem 0.625rem;
+    border-radius: 0.375rem;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.15s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  }
+
+  .callout-marker:hover .callout-tooltip {
+    opacity: 1;
+  }
+
+  .callout-legend {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.5rem;
+    margin-top: 1rem;
+    padding: 1rem;
+    background: var(--sl-color-bg-nav);
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.5rem;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .legend-id {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.25rem;
+    height: 1.25rem;
+    border-radius: 50%;
+    background: var(--sl-color-accent);
+    color: var(--sl-color-black);
+    font-weight: 700;
+    font-size: 0.625rem;
+    flex-shrink: 0;
+  }
+
+  .legend-label {
+    font-size: 0.8125rem;
+    color: var(--sl-color-gray-2);
+  }
+</style>
+
+
+

@@ -1,0 +1,270 @@
+---
+title: Snippets Library
+description: Use built-in and custom code snippets to speed up development.
+---
+
+import { Card, CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
+import { Icon } from '@astrojs/starlight/components';
+
+The Snippets Library provides reusable code templates and patterns for common LogicMonitor scripting tasks.
+
+## Accessing Snippets
+
+<CardGrid>
+  <Card title="Sidebar" icon="list-format">
+    Click **Snippets** tab in the right sidebar.
+  </Card>
+  <Card title="Keyboard" icon="laptop">
+    <kbd>Ctrl</kbd>+<kbd>B</kbd> to toggle sidebar, then click Snippets.
+  </Card>
+  <Card title="Command Palette" icon="magnifier">
+    Press <kbd>Ctrl</kbd>+<kbd>K</kbd> and type "Snippets".
+  </Card>
+</CardGrid>
+
+{/* Screenshot placeholder */}
+<div class="screenshot-placeholder" style="background: var(--sl-color-gray-6); border: 2px dashed var(--sl-color-gray-4); border-radius: 0.5rem; padding: 2.5rem 2rem; text-align: center; margin: 1.5rem 0;">
+  <Icon name="image" size="1.5rem" />
+  <p style="margin: 0.5rem 0 0 0; color: var(--sl-color-gray-3); font-size: 0.8rem;">
+    Screenshot: snippets-panel.png<br />
+    <em>Snippets panel showing categories and code preview</em>
+  </p>
+</div>
+
+---
+
+## Snippet Types
+
+<Tabs>
+  <TabItem label="Templates" icon="seti:notebook">
+    **Complete script starters** that replace your entire script content.
+
+    Use templates when:
+    - Starting a new script from scratch
+    - Learning standard script patterns
+    - Need a complete working example
+
+    <Aside type="caution">
+      Inserting a template replaces your current script content. A confirmation dialog appears.
+    </Aside>
+  </TabItem>
+  <TabItem label="Patterns" icon="seti:groovy">
+    **Code fragments** that insert at your cursor position.
+
+    Use patterns when:
+    - Adding functionality to an existing script
+    - Inserting common boilerplate code
+    - Using standard coding patterns
+
+    Patterns are inserted without replacing existing content.
+  </TabItem>
+</Tabs>
+
+---
+
+## Snippet Categories
+
+### By Type
+
+<div style="display: grid; gap: 0.5rem; margin: 1rem 0;">
+  <div style="display: flex; align-items: center; gap: 0.75rem;">
+    <Badge text="Template" variant="success" />
+    <span style="font-size: 0.875rem;">Complete script starters that replace your entire script</span>
+  </div>
+  <div style="display: flex; align-items: center; gap: 0.75rem;">
+    <Badge text="Pattern" variant="note" />
+    <span style="font-size: 0.875rem;">Code fragments that insert at cursor position</span>
+  </div>
+</div>
+
+### By Language
+
+Snippets are language-specific:
+- **Groovy** snippets for Groovy scripts
+- **PowerShell** snippets for PowerShell scripts
+
+Use the filter to show only relevant snippets for your current language.
+
+### By Source
+
+<div style="display: grid; gap: 0.5rem; margin: 1rem 0;">
+  <div style="display: flex; align-items: center; gap: 0.75rem;">
+    <Badge text="Built-in" variant="default" />
+    <span style="font-size: 0.875rem;">Included with LMDA Composer</span>
+  </div>
+  <div style="display: flex; align-items: center; gap: 0.75rem;">
+    <Badge text="User" variant="tip" />
+    <span style="font-size: 0.875rem;">Your custom snippets</span>
+  </div>
+</div>
+
+---
+
+## Using Built-in Snippets
+
+<Steps>
+
+1. Open the Snippets panel from the sidebar
+
+2. Use filters to narrow by category, language, or type
+
+3. Click a snippet to preview its full content
+
+4. Click **Insert** to add the snippet to your editor
+
+</Steps>
+
+---
+
+## Popular Built-in Snippets
+
+<Tabs>
+  <TabItem label="Groovy Templates" icon="seti:groovy">
+    | Name | Description |
+    |------|-------------|
+    | **SNMP Walk** | Walk an SNMP OID tree and process results |
+    | **HTTP API Collector** | Make HTTP API calls and parse JSON response |
+    | **WMI Query Template** | Execute WMI queries on Windows devices |
+    | **SSH Command Executor** | Run commands via SSH and collect output |
+  </TabItem>
+  <TabItem label="Groovy Patterns" icon="puzzle">
+    | Name | Description |
+    |------|-------------|
+    | **SNMP Get Single** | Get a single SNMP OID value |
+    | **JSON Response Parser** | Parse JSON and extract values |
+    | **Try-Catch Block** | Error handling wrapper |
+    | **AD Instance Line** | Format Active Discovery output |
+    | **Collection Output** | Format key=value collection output |
+  </TabItem>
+  <TabItem label="PowerShell" icon="seti:powershell">
+    | Name | Description |
+    |------|-------------|
+    | **WMI Query** | Execute WMI queries |
+    | **Registry Read** | Read Windows registry values |
+    | **Service Status** | Check Windows service status |
+    | **Performance Counter** | Read performance counters |
+  </TabItem>
+</Tabs>
+
+---
+
+## Creating Custom Snippets
+
+<Steps>
+
+1. Click **Create Snippet** in the panel
+
+2. Fill in required fields:
+   - **Name**: Unique identifier
+   - **Category**: Organization category
+   - **Language**: Groovy or PowerShell
+   - **Type**: Template or Pattern
+   - **Content**: The actual code
+
+3. Optionally add description and tags
+
+4. Click **Save**
+
+</Steps>
+
+### Example Pattern
+
+```groovy
+// SNMP Walk Pattern
+// TODO: Set target OID
+def baseOid = "1.3.6.1.2.1.2.2.1"
+def host = hostProps.get("system.hostname")
+def community = hostProps.get("snmp.community")
+
+def results = Snmp.walk(host, community, baseOid)
+results.each { oid, value ->
+    println "${oid} = ${value}"
+}
+```
+
+---
+
+## Managing Custom Snippets
+
+<CardGrid>
+  <Card title="Edit" icon="pencil">
+    Click the edit icon on your snippet, modify details, and save.
+  </Card>
+  <Card title="Delete" icon="close">
+    Click the delete icon and confirm. Deleted snippets cannot be recovered.
+  </Card>
+</CardGrid>
+
+<Aside type="note" title="Storage">
+  Custom snippets are stored in browser local storage. They persist across sessions but are not synced between browsers/devices.
+</Aside>
+
+---
+
+## Snippet Organization
+
+### Naming Conventions
+
+Use clear, descriptive names:
+- `SNMP_Walk_Interface_Stats`
+- `HTTP_GET_With_Auth`
+- `WMI_CPU_Query`
+
+### Tags
+
+Add relevant tags for searchability:
+- **Technology**: `snmp`, `wmi`, `http`
+- **Purpose**: `discovery`, `collection`
+- **Module type**: `datasource`, `configsource`
+
+---
+
+## Best Practices
+
+<CardGrid>
+  <Card title="Create for Repeated Code" icon="add-document">
+    If you write similar code often, generalize it with placeholders and save as a snippet.
+  </Card>
+  <Card title="Maintain Your Library" icon="setting">
+    Periodically review, update outdated snippets, and remove unused ones.
+  </Card>
+  <Card title="Document Your Snippets" icon="document">
+    Include what it does, required variables, expected output, and limitations.
+  </Card>
+  <Card title="Use TODO Markers" icon="warning">
+    Add `// TODO:` comments where users need to customize the code.
+  </Card>
+</CardGrid>
+
+---
+
+## Snippet Workflow Example
+
+Building a new DataSource:
+
+<Steps>
+
+1. Start with **Basic DataSource** template
+
+2. Add **SNMP Walk** pattern for discovery
+
+3. Add **Instance Output** pattern for AD formatting
+
+4. Add **SNMP Get** pattern for collection
+
+5. Customize for your specific use case
+
+</Steps>
+
+---
+
+## Next Steps
+
+<LinkCard
+  title="Execution History"
+  description="Review past script executions and reload scripts."
+  href="/lmda-composer/workspace/execution-history/"
+/>
+
+
+

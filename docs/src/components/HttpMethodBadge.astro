@@ -1,0 +1,67 @@
+---
+interface Props {
+  method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  size?: 'sm' | 'md';
+}
+
+const { method, size = 'md' } = Astro.props;
+
+// Conventional REST API method colors
+const methodConfig = {
+  GET: {
+    color: '#3b82f6', // blue-500 (info/read)
+    label: 'GET'
+  },
+  POST: {
+    color: '#22c55e', // green-500 (create)
+    label: 'POST'
+  },
+  PUT: {
+    color: '#f97316', // orange-500 (replace)
+    label: 'PUT'
+  },
+  PATCH: {
+    color: '#a855f7', // purple-500 (partial update)
+    label: 'PATCH'
+  },
+  DELETE: {
+    color: '#ef4444', // red-500 (remove)
+    label: 'DELETE'
+  }
+};
+
+const config = methodConfig[method];
+---
+
+<span class={`http-method-badge ${size}`} style={`--method-color: ${config.color};`}>
+  {config.label}
+</span>
+
+<style>
+  .http-method-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-weight: 600;
+    border-radius: 0.25rem;
+    background: color-mix(in srgb, var(--method-color) 15%, transparent);
+    color: var(--method-color);
+    white-space: nowrap;
+  }
+
+  .http-method-badge.sm {
+    font-size: 0.625rem;
+    padding: 0.125rem 0.375rem;
+    min-width: 2.75rem;
+  }
+
+  .http-method-badge.md {
+    font-size: 0.75rem;
+    padding: 0.1875rem 0.5rem;
+    min-width: 3.25rem;
+  }
+</style>
+
+
+

@@ -1,0 +1,264 @@
+---
+title: Committing Changes
+description: Save script and metadata changes back to LogicMonitor.
+---
+
+import { Card, CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
+import { Icon } from '@astrojs/starlight/components';
+import StatusBadge from '../../../components/StatusBadge.astro';
+import FeatureCard from '../../../components/FeatureCard.astro';
+
+When you've finished editing a module script, commit your changes to push them back to LogicMonitor.
+
+## What Is Committing?
+
+Committing saves your changes from LMDA Composer to the LogicModule in LogicMonitor:
+
+- Script content is updated
+- Staged metadata changes are applied
+- A new version is created in lineage
+- The commit message is recorded
+
+---
+
+## When Can You Commit?
+
+The Commit button is available when:
+
+<div style="display: grid; gap: 0.5rem; margin: 1rem 0; font-size: 0.875rem;">
+  <div>✅ Tab is bound to a LogicModule (loaded from browser)</div>
+  <div>✅ You have unsaved changes (script or metadata)</div>
+  <div>✅ You're connected to the correct portal</div>
+  <div>✅ You have write permissions for the module</div>
+</div>
+
+## Commit Button States
+
+<div style="display: grid; gap: 0.75rem; margin: 1rem 0;">
+  <div style="display: flex; align-items: center; gap: 0.75rem;">
+    <Badge text="Commit" variant="success" />
+    <span style="font-size: 0.875rem;">Ready to commit—click to proceed</span>
+  </div>
+  <div style="display: flex; align-items: center; gap: 0.75rem;">
+    <Badge text="Commit" variant="default" />
+    <span style="font-size: 0.875rem;">Disabled—no changes or not a module tab</span>
+  </div>
+  <div style="display: flex; align-items: center; gap: 0.75rem;">
+    <StatusBadge status="running" label="Committing..." />
+    <span style="font-size: 0.875rem;">Commit in progress</span>
+  </div>
+</div>
+
+---
+
+## The Commit Flow
+
+<Steps>
+
+1. ### Make Your Changes
+   Edit the script and/or module details as needed.
+
+2. ### Test Your Script
+   Run the script to verify functionality. Check parsed output and validate against mode rules.
+
+3. ### Review Changes
+   Click **Commit** to open the confirmation dialog.
+
+4. ### Enter Commit Message
+   Describe what you changed and why.
+
+5. ### Confirm
+   Click **Commit** to push changes to LogicMonitor.
+
+6. ### Verify Success
+   Tab dirty indicator clears. New version created in portal.
+
+</Steps>
+
+---
+
+## Commit Confirmation Dialog
+
+### Changes Summary
+
+| Section | What's Shown |
+|---------|--------------|
+| Script Changes | Before/after diff preview |
+| Metadata Changes | List of modified fields |
+| Validation | Any warnings or errors |
+
+### Commit Message
+
+Enter a descriptive commit message explaining your changes:
+
+<Tabs>
+  <TabItem label="Good Examples" icon="approve-check-circle">
+    - ✅ "Fixed SNMP timeout handling for slow devices"
+    - ✅ "Added CPU temperature datapoint (JIRA-1234)"
+    - ✅ "Updated AppliesTo to include Linux 8.x servers"
+    - ✅ "Increased collection interval from 1min to 5min"
+  </TabItem>
+  <TabItem label="Bad Examples" icon="close">
+    - ❌ "Updated script"
+    - ❌ "Changes"
+    - ❌ "Fixed bug"
+    - ❌ "Test"
+  </TabItem>
+</Tabs>
+
+### Tags (Optional)
+
+Add tags to categorize your commit:
+- `bugfix` – Bug corrections
+- `enhancement` – New features
+- `hotfix` – Urgent fixes
+
+---
+
+## Commit Options
+
+<CardGrid>
+  <Card title="Script Only" icon="seti:groovy">
+    If you only changed the script, only script content is updated. Metadata remains unchanged.
+  </Card>
+  <Card title="Script + Metadata" icon="document">
+    Both are committed together in a single atomic update. One version created.
+  </Card>
+  <Card title="Metadata Only" icon="setting">
+    From Module Details editor—stage metadata changes and commit without script changes.
+  </Card>
+</CardGrid>
+
+---
+
+## Handling Errors
+
+<Tabs>
+  <TabItem label="Validation Errors" icon="warning">
+    If validation fails:
+    - Error message displayed
+    - Commit blocked
+    - Fix issues and retry
+
+    **Common causes:**
+    - Script exceeds 64,000 character limit
+    - Required metadata fields empty
+    - Invalid AppliesTo syntax
+  </TabItem>
+  
+  <TabItem label="Permission Errors" icon="close">
+    If you lack permissions:
+    - 403 error displayed
+    - Contact your LM administrator
+    - Check your role assignments in LogicMonitor
+  </TabItem>
+  
+  <TabItem label="Conflict Errors" icon="warning">
+    If the module was modified by others:
+    - Conflict warning shown
+    - Review their changes first via Lineage
+    - Merge manually if needed
+  </TabItem>
+  
+  <TabItem label="Network Errors" icon="rocket">
+    If the connection fails:
+    - Retry option available
+    - Check your LM session (may have expired)
+    - Verify network connectivity
+  </TabItem>
+</Tabs>
+
+---
+
+## After Committing
+
+### Verify in LogicMonitor
+
+<Steps>
+
+1. Open LogicMonitor in your browser
+
+2. Navigate to the module in Settings → LogicModules
+
+3. Verify your changes appear in the script
+
+4. Check version history shows your commit
+
+</Steps>
+
+### Active Discovery Impact
+
+If you changed AD scripts:
+- Discovery runs on next scheduled interval
+- Or trigger manual discovery from device
+- Verify expected instances are found
+
+### Collection Impact
+
+Script changes take effect immediately:
+- Next collection uses new script
+- Monitor for errors in Alerts
+- Check data continuity in graphs
+
+---
+
+## Best Practices
+
+<CardGrid>
+  <Card title="Always Test First" icon="rocket">
+    Run the script multiple times with different devices. Verify output parsing and check edge cases.
+  </Card>
+  <Card title="Use Descriptive Messages" icon="pencil">
+    Your commit message helps future you, team members, and auditors understand changes.
+  </Card>
+  <Card title="Commit Small Changes" icon="list-format">
+    Prefer frequent small commits over large batches. Easier to identify issues and revert if needed.
+  </Card>
+  <Card title="Coordinate with Team" icon="star">
+    Communicate planned changes for shared modules. Avoid simultaneous edits.
+  </Card>
+</CardGrid>
+
+---
+
+## Commit vs. Save
+
+| Action | What It Does | Where Saved |
+|--------|--------------|-------------|
+| **Save** | Saves to local file | Your computer's disk |
+| **Commit** | Pushes to LogicMonitor | LM portal (creates new version) |
+
+You can save locally as backup before committing.
+
+---
+
+## Emergency Rollback
+
+If a commit causes problems:
+
+<Steps>
+
+1. Open Module Lineage
+
+2. Find the previous working version
+
+3. View its script content
+
+4. Copy to editor
+
+5. Commit as new version (effectively rolling back)
+
+</Steps>
+
+---
+
+## Next Steps
+
+<LinkCard
+  title="File Management"
+  description="Learn about opening, saving, and managing local script files."
+  href="/lmda-composer/workspace/file-management/"
+/>
+
+
+

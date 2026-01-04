@@ -1,0 +1,307 @@
+---
+title: FAQ
+description: Frequently asked questions about LMDA Composer.
+---
+
+import { Card, CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
+import { Icon } from '@astrojs/starlight/components';
+
+Answers to common questions about LMDA Composer.
+
+## General Questions
+
+<Tabs>
+  <TabItem label="What is LMDA Composer?" icon="information">
+    LMDA Composer is a Chrome extension that provides a focused workspace for developing and testing LogicMonitor scripts. It offers features like:
+
+    - Monaco-powered code editor
+    - Script execution on collectors
+    - Output parsing and validation
+    - LogicModule browsing and management
+    - API Explorer
+  </TabItem>
+  
+  <TabItem label="Is it free?" icon="star">
+    **Yes!** LMDA Composer is completely free and open source. It's a community project created to help LogicMonitor users be more productive.
+  </TabItem>
+  
+  <TabItem label="Is it affiliated with LogicMonitor?" icon="information">
+    **No.** LMDA Composer is an independent community project. It is not affiliated with, endorsed by, or officially connected to LogicMonitor, Inc. LogicMonitor is a registered trademark of LogicMonitor, Inc.
+  </TabItem>
+</Tabs>
+
+---
+
+## Browser Support
+
+<CardGrid>
+  <Card title="Chrome" icon="seti:favicon">
+    <Badge text="Recommended" variant="success" />
+    Full support for all features.
+  </Card>
+  <Card title="Edge" icon="seti:favicon">
+    <Badge text="Full Support" variant="success" />
+    Same capabilities as Chrome.
+  </Card>
+  <Card title="Brave" icon="seti:favicon">
+    <Badge text="With Limitations" variant="note" />
+    May need to enable File System Access API.
+  </Card>
+  <Card title="Firefox / Safari" icon="seti:favicon">
+    <Badge text="Not Supported" variant="caution" />
+    Extension API limitations prevent support.
+  </Card>
+</CardGrid>
+
+---
+
+## Installation
+
+<Tabs>
+  <TabItem label="How do I install?" icon="rocket">
+    You can install from the Chrome Web Store, or load the extension manually in developer mode.
+
+    <LinkCard
+      title="Installation Guide"
+      description="Detailed installation instructions."
+      href="/lmda-composer/getting-started/installation/"
+    />
+  </TabItem>
+  
+  <TabItem label="Why these permissions?" icon="setting">
+    LMDA Composer requires permissions to:
+    - **Access LogicMonitor tabs**: Use your existing session
+    - **Store data locally**: Settings, history, drafts
+    - **Access the file system**: Opening/saving files
+  </TabItem>
+  
+  <TabItem label="Multiple portals?" icon="list-format">
+    **Yes!** Log into each portal in separate browser tabs, and LMDA Composer will detect all active sessions. Switch between portals using the Context dropdown.
+  </TabItem>
+</Tabs>
+
+---
+
+## Script Execution
+
+<Tabs>
+  <TabItem label="Why can't I run my script?" icon="warning">
+    Common reasons:
+    - No portal selected
+    - No collector selected
+    - Collector is offline
+    - Another execution is in progress
+
+    <LinkCard
+      title="Troubleshooting"
+      description="Detailed solutions for common issues."
+      href="/lmda-composer/reference/troubleshooting/"
+    />
+  </TabItem>
+  
+  <TabItem label="Which collectors can I use?" icon="rocket">
+    You can run scripts on any collector you have access to in LogicMonitor. The collector must be online and able to communicate with LogicMonitor.
+  </TabItem>
+  
+  <TabItem label="Character limit?" icon="document">
+    **Yes**, LogicMonitor has a 64,000 character limit for scripts. LMDA Composer shows a warning when you approach this limit.
+  </TabItem>
+  
+  <TabItem label="PowerShell on Linux?" icon="close">
+    **No.** PowerShell scripts can only execute on Windows collectors. If you select a Linux collector with a PowerShell script, you'll see an error.
+  </TabItem>
+</Tabs>
+
+### Execution Modes
+
+| Mode | Purpose |
+|------|---------|
+| <Badge text="Freeform" variant="default" /> | General scripting, no output validation |
+| <Badge text="Active Discovery" variant="note" /> | Testing AD scripts with instance output parsing |
+| <Badge text="Collection" variant="success" /> | Testing collection scripts with datapoint validation |
+| <Badge text="Batch Collection" variant="tip" /> | Testing batch scripts with multi-instance output |
+
+---
+
+## Editor
+
+<Tabs>
+  <TabItem label="Custom themes?" icon="sun">
+    Currently, LMDA Composer supports System (auto), Light, and Dark themes. Custom themes are not yet supported.
+  </TabItem>
+  
+  <TabItem label="Other languages?" icon="seti:groovy">
+    **No.** LMDA Composer is specifically designed for LogicMonitor scripting, which uses Groovy and PowerShell.
+  </TabItem>
+  
+  <TabItem label="Import VS Code settings?" icon="setting">
+    Not currently. LMDA Composer has its own settings that can be configured in the Settings dialog.
+  </TabItem>
+  
+  <TabItem label="Autocomplete?" icon="pencil">
+    LMDA Composer doesn't currently provide LogicMonitor-specific autocomplete. Monaco provides basic language autocomplete for Groovy and PowerShell syntax.
+  </TabItem>
+</Tabs>
+
+---
+
+## Files and Saving
+
+<Tabs>
+  <TabItem label="Where are scripts saved?" icon="seti:folder">
+    This depends on how you're working:
+    - **Local files**: Saved to your computer's file system
+    - **Module scripts**: Saved to LogicMonitor when you commit
+    - **Drafts**: Automatically saved to browser storage
+  </TabItem>
+  
+  <TabItem label="Unsaved changes?" icon="warning">
+    LMDA Composer auto-saves drafts. When you reopen, it offers to restore unsaved work. However, it's best practice to save regularly.
+  </TabItem>
+  
+  <TabItem label="Sync across devices?" icon="rocket">
+    LMDA Composer doesn't have built-in sync. You can:
+    - Save files to cloud-synced folders (Dropbox, OneDrive, etc.)
+    - Use version control (Git)
+    - Module scripts are synced via LogicMonitor
+  </TabItem>
+</Tabs>
+
+---
+
+## API Explorer
+
+<Tabs>
+  <TabItem label="Need API tokens?" icon="seti:json">
+    **No!** Like script execution, the API Explorer uses your active browser session. No separate API credentials needed.
+  </TabItem>
+  
+  <TabItem label="What operations?" icon="list-format">
+    You can perform any LogicMonitor API operation that your user account has permission for, including GET, POST, PUT, PATCH, and DELETE requests.
+  </TabItem>
+  
+  <TabItem label="Rate limits?" icon="warning">
+    **Yes**, LogicMonitor's standard API rate limits apply. You'll see a 429 error if you exceed limits.
+  </TabItem>
+</Tabs>
+
+---
+
+## Module Management
+
+<Tabs>
+  <TabItem label="Create new modules?" icon="add-document">
+    Currently, LMDA Composer is focused on editing existing modules. You can:
+    - Import modules from LogicModule Exchange
+    - Edit scripts in existing modules
+    - Commit changes back to LogicMonitor
+
+    Creating entirely new modules should be done in the LogicMonitor UI.
+  </TabItem>
+  
+  <TabItem label="What happens when I commit?" icon="approve-check-circle">
+    When you commit:
+    1. Your script changes are pushed to LogicMonitor
+    2. Any staged metadata changes are applied
+    3. A new version is created in module lineage
+    4. The module is updated in production
+  </TabItem>
+  
+  <TabItem label="Revert to previous version?" icon="history">
+    LogicMonitor doesn't support direct rollbacks. You can:
+    1. View the previous version in Module Lineage
+    2. Copy its content
+    3. Commit as a new version
+  </TabItem>
+</Tabs>
+
+---
+
+## Snippets and History
+
+<CardGrid>
+  <Card title="Share snippets with team?" icon="star">
+    Snippets are stored locally in your browser. To share:
+    - Export snippet content manually
+    - Include in team documentation
+    - Add to shared code repositories
+  </Card>
+  <Card title="How long is history kept?" icon="history">
+    History is kept until you manually clear it, the configured limit is reached (oldest removed), or browser storage is cleared.
+    
+    Default limit is **50** entries, configurable in Settings.
+  </Card>
+</CardGrid>
+
+---
+
+## Security
+
+<CardGrid>
+  <Card title="Is my data secure?" icon="approve-check-circle">
+    - Runs entirely in your browser
+    - No data sent to third-party servers
+    - All communication is with LogicMonitor using your session
+    - Local storage is limited to your browser
+  </Card>
+  <Card title="Can others see my scripts?" icon="close">
+    Scripts in local files are only on your computer. Scripts in LogicModules follow your LogicMonitor access controls.
+  </Card>
+</CardGrid>
+
+### What data is stored locally?
+
+- Settings and preferences
+- Execution history
+- Snippets
+- Draft files
+- Recent file list
+- API request history
+
+---
+
+## Updates and Support
+
+<Tabs>
+  <TabItem label="How do I get updates?" icon="rocket">
+    If installed from Chrome Web Store, updates are automatic. If loaded unpacked, pull the latest from GitHub and rebuild.
+  </TabItem>
+  
+  <TabItem label="Report bugs?" icon="github">
+    Report issues on the GitHub repository. Include:
+    - Steps to reproduce
+    - Expected vs. actual behavior
+    - Browser and OS version
+    - Screenshots if helpful
+  </TabItem>
+  
+  <TabItem label="Contribute?" icon="star">
+    **Yes!** LMDA Composer is open source. You can:
+    - Report bugs
+    - Suggest features
+    - Submit pull requests
+    - Help with documentation
+
+    See the GitHub repository for contribution guidelines.
+  </TabItem>
+</Tabs>
+
+---
+
+## Get Help
+
+<CardGrid>
+  <Card title="Documentation" icon="document">
+    You're here! Browse the full documentation.
+  </Card>
+  <Card title="GitHub Discussions" icon="github">
+    Ask questions and connect with the community.
+  </Card>
+  <Card title="GitHub Issues" icon="warning">
+    Report bugs and track fixes.
+  </Card>
+  <Card title="LogicMonitor Community" icon="star">
+    Connect with other LM users.
+  </Card>
+</CardGrid>
+

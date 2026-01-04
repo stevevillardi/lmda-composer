@@ -1,0 +1,280 @@
+---
+title: Context Selection
+description: Selecting portals, collectors, and devices for script execution.
+---
+
+import { Card, CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
+import { Icon } from '@astrojs/starlight/components';
+import FeatureCard from '../../../components/FeatureCard.astro';
+import StatusBadge from '../../../components/StatusBadge.astro';
+
+Before running scripts, configure your execution context: which portal to use, which collector to run on, and optionally which device to target.
+
+## The Context Dropdown
+
+Click the **Context** button in the toolbar to open the selection dropdown:
+
+{/* Screenshot placeholder */}
+<div class="screenshot-placeholder" style="background: var(--sl-color-gray-6); border: 2px dashed var(--sl-color-gray-4); border-radius: 0.5rem; padding: 2.5rem 2rem; text-align: center; margin: 1.5rem 0;">
+  <Icon name="image" size="1.5rem" />
+  <p style="margin: 0.5rem 0 0 0; color: var(--sl-color-gray-3); font-size: 0.8rem;">
+    Screenshot: context-dropdown.png<br />
+    <em>Context dropdown showing Portal, Collector, and Device sections</em>
+  </p>
+</div>
+
+<CardGrid>
+  <Card title="Portal" icon="globe">
+    Your LogicMonitor account. Select from detected active sessions.
+  </Card>
+  <Card title="Collector" icon="server">
+    Where scripts execute. Only online collectors can run code.
+  </Card>
+  <Card title="Device" icon="laptop">
+    Target for property access. Optional but needed for `hostProps`.
+  </Card>
+</CardGrid>
+
+---
+
+## Portal Selection
+
+### How Portals Are Detected
+
+LMDA Composer automatically finds your LogicMonitor sessions:
+
+<Steps>
+1. Scans open browser tabs for `*.logicmonitor.com` URLs
+2. Groups tabs by portal hostname
+3. Validates active authentication sessions
+4. Displays available portals in the dropdown
+</Steps>
+
+### Portal Status Indicators
+
+{/* Screenshot placeholder */}
+<div class="screenshot-placeholder" style="background: var(--sl-color-gray-6); border: 2px dashed var(--sl-color-gray-4); border-radius: 0.5rem; padding: 2rem; text-align: center; margin: 1rem 0;">
+  <Icon name="image" size="1.25rem" />
+  <p style="margin: 0.5rem 0 0 0; color: var(--sl-color-gray-3); font-size: 0.75rem;">
+    Screenshot: context-portal-status.png
+  </p>
+</div>
+
+<div style="display: grid; gap: 0.75rem; margin: 1rem 0;">
+  <div style="display: flex; align-items: center; gap: 0.75rem;">
+    <StatusBadge status="success" label="Connected" size="sm" />
+    <span style="font-size: 0.875rem;">Active session, ready to use</span>
+  </div>
+  <div style="display: flex; align-items: center; gap: 0.75rem;">
+    <StatusBadge status="error" label="Disconnected" size="sm" />
+    <span style="font-size: 0.875rem;">Session expired or logged out</span>
+  </div>
+  <div style="display: flex; align-items: center; gap: 0.75rem;">
+    <StatusBadge status="warning" label="Warning" size="sm" />
+    <span style="font-size: 0.875rem;">Connection issue detected</span>
+  </div>
+</div>
+
+### Switching Portals
+
+1. Open the Context dropdown
+2. Select a different portal from the list
+3. Collector and device lists refresh automatically
+
+<Aside type="tip" title="Multiple Portals">
+  Open different LogicMonitor portals in separate browser tabs to work across multiple accounts simultaneously.
+</Aside>
+
+### Session Expiration
+
+If your LogicMonitor session expires:
+
+1. The portal shows a red <StatusBadge status="error" label="Disconnected" size="sm" /> indicator
+2. Script execution fails with authentication errors
+3. Log in again in another browser tab
+4. Click **Refresh** in the Context dropdown to detect the new session
+
+---
+
+## Collector Selection
+
+### Available Collectors
+
+After selecting a portal, the collector list populates:
+
+- Grouped by collector group
+- Shows collector description and hostname
+- Indicates online/offline status with color badges
+
+### Collector Status
+
+| Status | Can Execute? | Description |
+|--------|--------------|-------------|
+| <Badge text="Online" variant="success" /> | ✅ Yes | Collector is connected and ready |
+| <Badge text="Offline" variant="default" /> | ❌ No | Collector is not responding |
+| <Badge text="Warning" variant="caution" /> | ⚠️ Check | Collector health issues |
+
+<Aside type="note">
+  Offline collectors appear in the list but cannot be selected for script execution.
+</Aside>
+
+### Selecting a Collector
+
+<Steps>
+1. Click the **Collector** field in the Context dropdown
+2. Search by name, description, or hostname
+3. Click to select your target collector
+4. Device list refreshes for the selected collector
+</Steps>
+
+### Collector Groups
+
+Collectors are organized by their assigned groups:
+- Ungrouped collectors appear first
+- Groups display in alphabetical order
+- Expand/collapse groups for easier navigation in large environments
+
+---
+
+## Device Selection
+
+### Why Select a Device?
+
+Selecting a device enables:
+
+<div style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin: 1rem 0;">
+  <FeatureCard title="Host Properties" icon="information" color="blue">
+    Access `hostProps.get("property.name")` in your scripts.
+  </FeatureCard>
+  <FeatureCard title="Token Substitution" icon="pencil" color="green">
+    PowerShell `##TOKEN##` patterns resolve to device properties.
+  </FeatureCard>
+  <FeatureCard title="Instance Properties" icon="layers-3" color="purple">
+    Collection modes can access instance-specific data.
+  </FeatureCard>
+</div>
+
+### Device List
+
+The device dropdown shows devices assigned to the selected collector:
+
+- Search by display name or system hostname
+- Shows both display name and `system.hostname`
+- Limited to devices monitored by the selected collector
+
+### Selecting a Device
+
+<Steps>
+1. Ensure a collector is selected first
+2. Click the **Device** field
+3. Search or browse the device list
+4. Click to select your target device
+</Steps>
+
+### Clearing Device Selection
+
+Click the **×** button to clear the device selection. Useful when:
+
+- Running freeform scripts without device context
+- Testing scripts that should work without device properties
+- Switching between device-specific and general tests
+
+---
+
+## Context Persistence
+
+LMDA Composer remembers your selections across sessions:
+
+| Setting | Persisted? | Scope |
+|---------|-----------|-------|
+| Portal | ✅ Yes | Global (last used) |
+| Collector | ✅ Yes | Per portal |
+| Device | ✅ Yes | Per session |
+
+When you return to the composer, your last portal and collector are automatically restored.
+
+---
+
+## Context and Tabs
+
+Each tab can have different context settings:
+
+<CardGrid>
+  <Card title="Tab Memory" icon="open-book">
+    Tabs remember their execution context. Switching tabs may update the toolbar display.
+  </Card>
+  <Card title="Portal Binding" icon="external">
+    Tabs opened from LogicModules are "bound" to their source portal.
+  </Card>
+</CardGrid>
+
+### Portal Binding
+
+When you open a script from a LogicModule:
+
+- The tab is **bound** to that portal
+- A link icon <Icon name="external" size="1rem" /> appears on the tab
+- Commit operations use the bound portal
+- A warning appears if the active portal doesn't match
+
+---
+
+## Refreshing Data
+
+### Refresh Portals
+
+Click the refresh icon <Icon name="rocket" size="1rem" /> in the portal section to:
+- Rescan for open LogicMonitor tabs
+- Update session status indicators
+- Detect newly opened portals
+
+### Refresh Collectors
+
+Press <kbd>Ctrl</kbd>+<kbd>R</kbd> or click refresh to:
+- Reload the collector list from the portal
+- Update online/offline status
+- Reflect collector configuration changes
+
+### Refresh Devices
+
+Device lists refresh automatically when:
+- Collector selection changes
+- You manually trigger a refresh with the button
+
+---
+
+## Troubleshooting
+
+<Aside type="caution" title="No Portals Detected">
+  1. Ensure you're logged into LogicMonitor in another browser tab
+  2. Check that the LM tab is fully loaded (not still loading)
+  3. Click refresh in the Context dropdown
+  4. Try opening a new LM tab and logging in fresh
+</Aside>
+
+<Aside type="caution" title="Collector Not Listed">
+  1. Refresh the collector list
+  2. Verify the collector exists in your portal
+  3. Check that you have permission to view the collector
+  4. Try selecting the portal again to reload data
+</Aside>
+
+<Aside type="caution" title="Device Not Found">
+  1. Verify the device is monitored by the **selected collector**
+  2. Use the search field to filter by name or hostname
+  3. Check if the device name contains special characters
+  4. Ensure the device is not deleted or disabled in LogicMonitor
+</Aside>
+
+---
+
+## Next Steps
+
+<LinkCard
+  title="Portal Tools"
+  description="Explore the LogicModule Browser, Search, and Debug Commands."
+  href="/lmda-composer/portal-tools/logicmodule-browser/"
+/>
+
+
+

@@ -1,0 +1,283 @@
+---
+title: Module Details Editor
+description: Edit module metadata including name, description, AppliesTo, and alert settings.
+---
+
+import { Card, CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
+import { Icon } from '@astrojs/starlight/components';
+import FeatureCard from '../../../components/FeatureCard.astro';
+
+The Module Details Editor allows you to view and modify metadata for module-bound tabs. Edit properties like name, description, AppliesTo expressions, and alert configurations.
+
+## Opening Module Details
+
+<CardGrid>
+  <Card title="Toolbar" icon="pencil">
+    Click the **Module Details** button in the toolbar.
+  </Card>
+  <Card title="Command Palette" icon="magnifier">
+    Press <kbd>Ctrl</kbd>+<kbd>K</kbd> and type "Module Details".
+  </Card>
+  <Card title="Tab Context Menu" icon="list-format">
+    Right-click a module tab and select **Module Details**.
+  </Card>
+</CardGrid>
+
+<Aside type="note" title="Module-Bound Tabs Only">
+  The Module Details button only appears for tabs loaded from a LogicModule. Local files don't have module metadata.
+</Aside>
+
+---
+
+## Editor Layout
+
+{/* Screenshot placeholder */}
+<div class="screenshot-placeholder" style="background: var(--sl-color-gray-6); border: 2px dashed var(--sl-color-gray-4); border-radius: 0.5rem; padding: 2.5rem 2rem; text-align: center; margin: 1.5rem 0;">
+  <Icon name="image" size="1.5rem" />
+  <p style="margin: 0.5rem 0 0 0; color: var(--sl-color-gray-3); font-size: 0.8rem;">
+    Screenshot: module-details-editor.png<br />
+    <em>Module Details Editor showing sections and fields</em>
+  </p>
+</div>
+
+### Sidebar Navigation
+
+The left sidebar contains section links:
+
+<div style="display: grid; gap: 0.75rem; margin: 1rem 0;">
+  <FeatureCard title="Basic Info" icon="information" color="blue">
+    Name, display name, description, version
+  </FeatureCard>
+  <FeatureCard title="Organization" icon="seti:folder" color="green">
+    Groups, tags, technology type
+  </FeatureCard>
+  <FeatureCard title="Access" icon="funnel" color="purple">
+    AppliesTo expression, group restrictions
+  </FeatureCard>
+  <FeatureCard title="Active Discovery" icon="seti:todo" color="cyan">
+    Discovery configuration (DataSources only)
+  </FeatureCard>
+  <FeatureCard title="Datapoints" icon="seti:db" color="orange">
+    Datapoint definitions and settings
+  </FeatureCard>
+  <FeatureCard title="Alert Settings" icon="bell" color="pink">
+    Alert thresholds and notifications
+  </FeatureCard>
+</div>
+
+Click a section to navigate. Dirty sections show an indicator dot.
+
+---
+
+## Basic Info Section
+
+<Tabs>
+  <TabItem label="Module Name" icon="tag">
+    The internal identifier for the module:
+    - Must be unique within the portal
+    - Alphanumeric with underscores only
+    - Used in API references
+    - Maximum 255 characters
+  </TabItem>
+  <TabItem label="Display Name" icon="pencil">
+    The human-readable name:
+    - Shown in the LogicMonitor UI
+    - Can include spaces and special characters
+    - Maximum 100 characters
+  </TabItem>
+  <TabItem label="Description" icon="document">
+    Documentation for the module:
+    - Supports multi-line text
+    - Explain what the module monitors
+    - Include setup requirements
+    - Maximum 1000 characters
+  </TabItem>
+  <TabItem label="Version" icon="information">
+    Read-only field showing:
+    - Current version number
+    - Last modified date
+    - Modified by user
+  </TabItem>
+</Tabs>
+
+---
+
+## Organization Section
+
+### Module Group
+Organize modules into groups by selecting from existing groups or creating new ones in LogicMonitor.
+
+### Tags
+Add searchable tags as comma-separated values. Examples: `custom`, `production`, `network`
+
+### Technology Type
+Categorize by technology: Windows, Linux, Network, Cloud, or Custom.
+
+### Collector Attribute
+For modules requiring specific collector capabilities: SNMP support, WMI support, or Script execution.
+
+---
+
+## Access Section
+
+### AppliesTo Expression
+
+Define which resources use this module:
+
+```groovy
+system.sysinfo =~ "Linux" && hasCategory("server")
+```
+
+Edit the expression directly or click **Test** to open the AppliesTo Toolbox.
+
+### Group Restrictions
+
+- Select groups from dropdown
+- Multiple groups allowed
+- Leave empty for no restrictions
+
+### Collector Groups
+
+Assign to specific collector groups for geo-specific monitoring.
+
+---
+
+## Active Discovery Section
+
+For DataSources with instance discovery:
+
+<CardGrid>
+  <Card title="Discovery Method" icon="magnifier">
+    Script-based, SNMP, WMI, or None (single instance).
+  </Card>
+  <Card title="Discovery Interval" icon="rocket">
+    Range: 5 minutes to 24 hours. Balance freshness vs. performance.
+  </Card>
+  <Card title="Instance Properties" icon="tag">
+    Define auto-properties discovered for each instance.
+  </Card>
+  <Card title="Filters" icon="funnel">
+    Post-discovery filtering with include/exclude patterns.
+  </Card>
+</CardGrid>
+
+---
+
+## Datapoints Section
+
+Manage collected metrics:
+
+### Datapoint List
+
+| Column | Description |
+|--------|-------------|
+| Name | Datapoint identifier |
+| Type | Gauge, counter, or derive |
+| Description | Documentation text |
+| Alert Enabled | Whether alerting is active |
+
+### Managing Datapoints
+
+<Steps>
+
+1. **Add**: Click **Add Datapoint**, enter name, select type, configure collection
+
+2. **Edit**: Click a datapoint to modify description, post-processor, thresholds
+
+3. **Remove**: Select and click **Remove**, then confirm
+
+</Steps>
+
+<Aside type="caution" title="Data Loss">
+  Removing a datapoint also removes historical data for that metric. This cannot be undone.
+</Aside>
+
+---
+
+## Alert Settings Section
+
+Configure alerting behavior:
+
+### Alert Levels
+
+For each severity, set thresholds:
+- <Badge text="Critical" variant="danger" /> threshold
+- <Badge text="Error" variant="caution" /> threshold  
+- <Badge text="Warning" variant="note" /> threshold
+
+### Alert Messages
+Customize alert text using tokens for dynamic values. Include troubleshooting steps.
+
+### Escalation Chain
+Assign default chains or per-severity overrides.
+
+---
+
+## Making Changes
+
+### Change Tracking
+
+The editor tracks all modifications:
+- Modified fields highlighted
+- Section indicators show dirty state
+- Undo available per field
+
+### Staging Changes
+
+<Steps>
+
+1. Review all changes across sections
+
+2. Click **Stage Changes**
+
+3. Changes are staged for commit
+
+4. Script changes plus metadata commit together
+
+</Steps>
+
+### Resetting Changes
+
+Click **Reset Changes** to discard all modifications and revert to original values.
+
+---
+
+## Validation
+
+### Required Fields
+
+| Field | Required |
+|-------|----------|
+| Module Name | <Badge text="Yes" variant="success" /> |
+| Display Name | <Badge text="Yes" variant="success" /> |
+| AppliesTo | <Badge text="Most types" variant="note" /> |
+
+### Character Limits
+
+| Field | Limit |
+|-------|-------|
+| Name | 255 characters |
+| Display Name | 100 characters |
+| Description | 1000 characters |
+| AppliesTo | 2000 characters |
+
+---
+
+## Portal Binding
+
+<Aside type="caution" title="Mismatched Portal">
+  If the active portal differs from the module's portal, an overlay warning appears. Switch portals in the Context dropdown before editing.
+</Aside>
+
+---
+
+## Next Steps
+
+<LinkCard
+  title="Module Lineage"
+  description="View version history and compare changes across module versions."
+  href="/lmda-composer/module-management/lineage/"
+/>
+
+
+

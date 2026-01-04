@@ -1,0 +1,171 @@
+---
+import { Icon } from '@astrojs/starlight/components';
+
+interface Props {
+  mode: 'freeform' | 'ad' | 'collection' | 'batch' | 'config' | 'event' | 'topology' | 'property' | 'log';
+  title: string;
+  description?: string;
+}
+
+const { mode, title, description } = Astro.props;
+
+// Color mapping matching src/editor/constants/icons.tsx
+const modeConfig = {
+  freeform: {
+    color: '#64748b', // slate-500 (default)
+    icon: 'seti:shell',
+    label: 'Freeform'
+  },
+  ad: {
+    color: '#3b82f6', // blue-500
+    icon: 'seti:todo',
+    label: 'Active Discovery'
+  },
+  collection: {
+    color: '#22c55e', // green-500
+    icon: 'heart-pulse',
+    label: 'Collection'
+  },
+  batch: {
+    color: '#a855f7', // purple-500
+    icon: 'layers-3',
+    label: 'Batch Collection'
+  },
+  config: {
+    color: '#64748b', // slate-500
+    icon: 'document',
+    label: 'ConfigSource'
+  },
+  event: {
+    color: '#f97316', // orange-500
+    icon: 'bell',
+    label: 'EventSource'
+  },
+  topology: {
+    color: '#06b6d4', // cyan-500
+    icon: 'random',
+    label: 'TopologySource'
+  },
+  property: {
+    color: '#ec4899', // pink-500
+    icon: 'tag',
+    label: 'PropertySource'
+  },
+  log: {
+    color: '#14b8a6', // teal-500
+    icon: 'list-format',
+    label: 'LogSource'
+  }
+};
+
+const config = modeConfig[mode];
+---
+
+<div class="mode-card" style={`--mode-color: ${config.color};`}>
+  <div class="mode-header">
+    <div class="mode-icon">
+      <Icon name={config.icon} size="1.5rem" />
+    </div>
+    <div class="mode-info">
+      <span class="mode-badge">{config.label}</span>
+      <h3 class="mode-title">{title}</h3>
+    </div>
+  </div>
+  {description && <p class="mode-description">{description}</p>}
+  <div class="mode-content">
+    <slot />
+  </div>
+</div>
+
+<style>
+  .mode-card {
+    border: 1px solid var(--sl-color-gray-5);
+    border-left: 4px solid var(--mode-color);
+    border-radius: 0.75rem;
+    padding: 1.25rem;
+    background: var(--sl-color-bg-nav);
+    margin-bottom: 1.5rem;
+  }
+
+  .mode-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .mode-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: 0.5rem;
+    background: color-mix(in srgb, var(--mode-color) 15%, transparent);
+    color: var(--mode-color);
+    flex-shrink: 0;
+  }
+
+  .mode-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .mode-badge {
+    display: inline-block;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--mode-color);
+    margin-bottom: 0.25rem;
+  }
+
+  .mode-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin: 0;
+    color: var(--sl-color-white);
+  }
+
+  .mode-description {
+    font-size: 0.875rem;
+    color: var(--sl-color-gray-3);
+    margin: 0 0 1rem 0;
+    line-height: 1.5;
+  }
+
+  .mode-content {
+    font-size: 0.9375rem;
+    color: var(--sl-color-gray-2);
+  }
+
+  .mode-content :global(p) {
+    margin: 0.5rem 0;
+  }
+
+  .mode-content :global(ul),
+  .mode-content :global(ol) {
+    margin: 0.5rem 0;
+    padding-left: 1.25rem;
+  }
+
+  .mode-content :global(li) {
+    margin: 0.25rem 0;
+  }
+
+  .mode-content :global(code) {
+    background: var(--sl-color-gray-6);
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.25rem;
+    font-size: 0.8125rem;
+  }
+
+  .mode-content :global(pre) {
+    margin: 1rem 0;
+    border-radius: 0.5rem;
+  }
+</style>
+
+
+

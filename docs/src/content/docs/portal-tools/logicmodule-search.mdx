@@ -1,0 +1,276 @@
+---
+title: LogicModule Search
+description: Search across all module scripts and datapoints to find code patterns.
+---
+
+import { Card, CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
+import { Icon } from '@astrojs/starlight/components';
+import ModuleTypeBadge from '../../../components/ModuleTypeBadge.astro';
+import FeatureCard from '../../../components/FeatureCard.astro';
+
+LogicModule Search provides powerful search capabilities across all scripts and datapoints in your portal's LogicModules.
+
+## Opening Search
+
+<CardGrid>
+  <Card title="Welcome Screen" icon="rocket">
+    Click **Search LogicModules** on the welcome screen.
+  </Card>
+  <Card title="Command Palette" icon="magnifier">
+    Press <kbd>Ctrl</kbd>+<kbd>K</kbd> and type "Search".
+  </Card>
+  <Card title="Keyboard Shortcut" icon="laptop">
+    Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> directly.
+  </Card>
+</CardGrid>
+
+---
+
+## Search Modes
+
+{/* Screenshot placeholder */}
+<div class="screenshot-placeholder" style="background: var(--sl-color-gray-6); border: 2px dashed var(--sl-color-gray-4); border-radius: 0.5rem; padding: 2.5rem 2rem; text-align: center; margin: 1.5rem 0;">
+  <Icon name="image" size="1.5rem" />
+  <p style="margin: 0.5rem 0 0 0; color: var(--sl-color-gray-3); font-size: 0.8rem;">
+    Screenshot: search-results.png<br />
+    <em>Search dialog showing results grouped by module type</em>
+  </p>
+</div>
+
+<Tabs>
+  <TabItem label="Script Search" icon="seti:groovy">
+    Search within module script content:
+
+    - Collection scripts
+    - Active Discovery scripts
+    - Pre-scripts
+    - PropertySource scripts
+    - ConfigSource scripts
+
+    Find code patterns, function calls, variable names, or any text within scripts.
+  </TabItem>
+  
+  <TabItem label="Datapoint Search" icon="seti:db">
+    Search datapoint definitions:
+
+    - Datapoint names
+    - Datapoint expressions
+    - Alert thresholds
+    - Description text
+
+    Useful for finding datapoints by name or auditing alert configurations.
+  </TabItem>
+</Tabs>
+
+Toggle between modes using the tabs at the top of the search dialog.
+
+---
+
+## Search Options
+
+### Match Type
+
+<div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin: 1rem 0;">
+  <Badge text="Substring" variant="success" />
+  <Badge text="Exact" variant="note" />
+  <Badge text="Regex" variant="caution" />
+</div>
+
+| Type | Behavior | Example |
+|------|----------|---------|
+| **Substring** | Partial match anywhere | `host` matches `hostname`, `hostProps` |
+| **Exact** | Whole word match only | `host` won't match `hostname` |
+| **Regex** | Regular expression pattern | `host\w+` matches `hostname`, `hostProps` |
+
+### Case Sensitivity
+
+Toggle case sensitivity in the search options:
+
+- <Badge text="Case Insensitive" variant="default" /> (default) – "Host" matches "host", "HOST"
+- <Badge text="Case Sensitive" variant="note" /> – Only exact case matches
+
+### Module Type Filter
+
+Filter search to specific module types:
+
+<div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 1rem 0;">
+  <ModuleTypeBadge type="datasource" />
+  <ModuleTypeBadge type="configsource" />
+  <ModuleTypeBadge type="eventsource" />
+  <ModuleTypeBadge type="propertysource" />
+  <ModuleTypeBadge type="topologysource" />
+</div>
+
+Select multiple types to include, or none to search all module types.
+
+---
+
+## Script Search Results
+
+### Results Display
+
+Results are grouped by module type, then by module:
+
+```
+DataSource (12 matches)
+├── Module_Name_1 (3 matches)
+│   ├── AD Script - Line 45
+│   └── Collection Script - Line 12, 78
+├── Module_Name_2 (1 match)
+│   └── Collection Script - Line 156
+
+ConfigSource (5 matches)
+└── Config_Module_1 (5 matches)
+    └── Script - Lines 23, 45, 67, 89, 101
+```
+
+### Match Preview
+
+Click a result to see the script with matches highlighted:
+
+- Monaco editor with syntax highlighting
+- Matching lines highlighted in yellow
+- Jump to match buttons for navigation
+- Context lines around each match
+
+### Loading Scripts
+
+From search results, you have two options:
+
+| Action | Result |
+|--------|--------|
+| **Load** | Opens in new module-bound tab (for editing and committing) |
+| **New** | Opens as freeform tab (for reference or experimentation) |
+
+---
+
+## Datapoint Search Results
+
+### Datapoint Results Display
+
+Shows datapoints matching your query:
+
+```
+DataSource_Name
+├── cpuUsage (alert: >, threshold: 90)
+├── cpuIdle (alert: <, threshold: 10)
+└── cpuCount (no alert)
+```
+
+### Datapoint Details
+
+Click a datapoint result to view:
+
+<div style="display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin: 1rem 0; font-size: 0.875rem;">
+  <div><strong>Name:</strong> Datapoint identifier</div>
+  <div><strong>Type:</strong> Gauge, counter, derive</div>
+  <div><strong>Alert Expression:</strong> Threshold config</div>
+  <div><strong>Description:</strong> Documentation text</div>
+  <div><strong>Post-Processor:</strong> Transformations</div>
+</div>
+
+---
+
+## Search Index
+
+LogicModule Search uses a local index for fast searching across your portal.
+
+### Index Status
+
+The status bar shows:
+- **Last indexed**: When the index was built
+- **Module count**: Number of indexed modules
+- **Index age**: Time since last update
+
+### Building the Index
+
+The index builds automatically on first search. To manually rebuild:
+
+<Steps>
+
+1. Click **Rebuild Index** in the search dialog
+
+2. Wait for indexing to complete (progress shown)
+
+3. Index is cached for future sessions
+
+</Steps>
+
+<Aside type="tip" title="Index Freshness">
+  If modules changed in LogicMonitor, the index may show stale results. Click **Rebuild Index** to update. The rebuild runs in the background.
+</Aside>
+
+---
+
+## Regular Expression Tips
+
+When using Regex mode:
+
+### Common Patterns
+
+| Pattern | Matches |
+|---------|---------|
+| `println.*hostname` | Print statements with hostname |
+| `def\s+\w+\s*=` | Variable definitions |
+| `Snmp\.(get\|walk)` | SNMP operations |
+| `\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}` | IP addresses |
+| `hostProps\.get\(` | Host property access |
+
+### Escaping Special Characters
+
+Remember to escape regex special characters:
+- `\.` for literal period
+- `\(` for literal parenthesis
+- `\[` for literal bracket
+
+---
+
+## Performance Tips
+
+### Large Portals
+
+For portals with many modules:
+
+1. Use **module type filters** to narrow scope
+2. Be specific with search terms
+3. Use **exact match** when possible
+4. Rebuild index if search seems slow
+
+### Efficient Searching
+
+1. Start broad, then refine with additional terms
+2. Use regex for complex patterns
+3. Filter by module type early
+4. Check index age before searching
+
+---
+
+## Use Cases
+
+<CardGrid>
+  <Card title="Finding Examples" icon="magnifier">
+    Search for `Snmp.walk` with Substring match to find SNMP walk examples across all modules.
+  </Card>
+  <Card title="Locating Specific Code" icon="seti:groovy">
+    Search for `hostProps.get("custom.property")` with Exact match to find all uses of a specific property.
+  </Card>
+  <Card title="Auditing Patterns" icon="warning">
+    Use Regex like `old_deprecated_function\(` to find modules needing updates.
+  </Card>
+  <Card title="Datapoint Discovery" icon="seti:db">
+    Switch to Datapoint Search and enter "CPU" to find all CPU-related datapoints and their alert configs.
+  </Card>
+</CardGrid>
+
+---
+
+## Next Steps
+
+<LinkCard
+  title="AppliesTo Toolbox"
+  description="Test and validate AppliesTo expressions with instant feedback."
+  href="/lmda-composer/portal-tools/appliesto-toolbox/"
+/>
+
+
+

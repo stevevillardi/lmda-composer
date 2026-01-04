@@ -1,0 +1,249 @@
+---
+title: Execution History
+description: Review past script executions and reload scripts.
+---
+
+import { Card, CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
+import { Icon } from '@astrojs/starlight/components';
+import StatusBadge from '../../../components/StatusBadge.astro';
+
+Execution History tracks every script you run in LMDA Composer, allowing you to review past executions and reload scripts.
+
+## Accessing History
+
+<CardGrid>
+  <Card title="Sidebar" icon="history">
+    Click **History** tab in the right sidebar.
+  </Card>
+  <Card title="Keyboard" icon="laptop">
+    <kbd>Ctrl</kbd>+<kbd>B</kbd> to toggle sidebar.
+  </Card>
+  <Card title="Command Palette" icon="magnifier">
+    Press <kbd>Ctrl</kbd>+<kbd>K</kbd> and type "History".
+  </Card>
+</CardGrid>
+
+{/* Screenshot placeholder */}
+<div class="screenshot-placeholder" style="background: var(--sl-color-gray-6); border: 2px dashed var(--sl-color-gray-4); border-radius: 0.5rem; padding: 2.5rem 2rem; text-align: center; margin: 1.5rem 0;">
+  <Icon name="image" size="1.5rem" />
+  <p style="margin: 0.5rem 0 0 0; color: var(--sl-color-gray-3); font-size: 0.8rem;">
+    Screenshot: execution-history.png<br />
+    <em>Execution history panel showing past runs</em>
+  </p>
+</div>
+
+---
+
+## History Entry Details
+
+Each execution entry shows:
+
+| Field | Description |
+|-------|-------------|
+| Status | <StatusBadge status="success" label="Success" /> or <StatusBadge status="error" label="Error" /> |
+| Name | Tab or module name |
+| Timestamp | When it was executed |
+| Duration | How long it took |
+| Mode | Execution mode used |
+| Language | Groovy or PowerShell |
+| Collector | Which collector ran it |
+| Device | Target device (if set) |
+| Output Preview | First few lines of output |
+
+---
+
+## Viewing Full Details
+
+Click **View** on an entry to see:
+
+<Tabs>
+  <TabItem label="Execution Summary" icon="information">
+    - Complete status and timing
+    - Portal and collector info
+    - Device context
+    - Execution mode and language
+  </TabItem>
+  <TabItem label="Script Content" icon="seti:groovy">
+    The complete script that was executed:
+    - Syntax highlighted
+    - Read-only view
+    - Copy functionality
+  </TabItem>
+  <TabItem label="Full Output" icon="document">
+    Complete output from the execution:
+    - Raw text output
+    - Scroll for large outputs
+    - Copy entire output
+  </TabItem>
+  <TabItem label="Parsed Results" icon="list-format">
+    For AD/Collection modes:
+    - Parsed instance/datapoint data
+    - Same format as Output Panel
+  </TabItem>
+</Tabs>
+
+---
+
+## Reloading Scripts
+
+### Load to Editor
+
+Click **Load** on a history entry to:
+
+<Steps>
+
+1. Open a new tab
+
+2. Populate with the historical script
+
+3. Set language and mode automatically
+
+4. Ready for editing and re-running
+
+</Steps>
+
+### Portal Mismatch Warning
+
+If the history entry is from a different portal:
+
+<Aside type="caution" title="Portal Mismatch">
+  A warning dialog appears with options:
+  - **Switch Portal**: Change to the original portal
+  - **Load Anyway**: Load as freeform script
+  - **Cancel**: Abort the load
+</Aside>
+
+### Module Binding
+
+Historical scripts from modules:
+- Can restore module binding if portal matches
+- Falls back to freeform if unavailable
+
+---
+
+## History Management
+
+### History Limit
+
+Configure the maximum history entries:
+
+<Steps>
+
+1. Open Settings (<kbd>Ctrl</kbd>+<kbd>,</kbd>)
+
+2. Find "History Size"
+
+3. Set desired limit (10-500, default is **50**)
+
+4. Oldest entries removed when limit exceeded
+
+</Steps>
+
+### Clearing History
+
+To clear all history:
+
+1. Click **Clear** button in panel
+2. Confirm the action
+3. All entries removed permanently
+
+<Aside type="note">
+  Individual entries cannot be deleted separately. Use the clear function or let them naturally expire based on the history limit.
+</Aside>
+
+---
+
+## History Use Cases
+
+<CardGrid>
+  <Card title="Debugging" icon="warning">
+    Find a working historical execution, compare with current script, identify what changed.
+  </Card>
+  <Card title="Recovering Scripts" icon="history">
+    If you lose script content, find the last execution and load it back.
+  </Card>
+  <Card title="Performance Analysis" icon="rocket">
+    Compare execution durations across runs to identify slow executions.
+  </Card>
+  <Card title="Auditing" icon="document">
+    Track what was executed, check timestamps, document actions taken.
+  </Card>
+</CardGrid>
+
+---
+
+## What's Stored
+
+| Data | Stored? |
+|------|---------|
+| Script content | ✅ Yes |
+| Output | ✅ Yes |
+| Collector info | ✅ Yes |
+| Device info | ✅ Yes |
+| Timestamp | ✅ Yes |
+| Duration | ✅ Yes |
+| Tab/module name | ✅ Yes |
+| Portal binding | ✅ Yes |
+
+### Storage Location
+
+History is stored:
+- In browser local storage
+- Per-browser (not synced)
+- Persists across sessions
+- Subject to size limits
+
+<Aside type="note" title="Storage Limits">
+  Large outputs or many entries may impact browser storage. Very large histories may trigger automatic cleanup.
+</Aside>
+
+---
+
+## History Panel Actions
+
+| Action | Icon | Description |
+|--------|------|-------------|
+| View | Eye | See full execution details |
+| Load | Arrow | Load script to editor |
+| Copy | Clipboard | Copy script content |
+
+---
+
+## Best Practices
+
+<CardGrid>
+  <Card title="Regular Review" icon="magnifier">
+    Periodically review history, export important scripts, document significant executions.
+  </Card>
+  <Card title="Before Clearing" icon="warning">
+    Review important entries and save scripts you want to keep before clearing.
+  </Card>
+  <Card title="Learn from History" icon="information">
+    Review successful patterns and past decisions to improve future scripts.
+  </Card>
+</CardGrid>
+
+---
+
+## Privacy Considerations
+
+History may contain:
+- Device information
+- Property values (from token substitution)
+- API responses (if printed)
+- Sensitive configuration data
+
+Clear history when:
+- Switching between projects
+- Working on sensitive systems
+- Sharing the browser/computer
+
+---
+
+## Next Steps
+
+<LinkCard
+  title="Settings"
+  description="Configure LMDA Composer appearance, defaults, and behavior."
+  href="/lmda-composer/workspace/settings/"
+/>

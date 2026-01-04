@@ -1,0 +1,313 @@
+---
+title: Variables & History
+description: Use environment variables and review API request history.
+---
+
+import { Card, CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
+import { Icon } from '@astrojs/starlight/components';
+import HttpMethodBadge from '../../../components/HttpMethodBadge.astro';
+import FeatureCard from '../../../components/FeatureCard.astro';
+
+The API Explorer includes environment variables for reusable values and a history panel to review past requests.
+
+## Environment Variables
+
+### What Are Variables?
+
+Variables let you store and reuse values across requests:
+
+```
+/device/devices/{{deviceId}}
+```
+
+Instead of hardcoding IDs, use variables that can be changed in one place.
+
+### Variable Syntax
+
+Use double curly braces:
+
+```
+{{variableName}}
+```
+
+Variables work in:
+- Endpoint paths
+- Query parameter values
+- Request body
+- Header values
+
+---
+
+### Managing Variables
+
+Access variables in the right sidebar under the **Variables** tab:
+
+<CardGrid>
+  <Card title="Add Variable" icon="add-document">
+    Click **Add Variable** and enter name/value.
+  </Card>
+  <Card title="Edit Variable" icon="pencil">
+    Click the variable value to edit inline.
+  </Card>
+  <Card title="Delete Variable" icon="close">
+    Click the **×** button to remove.
+  </Card>
+  <Card title="Copy Variable" icon="seti:notebook">
+    Click the copy icon for the syntax.
+  </Card>
+</CardGrid>
+
+### Variable Properties
+
+Each variable has:
+
+| Property | Description |
+|----------|-------------|
+| **Name** | Variable identifier (no spaces allowed) |
+| **Value** | The substituted value |
+| **Description** | Optional documentation |
+
+---
+
+### Example Variables
+
+Common variables to create:
+
+| Variable | Example Value | Use Case |
+|----------|---------------|----------|
+| `deviceId` | `12345` | Target device for operations |
+| `collectorId` | `1` | Collector reference |
+| `groupId` | `42` | Device group operations |
+| `datasourceId` | `78` | Module operations |
+| `startTime` | `1704067200` | Time range start (epoch) |
+| `endTime` | `1704153600` | Time range end (epoch) |
+
+---
+
+### Variable Substitution
+
+When you send a request:
+
+<Steps>
+
+1. Variables are identified by `{{name}}` pattern
+
+2. Values are substituted from your variable list
+
+3. The final request uses resolved values
+
+4. Original template is preserved for editing
+
+</Steps>
+
+<Aside type="caution" title="Unresolved Variables">
+  If a variable isn't defined, the literal `{{name}}` is sent, which usually causes an API error. Check the Variables tab for typos.
+</Aside>
+
+---
+
+## Request History
+
+{/* Screenshot placeholder */}
+<div class="screenshot-placeholder" style="background: var(--sl-color-gray-6); border: 2px dashed var(--sl-color-gray-4); border-radius: 0.5rem; padding: 2rem; text-align: center; margin: 1.5rem 0;">
+  <Icon name="image" size="1.5rem" />
+  <p style="margin: 0.5rem 0 0 0; color: var(--sl-color-gray-3); font-size: 0.8rem;">
+    Screenshot: api-history.png<br />
+    <em>History sidebar showing past API requests</em>
+  </p>
+</div>
+
+### Automatic History
+
+Every API request is saved to history:
+
+- Request method and endpoint
+- Request body (if applicable)
+- Response status
+- Timestamp
+- Duration
+
+### Accessing History
+
+Open the **History** tab in the right sidebar to see past requests.
+
+---
+
+### History Entry Details
+
+Each entry shows:
+
+| Field | Description |
+|-------|-------------|
+| Method Badge | <HttpMethodBadge method="GET" size="sm" />, <HttpMethodBadge method="POST" size="sm" />, etc. |
+| Endpoint | The API path called |
+| Status | Response status code (<Badge text="200" variant="success" />, <Badge text="404" variant="caution" />, etc.) |
+| Time | When the request was made |
+| Duration | How long it took |
+
+---
+
+### History Actions
+
+Click a history entry for options:
+
+| Action | Result |
+|--------|--------|
+| **Load** | Populate the request builder with this request |
+| **View** | See full request/response details |
+| **Copy** | Copy as cURL command or URL |
+| **Delete** | Remove from history |
+
+### Reloading Past Requests
+
+<Steps>
+
+1. Find the request in history
+
+2. Click **Load**
+
+3. Request populates the builder
+
+4. Modify parameters if needed
+
+5. Send again
+
+</Steps>
+
+---
+
+### History Limits
+
+History is stored locally with configurable limits:
+
+- Configurable in **Settings** (<kbd>Ctrl</kbd>+<kbd>,</kbd>)
+- Default: **10 requests**
+- Oldest entries removed when limit reached
+
+### Clearing History
+
+1. Click **Clear History** at the top of the history panel
+2. Confirm the action
+3. All history entries are removed
+
+---
+
+## History Details View
+
+Click **View** on a history entry for full details:
+
+<Tabs>
+  <TabItem label="Request" icon="rocket">
+    - Method and endpoint
+    - Headers sent
+    - Request body
+    - Variables used (resolved values)
+  </TabItem>
+  
+  <TabItem label="Response" icon="document">
+    - Status code and text
+    - Response headers
+    - Response body (full JSON)
+    - Response time
+    - Response size
+  </TabItem>
+</Tabs>
+
+---
+
+## Workflow Examples
+
+<Tabs>
+  <TabItem label="Environment Switching" icon="setting">
+    **Setup variables for different environments:**
+
+    | Variable | Test Value | Production Value |
+    |----------|------------|------------------|
+    | `testDeviceId` | `12345` | — |
+    | `prodDeviceId` | — | `67890` |
+
+    **Testing:**
+    ```
+    GET /device/devices/{{testDeviceId}}
+    ```
+
+    **Production:**
+    ```
+    GET /device/devices/{{prodDeviceId}}
+    ```
+
+    Switch between environments by changing which variable you use.
+  </TabItem>
+  
+  <TabItem label="Time Range Queries" icon="history">
+    **Variables:**
+    - `startTime`: `1704067200` (epoch timestamp)
+    - `endTime`: `1704153600`
+
+    **Request:**
+    ```
+    GET /device/devices/{{deviceId}}/devicedatasources/{{datasourceId}}/data
+        ?start={{startTime}}
+        &end={{endTime}}
+    ```
+
+    Update time variables to query different periods.
+  </TabItem>
+  
+  <TabItem label="Request Sequences" icon="list-format">
+    Create sequences of related requests:
+
+    <Steps>
+
+    1. **Create device**: <HttpMethodBadge method="POST" size="sm" /> `/device/devices`
+
+    2. **Get device ID**: From response, note the `id` field
+
+    3. **Set variable**: Add `deviceId` variable with the ID
+
+    4. **Add properties**: <HttpMethodBadge method="PATCH" size="sm" /> `/device/devices/{{deviceId}}`
+
+    5. **Verify**: <HttpMethodBadge method="GET" size="sm" /> `/device/devices/{{deviceId}}`
+
+    </Steps>
+  </TabItem>
+</Tabs>
+
+---
+
+## Best Practices
+
+<CardGrid>
+  <Card title="Variable Naming" icon="pencil">
+    Use clear names like `targetDeviceId` instead of `id1`. Prefix by purpose: `test_deviceId`, `prod_deviceId`.
+  </Card>
+  <Card title="Organizing Variables" icon="seti:folder">
+    Group related variables, document with descriptions, and remove unused ones regularly.
+  </Card>
+  <Card title="History Management" icon="history">
+    Delete failed/irrelevant requests. Export important requests as cURL before clearing.
+  </Card>
+  <Card title="Security" icon="warning">
+    Variables are stored locally. Don't store sensitive credentials. Clear when switching computers.
+  </Card>
+</CardGrid>
+
+<Aside type="tip" title="Variable Tips">
+  - Use descriptive names: `targetDeviceId` not `id1`
+  - Document complex variables with descriptions
+  - Prefix by environment: `test_`, `prod_`
+  - Remove unused variables to keep the list clean
+</Aside>
+
+---
+
+## Next Steps
+
+<LinkCard
+  title="Module Management"
+  description="Learn about editing module details, lineage, and committing changes."
+  href="/lmda-composer/module-management/module-details/"
+/>
+
+
+

@@ -1,0 +1,269 @@
+---
+title: Settings
+description: Configure LMDA Composer appearance, defaults, and behavior.
+---
+
+import { Card, CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
+import { Icon } from '@astrojs/starlight/components';
+
+The Settings dialog lets you customize LMDA Composer to match your preferences and workflow.
+
+## Opening Settings
+
+<CardGrid>
+  <Card title="Keyboard" icon="laptop">
+    <kbd>Ctrl</kbd>+<kbd>,</kbd> / <kbd>Cmd</kbd>+<kbd>,</kbd>
+  </Card>
+  <Card title="Command Palette" icon="magnifier">
+    Press <kbd>Ctrl</kbd>+<kbd>K</kbd> and type "Settings".
+  </Card>
+  <Card title="Menu" icon="list-format">
+    Actions → Settings
+  </Card>
+</CardGrid>
+
+{/* Screenshot placeholder */}
+<div class="screenshot-placeholder" style="background: var(--sl-color-gray-6); border: 2px dashed var(--sl-color-gray-4); border-radius: 0.5rem; padding: 2.5rem 2rem; text-align: center; margin: 1.5rem 0;">
+  <Icon name="image" size="1.5rem" />
+  <p style="margin: 0.5rem 0 0 0; color: var(--sl-color-gray-3); font-size: 0.8rem;">
+    Screenshot: settings-dialog.png<br />
+    <em>Settings dialog showing configuration options</em>
+  </p>
+</div>
+
+---
+
+## Settings Categories
+
+<Tabs>
+  <TabItem label="Appearance" icon="sun">
+    ### Theme
+
+    | Option | Description |
+    |--------|-------------|
+    | <Badge text="System" variant="default" /> | Follow OS light/dark setting |
+    | <Badge text="Light" variant="note" /> | Always use light theme |
+    | <Badge text="Dark" variant="tip" /> | Always use dark theme |
+
+    The theme applies immediately when changed.
+  </TabItem>
+  
+  <TabItem label="Defaults" icon="setting">
+    ### Default Language
+
+    Choose the language for new files:
+    - **Groovy** (default)
+    - **PowerShell**
+
+    ### Default Mode
+
+    Choose the execution mode for new files:
+    - **Freeform** (default)
+    - **Active Discovery**
+    - **Collection**
+    - **Batch Collection**
+  </TabItem>
+  
+  <TabItem label="Editor" icon="pencil">
+    ### Font Size
+    - Range: 10px to 24px
+    - Default: **14px**
+    - Changes apply to all tabs
+
+    ### Tab Size
+    - Range: 2 to 8 spaces
+    - Default: **2 spaces**
+    - Affects new indentation
+
+    ### Word Wrap
+    - **On** (default): Lines wrap within viewport
+    - **Off**: Horizontal scroll for long lines
+
+    ### Minimap
+    - **Show**: Display minimap on right for quick navigation
+    - **Hide** (default): No minimap, more editor space
+  </TabItem>
+  
+  <TabItem label="History" icon="history">
+    ### History Size
+
+    Maximum execution history entries to keep:
+    - Range: 10 to 500
+    - Default: **50**
+    - Oldest entries removed when exceeded
+  </TabItem>
+  
+  <TabItem label="API Explorer" icon="seti:json">
+    ### API History Limit
+
+    Maximum API requests to store:
+    - Range: 10 to 200
+    - Default: **10**
+
+    ### Response Size Limit
+
+    Maximum response size to display:
+    - Default: **250,000 bytes** (~250KB)
+    - Larger responses truncated for performance
+    - Full response still available via copy
+  </TabItem>
+</Tabs>
+
+---
+
+## Default Values Summary
+
+| Setting | Default |
+|---------|---------|
+| Theme | System |
+| Default Language | Groovy |
+| Default Mode | Freeform |
+| Font Size | 14px |
+| Tab Size | 2 spaces |
+| Word Wrap | On |
+| Minimap | Hidden |
+| History Size | 50 |
+| API History Limit | 10 |
+| Response Size Limit | 250KB |
+
+---
+
+## Applying Settings
+
+### Immediate Changes
+
+Most settings apply immediately:
+- Theme changes instantly
+- Font size updates all tabs
+- No refresh required
+
+### New File Settings
+
+Some settings affect only new files:
+- Default language
+- Default mode
+- Tab size for new indentation
+
+Existing tabs keep their current settings.
+
+---
+
+## Resetting to Defaults
+
+<Steps>
+
+1. Scroll to bottom of Settings dialog
+
+2. Click **Reset to Defaults**
+
+3. Confirm the action
+
+4. All settings restored to defaults
+
+</Steps>
+
+<Aside type="caution" title="Irreversible">
+  Reset cannot be undone. Note your custom settings before resetting.
+</Aside>
+
+---
+
+## Settings Storage
+
+### Where Settings Are Stored
+
+Settings persist in:
+- Browser local storage
+- Per-browser (not synced)
+- Survive browser restarts
+
+### Clearing Settings
+
+Settings are cleared when:
+- You reset to defaults
+- Browser data is cleared
+- Extension is uninstalled/reinstalled
+
+---
+
+## Recommended Settings
+
+<Tabs>
+  <TabItem label="Large Monitors" icon="laptop">
+    For large/high-resolution displays:
+    - **Font Size**: 16-18px
+    - **Minimap**: Show
+    - **Word Wrap**: Off
+  </TabItem>
+  <TabItem label="Smaller Screens" icon="seti:favicon">
+    For laptops or smaller screens:
+    - **Font Size**: 12-14px
+    - **Minimap**: Hide
+    - **Word Wrap**: On
+  </TabItem>
+  <TabItem label="PowerShell Dev" icon="seti:powershell">
+    For PowerShell development:
+    - **Default Language**: PowerShell
+    - **Tab Size**: 4 (PowerShell convention)
+  </TabItem>
+  <TabItem label="Quick Testing" icon="rocket">
+    For rapid script testing:
+    - **Default Mode**: Freeform
+    - **History Size**: 200+ (keep more history)
+  </TabItem>
+</Tabs>
+
+---
+
+## Keyboard Shortcuts in Settings
+
+While in Settings dialog:
+
+| Key | Action |
+|-----|--------|
+| <kbd>Escape</kbd> | Close dialog |
+| <kbd>Tab</kbd> | Move to next field |
+| <kbd>Enter</kbd> | Apply selection |
+
+---
+
+## Settings vs. Tab State
+
+<CardGrid>
+  <Card title="Settings (Global)" icon="setting">
+    Configured in Settings dialog. Apply to all sessions, persist across restarts.
+  </Card>
+  <Card title="Tab State (Per-Tab)" icon="document">
+    Managed per tab: language selection, execution mode, script content.
+  </Card>
+  <Card title="Session State" icon="history">
+    Temporary: open tabs, sidebar state, last used collector.
+  </Card>
+</CardGrid>
+
+---
+
+## Troubleshooting Settings
+
+<CardGrid>
+  <Card title="Settings Not Saving" icon="warning">
+    Check browser storage isn't full. Verify extension has storage permission. Try clearing and re-setting.
+  </Card>
+  <Card title="Theme Not Applying" icon="sun">
+    Refresh the page. Check OS theme setting. Try a specific theme instead of System.
+  </Card>
+  <Card title="Editor Changes Not Visible" icon="pencil">
+    Check you're on a script tab. Try switching tabs. Reload the extension page.
+  </Card>
+</CardGrid>
+
+---
+
+## Next Steps
+
+<LinkCard
+  title="Keyboard Shortcuts"
+  description="Complete reference for LMDA Composer keyboard shortcuts."
+  href="/lmda-composer/reference/keyboard-shortcuts/"
+/>
+

@@ -1,0 +1,84 @@
+---
+import { Icon } from '@astrojs/starlight/components';
+
+interface Props {
+  name: string;
+  icon: string;
+  supported: boolean;
+  note?: string;
+}
+
+const { name, icon, supported, note } = Astro.props;
+---
+
+<div class={`browser-card ${supported ? 'supported' : 'unsupported'}`}>
+  <div class="browser-header">
+    <Icon name={icon} size="1.5rem" />
+    <span class="browser-name">{name}</span>
+    <span class={`status-badge ${supported ? 'yes' : 'no'}`}>
+      {supported ? '✓ Supported' : '✗ Not Supported'}
+    </span>
+  </div>
+  {note && (
+    <p class="browser-note">{note}</p>
+  )}
+  <slot />
+</div>
+
+<style>
+  .browser-card {
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.75rem;
+    padding: 1rem 1.25rem;
+    background: var(--sl-color-bg-nav);
+    margin-bottom: 1rem;
+  }
+
+  .browser-card.supported {
+    border-left: 3px solid var(--sl-color-green);
+  }
+
+  .browser-card.unsupported {
+    border-left: 3px solid var(--sl-color-gray-4);
+    opacity: 0.8;
+  }
+
+  .browser-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .browser-name {
+    font-weight: 600;
+    font-size: 1.1rem;
+    flex: 1;
+  }
+
+  .status-badge {
+    font-size: 0.75rem;
+    font-weight: 500;
+    padding: 0.25rem 0.5rem;
+    border-radius: 9999px;
+  }
+
+  .status-badge.yes {
+    background: var(--sl-color-green-low);
+    color: var(--sl-color-green-high);
+  }
+
+  .status-badge.no {
+    background: var(--sl-color-gray-6);
+    color: var(--sl-color-gray-2);
+  }
+
+  .browser-note {
+    font-size: 0.875rem;
+    color: var(--sl-color-gray-3);
+    margin: 0.5rem 0 0 0;
+  }
+</style>
+
+
+

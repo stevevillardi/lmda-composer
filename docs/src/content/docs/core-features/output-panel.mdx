@@ -1,0 +1,251 @@
+---
+title: Output Panel
+description: Understanding script output, parsed results, and validation.
+---
+
+import { Card, CardGrid, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
+import { Icon } from '@astrojs/starlight/components';
+import StatusBadge from '../../../components/StatusBadge.astro';
+import FeatureCard from '../../../components/FeatureCard.astro';
+
+The Output Panel displays results from script execution, with different views depending on the selected mode.
+
+## Panel Layout
+
+The Output Panel sits below the code editor and includes:
+
+- **Tab selector** for different output views
+- **Execution status** badge showing run state
+- **Duration** timer for execution time
+- **Controls** for copy, fullscreen, and clear
+
+Drag the divider between the editor and output panel to resize.
+
+{/* Screenshot placeholder */}
+<div class="screenshot-placeholder" style="background: var(--sl-color-gray-6); border: 2px dashed var(--sl-color-gray-4); border-radius: 0.5rem; padding: 2.5rem 2rem; text-align: center; margin: 1.5rem 0;">
+  <Icon name="image" size="1.5rem" />
+  <p style="margin: 0.5rem 0 0 0; color: var(--sl-color-gray-3); font-size: 0.8rem;">
+    Screenshot: output-raw.png<br />
+    <em>Output panel showing raw script output</em>
+  </p>
+</div>
+
+---
+
+## Output Tabs
+
+<Tabs>
+  <TabItem label="Raw Output" icon="document">
+    The complete text output from your script execution:
+
+    - Full stdout from the collector
+    - Includes warnings, errors, and debug messages
+    - Preserves formatting and line breaks
+    - Displayed in monospace font
+
+    {/* Screenshot placeholder */}
+    <div class="screenshot-placeholder" style="background: var(--sl-color-gray-6); border: 2px dashed var(--sl-color-gray-4); border-radius: 0.5rem; padding: 2rem; text-align: center; margin: 1rem 0;">
+      <Icon name="image" size="1.25rem" />
+      <p style="margin: 0.5rem 0 0 0; color: var(--sl-color-gray-3); font-size: 0.75rem;">
+        Screenshot: output-raw.png
+      </p>
+    </div>
+
+    <Aside type="tip" title="Copy Output">
+      Click the copy button or use the keyboard shortcut to copy the entire output to your clipboard.
+    </Aside>
+  </TabItem>
+
+  <TabItem label="Parsed" icon="list-format">
+    Structured view of output based on the current execution mode.
+
+    **Active Discovery Mode:**
+
+    | Column | Description |
+    |--------|-------------|
+    | Instance ID | The unique identifier (wildvalue) |
+    | Instance Name | Display name for the instance |
+    | Description | Optional description text |
+    | Properties | Auto-properties as key=value pairs |
+
+    The header shows total count: "Parsed (15)" for 15 instances.
+
+    **Collection Mode:**
+
+    | Column | Description |
+    |--------|-------------|
+    | Datapoint | The datapoint name |
+    | Value | The numeric value |
+
+    **Batch Collection Mode:**
+
+    | Column | Description |
+    |--------|-------------|
+    | Instance | The wildvalue/instance ID |
+    | Datapoint | The datapoint name |
+    | Value | The numeric value |
+
+    {/* Screenshot placeholder */}
+    <div class="screenshot-placeholder" style="background: var(--sl-color-gray-6); border: 2px dashed var(--sl-color-gray-4); border-radius: 0.5rem; padding: 2rem; text-align: center; margin: 1rem 0;">
+      <Icon name="image" size="1.25rem" />
+      <p style="margin: 0.5rem 0 0 0; color: var(--sl-color-gray-3); font-size: 0.75rem;">
+        Screenshot: output-parsed-ad.png
+      </p>
+    </div>
+  </TabItem>
+
+  <TabItem label="Validation" icon="approve-check-circle">
+    Real-time validation feedback based on the current mode's output rules.
+
+    **Status Indicators:**
+
+    <div style="display: flex; gap: 1rem; flex-wrap: wrap; margin: 1rem 0;">
+      <StatusBadge status="success" label="All Valid" />
+      <StatusBadge status="warning" label="Warnings" />
+      <StatusBadge status="error" label="Errors" />
+    </div>
+
+    The tab header shows a summary: checkmark when valid, or warning/error counts.
+
+    {/* Screenshot placeholder */}
+    <div class="screenshot-placeholder" style="background: var(--sl-color-gray-6); border: 2px dashed var(--sl-color-gray-4); border-radius: 0.5rem; padding: 2rem; text-align: center; margin: 1rem 0;">
+      <Icon name="image" size="1.25rem" />
+      <p style="margin: 0.5rem 0 0 0; color: var(--sl-color-gray-3); font-size: 0.75rem;">
+        Screenshot: output-validation.png
+      </p>
+    </div>
+  </TabItem>
+
+  <TabItem label="Graph" icon="random">
+    For **TopologySource** scripts, displays a visual network graph:
+
+    - Interactive node visualization
+    - Relationship lines between nodes
+    - Node labels and metadata
+    - Zoom and pan controls
+    - Click nodes for details
+
+    <Aside type="note">
+      The Graph tab only appears when running in TopologySource-compatible mode.
+    </Aside>
+  </TabItem>
+</Tabs>
+
+---
+
+## Execution Status
+
+The status badge in the header shows the current state:
+
+<div style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin: 1.5rem 0;">
+  <div style="display: flex; align-items: center; gap: 0.75rem;">
+    <StatusBadge status="running" />
+    <span style="font-size: 0.875rem; color: var(--sl-color-gray-3);">Script is executing (with spinner)</span>
+  </div>
+  <div style="display: flex; align-items: center; gap: 0.75rem;">
+    <StatusBadge status="success" />
+    <span style="font-size: 0.875rem; color: var(--sl-color-gray-3);">Finished successfully</span>
+  </div>
+  <div style="display: flex; align-items: center; gap: 0.75rem;">
+    <StatusBadge status="error" />
+    <span style="font-size: 0.875rem; color: var(--sl-color-gray-3);">Script failed with an error</span>
+  </div>
+  <div style="display: flex; align-items: center; gap: 0.75rem;">
+    <StatusBadge status="timeout" />
+    <span style="font-size: 0.875rem; color: var(--sl-color-gray-3);">Exceeded time limit</span>
+  </div>
+</div>
+
+The execution duration displays next to the status badge (e.g., "2.34s").
+
+---
+
+## Validation Rules by Mode
+
+<Tabs>
+  <TabItem label="Active Discovery" icon="seti:todo">
+    | Issue | Severity | Description |
+    |-------|----------|-------------|
+    | Empty instance ID | <Badge text="Error" variant="danger" /> | Instance ID is required |
+    | ID exceeds 1024 chars | <Badge text="Error" variant="danger" /> | Maximum length exceeded |
+    | Invalid ID characters | <Badge text="Error" variant="danger" /> | Contains spaces, `=`, `:`, `\`, or `#` |
+    | Name exceeds 255 chars | <Badge text="Warning" variant="caution" /> | May be truncated |
+    | Duplicate instance ID | <Badge text="Warning" variant="caution" /> | Same ID appears multiple times |
+  </TabItem>
+
+  <TabItem label="Collection / Batch" icon="heart-pulse">
+    | Issue | Severity | Description |
+    |-------|----------|-------------|
+    | Invalid format | <Badge text="Error" variant="danger" /> | Line doesn't match `key=value` |
+    | Non-numeric value | <Badge text="Error" variant="danger" /> | Value must be a number |
+    | Invalid datapoint name | <Badge text="Warning" variant="caution" /> | Contains special characters |
+    | Missing wildvalue (Batch) | <Badge text="Error" variant="danger" /> | Batch lines need `instance.datapoint=value` |
+    | Non-matching lines | <Badge text="Warning" variant="caution" /> | Lines that don't match expected format |
+  </TabItem>
+</Tabs>
+
+---
+
+## Error Display
+
+When a script fails, the Raw Output tab shows:
+
+<Aside type="caution" title="Common Error Types">
+  - **Compilation errors** – Groovy/PowerShell syntax issues
+  - **Runtime exceptions** – Errors during execution (null pointer, type mismatch)
+  - **Timeout errors** – Script exceeded the collector's time limit
+  - **Connection failures** – Network issues reaching the target device
+</Aside>
+
+Error messages appear in red text with stack traces and diagnostic information. Partial output may appear if the script produced output before failing.
+
+---
+
+## Panel Controls
+
+<CardGrid>
+  <Card title="Copy" icon="seti:notebook">
+    Copy the entire raw output to your clipboard. Captures all content even if truncated in display.
+  </Card>
+  <Card title="Fullscreen" icon="external">
+    Expand the panel to fill the workspace. Press <kbd>Esc</kbd> or click ✕ to exit.
+  </Card>
+  <Card title="Clear" icon="close">
+    Reset the panel to empty state. Also clears automatically when starting a new execution.
+  </Card>
+</CardGrid>
+
+---
+
+## Best Practices
+
+### Debugging with Output
+
+1. Use `println` statements liberally during development
+2. Print variable values and intermediate results
+3. Once logic is verified, format output for the target mode
+
+### Reading Validation Results
+
+1. Check the Validation tab after each run
+2. Fix all **errors** before deploying to production
+3. Address **warnings** when possible—they indicate potential issues
+
+### Working with Large Output
+
+- Use **fullscreen mode** for better readability
+- The **copy button** captures all content, even if display is truncated
+- Add summary lines at the end of your script for quick verification
+
+---
+
+## Next Steps
+
+<LinkCard
+  title="Context Selection"
+  description="Learn how to select portals, collectors, and devices."
+  href="/lmda-composer/core-features/context-selection/"
+/>
+
+
+

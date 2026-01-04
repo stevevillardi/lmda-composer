@@ -1,0 +1,383 @@
+---
+title: Debug Commands
+description: Run collector debug commands and health checks from LMDA Composer.
+---
+
+import { Card, CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
+import { Icon } from '@astrojs/starlight/components';
+import StatusBadge from '../../../components/StatusBadge.astro';
+import FeatureCard from '../../../components/FeatureCard.astro';
+
+The Debug Commands dialog lets you execute collector debug commands directly from LMDA Composer, including a comprehensive collector health check.
+
+## Opening Debug Commands
+
+<CardGrid>
+  <Card title="Welcome Screen" icon="rocket">
+    Click **Debug Commands** on the welcome screen.
+  </Card>
+  <Card title="Command Palette" icon="magnifier">
+    Press <kbd>Ctrl</kbd>+<kbd>K</kbd> and type "Debug".
+  </Card>
+  <Card title="Actions Menu" icon="list-format">
+    Click **Actions → Debug Commands** in the toolbar.
+  </Card>
+</CardGrid>
+
+---
+
+## Debug Commands Interface
+
+{/* Screenshot placeholder */}
+<div class="screenshot-placeholder" style="background: var(--sl-color-gray-6); border: 2px dashed var(--sl-color-gray-4); border-radius: 0.5rem; padding: 2.5rem 2rem; text-align: center; margin: 1.5rem 0;">
+  <Icon name="image" size="1.5rem" />
+  <p style="margin: 0.5rem 0 0 0; color: var(--sl-color-gray-3); font-size: 0.8rem;">
+    Screenshot: debug-commands.png<br />
+    <em>Debug Commands dialog with command list and categories</em>
+  </p>
+</div>
+
+### Command Search
+
+Type in the search box to filter commands:
+- Matches command names
+- Matches descriptions
+- Case-insensitive search
+
+### Category Filter
+
+<div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 1rem 0;">
+  <Badge text="All" variant="default" />
+  <Badge text="System" variant="note" />
+  <Badge text="Network" variant="note" />
+  <Badge text="SNMP" variant="note" />
+  <Badge text="WMI" variant="note" />
+  <Badge text="Script" variant="note" />
+  <Badge text="Task" variant="note" />
+</div>
+
+| Category | Description |
+|----------|-------------|
+| **All** | Show all available commands |
+| **System** | Collector system info |
+| **Network** | Network diagnostics |
+| **SNMP** | SNMP testing |
+| **WMI** | Windows management |
+| **Script** | Script testing |
+| **Task** | Task management |
+
+### Command List
+
+The filtered list shows:
+- Command name
+- Brief description
+- Parameter indicators (if required)
+
+---
+
+## Running Commands
+
+### Selecting a Command
+
+<Steps>
+
+1. Browse or search for a command
+
+2. Click to select it—the command panel opens on the right
+
+3. Fill in any required parameters
+
+4. Select which collector(s) to run on
+
+5. Click **Run Command**
+
+</Steps>
+
+### Command Parameters
+
+Some commands require input:
+
+| Parameter Type | Input |
+|----------------|-------|
+| Text | Free-form text input |
+| Number | Numeric input |
+| IP Address | IP address format |
+| OID | SNMP OID format |
+
+### Selecting Collectors
+
+Choose which collector(s) run the command:
+
+1. Scroll through collector groups
+2. Check individual collectors
+3. Or use **Select All** for a group
+
+<Aside type="tip" title="Multi-Collector Execution">
+  You can run commands on multiple collectors simultaneously to compare results across your environment.
+</Aside>
+
+---
+
+## Multi-Collector Results
+
+When running on multiple collectors:
+
+### Results Tabs
+
+Each collector gets its own tab showing:
+- Collector name and status
+- Execution duration
+- Command output
+
+### Comparing Results
+
+Switch between tabs to compare output across collectors. Useful for:
+- Identifying configuration differences
+- Comparing network connectivity
+- Checking task loads
+
+### Exporting Results
+
+Click **Copy** to copy all results, including collector identification for documentation.
+
+---
+
+## Collector Health Check
+
+The Health Check is a comprehensive diagnostic featured prominently at the top of the dialog.
+
+{/* Screenshot placeholder */}
+<div class="screenshot-placeholder" style="background: var(--sl-color-gray-6); border: 2px dashed var(--sl-color-gray-4); border-radius: 0.5rem; padding: 2.5rem 2rem; text-align: center; margin: 1.5rem 0;">
+  <Icon name="image" size="1.5rem" />
+  <p style="margin: 0.5rem 0 0 0; color: var(--sl-color-gray-3); font-size: 0.8rem;">
+    Screenshot: health-check-results.png<br />
+    <em>Health check report with summary cards and detailed tables</em>
+  </p>
+</div>
+
+### Running a Health Check
+
+<Steps>
+
+1. Click the **Health Check** card at the top of the dialog
+
+2. Select one or more collectors
+
+3. Click **Run Health Check**
+
+4. Review the comprehensive report
+
+</Steps>
+
+### What It Checks
+
+<CardGrid>
+  <Card title="System" icon="laptop">
+    Memory usage, CPU utilization, disk space availability
+  </Card>
+  <Card title="Network" icon="random">
+    Connectivity status, DNS resolution, network interfaces
+  </Card>
+  <Card title="Tasks" icon="list-format">
+    Running tasks, queue depth, stuck tasks
+  </Card>
+  <Card title="Logs" icon="document">
+    Recent errors and warnings from collector logs
+  </Card>
+</CardGrid>
+
+### Health Check Report
+
+The report displays:
+
+**Summary Cards:**
+- Overall health score
+- Critical issues count
+- Warning count
+- Collector version
+
+**Detailed Tables:**
+
+<Tabs>
+  <TabItem label="Task List" icon="list-format">
+    - Active discovery tasks
+    - Collection tasks
+    - Alert tasks
+    - Queue depths
+  </TabItem>
+  
+  <TabItem label="Process List" icon="setting">
+    - Running processes
+    - CPU usage per process
+    - Memory usage
+  </TabItem>
+  
+  <TabItem label="Messages" icon="warning">
+    - Recent log messages
+    - Error count by category
+    - Warning messages
+  </TabItem>
+</Tabs>
+
+### Interpreting Health Scores
+
+<div style="display: grid; gap: 0.75rem; margin: 1rem 0;">
+  <div style="display: flex; align-items: center; gap: 0.75rem;">
+    <Badge text="90-100%" variant="success" />
+    <span style="font-size: 0.875rem;">Healthy – minor optimizations possible</span>
+  </div>
+  <div style="display: flex; align-items: center; gap: 0.75rem;">
+    <Badge text="70-89%" variant="note" />
+    <span style="font-size: 0.875rem;">Warnings present – review recommended</span>
+  </div>
+  <div style="display: flex; align-items: center; gap: 0.75rem;">
+    <Badge text="50-69%" variant="caution" />
+    <span style="font-size: 0.875rem;">Issues detected – action needed</span>
+  </div>
+  <div style="display: flex; align-items: center; gap: 0.75rem;">
+    <Badge text="Below 50%" variant="danger" />
+    <span style="font-size: 0.875rem;">Critical problems – immediate attention</span>
+  </div>
+</div>
+
+---
+
+## Common Debug Commands
+
+<Tabs>
+  <TabItem label="Network" icon="random">
+    | Command | Purpose |
+    |---------|---------|
+    | `!ping` | Test connectivity to host |
+    | `!nslookup` | DNS resolution test |
+    | `!traceroute` | Network path trace |
+    | `!curl` | HTTP request test |
+  </TabItem>
+  
+  <TabItem label="SNMP" icon="seti:json">
+    | Command | Purpose |
+    |---------|---------|
+    | `!snmpget` | Get single OID value |
+    | `!snmpwalk` | Walk OID tree |
+    | `!snmptable` | Retrieve SNMP table |
+  </TabItem>
+  
+  <TabItem label="WMI" icon="seti:powershell">
+    | Command | Purpose |
+    |---------|---------|
+    | `!wmi` | Execute WMI query |
+    | `!posh` | Run PowerShell command |
+  </TabItem>
+  
+  <TabItem label="Tasks" icon="list-format">
+    | Command | Purpose |
+    |---------|---------|
+    | `!tasklist` | List running tasks |
+    | `!taskstop` | Stop a specific task |
+    | `!tlist` | Task list summary |
+  </TabItem>
+</Tabs>
+
+---
+
+## Example Workflows
+
+### Debugging SNMP Issues
+
+<Steps>
+
+1. Open Debug Commands and select the target collector
+
+2. Run `!ping` to verify network connectivity to the device
+
+3. Run `!snmpget` with the device IP and a test OID (like sysName)
+
+4. If `!snmpget` fails, check community string and SNMP version
+
+5. Run `!snmpwalk` to see what OIDs are available
+
+</Steps>
+
+### Checking Collector Performance
+
+<Steps>
+
+1. Run **Health Check** on the collector
+
+2. Review memory and CPU usage in the summary
+
+3. Check task queue depths for backlog
+
+4. Look for stuck or long-running tasks in the task list
+
+5. Review error messages for recurring issues
+
+</Steps>
+
+### Testing Network Paths
+
+<Steps>
+
+1. Run `!nslookup` to verify DNS resolution
+
+2. Run `!ping` to check basic connectivity
+
+3. Run `!traceroute` for detailed path analysis
+
+4. Identify network bottlenecks or routing issues
+
+</Steps>
+
+---
+
+## Output Formats
+
+### Text Output
+
+Most commands return plain text:
+- Formatted for readability
+- Line-by-line results
+- Error messages highlighted in red
+
+### Structured Output
+
+Some commands (like Health Check) return structured data:
+- Rendered as formatted tables
+- Summary statistics
+- Expandable sections
+
+### Error Output
+
+Failed commands show:
+- Error message
+- Exit code (if applicable)
+- Troubleshooting hints
+
+---
+
+## Best Practices
+
+<CardGrid>
+  <Card title="Before Running" icon="warning">
+    Verify correct collector(s) selected. Double-check parameter values. Consider impact on production collectors.
+  </Card>
+  <Card title="Interpreting Results" icon="magnifier">
+    Compare against known good baselines. Check timestamps for currency. Look for patterns across collectors.
+  </Card>
+  <Card title="Documentation" icon="document">
+    Copy results for ticketing systems. Note collector and timestamp. Compare before/after for changes.
+  </Card>
+</CardGrid>
+
+---
+
+## Next Steps
+
+<LinkCard
+  title="API Explorer"
+  description="Explore the LogicMonitor REST API with an interactive request builder."
+  href="/lmda-composer/api-explorer/overview/"
+/>
+
+
+

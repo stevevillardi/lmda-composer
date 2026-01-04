@@ -1,0 +1,416 @@
+---
+title: Request Builder
+description: Build and send API requests with the request builder interface.
+---
+
+import { Card, CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
+import { Icon } from '@astrojs/starlight/components';
+import HttpMethodBadge from '../../../components/HttpMethodBadge.astro';
+import StatusBadge from '../../../components/StatusBadge.astro';
+import FeatureCard from '../../../components/FeatureCard.astro';
+
+The Request Builder provides a structured interface for creating and executing LogicMonitor API requests.
+
+{/* Screenshot placeholder */}
+<div class="screenshot-placeholder" style="background: var(--sl-color-gray-6); border: 2px dashed var(--sl-color-gray-4); border-radius: 0.5rem; padding: 2.5rem 2rem; text-align: center; margin: 1.5rem 0;">
+  <Icon name="image" size="1.5rem" />
+  <p style="margin: 0.5rem 0 0 0; color: var(--sl-color-gray-3); font-size: 0.8rem;">
+    Screenshot: request-builder.png<br />
+    <em>Request builder with endpoint, parameters, and JSON body</em>
+  </p>
+</div>
+
+## Request Components
+
+### HTTP Method
+
+Select the appropriate HTTP method from the dropdown:
+
+| Method | Purpose | Has Body |
+|--------|---------|----------|
+| <HttpMethodBadge method="GET" /> | Retrieve data | No |
+| <HttpMethodBadge method="POST" /> | Create resources | Yes |
+| <HttpMethodBadge method="PUT" /> | Replace resources | Yes |
+| <HttpMethodBadge method="PATCH" /> | Update fields | Yes |
+| <HttpMethodBadge method="DELETE" /> | Remove resources | No |
+
+---
+
+### Endpoint Path
+
+Enter the API endpoint path:
+
+```
+/device/devices
+/device/devices/{id}
+/setting/collectors
+```
+
+#### Path Parameters
+
+Replace `{id}` placeholders with actual values:
+
+```
+/device/devices/123
+/setting/collectors/45/installers
+```
+
+Or use variables for reusability:
+
+```
+/device/devices/{{deviceId}}
+```
+
+---
+
+### Query Parameters
+
+<Tabs>
+  <TabItem label="Parameter Builder" icon="pencil">
+    Click **Add Parameter** to use the visual builder:
+
+    | Field | Description |
+    |-------|-------------|
+    | Key | Parameter name |
+    | Value | Parameter value |
+    | Enable | Toggle on/off without deleting |
+
+    Parameters are automatically URL-encoded when sending.
+  </TabItem>
+  
+  <TabItem label="Common Parameters" icon="list-format">
+    | Parameter | Description | Example |
+    |-----------|-------------|---------|
+    | `size` | Results per page | `size=100` |
+    | `offset` | Pagination offset | `offset=0` |
+    | `filter` | Filter expression | `filter=displayName~"web"` |
+    | `fields` | Limit response fields | `fields=id,displayName` |
+    | `sort` | Sort order | `sort=+displayName` |
+  </TabItem>
+</Tabs>
+
+#### Filter Syntax
+
+LogicMonitor filters use this syntax:
+
+```
+filter=property:value
+filter=property~"partial"
+filter=property>"2023-01-01"
+```
+
+**Operators:**
+
+<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; margin: 1rem 0; font-size: 0.875rem;">
+  <div><code>:</code> equals</div>
+  <div><code>~</code> contains</div>
+  <div><code>!:</code> not equals</div>
+  <div><code>&gt;</code> greater than</div>
+  <div><code>&lt;</code> less than</div>
+  <div><code>&gt;:</code> greater or equal</div>
+  <div><code>&lt;:</code> less or equal</div>
+</div>
+
+---
+
+### Request Headers
+
+Default headers are set automatically:
+
+```
+Content-Type: application/json
+Accept: application/json
+```
+
+Add custom headers if needed:
+
+1. Click the **Headers** tab
+2. Add key-value pairs
+3. Toggle headers on/off
+
+---
+
+### Request Body
+
+For <HttpMethodBadge method="POST" size="sm" />, <HttpMethodBadge method="PUT" size="sm" />, and <HttpMethodBadge method="PATCH" size="sm" /> requests:
+
+The body editor provides:
+- JSON syntax highlighting
+- Auto-formatting
+- Validation
+- Variable substitution
+
+**Example Body:**
+
+```json
+{
+  "name": "New Device",
+  "displayName": "web-server-01",
+  "preferredCollectorId": 1,
+  "hostGroupIds": "1,2,3"
+}
+```
+
+---
+
+## Endpoint Catalog
+
+### Browsing Endpoints
+
+The right sidebar shows all available endpoints:
+
+<Steps>
+
+1. Click **Endpoints** tab in sidebar
+
+2. Browse by category or use the search box
+
+3. Click an endpoint to load it into the request builder
+
+</Steps>
+
+### Endpoint Categories
+
+<CardGrid>
+  <Card title="Devices" icon="laptop">
+    Device management, properties, and monitoring
+  </Card>
+  <Card title="Device Groups" icon="seti:folder">
+    Group operations and hierarchy
+  </Card>
+  <Card title="DataSources" icon="heart-pulse">
+    LogicModule management
+  </Card>
+  <Card title="Alerts" icon="warning">
+    Alert management and acknowledgment
+  </Card>
+  <Card title="Settings" icon="setting">
+    Account and portal settings
+  </Card>
+  <Card title="Reports" icon="document">
+    Report generation and scheduling
+  </Card>
+</CardGrid>
+
+### Endpoint Details
+
+Selecting an endpoint shows:
+
+- Full path with parameters
+- Supported HTTP methods
+- Required parameters
+- Example request body
+- Response schema
+
+---
+
+## Sending Requests
+
+### Execute Request
+
+Click **Send Request** or press <kbd>Ctrl</kbd>+<kbd>Enter</kbd>.
+
+### Request Status
+
+During execution:
+- Send button shows a spinner
+- Status shows "Sending..."
+- Cancel button available for long requests
+
+---
+
+## Response Viewer
+
+### Response Display
+
+Successful responses show:
+
+| Section | Content |
+|---------|---------|
+| **Status** | HTTP status code and text |
+| **Time** | Response duration (e.g., "234ms") |
+| **Size** | Response size in bytes |
+| **Headers** | Response headers (expandable) |
+| **Body** | JSON response body with syntax highlighting |
+
+### Status Codes
+
+<Tabs>
+  <TabItem label="Success" icon="approve-check-circle">
+    | Code | Meaning |
+    |------|---------|
+    | <Badge text="200" variant="success" /> | Success – Request completed |
+    | <Badge text="201" variant="success" /> | Created – Resource created |
+  </TabItem>
+  
+  <TabItem label="Client Errors" icon="warning">
+    | Code | Meaning | Action |
+    |------|---------|--------|
+    | <Badge text="400" variant="caution" /> | Bad Request | Fix request syntax |
+    | <Badge text="401" variant="caution" /> | Unauthorized | Check session |
+    | <Badge text="403" variant="caution" /> | Forbidden | Check permissions |
+    | <Badge text="404" variant="caution" /> | Not Found | Check endpoint/IDs |
+    | <Badge text="429" variant="caution" /> | Rate Limited | Wait and retry |
+  </TabItem>
+  
+  <TabItem label="Server Errors" icon="error">
+    | Code | Meaning | Action |
+    |------|---------|--------|
+    | <Badge text="500" variant="danger" /> | Server Error | Contact support |
+    | <Badge text="503" variant="danger" /> | Service Unavailable | Retry later |
+  </TabItem>
+</Tabs>
+
+### JSON Navigation
+
+Navigate large responses:
+
+- **Collapse/Expand**: Click arrows to fold sections
+- **Copy Path**: Right-click to copy JSON path
+- **Copy Value**: Right-click to copy values
+- **Search**: <kbd>Ctrl</kbd>+<kbd>F</kbd> to find text
+
+---
+
+## Pagination
+
+### Handling Large Results
+
+LogicMonitor paginates large result sets:
+
+```json
+{
+  "total": 1500,
+  "searchId": null,
+  "items": [...],
+  "data": null
+}
+```
+
+### Pagination Parameters
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| `size` | Items per page | 50 |
+| `offset` | Starting position | 0 |
+
+### Fetching All Results
+
+To retrieve all items:
+
+1. Note the `total` count from the first response
+2. Calculate pages: `ceil(total / size)`
+3. Increment `offset` by `size` for each page
+
+**Example for 1500 items with size=100:**
+- Page 1: `offset=0`
+- Page 2: `offset=100`
+- Page 15: `offset=1400`
+
+---
+
+## Request Validation
+
+### Pre-Send Validation
+
+The builder validates before sending:
+
+- Required parameters present
+- JSON body syntax valid
+- Endpoint format correct
+
+### Error Indicators
+
+- Red border on invalid fields
+- Error message below the field
+- Send button disabled until errors fixed
+
+---
+
+## Example Workflows
+
+<Tabs>
+  <TabItem label="List Devices" icon="laptop">
+    <Steps>
+
+    1. <HttpMethodBadge method="GET" size="sm" /> `/device/devices`
+
+    2. Add `size=1000` parameter
+
+    3. Click **Send Request**
+
+    4. Review device list in response
+
+    </Steps>
+  </TabItem>
+  
+  <TabItem label="Create Device" icon="add-document">
+    <Steps>
+
+    1. <HttpMethodBadge method="POST" size="sm" /> `/device/devices`
+
+    2. Add request body:
+       ```json
+       {
+         "name": "hostname.example.com",
+         "displayName": "My Server",
+         "preferredCollectorId": 1,
+         "hostGroupIds": "1"
+       }
+       ```
+
+    3. Click **Send Request**
+
+    4. Note the returned device ID
+
+    </Steps>
+  </TabItem>
+  
+  <TabItem label="Update Device" icon="pencil">
+    <Steps>
+
+    1. <HttpMethodBadge method="PATCH" size="sm" /> `/device/devices/{id}`
+
+    2. Replace `{id}` with device ID
+
+    3. Add body:
+       ```json
+       {
+         "customProperties": [
+           { "name": "environment", "value": "production" }
+         ]
+       }
+       ```
+
+    4. Click **Send Request**
+
+    </Steps>
+  </TabItem>
+  
+  <TabItem label="Delete Device" icon="close">
+    <Steps>
+
+    1. <HttpMethodBadge method="DELETE" size="sm" /> `/device/devices/{id}`
+
+    2. Replace `{id}` with device ID
+
+    3. Click **Send Request**
+
+    4. Confirm <Badge text="200" variant="success" /> response
+
+    </Steps>
+  </TabItem>
+</Tabs>
+
+---
+
+## Next Steps
+
+<LinkCard
+  title="Variables & History"
+  description="Use environment variables and review past API requests."
+  href="/lmda-composer/api-explorer/variables-history/"
+/>
+
+
+

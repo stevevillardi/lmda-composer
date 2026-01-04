@@ -1,0 +1,86 @@
+---
+import { Icon } from '@astrojs/starlight/components';
+
+interface Props {
+  title: string;
+  icon: string;
+  color?: 'blue' | 'green' | 'purple' | 'orange' | 'cyan' | 'pink' | 'amber';
+}
+
+const { title, icon, color = 'amber' } = Astro.props;
+
+const colorMap = {
+  blue: 'var(--sl-color-blue)',
+  green: 'var(--sl-color-green)',
+  purple: 'var(--sl-color-purple)',
+  orange: 'var(--sl-color-orange)',
+  cyan: '#06b6d4',
+  pink: '#ec4899',
+  amber: 'var(--sl-color-accent)',
+};
+---
+
+<div class="feature-card" style={`--card-color: ${colorMap[color]};`}>
+  <div class="feature-icon">
+    <Icon name={icon} size="1.5rem" />
+  </div>
+  <div class="feature-content">
+    <h4 class="feature-title">{title}</h4>
+    <div class="feature-description">
+      <slot />
+    </div>
+  </div>
+</div>
+
+<style>
+  .feature-card {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--sl-color-bg-nav);
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.75rem;
+    transition: border-color 0.2s ease;
+  }
+
+  .feature-card:hover {
+    border-color: var(--card-color);
+  }
+
+  .feature-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 0.5rem;
+    background: color-mix(in srgb, var(--card-color) 15%, transparent);
+    color: var(--card-color);
+    flex-shrink: 0;
+  }
+
+  .feature-content {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .feature-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0 0 0.25rem 0;
+    color: var(--sl-color-white);
+  }
+
+  .feature-description {
+    font-size: 0.875rem;
+    color: var(--sl-color-gray-3);
+    line-height: 1.5;
+  }
+
+  .feature-description :global(p) {
+    margin: 0;
+  }
+</style>
+
+
+

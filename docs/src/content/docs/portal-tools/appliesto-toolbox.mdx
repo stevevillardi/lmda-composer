@@ -1,0 +1,320 @@
+---
+title: AppliesTo Toolbox
+description: Test and validate AppliesTo expressions with instant feedback.
+---
+
+import { Card, CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
+import { Icon } from '@astrojs/starlight/components';
+import StatusBadge from '../../../components/StatusBadge.astro';
+import FeatureCard from '../../../components/FeatureCard.astro';
+
+The AppliesTo Toolbox helps you build and test AppliesTo expressions before applying them to LogicModules. See exactly which resources match your expression.
+
+## Opening the Toolbox
+
+<CardGrid>
+  <Card title="Welcome Screen" icon="rocket">
+    Click **AppliesTo Toolbox** on the welcome screen.
+  </Card>
+  <Card title="Command Palette" icon="magnifier">
+    Press <kbd>Ctrl</kbd>+<kbd>K</kbd> and type "AppliesTo".
+  </Card>
+  <Card title="Module Details" icon="funnel">
+    Click the AppliesTo field when editing module details.
+  </Card>
+</CardGrid>
+
+---
+
+## Interface Overview
+
+{/* Screenshot placeholder */}
+<div class="screenshot-placeholder" style="background: var(--sl-color-gray-6); border: 2px dashed var(--sl-color-gray-4); border-radius: 0.5rem; padding: 2.5rem 2rem; text-align: center; margin: 1.5rem 0;">
+  <Icon name="image" size="1.5rem" />
+  <p style="margin: 0.5rem 0 0 0; color: var(--sl-color-gray-3); font-size: 0.8rem;">
+    Screenshot: appliesto-interface.png<br />
+    <em>AppliesTo Toolbox with expression editor and matching resources</em>
+  </p>
+</div>
+
+### Expression Editor
+
+The main text area for writing AppliesTo expressions:
+
+- Multi-line support for complex expressions
+- Parenthesis matching and highlighting
+- Real-time syntax hints
+- Undo/redo support
+
+### Quick Insert Bar
+
+Buttons for common operators:
+
+<div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 1rem 0;">
+  <Badge text="&&" variant="note" />
+  <Badge text="||" variant="note" />
+  <Badge text="!" variant="note" />
+  <Badge text="( )" variant="note" />
+  <Badge text="==" variant="note" />
+  <Badge text="=~" variant="note" />
+  <Badge text="!=" variant="note" />
+</div>
+
+| Operator | Inserts | Usage |
+|----------|---------|-------|
+| `&&` | Logical AND | Both conditions must match |
+| `\|\|` | Logical OR | Either condition matches |
+| `!` | Logical NOT | Negates the condition |
+| `()` | Grouping | Control operator precedence |
+| `==` | Equals | Exact value match |
+| `=~` | Regex match | Pattern matching |
+| `!=` | Not equals | Value doesn't match |
+
+### Test Button
+
+Click **Test AppliesTo** to evaluate the expression against all resources in your portal.
+
+---
+
+## Building Expressions
+
+### Basic Property Match
+
+Match devices with a specific property value:
+
+```groovy
+system.displayname == "web-server-01"
+```
+
+### Wildcard Matching
+
+Use `=~` for pattern matching with regex:
+
+```groovy
+system.displayname =~ "web-.*"
+```
+
+### Multiple Conditions
+
+Combine with AND/OR:
+
+```groovy
+// Devices that are Linux AND in Production
+system.sysinfo =~ "Linux" && system.staticgroups =~ "Production"
+
+// Devices that are either routers or switches
+system.sysoid =~ "1.3.6.1.4.1.9" || system.categories =~ "switch"
+```
+
+### Grouping
+
+Use parentheses for complex logic:
+
+```groovy
+(system.sysinfo =~ "Linux" || system.sysinfo =~ "Windows") 
+&& system.staticgroups =~ "Monitored"
+```
+
+### Function Calls
+
+Use built-in and custom functions:
+
+```groovy
+hasCategory("Windows") && !hasCategory("test")
+```
+
+---
+
+## Function Reference
+
+Click **Function Reference** to expand the available functions:
+
+<Tabs>
+  <TabItem label="Built-in Functions" icon="star">
+    | Function | Description | Example |
+    |----------|-------------|---------|
+    | `hasCategory(name)` | Device has category | `hasCategory("Linux")` |
+    | `hasSystemProperty(name)` | Has system property | `hasSystemProperty("snmp.version")` |
+    | `isDevice()` | Resource is a device | `isDevice()` |
+    | `isService()` | Resource is a service | `isService()` |
+    | `join(expr, separator)` | Joins array values | `join(system.ips, ",")` |
+    | `startsWith(str, prefix)` | String starts with | `startsWith(system.name, "web")` |
+  </TabItem>
+  
+  <TabItem label="Custom Functions" icon="setting">
+    Custom AppliesTo functions are reusable expressions defined in your portal:
+
+    ```groovy
+    // Instead of:
+    system.sysinfo =~ "Linux" && hasCategory("server") && system.staticgroups =~ "Production"
+
+    // Use a custom function:
+    isLinuxProductionServer()
+    ```
+
+    ### Creating Custom Functions
+
+    1. Write your expression in the toolbox
+    2. Click **Save as Function**
+    3. Enter a function name (e.g., `isLinuxProductionServer`)
+    4. Add a description
+    5. Click **Save**
+
+    The function is saved to your LogicMonitor portal and available immediately.
+  </TabItem>
+</Tabs>
+
+### Inserting Functions
+
+<Steps>
+
+1. Find the function in the reference panel
+
+2. Click the **Insert** button next to it
+
+3. Function is added at cursor position
+
+4. Fill in the arguments
+
+</Steps>
+
+---
+
+## Custom Functions
+
+### Managing Custom Functions
+
+<CardGrid>
+  <Card title="Edit Function" icon="pencil">
+    Find the function → Click **Load** → Modify expression → Click **Update Function**
+  </Card>
+  <Card title="Delete Function" icon="close">
+    Find the function → Click delete icon → Confirm deletion
+  </Card>
+</CardGrid>
+
+<Aside type="caution" title="Dependency Check">
+  Before deleting, verify no modules depend on the function. LogicModules using a deleted function will fail to evaluate.
+</Aside>
+
+---
+
+## Testing Results
+
+### Results Display
+
+After clicking **Test AppliesTo**, results show matching resources:
+
+| Column | Description |
+|--------|-------------|
+| ID | Resource ID |
+| Type | Device, Service, etc. |
+| Name | Display name |
+| Hostname | System hostname (devices only) |
+
+### Match Count
+
+The header shows total matches: **"15 resources match"**
+
+### Result States
+
+<div style="display: flex; gap: 1rem; flex-wrap: wrap; margin: 1rem 0;">
+  <StatusBadge status="success" label="Matches Found" />
+  <StatusBadge status="warning" label="No Matches" />
+  <StatusBadge status="error" label="Syntax Error" />
+</div>
+
+- **Matches Found**: Resources matching your expression are listed
+- **No Matches**: Expression is valid but no resources match
+- **Syntax Error**: Expression has errors (see error display)
+
+---
+
+## Expression Syntax Errors
+
+### Error Display
+
+Invalid expressions show an error message:
+- Red error banner
+- Description of the issue
+- Approximate location hint
+
+### Common Errors
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| Unexpected token | Missing operator | Add `&&` or `\|\|` between conditions |
+| Unclosed string | Missing quote | Close all string literals |
+| Unknown function | Typo in function name | Check spelling in reference |
+| Invalid regex | Bad regex pattern | Validate regex syntax |
+
+---
+
+## Autocomplete
+
+The editor provides autocomplete suggestions:
+
+### Property Names
+
+Start typing a property name to see suggestions:
+- `system.` shows system properties
+- `auto.` shows auto-properties
+- Custom property prefixes
+
+### Functions
+
+Type the start of a function name to see matching functions.
+
+### Activating Autocomplete
+
+Autocomplete activates automatically, or press <kbd>Ctrl</kbd>+<kbd>Space</kbd> to trigger manually.
+
+---
+
+## Best Practices
+
+<CardGrid>
+  <Card title="Start Simple" icon="rocket">
+    Begin with a single condition. Verify it matches expected resources. Add conditions one at a time, testing after each addition.
+  </Card>
+  <Card title="Use Parentheses" icon="seti:notebook">
+    Complex expressions benefit from explicit grouping: `(A && B) || C` is clearer than `A && B || C`.
+  </Card>
+  <Card title="Test Edge Cases" icon="warning">
+    Verify resources that should match do, and resources that shouldn't don't. Check boundary conditions.
+  </Card>
+  <Card title="Document Logic" icon="document">
+    Use the description field for custom functions to explain the logic for future reference.
+  </Card>
+</CardGrid>
+
+---
+
+## Integration with Module Details
+
+When editing module details:
+
+<Steps>
+
+1. Click the **AppliesTo** field in the module details editor
+
+2. The toolbox opens with the current expression pre-loaded
+
+3. Modify and test your expression
+
+4. Save to update the module's AppliesTo
+
+</Steps>
+
+---
+
+## Next Steps
+
+<LinkCard
+  title="Debug Commands"
+  description="Run collector debug commands and health checks from LMDA Composer."
+  href="/lmda-composer/portal-tools/debug-commands/"
+/>
+
+
+

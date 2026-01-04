@@ -1,0 +1,299 @@
+---
+title: File Management
+description: Opening, saving, and managing local script files.
+---
+
+import { Card, CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
+import { Icon } from '@astrojs/starlight/components';
+import StatusBadge from '../../../components/StatusBadge.astro';
+
+LMDA Composer supports working with local files on your computer, allowing you to develop scripts outside of LogicModules and manage your own script library.
+
+## File Types
+
+### Supported Extensions
+
+<div style="display: grid; gap: 0.5rem; margin: 1rem 0;">
+  <div style="display: flex; align-items: center; gap: 0.75rem;">
+    <Badge text=".groovy" variant="success" />
+    <span style="font-size: 0.875rem;">Groovy scripts</span>
+  </div>
+  <div style="display: flex; align-items: center; gap: 0.75rem;">
+    <Badge text=".ps1" variant="note" />
+    <span style="font-size: 0.875rem;">PowerShell scripts</span>
+  </div>
+  <div style="display: flex; align-items: center; gap: 0.75rem;">
+    <Badge text=".txt" variant="default" />
+    <span style="font-size: 0.875rem;">Plain text (uses tab language setting)</span>
+  </div>
+</div>
+
+When you open a file, the extension determines the language, syntax highlighting applies automatically, and execution mode defaults to Freeform.
+
+---
+
+## Opening Files
+
+<CardGrid>
+  <Card title="Welcome Screen" icon="rocket">
+    Click **Open File** and select from the system dialog.
+  </Card>
+  <Card title="Keyboard" icon="laptop">
+    Press <kbd>Ctrl</kbd>+<kbd>O</kbd> / <kbd>Cmd</kbd>+<kbd>O</kbd>.
+  </Card>
+  <Card title="Drag and Drop" icon="seti:folder">
+    Drag a file onto the LMDA Composer window.
+  </Card>
+  <Card title="Recent Files" icon="history">
+    Click a file from the recent files list on the welcome screen.
+  </Card>
+</CardGrid>
+
+---
+
+## Creating New Files
+
+<Steps>
+
+1. Click **New File** on welcome screen, or click **+** in the tab bar, or press <kbd>Ctrl</kbd>+<kbd>N</kbd>
+
+2. File opens with your default language setting
+
+3. Start writing your script (or insert a template from Snippets)
+
+4. Save with <kbd>Ctrl</kbd>+<kbd>S</kbd> when ready
+
+</Steps>
+
+---
+
+## Saving Files
+
+<Tabs>
+  <TabItem label="Save" icon="approve-check-circle">
+    **Keyboard:** <kbd>Ctrl</kbd>+<kbd>S</kbd> / <kbd>Cmd</kbd>+<kbd>S</kbd>
+
+    **First save:** Opens a dialog to choose location and filename.
+
+    **Subsequent saves:** File updates in place, no dialog appears, dirty indicator clears.
+  </TabItem>
+  <TabItem label="Save As" icon="document">
+    **Keyboard:** <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> / <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd>
+
+    Creates a copy at a new location. Original file remains unchanged.
+  </TabItem>
+</Tabs>
+
+{/* Screenshot placeholder */}
+<div class="screenshot-placeholder" style="background: var(--sl-color-gray-6); border: 2px dashed var(--sl-color-gray-4); border-radius: 0.5rem; padding: 2.5rem 2rem; text-align: center; margin: 1.5rem 0;">
+  <Icon name="image" size="1.5rem" />
+  <p style="margin: 0.5rem 0 0 0; color: var(--sl-color-gray-3); font-size: 0.8rem;">
+    Screenshot: file-save-dialog.png<br />
+    <em>File save dialog showing location picker</em>
+  </p>
+</div>
+
+---
+
+## File System Access API
+
+LMDA Composer uses the modern File System Access API for seamless file operations.
+
+### Browser Compatibility
+
+<div style="display: grid; gap: 1rem; margin: 1.5rem 0;">
+  <Card title="Chrome" icon="seti:favicon">
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <StatusBadge status="success" label="Full Support" />
+    </div>
+    <p style="font-size: 0.875rem; margin-top: 0.5rem;">Direct file reading/writing, file handles persist across sessions.</p>
+  </Card>
+  
+  <Card title="Edge" icon="seti:favicon">
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <StatusBadge status="success" label="Full Support" />
+    </div>
+    <p style="font-size: 0.875rem; margin-top: 0.5rem;">Same capabilities as Chrome.</p>
+  </Card>
+  
+  <Card title="Brave" icon="seti:favicon">
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <StatusBadge status="warning" label="Requires Setup" />
+    </div>
+    <p style="font-size: 0.875rem; margin-top: 0.5rem;">May need to enable the File System Access API flag.</p>
+  </Card>
+  
+  <Card title="Firefox / Safari" icon="seti:favicon">
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <StatusBadge status="error" label="Fallback Mode" />
+    </div>
+    <p style="font-size: 0.875rem; margin-top: 0.5rem;">Opening uses file upload; saving triggers download.</p>
+  </Card>
+</div>
+
+### Brave Browser Setup
+
+If File System Access is not available in Brave:
+
+<Steps>
+
+1. Open `brave://flags` in a new tab
+
+2. Search for "File System Access API"
+
+3. Set it to **Enabled**
+
+4. Restart your browser
+
+</Steps>
+
+### Vivaldi Setup
+
+For Vivaldi browser:
+
+<Steps>
+
+1. Open `vivaldi://extensions`
+
+2. Select "LMDA Composer"
+
+3. Enable "Allow access to file URLs"
+
+</Steps>
+
+---
+
+## Auto-Save Drafts
+
+LMDA Composer automatically saves drafts to protect your work.
+
+<CardGrid>
+  <Card title="How It Works" icon="setting">
+    Drafts saved every 30 seconds to browser local storage. Recovered on next session.
+  </Card>
+  <Card title="Draft Recovery" icon="history">
+    If browser closes unexpectedly, draft recovery dialog appears on next open. Click **Restore** or **Discard**.
+  </Card>
+</CardGrid>
+
+<Aside type="note" title="Draft Limitations">
+  - Only unsaved changes are drafted
+  - Very large files may not draft completely
+  - Drafts are per-browser, not synced across devices
+</Aside>
+
+---
+
+## File Handles
+
+### Persistent Handles
+
+For supported browsers:
+- File handles saved to session
+- Reopening restores handles
+- Continue editing from where you left off
+
+### Handle Expiration
+
+Handles expire when:
+- Browser is fully closed
+- Permissions are revoked
+- File is moved or deleted
+
+### Refreshing Handles
+
+If a handle expires:
+
+1. File shows as "Unconnected"
+2. Click **Reconnect** in tab
+3. Select the file again
+
+---
+
+## Tabs and Files
+
+<Tabs>
+  <TabItem label="Tab Names" icon="tag">
+    - Local files show the filename
+    - Unsaved files show "Untitled"
+    - Module tabs show module name with link icon
+  </TabItem>
+  <TabItem label="Dirty State" icon="warning">
+    The dirty dot (•) indicates:
+    - Unsaved changes to disk
+    - Modified since last save
+    - Will prompt on close
+  </TabItem>
+  <TabItem label="Close Confirmation" icon="information">
+    Closing a dirty tab shows options:
+    - **Save & Close**
+    - **Discard**
+    - **Cancel**
+  </TabItem>
+</Tabs>
+
+---
+
+## Recent Files
+
+### Viewing Recent Files
+
+The welcome screen shows recent files with:
+- File name and path
+- Last opened date
+- Language indicator
+
+### Managing Recent Files
+
+- Click to open a recent file
+- Right-click to remove from list
+- List auto-cleans invalid entries
+
+### Recent Files Limit
+
+Configure in Settings:
+- Default: 10 files
+- Range: 5-50 files
+
+---
+
+## Best Practices
+
+<CardGrid>
+  <Card title="Organize Your Scripts" icon="seti:folder">
+    Create a folder structure like `scripts/production/datasources/` for easy navigation.
+  </Card>
+  <Card title="Backup Important Scripts" icon="approve-check-circle">
+    Save to cloud-synced folders (Dropbox, OneDrive) or use version control (Git).
+  </Card>
+  <Card title="Use Naming Conventions" icon="tag">
+    Use clear names like `DS_Linux_CPU_Usage.groovy` or `PS_Windows_Services.ps1`.
+  </Card>
+</CardGrid>
+
+### Local Development Workflow
+
+<Steps>
+
+1. Create local file
+
+2. Develop and test script
+
+3. When ready, copy to module or import as new
+
+4. Keep local copy as backup
+
+</Steps>
+
+---
+
+## Next Steps
+
+<LinkCard
+  title="Snippets Library"
+  description="Use built-in and custom code snippets to speed up development."
+  href="/lmda-composer/workspace/snippets/"
+/>
+
+
+

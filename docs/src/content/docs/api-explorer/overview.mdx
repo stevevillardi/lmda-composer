@@ -1,0 +1,254 @@
+---
+title: API Explorer Overview
+description: Explore and test the LogicMonitor REST API using your active session.
+---
+
+import { Card, CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
+import { Icon } from '@astrojs/starlight/components';
+import HttpMethodBadge from '../../../components/HttpMethodBadge.astro';
+import FeatureCard from '../../../components/FeatureCard.astro';
+
+The API Explorer provides a built-in tool for exploring, testing, and learning the LogicMonitor REST API—without needing API tokens or external tools.
+
+## What Is the API Explorer?
+
+The API Explorer is an integrated REST client that:
+
+<div style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin: 1rem 0;">
+  <FeatureCard title="Session Auth" icon="approve-check-circle" color="green">
+    Uses your active LogicMonitor session—no API tokens needed.
+  </FeatureCard>
+  <FeatureCard title="Endpoint Catalog" icon="open-book" color="blue">
+    Browse all available API endpoints organized by category.
+  </FeatureCard>
+  <FeatureCard title="Request Builder" icon="pencil" color="purple">
+    Build and execute requests with guided parameter input.
+  </FeatureCard>
+  <FeatureCard title="Request History" icon="history" color="orange">
+    Review past requests and reload them for quick retesting.
+  </FeatureCard>
+</div>
+
+---
+
+## Opening the API Explorer
+
+<CardGrid>
+  <Card title="Welcome Screen" icon="rocket">
+    Click **API Explorer** on the welcome screen.
+  </Card>
+  <Card title="Command Palette" icon="magnifier">
+    Press <kbd>Ctrl</kbd>+<kbd>K</kbd> and type "API".
+  </Card>
+  <Card title="New Tab" icon="add-document">
+    Click **+** and select **New API Request**.
+  </Card>
+  <Card title="Keyboard" icon="laptop">
+    Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> directly.
+  </Card>
+</CardGrid>
+
+---
+
+## API Explorer Layout
+
+{/* Screenshot placeholder */}
+<div class="screenshot-placeholder" style="background: var(--sl-color-gray-6); border: 2px dashed var(--sl-color-gray-4); border-radius: 0.5rem; padding: 2.5rem 2rem; text-align: center; margin: 1.5rem 0;">
+  <Icon name="image" size="1.5rem" />
+  <p style="margin: 0.5rem 0 0 0; color: var(--sl-color-gray-3); font-size: 0.8rem;">
+    Screenshot: api-explorer-layout.png<br />
+    <em>Full API Explorer interface showing request builder and response</em>
+  </p>
+</div>
+
+### Main Panel
+
+| Section | Description |
+|---------|-------------|
+| **Method Selector** | Choose HTTP method (GET, POST, PUT, PATCH, DELETE) |
+| **Endpoint Field** | Enter or build the API path |
+| **Request Body** | JSON body for POST/PUT/PATCH requests |
+| **Response Viewer** | Formatted API response with syntax highlighting |
+
+### Right Sidebar
+
+The sidebar provides three tabs:
+
+- **Endpoints**: Browse all available API endpoints
+- **Variables**: Manage reusable environment variables
+- **History**: View and reload past API requests
+
+---
+
+## Key Features
+
+### Session-Based Authentication
+
+Unlike traditional API tools, you don't need API tokens:
+
+<Steps>
+
+1. Log into LogicMonitor in your browser
+
+2. Open LMDA Composer—it uses your session cookie
+
+3. All API calls execute with your permissions automatically
+
+</Steps>
+
+<Aside type="tip" title="No Token Management">
+  No need to create, store, or rotate API tokens. Your session handles authentication automatically. Just stay logged into LogicMonitor.
+</Aside>
+
+### Endpoint Discovery
+
+Browse the complete LogicMonitor API:
+
+- Organized by resource category (Devices, Alerts, Settings, etc.)
+- Search across all endpoints
+- View parameter requirements
+- See example requests and response schemas
+
+### Request Building
+
+Build requests with guidance:
+
+- Auto-complete for path parameters
+- Query parameter helpers with validation
+- JSON body templates
+- Pre-send request validation
+
+### Response Formatting
+
+Responses display clearly:
+
+- Syntax-highlighted JSON
+- Collapsible sections for large responses
+- Copy functionality
+- Error highlighting for failed requests
+
+---
+
+## API Tabs
+
+API requests open in tabs just like scripts:
+
+| Indicator | Meaning |
+|-----------|---------|
+| <Badge text="API" variant="note" /> | Tab contains an API request |
+| **•** (dot) | Unsaved changes |
+| Request name | Custom name for the request |
+
+Work with multiple API requests simultaneously—each in its own tab. Compare responses side by side.
+
+---
+
+## Supported Methods
+
+<div style="display: grid; gap: 0.75rem; margin: 1rem 0;">
+  <div style="display: flex; align-items: center; gap: 0.75rem;">
+    <HttpMethodBadge method="GET" />
+    <span style="font-size: 0.875rem;">Retrieve data from the API</span>
+  </div>
+  <div style="display: flex; align-items: center; gap: 0.75rem;">
+    <HttpMethodBadge method="POST" />
+    <span style="font-size: 0.875rem;">Create new resources</span>
+  </div>
+  <div style="display: flex; align-items: center; gap: 0.75rem;">
+    <HttpMethodBadge method="PUT" />
+    <span style="font-size: 0.875rem;">Replace/update entire resources</span>
+  </div>
+  <div style="display: flex; align-items: center; gap: 0.75rem;">
+    <HttpMethodBadge method="PATCH" />
+    <span style="font-size: 0.875rem;">Partial updates to resources</span>
+  </div>
+  <div style="display: flex; align-items: center; gap: 0.75rem;">
+    <HttpMethodBadge method="DELETE" />
+    <span style="font-size: 0.875rem;">Remove resources</span>
+  </div>
+</div>
+
+---
+
+## Quick Start Example
+
+Test your connection with a simple API call:
+
+<Steps>
+
+1. Open API Explorer
+
+2. Method is <HttpMethodBadge method="GET" size="sm" /> (default)
+
+3. Enter `/setting/version` as the endpoint
+
+4. Click **Send Request**
+
+5. View the version response showing your portal's API version
+
+</Steps>
+
+---
+
+## Permissions
+
+API calls execute with your user permissions:
+
+- Only see data you have access to
+- Can only modify resources you can edit
+- Admin endpoints require admin permissions
+
+<Aside type="note" title="Permission Errors">
+  A **403 Forbidden** error means you don't have permission for that endpoint. Check your LogicMonitor user role in Settings → Users and Roles.
+</Aside>
+
+---
+
+## Rate Limiting
+
+LogicMonitor applies rate limits to API calls:
+
+- Standard rate limits apply to all requests
+- Response headers show remaining quota
+- **429 Too Many Requests** indicates rate limiting
+
+The status bar shows response timing to help identify slow endpoints.
+
+---
+
+## When to Use API Explorer
+
+<CardGrid>
+  <Card title="Learning the API" icon="open-book">
+    Explore endpoints interactively before writing automation code.
+  </Card>
+  <Card title="Quick Operations" icon="rocket">
+    Make one-off API calls without building full scripts.
+  </Card>
+  <Card title="Debugging" icon="warning">
+    Test specific API calls to troubleshoot integration issues.
+  </Card>
+  <Card title="Data Export" icon="external">
+    Retrieve data for analysis, reporting, or migration.
+  </Card>
+</CardGrid>
+
+---
+
+## Next Steps
+
+<CardGrid stagger>
+  <LinkCard
+    title="Request Builder"
+    description="Learn to build and execute API requests with the request builder."
+    href="/lmda-composer/api-explorer/request-builder/"
+  />
+  <LinkCard
+    title="Variables & History"
+    description="Manage variables and review past requests."
+    href="/lmda-composer/api-explorer/variables-history/"
+  />
+</CardGrid>
+
+
+

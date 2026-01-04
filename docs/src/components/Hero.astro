@@ -1,0 +1,283 @@
+---
+import type { Props } from '@astrojs/starlight/props';
+import { Image } from 'astro:assets';
+import logo from '../assets/icon128.png';
+
+const isLandingPage = Astro.url.pathname === '/lmda-composer/' || Astro.url.pathname === '/lmda-composer';
+---
+
+{isLandingPage ? (
+  <div class="landing-hero">
+    <section class="hero-section">
+      <Image src={logo} alt="LMDA Composer" width={96} height={96} class="hero-logo" />
+      <h1 class="hero-title">LMDA Composer</h1>
+      <p class="hero-subtitle">
+        A focused workspace for LogicMonitor scripting. Create, test, and ship LogicModules faster.
+      </p>
+      <div class="cta-buttons">
+        <a href="/lmda-composer/getting-started/installation/" class="cta-button primary">
+          Get Started
+        </a>
+        <a href="https://github.com/stevevillardi/lmda-composer" class="cta-button secondary" target="_blank" rel="noopener">
+          View on GitHub
+        </a>
+      </div>
+    </section>
+
+    <section class="steps-section">
+      <h2>How It Works</h2>
+      <div class="steps-grid">
+        <div class="step-item">
+          <div class="step-number">1</div>
+          <h3>Connect to Your Portal</h3>
+          <p>Log into LogicMonitor in your browser. LMDA Composer automatically detects your active sessions.</p>
+        </div>
+        <div class="step-item">
+          <div class="step-number">2</div>
+          <h3>Write & Test Scripts</h3>
+          <p>Use the Monaco-powered editor to write Groovy or PowerShell scripts with syntax highlighting.</p>
+        </div>
+        <div class="step-item">
+          <div class="step-number">3</div>
+          <h3>Validate & Commit</h3>
+          <p>Run scripts against collectors, validate output, and commit changes back to LogicMonitor.</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="features-section">
+      <h2>Features</h2>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <h3>🚀 Script Execution</h3>
+          <p>Run Groovy and PowerShell scripts directly on any collector with parsed output validation.</p>
+        </div>
+        <div class="feature-card">
+          <h3>📦 LogicModule Browser</h3>
+          <p>Browse, search, and import scripts from DataSources, ConfigSources, and other module types.</p>
+        </div>
+        <div class="feature-card">
+          <h3>🔍 Module Search</h3>
+          <p>Search across all module scripts and datapoints to find code patterns and definitions.</p>
+        </div>
+        <div class="feature-card">
+          <h3>🔧 AppliesTo Toolbox</h3>
+          <p>Test and validate AppliesTo expressions with instant feedback on matching resources.</p>
+        </div>
+        <div class="feature-card">
+          <h3>🌐 API Explorer</h3>
+          <p>Explore the LogicMonitor REST API using your active session with built-in endpoint catalog.</p>
+        </div>
+        <div class="feature-card">
+          <h3>📝 Module Details Editor</h3>
+          <p>Edit module metadata including name, description, appliesTo, and alert settings.</p>
+        </div>
+        <div class="feature-card">
+          <h3>📜 Version History</h3>
+          <p>View module lineage and compare changes across versions with diff viewer.</p>
+        </div>
+        <div class="feature-card">
+          <h3>⚡ Debug Commands</h3>
+          <p>Run collector debug commands with visual health check reports.</p>
+        </div>
+      </div>
+    </section>
+
+    <div class="disclaimer-box">
+      <p>
+        <strong>Community Project:</strong> LMDA Composer is an independent community project and is not affiliated with, endorsed by, or officially connected to LogicMonitor, Inc. LogicMonitor is a registered trademark of LogicMonitor, Inc.
+      </p>
+    </div>
+  </div>
+) : (
+  <slot />
+)}
+
+<style>
+  .landing-hero {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1rem;
+  }
+
+  .hero-section {
+    padding: 4rem 1rem;
+    text-align: center;
+  }
+
+  .hero-logo {
+    margin-bottom: 1.5rem;
+  }
+
+  .hero-title {
+    font-size: clamp(2.5rem, 6vw, 4rem);
+    font-weight: 700;
+    margin-bottom: 1rem;
+    background: linear-gradient(135deg, var(--sl-color-white) 0%, var(--sl-color-accent) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .hero-subtitle {
+    font-size: 1.25rem;
+    color: var(--sl-color-gray-3);
+    max-width: 600px;
+    margin: 0 auto 2rem;
+  }
+
+  .cta-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .cta-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    border-radius: 0.5rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s ease;
+  }
+
+  .cta-button.primary {
+    background: var(--sl-color-accent);
+    color: var(--sl-color-black);
+  }
+
+  .cta-button.primary:hover {
+    filter: brightness(1.1);
+  }
+
+  .cta-button.secondary {
+    background: transparent;
+    border: 1px solid var(--sl-color-gray-5);
+    color: var(--sl-color-white);
+  }
+
+  .cta-button.secondary:hover {
+    border-color: var(--sl-color-accent);
+    color: var(--sl-color-accent);
+  }
+
+  .steps-section, .features-section {
+    padding: 3rem 1rem;
+  }
+
+  .steps-section h2, .features-section h2 {
+    text-align: center;
+    margin-bottom: 2rem;
+    font-size: 1.75rem;
+    font-weight: 600;
+  }
+
+  .steps-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 2rem;
+  }
+
+  .step-item {
+    text-align: center;
+  }
+
+  .step-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    background: var(--sl-color-accent);
+    color: var(--sl-color-black);
+    font-weight: 700;
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+  }
+
+  .step-item h3 {
+    font-size: 1.125rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .step-item p {
+    font-size: 0.875rem;
+    color: var(--sl-color-gray-3);
+  }
+
+  .feature-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .feature-card {
+    padding: 1.5rem;
+    border-radius: 0.75rem;
+    border: 1px solid var(--sl-color-gray-5);
+    background: var(--sl-color-bg-nav);
+    transition: border-color 0.2s ease, transform 0.2s ease;
+  }
+
+  .feature-card:hover {
+    border-color: var(--sl-color-accent);
+    transform: translateY(-2px);
+  }
+
+  .feature-card h3 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--sl-color-white);
+  }
+
+  .feature-card p {
+    font-size: 0.875rem;
+    color: var(--sl-color-gray-3);
+    margin: 0;
+  }
+
+  .disclaimer-box {
+    margin: 3rem auto;
+    max-width: 700px;
+    padding: 1.25rem 1.5rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--sl-color-gray-5);
+    background: var(--sl-color-bg-nav);
+    text-align: left;
+  }
+
+  .disclaimer-box strong {
+    color: var(--sl-color-accent);
+  }
+
+  .disclaimer-box p {
+    font-size: 0.875rem;
+    color: var(--sl-color-gray-3);
+    margin: 0;
+  }
+
+  @media (max-width: 768px) {
+    .hero-section {
+      padding: 2rem 1rem;
+    }
+
+    .cta-buttons {
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .cta-button {
+      width: 100%;
+      max-width: 280px;
+      justify-content: center;
+    }
+  }
+</style>
+
+
+

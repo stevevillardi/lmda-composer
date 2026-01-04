@@ -1,0 +1,228 @@
+---
+title: Keyboard Shortcuts
+description: Complete reference for LMDA Composer keyboard shortcuts.
+---
+
+import { Card, CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
+
+LMDA Composer provides extensive keyboard shortcuts for efficient workflow. This page lists all available shortcuts.
+
+## Global Shortcuts
+
+These shortcuts work anywhere in LMDA Composer:
+
+| Action | Windows/Linux | Mac |
+|--------|---------------|-----|
+| Open Command Palette | <kbd>Ctrl</kbd>+<kbd>K</kbd> | <kbd>Cmd</kbd>+<kbd>K</kbd> |
+| Open Settings | <kbd>Ctrl</kbd>+<kbd>,</kbd> | <kbd>Cmd</kbd>+<kbd>,</kbd> |
+| Toggle Right Sidebar | <kbd>Ctrl</kbd>+<kbd>B</kbd> | <kbd>Cmd</kbd>+<kbd>B</kbd> |
+
+---
+
+## File Operations
+
+| Action | Windows/Linux | Mac |
+|--------|---------------|-----|
+| New File | <kbd>Ctrl</kbd>+<kbd>N</kbd> | <kbd>Cmd</kbd>+<kbd>N</kbd> |
+| Open File | <kbd>Ctrl</kbd>+<kbd>O</kbd> | <kbd>Cmd</kbd>+<kbd>O</kbd> |
+| Save File | <kbd>Ctrl</kbd>+<kbd>S</kbd> | <kbd>Cmd</kbd>+<kbd>S</kbd> |
+| Save As | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> |
+| Export (Download) | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> |
+
+---
+
+## Editor Shortcuts
+
+<Tabs>
+  <TabItem label="Basic Editing" icon="pencil">
+    | Action | Windows/Linux | Mac |
+    |--------|---------------|-----|
+    | Undo | <kbd>Ctrl</kbd>+<kbd>Z</kbd> | <kbd>Cmd</kbd>+<kbd>Z</kbd> |
+    | Redo | <kbd>Ctrl</kbd>+<kbd>Y</kbd> | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> |
+    | Cut Line/Selection | <kbd>Ctrl</kbd>+<kbd>X</kbd> | <kbd>Cmd</kbd>+<kbd>X</kbd> |
+    | Copy Line/Selection | <kbd>Ctrl</kbd>+<kbd>C</kbd> | <kbd>Cmd</kbd>+<kbd>C</kbd> |
+    | Paste | <kbd>Ctrl</kbd>+<kbd>V</kbd> | <kbd>Cmd</kbd>+<kbd>V</kbd> |
+    | Select All | <kbd>Ctrl</kbd>+<kbd>A</kbd> | <kbd>Cmd</kbd>+<kbd>A</kbd> |
+    | Select Next Occurrence | <kbd>Ctrl</kbd>+<kbd>D</kbd> | <kbd>Cmd</kbd>+<kbd>D</kbd> |
+    | Select All Occurrences | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd> | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd> |
+  </TabItem>
+  
+  <TabItem label="Navigation" icon="seti:folder">
+    | Action | Windows/Linux | Mac |
+    |--------|---------------|-----|
+    | Go to Line | <kbd>Ctrl</kbd>+<kbd>G</kbd> | <kbd>Cmd</kbd>+<kbd>G</kbd> |
+    | Go to File | <kbd>Ctrl</kbd>+<kbd>P</kbd> | <kbd>Cmd</kbd>+<kbd>P</kbd> |
+    | Go to Beginning | <kbd>Ctrl</kbd>+<kbd>Home</kbd> | <kbd>Cmd</kbd>+<kbd>↑</kbd> |
+    | Go to End | <kbd>Ctrl</kbd>+<kbd>End</kbd> | <kbd>Cmd</kbd>+<kbd>↓</kbd> |
+    | Move Word Right | <kbd>Ctrl</kbd>+<kbd>→</kbd> | <kbd>Option</kbd>+<kbd>→</kbd> |
+    | Move Word Left | <kbd>Ctrl</kbd>+<kbd>←</kbd> | <kbd>Option</kbd>+<kbd>←</kbd> |
+    | Move Line Up | <kbd>Alt</kbd>+<kbd>↑</kbd> | <kbd>Option</kbd>+<kbd>↑</kbd> |
+    | Move Line Down | <kbd>Alt</kbd>+<kbd>↓</kbd> | <kbd>Option</kbd>+<kbd>↓</kbd> |
+  </TabItem>
+  
+  <TabItem label="Find & Replace" icon="magnifier">
+    | Action | Windows/Linux | Mac |
+    |--------|---------------|-----|
+    | Find | <kbd>Ctrl</kbd>+<kbd>F</kbd> | <kbd>Cmd</kbd>+<kbd>F</kbd> |
+    | Find and Replace | <kbd>Ctrl</kbd>+<kbd>H</kbd> | <kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>F</kbd> |
+    | Find Next | <kbd>F3</kbd> | <kbd>Cmd</kbd>+<kbd>G</kbd> |
+    | Find Previous | <kbd>Shift</kbd>+<kbd>F3</kbd> | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd> |
+    | Search in Modules | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> |
+  </TabItem>
+  
+  <TabItem label="Multi-Cursor" icon="star">
+    | Action | Windows/Linux | Mac |
+    |--------|---------------|-----|
+    | Add Cursor | <kbd>Alt</kbd>+Click | <kbd>Option</kbd>+Click |
+    | Add Cursor Above | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>↑</kbd> | <kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>↑</kbd> |
+    | Add Cursor Below | <kbd>Ctrl</kbd>+<kbd>Alt</kbd>+<kbd>↓</kbd> | <kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>↓</kbd> |
+    | Exit Multi-Cursor | <kbd>Esc</kbd> | <kbd>Esc</kbd> |
+  </TabItem>
+  
+  <TabItem label="Code Folding" icon="list-format">
+    | Action | Windows/Linux | Mac |
+    |--------|---------------|-----|
+    | Fold Region | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>[</kbd> | <kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>[</kbd> |
+    | Unfold Region | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>]</kbd> | <kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>]</kbd> |
+    | Fold All | <kbd>Ctrl</kbd>+<kbd>K</kbd> <kbd>Ctrl</kbd>+<kbd>0</kbd> | <kbd>Cmd</kbd>+<kbd>K</kbd> <kbd>Cmd</kbd>+<kbd>0</kbd> |
+    | Unfold All | <kbd>Ctrl</kbd>+<kbd>K</kbd> <kbd>Ctrl</kbd>+<kbd>J</kbd> | <kbd>Cmd</kbd>+<kbd>K</kbd> <kbd>Cmd</kbd>+<kbd>J</kbd> |
+  </TabItem>
+</Tabs>
+
+### Comments
+
+| Action | Windows/Linux | Mac |
+|--------|---------------|-----|
+| Toggle Line Comment | <kbd>Ctrl</kbd>+<kbd>/</kbd> | <kbd>Cmd</kbd>+<kbd>/</kbd> |
+
+---
+
+## Script Execution
+
+| Action | Windows/Linux | Mac |
+|--------|---------------|-----|
+| Run Script / Send API Request | <kbd>Ctrl</kbd>+<kbd>Enter</kbd> | <kbd>Cmd</kbd>+<kbd>Enter</kbd> |
+| Run Script / Send API Request | <kbd>F5</kbd> | <kbd>F5</kbd> |
+
+---
+
+## Output Panel
+
+| Action | Windows/Linux | Mac |
+|--------|---------------|-----|
+| Copy Output | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> |
+
+---
+
+## Portal Tools
+
+| Action | Windows/Linux | Mac |
+|--------|---------------|-----|
+| Import from LMX (Module Browser) | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd> | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd> |
+| Search LogicModules | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> |
+| AppliesTo Toolbox | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> |
+| Debug Commands | <kbd>Ctrl</kbd>+<kbd>D</kbd> | <kbd>Cmd</kbd>+<kbd>D</kbd> |
+| Toggle API/Script view | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd> | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd> |
+| Refresh Collectors | <kbd>Ctrl</kbd>+<kbd>R</kbd> | <kbd>Cmd</kbd>+<kbd>R</kbd> |
+
+---
+
+## Command Palette
+
+When the Command Palette is open:
+
+| Key | Action |
+|-----|--------|
+| <kbd>↑</kbd> / <kbd>↓</kbd> | Navigate commands |
+| <kbd>Enter</kbd> | Execute command |
+| <kbd>Escape</kbd> | Close palette |
+| Type | Filter commands |
+
+---
+
+## Dialog Navigation
+
+When a dialog is open:
+
+| Key | Action |
+|-----|--------|
+| <kbd>Escape</kbd> | Close dialog |
+| <kbd>Tab</kbd> | Move to next field |
+| <kbd>Shift</kbd>+<kbd>Tab</kbd> | Move to previous field |
+| <kbd>Enter</kbd> | Confirm/Submit |
+
+---
+
+## Tips for Learning Shortcuts
+
+<CardGrid>
+  <Card title="Start with Essentials" icon="star">
+    Most commonly used:
+    1. <kbd>Ctrl</kbd>+<kbd>K</kbd> — Command Palette
+    2. <kbd>Ctrl</kbd>+<kbd>Enter</kbd> — Run Script
+    3. <kbd>Ctrl</kbd>+<kbd>S</kbd> — Save
+    4. <kbd>Ctrl</kbd>+<kbd>B</kbd> — Toggle Sidebar
+  </Card>
+  <Card title="Use Command Palette" icon="magnifier">
+    The Command Palette shows shortcuts next to commands. Search for an action and note the shortcut shown.
+  </Card>
+  <Card title="Build Muscle Memory" icon="rocket">
+    Focus on a few at a time:
+    - Week 1: File operations
+    - Week 2: Script execution
+    - Week 3: Navigation
+    - Week 4: Advanced editing
+  </Card>
+</CardGrid>
+
+---
+
+## Shortcuts by Task
+
+<Tabs>
+  <TabItem label="Writing a Script" icon="pencil">
+    1. <kbd>Ctrl</kbd>+<kbd>N</kbd> — Create new file
+    2. Type your script
+    3. <kbd>Ctrl</kbd>+<kbd>S</kbd> — Save
+    4. <kbd>Ctrl</kbd>+<kbd>Enter</kbd> — Run
+    5. Review output
+  </TabItem>
+  <TabItem label="Debugging" icon="warning">
+    1. <kbd>Ctrl</kbd>+<kbd>O</kbd> — Open file
+    2. <kbd>Ctrl</kbd>+<kbd>F</kbd> — Find problematic code
+    3. Edit and fix
+    4. <kbd>Ctrl</kbd>+<kbd>Enter</kbd> — Run to test
+    5. <kbd>Ctrl</kbd>+<kbd>S</kbd> — Save when fixed
+  </TabItem>
+  <TabItem label="Exploring Modules" icon="seti:folder">
+    1. <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd> — Open module browser
+    2. Navigate with arrow keys
+    3. <kbd>Enter</kbd> — Load module
+    4. <kbd>Ctrl</kbd>+<kbd>Enter</kbd> — Run script
+  </TabItem>
+  <TabItem label="Quick API Test" icon="seti:json">
+    1. <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd> — Toggle to API view
+    2. Type endpoint
+    3. <kbd>Ctrl</kbd>+<kbd>Enter</kbd> — Send request
+    4. Review response
+  </TabItem>
+</Tabs>
+
+---
+
+## Customizing Shortcuts
+
+<Aside type="note">
+  Currently, keyboard shortcuts cannot be customized. The shortcuts are based on standard conventions from VS Code and common editor patterns.
+</Aside>
+
+---
+
+## Next Steps
+
+<LinkCard
+  title="Troubleshooting"
+  description="Solutions for common issues with LMDA Composer."
+  href="/lmda-composer/reference/troubleshooting/"
+/>
+

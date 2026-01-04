@@ -1,0 +1,149 @@
+---
+title: Quick Start
+description: Get up and running with LMDA Composer in minutes.
+---
+
+import { Card, CardGrid, Steps, Tabs, TabItem, Aside, LinkCard } from '@astrojs/starlight/components';
+import { Icon } from '@astrojs/starlight/components';
+import StepCard from '../../../components/StepCard.astro';
+import FeatureCard from '../../../components/FeatureCard.astro';
+
+This guide walks you through connecting to your LogicMonitor portal and running your first script.
+
+## Getting Started
+
+<Steps>
+
+1. ### Log into LogicMonitor
+
+   Open a browser tab and log into your LogicMonitor portal (e.g., `https://yourcompany.logicmonitor.com`).
+
+   <Aside type="note">
+     LMDA Composer uses your existing browser session—no API credentials needed. The extension automatically detects your active sessions.
+   </Aside>
+
+2. ### Open LMDA Composer
+
+   Click the LMDA Composer icon in your browser toolbar. The composer opens in a new tab displaying the welcome screen.
+
+   {/* Screenshot placeholder */}
+   <div class="screenshot-placeholder" style="background: var(--sl-color-gray-6); border: 2px dashed var(--sl-color-gray-4); border-radius: 0.5rem; padding: 3rem 2rem; text-align: center; margin: 1rem 0;">
+     <Icon name="image" size="2rem" />
+     <p style="margin: 0.5rem 0 0 0; color: var(--sl-color-gray-3); font-size: 0.875rem;">
+       Screenshot: quickstart-welcome.png<br />
+       <em>The welcome screen after opening LMDA Composer</em>
+     </p>
+   </div>
+
+3. ### Select Your Context
+
+   Before running a script, configure your execution context using the **Context** dropdown in the toolbar:
+
+   <CardGrid>
+     <Card title="Portal" icon="globe">
+       Select your LogicMonitor portal from detected sessions. Connected portals show a green indicator.
+     </Card>
+     <Card title="Collector" icon="server">
+       Choose which collector runs your scripts. Only online collectors can execute code.
+     </Card>
+     <Card title="Device" icon="laptop">
+       Optional. Select a device if your script needs host properties like `system.hostname`.
+     </Card>
+   </CardGrid>
+
+   {/* Screenshot placeholder */}
+   <div class="screenshot-placeholder" style="background: var(--sl-color-gray-6); border: 2px dashed var(--sl-color-gray-4); border-radius: 0.5rem; padding: 3rem 2rem; text-align: center; margin: 1rem 0;">
+     <Icon name="image" size="2rem" />
+     <p style="margin: 0.5rem 0 0 0; color: var(--sl-color-gray-3); font-size: 0.875rem;">
+       Screenshot: quickstart-context.png<br />
+       <em>The context dropdown showing Portal, Collector, and Device selection</em>
+     </p>
+   </div>
+
+4. ### Write Your First Script
+
+   Click **New File** or press <kbd>Ctrl</kbd>+<kbd>N</kbd> / <kbd>⌘</kbd>+<kbd>N</kbd> to create a new script tab.
+
+   Replace the default template with this simple script:
+
+   ```groovy
+   println "Hello from LMDA Composer!"
+   println "Current time: " + new Date()
+   return 0
+   ```
+
+5. ### Run the Script
+
+   Click the **Run Script** button or press <kbd>Ctrl</kbd>+<kbd>Enter</kbd> / <kbd>⌘</kbd>+<kbd>Enter</kbd>.
+
+   Watch the output appear in the Output Panel below the editor. A green "Complete" badge indicates successful execution.
+
+   {/* Screenshot placeholder */}
+   <div class="screenshot-placeholder" style="background: var(--sl-color-gray-6); border: 2px dashed var(--sl-color-gray-4); border-radius: 0.5rem; padding: 3rem 2rem; text-align: center; margin: 1rem 0;">
+     <Icon name="image" size="2rem" />
+     <p style="margin: 0.5rem 0 0 0; color: var(--sl-color-gray-3); font-size: 0.875rem;">
+       Screenshot: quickstart-output.png<br />
+       <em>Output panel showing successful execution with "Complete" status</em>
+     </p>
+   </div>
+
+</Steps>
+
+## Understanding the Output
+
+The Output Panel has different views depending on your execution mode:
+
+<Tabs>
+  <TabItem label="Raw Output" icon="document">
+    The complete text output from your script, exactly as returned by the collector.
+  </TabItem>
+  <TabItem label="Parsed" icon="list-format">
+    Structured view showing:
+    - **AD Mode**: Discovered instances in a table
+    - **Collection Mode**: Datapoints with values
+    - **Batch Mode**: Grouped datapoints by instance
+  </TabItem>
+  <TabItem label="Validation" icon="approve-check-circle">
+    Errors and warnings based on the current mode's output format requirements. Green checkmark means all output is valid.
+  </TabItem>
+</Tabs>
+
+## What's Next?
+
+Now that you've run your first script, explore these features:
+
+<CardGrid stagger>
+  <LinkCard
+    title="Execution Modes"
+    description="Learn about Freeform, AD, Collection, and Batch Collection modes."
+    href="/lmda-composer/core-features/execution-modes/"
+  />
+  <LinkCard
+    title="LogicModule Browser"
+    description="Import scripts from existing modules in your portal."
+    href="/lmda-composer/portal-tools/logicmodule-browser/"
+  />
+  <LinkCard
+    title="Snippets Library"
+    description="Use templates and patterns to speed up script development."
+    href="/lmda-composer/workspace/snippets/"
+  />
+  <LinkCard
+    title="Interface Overview"
+    description="Take a complete tour of the workspace."
+    href="/lmda-composer/getting-started/interface/"
+  />
+</CardGrid>
+
+## Pro Tips
+
+<Aside type="tip" title="Use the Command Palette">
+  Press <kbd>Ctrl</kbd>+<kbd>K</kbd> / <kbd>⌘</kbd>+<kbd>K</kbd> to open the command palette. It provides quick access to all features and shows keyboard shortcuts.
+</Aside>
+
+<Aside type="tip" title="Launch from LogicMonitor">
+  When viewing a device in LogicMonitor, right-click and select **Open in LMDA Composer** to open the composer with that device pre-selected.
+</Aside>
+
+
+

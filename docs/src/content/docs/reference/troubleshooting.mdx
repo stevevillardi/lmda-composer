@@ -1,0 +1,405 @@
+---
+title: Troubleshooting
+description: Solutions for common issues with LMDA Composer.
+---
+
+import { Card, CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
+import StatusBadge from '../../../components/StatusBadge.astro';
+
+This guide covers common issues you might encounter with LMDA Composer and how to resolve them.
+
+## Connection Issues
+
+<Tabs>
+  <TabItem label="No Portals Detected" icon="warning">
+    **Symptoms:**
+    - Portal dropdown is empty
+    - "No portals found" message
+
+    **Solutions:**
+
+    <Steps>
+
+    1. **Log into LogicMonitor**  
+       Open a new tab, navigate to your LogicMonitor portal, and log in with your credentials.
+
+    2. **Wait for full load**  
+       Ensure the LogicMonitor dashboard fully loads (not just the login page).
+
+    3. **Return to LMDA Composer**  
+       Click refresh in the Context dropdown.
+
+    4. **Multiple Portals**  
+       Each portal needs its own logged-in tab. Open separate tabs for each portal.
+
+    </Steps>
+
+    <Aside type="tip">
+      Some browsers block cross-tab communication. Try Chrome if using another browser.
+    </Aside>
+  </TabItem>
+  
+  <TabItem label="Session Expired" icon="close">
+    **Symptoms:**
+    - Portal shows <StatusBadge status="error" label="Offline" />
+    - Scripts fail with 401 errors
+    - "Unauthorized" messages
+
+    **Solutions:**
+
+    <Steps>
+
+    1. Open the LogicMonitor tab
+
+    2. Log in again if prompted
+
+    3. Return to LMDA Composer
+
+    4. Click refresh in Context dropdown
+
+    </Steps>
+
+    <Aside type="note">
+      LogicMonitor sessions expire after inactivity. Keep the LM tab active or re-login periodically.
+    </Aside>
+  </TabItem>
+  
+  <TabItem label="Collector Offline" icon="rocket">
+    **Symptoms:**
+    - Collector shows offline status
+    - Cannot select the collector
+    - Scripts can't execute
+
+    **Solutions:**
+
+    <Steps>
+
+    1. **Verify in LogicMonitor**  
+       Check collector status in Settings → Collectors
+
+    2. **Restart Collector**  
+       On the collector server, restart the collector service
+
+    3. **Check Network**  
+       Verify the collector can reach LogicMonitor and check firewall rules
+
+    </Steps>
+  </TabItem>
+</Tabs>
+
+---
+
+## Script Execution Issues
+
+<Tabs>
+  <TabItem label="Script Won't Run" icon="warning">
+    **Symptoms:**
+    - Run button doesn't respond
+    - No output appears
+    - Execution never starts
+
+    **Solutions:**
+
+    <CardGrid>
+      <Card title="Check Context" icon="setting">
+        Ensure portal is selected, collector is selected, and collector is online.
+      </Card>
+      <Card title="Check for Running Execution" icon="rocket">
+        Only one execution at a time. Cancel current execution first. Look for spinner on Run button.
+      </Card>
+      <Card title="Script Errors" icon="warning">
+        Check for syntax errors. Validate script compiles. Review error messages.
+      </Card>
+    </CardGrid>
+  </TabItem>
+  
+  <TabItem label="Script Times Out" icon="rocket">
+    **Symptoms:**
+    - Execution runs too long
+    - <StatusBadge status="timeout" label="Timeout" /> error appears
+    - Partial output visible
+
+    **Solutions:**
+
+    <Steps>
+
+    1. **Optimize Script**  
+       Reduce execution time, add efficient queries, avoid infinite loops
+
+    2. **Check Target Device**  
+       Device may be slow to respond, network latency, or overloaded
+
+    3. **Simplify for Testing**  
+       Test smaller portions, use fewer iterations, add debug output
+
+    </Steps>
+  </TabItem>
+  
+  <TabItem label="PowerShell on Linux" icon="close">
+    **Symptoms:**
+    - PowerShell script fails
+    - Error about script type
+    - Collector compatibility warning
+
+    **Solution:**
+
+    <Aside type="caution">
+      PowerShell scripts only run on Windows collectors. Select a Windows collector or convert your script to Groovy.
+    </Aside>
+  </TabItem>
+</Tabs>
+
+---
+
+## Editor Issues
+
+<Tabs>
+  <TabItem label="Editor Not Loading" icon="warning">
+    **Symptoms:**
+    - Editor area is blank
+    - No syntax highlighting
+    - Can't type in editor
+
+    **Solutions:**
+
+    <Steps>
+
+    1. **Refresh the Page**  
+       Press <kbd>F5</kbd> or <kbd>Ctrl</kbd>+<kbd>R</kbd>
+
+    2. **Clear Browser Cache**  
+       Settings → Clear browsing data → Clear cached files
+
+    3. **Check Extensions**  
+       Other browser extensions may conflict—disable and test
+
+    </Steps>
+  </TabItem>
+  
+  <TabItem label="Wrong Syntax Highlighting" icon="pencil">
+    **Symptoms:**
+    - Colors don't match language
+    - Keywords not highlighted
+    - Editor confused
+
+    **Solutions:**
+
+    1. **Check Language Setting**  
+       Verify Groovy/PowerShell toggle is correct
+
+    2. **File Extension**  
+       Opening `.ps1` should set PowerShell  
+       Opening `.groovy` should set Groovy
+
+    3. **Switch and Switch Back**  
+       Toggle the language setting to refresh
+  </TabItem>
+</Tabs>
+
+---
+
+## File System Issues
+
+<Tabs>
+  <TabItem label="Can't Save Files" icon="warning">
+    **Symptoms:**
+    - Save triggers download instead
+    - "Permission denied" errors
+    - Save dialog every time
+
+    **Solutions:**
+
+    <Steps>
+
+    1. **Grant Permissions**  
+       Browser may need file access permission. Click "Allow" when prompted. Choose "Edit" not "View".
+
+    2. **Browser Support**  
+       File System Access requires Chrome/Edge. Firefox/Safari use download fallback.
+
+    3. **Brave Browser**  
+       May require enabling File System Access API in `brave://flags`
+
+    </Steps>
+  </TabItem>
+  
+  <TabItem label="File Handle Lost" icon="close">
+    **Symptoms:**
+    - "File no longer available"
+    - Can't save to original location
+    - Need to Save As
+
+    **Solutions:**
+
+    1. **Reconnect File**  
+       Use Save As to re-establish handle, select the same file
+
+    2. **File Was Moved**  
+       Locate file in new location and open again
+  </TabItem>
+  
+  <TabItem label="Drafts Not Recovering" icon="history">
+    **Symptoms:**
+    - No draft recovery prompt
+    - Lost unsaved work
+    - Drafts seem missing
+
+    **Solutions:**
+
+    1. **Check Browser Storage**  
+       Storage may be full—clear some browser data
+
+    2. **Same Browser Required**  
+       Drafts are per-browser. Use the same browser where you worked.
+  </TabItem>
+</Tabs>
+
+---
+
+## API Explorer Issues
+
+<Tabs>
+  <TabItem label="Request Fails" icon="warning">
+    **Symptoms:**
+    - 400/401/403/500 errors
+    - Request doesn't complete
+    - Unexpected error messages
+
+    **Solutions:**
+
+    <CardGrid>
+      <Card title="Check Endpoint Path" icon="seti:json">
+        Verify path is correct. Include required path parameters. Check LogicMonitor API docs.
+      </Card>
+      <Card title="Check Request Body" icon="document">
+        Validate JSON syntax. Include required fields. Check data types.
+      </Card>
+      <Card title="Check Permissions" icon="close">
+        403 means insufficient permissions. Verify your user role. Contact admin if needed.
+      </Card>
+      <Card title="Rate Limiting" icon="rocket">
+        429 means rate limited. Wait before retrying. Reduce request frequency.
+      </Card>
+    </CardGrid>
+  </TabItem>
+  
+  <TabItem label="Response Not Displaying" icon="document">
+    **Symptoms:**
+    - Response area blank
+    - JSON not formatted
+    - Truncated response
+
+    **Solutions:**
+
+    1. **Large Response**  
+       Very large responses may truncate. Increase response limit in Settings. Use `fields` parameter to reduce size.
+
+    2. **Invalid JSON**  
+       Some endpoints return non-JSON. Check Content-Type header.
+  </TabItem>
+</Tabs>
+
+---
+
+## Module Operations
+
+<Tabs>
+  <TabItem label="Can't Commit Changes" icon="warning">
+    **Symptoms:**
+    - Commit button disabled
+    - Commit fails with error
+    - Changes not saved to LM
+
+    **Solutions:**
+
+    <Steps>
+
+    1. **Check Module Binding**  
+       Tab must be bound to a module. Local files can't commit. Look for link icon on tab.
+
+    2. **Check Portal Match**  
+       Active portal must match bound portal. Switch portals if needed.
+
+    3. **Check Permissions**  
+       Need write access to the module. Verify role in LogicMonitor.
+
+    4. **Validation Errors**  
+       Check for error messages. Fix issues before committing.
+
+    </Steps>
+  </TabItem>
+  
+  <TabItem label="Module Not Found" icon="close">
+    **Symptoms:**
+    - "Module not found" error
+    - Can't load module script
+    - Browser shows empty list
+
+    **Solutions:**
+
+    1. **Check Portal**  
+       Ensure correct portal is selected. Module may be in different portal.
+
+    2. **Module Deleted**  
+       Module may have been removed. Check in LogicMonitor.
+
+    3. **Permissions**  
+       May not have access to the module. Check with administrator.
+  </TabItem>
+</Tabs>
+
+---
+
+## Performance Issues
+
+<CardGrid>
+  <Card title="Slow Performance" icon="rocket">
+    **Symptoms:** Typing lag, slow scrolling, delayed responses
+
+    **Solutions:**
+    - Large files may be slow—split into smaller files
+    - Close unused tabs
+    - Close other browser tabs
+    - Disable Minimap in Settings
+  </Card>
+  <Card title="High Memory Usage" icon="warning">
+    **Symptoms:** Browser using lots of RAM, system slowdown
+
+    **Solutions:**
+    - Each tab uses memory—close when done
+    - Clear large history
+    - Refresh page periodically (save work first)
+  </Card>
+</CardGrid>
+
+---
+
+## Getting Help
+
+<CardGrid>
+  <Card title="Report a Bug" icon="github">
+    1. Note the steps to reproduce
+    2. Check browser console for errors (<kbd>F12</kbd>)
+    3. Create an issue on GitHub
+    4. Include browser and OS version
+  </Card>
+  <Card title="Community Support" icon="star">
+    - GitHub Discussions for questions
+    - Review existing issues for solutions
+    - Contribute fixes if you can
+  </Card>
+  <Card title="Check for Updates" icon="rocket">
+    Ensure you're running the latest version. Check extension version in Settings. Compare with releases on GitHub.
+  </Card>
+</CardGrid>
+
+---
+
+## Next Steps
+
+<LinkCard
+  title="FAQ"
+  description="Frequently asked questions about LMDA Composer."
+  href="/lmda-composer/reference/faq/"
+/>
+

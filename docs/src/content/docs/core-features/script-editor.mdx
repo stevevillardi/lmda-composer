@@ -1,0 +1,207 @@
+---
+title: Script Editor
+description: Learn about the Monaco-powered code editor and its features.
+---
+
+import { Card, CardGrid, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
+import { Icon } from '@astrojs/starlight/components';
+import FeatureCard from '../../../components/FeatureCard.astro';
+
+LMDA Composer uses the Monaco editor—the same editor that powers VS Code—providing a professional coding experience for Groovy and PowerShell scripts.
+
+## Language Support
+
+<Tabs>
+  <TabItem label="Groovy" icon="seti:groovy">
+    Groovy is the primary scripting language for LogicMonitor modules:
+
+    - Full syntax highlighting for keywords, strings, and comments
+    - Bracket matching and auto-closing
+    - Code folding for classes and methods
+    - String interpolation highlighting (`${variable}`)
+    - GString and regular expression support
+
+    ```groovy
+    // Example Groovy script
+    def host = hostProps.get("system.hostname")
+    def result = Snmp.get(host, "1.3.6.1.2.1.1.5.0")
+    println "SysName=${result}"
+    return 0
+    ```
+  </TabItem>
+  
+  <TabItem label="PowerShell" icon="seti:powershell">
+    PowerShell support for Windows-based collection:
+
+    - Cmdlet and function highlighting
+    - Variable highlighting (`$variable`)
+    - String and here-string support
+    - Comment block support
+
+    ```powershell
+    # Example PowerShell script
+    $hostname = "##SYSTEM.HOSTNAME##"
+    $cpu = Get-Counter '\Processor(_Total)\% Processor Time'
+    Write-Host "CpuUsage=$($cpu.CounterSamples.CookedValue)"
+    exit 0
+    ```
+
+    <Aside type="caution" title="Windows Collectors Only">
+      PowerShell scripts can only run on Windows collectors. Selecting a Linux collector with a PowerShell script displays a warning.
+    </Aside>
+  </TabItem>
+</Tabs>
+
+## Switching Languages
+
+Use the language toggle in the toolbar to switch between Groovy and PowerShell:
+
+1. Click the language badge (<Badge text="Groovy" variant="success" /> or <Badge text="PowerShell" variant="note" />) in the toolbar
+2. If you have unsaved changes, a confirmation dialog appears
+3. Confirm to switch and reset to the default template, or cancel to keep your current script
+
+---
+
+## Editor Features
+
+<CardGrid>
+  <Card title="Find & Replace" icon="magnifier">
+    Press <kbd>Ctrl</kbd>+<kbd>F</kbd> to search. Supports regex, case-sensitive, and whole word matching. <kbd>Ctrl</kbd>+<kbd>H</kbd> for replace.
+  </Card>
+  <Card title="Multiple Cursors" icon="pencil">
+    <kbd>Alt</kbd>+Click to add cursors. <kbd>Ctrl</kbd>+<kbd>D</kbd> selects next occurrence. Edit multiple locations at once.
+  </Card>
+  <Card title="Code Folding" icon="list-format">
+    Click fold icons in the gutter to collapse methods, classes, and comment blocks for easier navigation.
+  </Card>
+  <Card title="Go to Line" icon="forward-slash">
+    Press <kbd>Ctrl</kbd>+<kbd>G</kbd> to jump to any line number. Essential for navigating large scripts.
+  </Card>
+</CardGrid>
+
+### Keyboard Shortcuts
+
+<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; margin: 1rem 0; font-size: 0.875rem;">
+  <div><kbd>Ctrl</kbd>+<kbd>F</kbd> – Find</div>
+  <div><kbd>Ctrl</kbd>+<kbd>H</kbd> – Find & Replace</div>
+  <div><kbd>Ctrl</kbd>+<kbd>G</kbd> – Go to Line</div>
+  <div><kbd>Ctrl</kbd>+<kbd>D</kbd> – Select Next Occurrence</div>
+  <div><kbd>Ctrl</kbd>+<kbd>/</kbd> – Toggle Comment</div>
+  <div><kbd>Ctrl</kbd>+<kbd>]</kbd> – Indent Line</div>
+  <div><kbd>Ctrl</kbd>+<kbd>[</kbd> – Outdent Line</div>
+  <div><kbd>Alt</kbd>+<kbd>↑/↓</kbd> – Move Line Up/Down</div>
+</div>
+
+---
+
+## PowerShell Token Substitution
+
+When writing PowerShell scripts, you can use LogicMonitor's token syntax to access device properties:
+
+```powershell
+$hostname = "##SYSTEM.HOSTNAME##"
+$displayName = "##SYSTEM.DISPLAYNAME##"
+$customProp = "##auto.custom.property##"
+```
+
+When you run the script, LMDA Composer:
+
+1. Detects `##PROPERTY.NAME##` patterns in your code
+2. Fetches device properties from the selected device
+3. Substitutes tokens with actual property values
+4. Executes the script with substituted values
+
+<Aside type="tip" title="Token Behavior">
+  - Property lookup is **case-insensitive**
+  - Missing properties are replaced with **empty strings**
+  - A warning appears if any tokens couldn't be resolved
+</Aside>
+
+---
+
+## Editor Settings
+
+Customize the editor experience in **Settings** (<kbd>Ctrl</kbd>+<kbd>,</kbd>):
+
+{/* Screenshot placeholder */}
+<div class="screenshot-placeholder" style="background: var(--sl-color-gray-6); border: 2px dashed var(--sl-color-gray-4); border-radius: 0.5rem; padding: 2.5rem 2rem; text-align: center; margin: 1rem 0;">
+  <Icon name="image" size="1.5rem" />
+  <p style="margin: 0.5rem 0 0 0; color: var(--sl-color-gray-3); font-size: 0.8rem;">
+    Screenshot: editor-settings.png<br />
+    <em>Settings dialog with editor configuration options</em>
+  </p>
+</div>
+
+<div style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); margin: 1.5rem 0;">
+  <FeatureCard title="Font Size" icon="text" color="blue">
+    Adjust from 10px to 24px for comfortable reading on any display.
+  </FeatureCard>
+  <FeatureCard title="Tab Size" icon="forward-slash" color="green">
+    Set indentation width from 2 to 8 spaces. Default is 2.
+  </FeatureCard>
+  <FeatureCard title="Word Wrap" icon="list-format" color="purple">
+    Enable to wrap long lines within the viewport instead of horizontal scrolling.
+  </FeatureCard>
+  <FeatureCard title="Minimap" icon="laptop" color="orange">
+    Toggle the code overview minimap on the right side of the editor.
+  </FeatureCard>
+</div>
+
+---
+
+## Working with Tabs
+
+Each open file gets its own tab in the tab bar:
+
+### Creating New Files
+
+- Click **New File** on the welcome screen
+- Click the **+** button in the tab bar
+- Press <kbd>Ctrl</kbd>+<kbd>N</kbd>
+
+### Opening Files
+
+- Click **Open File** to load from your local disk
+- Use **Import from LMX** to load scripts from portal modules
+- Drag and drop files onto the editor
+
+### Managing Tabs
+
+- Click the **×** on any tab to close it
+- Right-click a tab for options: Rename, Close, Close Others, Close All
+- Tabs with unsaved changes show a dot indicator
+- Press <kbd>Ctrl</kbd>+<kbd>W</kbd> to close the active tab
+
+<Aside type="note">
+  Double-click a tab name to rename it. This is not available for local files—their names match the filesystem.
+</Aside>
+
+---
+
+## Character Limit
+
+LogicMonitor scripts have a **64,000 character limit**. The status bar displays your current count with visual warnings:
+
+<div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin: 1rem 0;">
+  <Badge text="< 50,000" variant="success" /> Normal
+  <Badge text="50,000+" variant="caution" /> Warning
+  <Badge text="60,000+" variant="danger" /> Alert
+  <Badge text="> 64,000" variant="danger" /> Error
+</div>
+
+<Aside type="caution" title="Script Size Limit">
+  Scripts exceeding 64,000 characters cannot be saved to LogicMonitor modules. Split large scripts into smaller components or use external resources.
+</Aside>
+
+---
+
+## Next Steps
+
+<LinkCard
+  title="Execution Modes"
+  description="Learn about Freeform, Active Discovery, Collection, and Batch modes."
+  href="/lmda-composer/core-features/execution-modes/"
+/>
+
+
+

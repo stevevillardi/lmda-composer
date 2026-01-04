@@ -1,0 +1,252 @@
+---
+title: LogicModule Browser
+description: Browse and import scripts from existing LogicModules in your portal.
+---
+
+import { Card, CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
+import { Icon } from '@astrojs/starlight/components';
+import ModuleTypeBadge from '../../../components/ModuleTypeBadge.astro';
+import FeatureCard from '../../../components/FeatureCard.astro';
+
+The LogicModule Browser lets you explore all LogicModules in your portal and import their scripts into LMDA Composer for editing and testing.
+
+## Opening the Browser
+
+<CardGrid>
+  <Card title="Welcome Screen" icon="rocket">
+    Click **Browse Modules** or the modules icon on the welcome screen.
+  </Card>
+  <Card title="Command Palette" icon="magnifier">
+    Press <kbd>Ctrl</kbd>+<kbd>K</kbd> and type "Browse" to open quickly.
+  </Card>
+  <Card title="Actions Menu" icon="list-format">
+    Click **Actions → Browse LogicModules** in the toolbar.
+  </Card>
+</CardGrid>
+
+---
+
+## Browser Interface
+
+{/* Screenshot placeholder */}
+<div class="screenshot-placeholder" style="background: var(--sl-color-gray-6); border: 2px dashed var(--sl-color-gray-4); border-radius: 0.5rem; padding: 2.5rem 2rem; text-align: center; margin: 1.5rem 0;">
+  <Icon name="image" size="1.5rem" />
+  <p style="margin: 0.5rem 0 0 0; color: var(--sl-color-gray-3); font-size: 0.8rem;">
+    Screenshot: browser-interface.png<br />
+    <em>LogicModule Browser showing module list and script preview</em>
+  </p>
+</div>
+
+### Module Type Filter
+
+Toggle between module types at the top of the browser:
+
+<div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 1rem 0;">
+  <ModuleTypeBadge type="datasource" />
+  <ModuleTypeBadge type="configsource" />
+  <ModuleTypeBadge type="eventsource" />
+  <ModuleTypeBadge type="propertysource" />
+  <ModuleTypeBadge type="topologysource" />
+  <ModuleTypeBadge type="snmpsysoidmap" />
+</div>
+
+Click a type to filter the module list. Multiple types can be selected simultaneously.
+
+### Search
+
+Type in the search box to filter modules by:
+- Module name
+- Display name  
+- Description
+
+Search is case-insensitive and matches partial strings.
+
+### Module List
+
+The left panel shows matching modules with:
+- Module display name
+- Module type badge
+- Description preview
+- Scroll to load more results (first 100 shown initially)
+
+---
+
+## Previewing Scripts
+
+Click a module in the list to see its available scripts:
+
+### Preview Panel
+
+The right panel displays:
+
+<div style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin: 1rem 0;">
+  <FeatureCard title="Module Info" icon="information" color="blue">
+    Name, type, and description of the selected module.
+  </FeatureCard>
+  <FeatureCard title="Script Selector" icon="document" color="green">
+    Choose which script to preview: Groovy, PowerShell, AD, or Pre-script.
+  </FeatureCard>
+  <FeatureCard title="Script Preview" icon="seti:groovy" color="purple">
+    Syntax-highlighted read-only view of the script content.
+  </FeatureCard>
+</div>
+
+### Scripts by Module Type
+
+| Module Type | Available Scripts |
+|-------------|-------------------|
+| <ModuleTypeBadge type="datasource" /> | AD Script, Collection Script, Pre-script |
+| <ModuleTypeBadge type="configsource" /> | Collection Script |
+| <ModuleTypeBadge type="eventsource" /> | Collection Script |
+| <ModuleTypeBadge type="propertysource" /> | Groovy or PowerShell |
+| <ModuleTypeBadge type="topologysource" /> | Groovy Script |
+
+---
+
+## Loading a Script
+
+<Steps>
+
+1. **Select a module** from the list on the left
+
+2. **Choose the script type** you want to load (AD, Collection, etc.)
+
+3. **Click Load Script** to open it in a new editor tab
+
+</Steps>
+
+The script opens with:
+- **Module binding** – linked to the portal module for committing changes
+- **Correct language** – Groovy or PowerShell automatically selected
+- **Appropriate mode** – Execution mode matches the script type
+
+<Aside type="note" title="Unsaved Changes">
+  If you have unsaved changes in the current tab, a confirmation dialog appears. Choose to save, discard, or cancel.
+</Aside>
+
+### Creating a Copy
+
+To work on a script without affecting the original:
+
+1. Load the script normally
+2. Click **Actions → Save As** to save locally
+3. The local copy is independent of the module
+
+---
+
+## Module Binding
+
+When you load a module script, the tab becomes "bound" to that module:
+
+<Tabs>
+  <TabItem label="Bound Tab" icon="external">
+    When loaded from a LogicModule:
+
+    - Shows a link icon <Icon name="external" size="1rem" /> on the tab
+    - **Commit** button is available to push changes
+    - Module name displays in the tab
+    - Portal binding is remembered
+    - Can edit module details (metadata)
+  </TabItem>
+  
+  <TabItem label="Unbound Tab" icon="document">
+    Local files or new scripts:
+
+    - No link icon on the tab
+    - No Commit option (must bind first)
+    - Generic tab name
+    - Not associated with any portal
+    - Cannot edit module details
+  </TabItem>
+</Tabs>
+
+---
+
+## Import Options
+
+### Import from LogicModule Exchange (LMX)
+
+Access community modules:
+
+<Steps>
+
+1. Click **Import from LMX** on the welcome screen
+
+2. Browse or search the LogicModule Exchange catalog
+
+3. Import the module into your portal
+
+4. Then browse and load the script using the LogicModule Browser
+
+</Steps>
+
+### Direct URL Import
+
+If you have a module URL from LogicMonitor:
+- Right-click a module in LogicMonitor → **Open in LMDA Composer**
+- LMDA Composer parses the link and loads the module
+
+---
+
+## Pagination
+
+For portals with many modules:
+
+- Initial load shows the first **100 modules**
+- Scroll to the bottom to load more
+- "Loading more..." indicator appears during fetch
+- Search filters are applied server-side for efficiency
+
+---
+
+## Troubleshooting
+
+<Aside type="caution" title="No Modules Displayed">
+  1. Verify you're logged into a LogicMonitor portal
+  2. Check that a portal is selected in the Context dropdown
+  3. Try selecting different module type filters
+  4. Refresh the browser with <kbd>F5</kbd>
+</Aside>
+
+<Aside type="caution" title="Can't Find a Module">
+  1. Clear all search filters
+  2. Ensure all module types are enabled
+  3. Verify the module exists in **Settings → LogicModules**
+  4. The module may be in a different portal
+</Aside>
+
+<Aside type="caution" title="Script Preview Empty">
+  Some modules don't have traditional scripts:
+  - SNMP-based modules may only have OID configurations
+  - Some modules use DataSource Templates
+  - Check if the script is in a different section (AD vs Collection)
+</Aside>
+
+---
+
+## Best Practices
+
+<CardGrid>
+  <Card title="Organize Your Work" icon="open-book">
+    Use descriptive tab names when loading multiple scripts. Save local copies before making major changes.
+  </Card>
+  <Card title="Test Module Scripts" icon="rocket">
+    Load the AD script first to understand instance discovery. Test with the same device the module targets.
+  </Card>
+  <Card title="Making Changes" icon="pencil">
+    Load → Edit → Test with Run Script → Verify parsed output → Commit changes back to the portal.
+  </Card>
+</CardGrid>
+
+---
+
+## Next Steps
+
+<LinkCard
+  title="LogicModule Search"
+  description="Search across all module scripts to find code patterns and examples."
+  href="/lmda-composer/portal-tools/logicmodule-search/"
+/>
+
+
+

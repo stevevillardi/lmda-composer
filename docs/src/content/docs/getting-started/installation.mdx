@@ -1,0 +1,134 @@
+---
+title: Installation
+description: How to install LMDA Composer for Chrome or Chromium-based browsers.
+---
+
+import { Card, CardGrid, Tabs, TabItem, LinkCard, Aside, Badge } from '@astrojs/starlight/components';
+import { Icon } from '@astrojs/starlight/components';
+import BrowserCard from '../../../components/BrowserCard.astro';
+import FeatureCard from '../../../components/FeatureCard.astro';
+
+LMDA Composer is a Chrome extension that provides a focused workspace for LogicMonitor script development. It works with Chrome, Edge, Brave, and other Chromium-based browsers.
+
+## Prerequisites
+
+Before installing, make sure you have:
+
+<CardGrid>
+  <Card title="Chromium Browser" icon="laptop">
+    Chrome, Edge, Brave, or another Chromium-based browser installed on your computer.
+  </Card>
+  <Card title="LogicMonitor Access" icon="rocket">
+    A LogicMonitor portal account with permission to run scripts on collectors.
+  </Card>
+</CardGrid>
+
+## Installation Methods
+
+Choose your preferred installation method:
+
+<Tabs>
+  <TabItem label="Chrome Web Store" icon="star">
+    The easiest way to install LMDA Composer:
+
+    1. Visit the [LMDA Composer Chrome Web Store page](https://chrome.google.com/webstore)
+    2. Click **Add to Chrome**
+    3. Click **Add extension** in the confirmation popup
+    4. The LMDA Composer icon appears in your toolbar
+
+    <Aside type="tip" title="Pin the Extension">
+      Click the puzzle piece icon in your toolbar, then click the pin icon next to LMDA Composer for quick access.
+    </Aside>
+  </TabItem>
+  
+  <TabItem label="Developer Mode" icon="github">
+    For the latest development version or to contribute:
+
+    1. Clone the repository:
+       ```bash
+       git clone https://github.com/stevevillardi/lmda-composer.git
+       cd lmda-composer
+       ```
+
+    2. Install dependencies and build:
+       ```bash
+       npm install
+       npm run build
+       ```
+
+    3. Load in Chrome:
+       - Navigate to `chrome://extensions`
+       - Enable **Developer mode** (top right)
+       - Click **Load unpacked**
+       - Select the `dist` folder
+
+    <Aside type="note">
+      Developer builds don't auto-update. Pull the latest changes and rebuild to update.
+    </Aside>
+  </TabItem>
+</Tabs>
+
+## Verify Installation
+
+After installing, you should see the LMDA Composer icon in your browser toolbar:
+
+{/* Screenshot placeholder - replace with actual screenshot */}
+<div class="screenshot-placeholder" style="background: var(--sl-color-gray-6); border: 2px dashed var(--sl-color-gray-4); border-radius: 0.5rem; padding: 3rem 2rem; text-align: center; margin: 1.5rem 0;">
+  <Icon name="image" size="2rem" />
+  <p style="margin: 0.5rem 0 0 0; color: var(--sl-color-gray-3); font-size: 0.875rem;">
+    Screenshot: installation-toolbar.png<br />
+    <em>Browser toolbar showing the LMDA Composer extension icon</em>
+  </p>
+</div>
+
+Click the icon to open LMDA Composer in a new tab.
+
+## Browser Compatibility
+
+<BrowserCard name="Google Chrome" icon="seti:chrome" supported={true}>
+  <p>Full support for all features including File System Access API.</p>
+</BrowserCard>
+
+<BrowserCard name="Microsoft Edge" icon="seti:edge" supported={true}>
+  <p>Full support for all features. Works identically to Chrome.</p>
+</BrowserCard>
+
+<BrowserCard name="Brave" icon="seti:default" supported={true} note="Requires configuration">
+  <p>Supported with additional setup. Enable File System Access API:</p>
+  <ol>
+    <li>Open <code>brave://flags</code> in a new tab</li>
+    <li>Search for "File System Access API"</li>
+    <li>Set it to <strong>Enabled</strong></li>
+    <li>Restart Brave</li>
+  </ol>
+</BrowserCard>
+
+<BrowserCard name="Vivaldi" icon="seti:default" supported={true} note="Requires configuration">
+  <p>Supported with file access enabled:</p>
+  <ol>
+    <li>Open <code>vivaldi://extensions</code></li>
+    <li>Select "LMDA Composer"</li>
+    <li>Enable "Allow access to file URLs"</li>
+  </ol>
+</BrowserCard>
+
+<BrowserCard name="Firefox / Safari" icon="seti:default" supported={false}>
+  <p>Not supported due to extension API limitations. Use Chrome or Edge for the best experience.</p>
+</BrowserCard>
+
+## Next Steps
+
+<LinkCard
+  title="Quick Start Guide"
+  description="Connect to your portal and run your first script in minutes."
+  href="/lmda-composer/getting-started/quick-start/"
+/>
+
+<LinkCard
+  title="Interface Overview"
+  description="Take a tour of the LMDA Composer workspace."
+  href="/lmda-composer/getting-started/interface/"
+/>
+
+
+
