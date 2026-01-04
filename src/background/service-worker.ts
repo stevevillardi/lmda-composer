@@ -775,6 +775,10 @@ async function openEditorWindow(context?: DeviceContext) {
     if (context.resourceId) url.searchParams.set('resourceId', context.resourceId.toString());
     if (context.dataSourceId) url.searchParams.set('dataSourceId', context.dataSourceId.toString());
     if (context.collectMethod) url.searchParams.set('collectMethod', context.collectMethod);
+    if (context.moduleType && context.moduleId) {
+      url.searchParams.set('moduleType', context.moduleType);
+      url.searchParams.set('moduleId', context.moduleId.toString());
+    }
   }
 
   // Check if there's already an LogicMonitor IDE tab open

@@ -607,6 +607,8 @@ export interface DeviceContext {
   resourceDatasourceId?: number;
   dataSourceId?: number;
   collectMethod?: string;
+  moduleId?: number;
+  moduleType?: LogicModuleType;
 }
 
 // AppliesTo Tester

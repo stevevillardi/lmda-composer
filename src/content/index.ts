@@ -1,4 +1,4 @@
-import type { ContentToSWMessage, DeviceContext } from '@/shared/types';
+import type { ContentToSWMessage, DeviceContext, LogicModuleType } from '@/shared/types';
 
 // ============================================================================
 // Content Script - Injected into LogicMonitor pages
@@ -293,6 +293,77 @@ async function fetchDeviceDatasourceInfo(
   return requestWithToken(refreshedToken);
 }
 
+async function fetchDeviceModuleId(
+  deviceId: number,
+  instanceId: number,
+  moduleType: LogicModuleType
+): Promise<{ moduleId: number; collectMethod?: string } | null> {
+  const csrfToken = await fetchCsrfTokenForRequest();
+
+  const requestWithToken = (token: string | null) => new Promise<{ moduleId: number; collectMethod?: string } | null>((resolve) => {
+    const xhr = new XMLHttpRequest();
+    let endpoint = '';
+    if (moduleType === 'datasource' || moduleType === 'configsource') {
+      endpoint = `/santaba/rest/device/devices/${deviceId}/devicedatasources/${instanceId}`;
+    } else if (moduleType === 'eventsource') {
+      endpoint = `/santaba/rest/device/devices/${deviceId}/deviceeventsources/${instanceId}`;
+    } else if (moduleType === 'logsource') {
+      endpoint = `/santaba/rest/device/devices/${deviceId}/devicelogsources/${instanceId}`;
+    } else {
+      resolve(null);
+      return;
+    }
+
+    xhr.open('GET', endpoint, true);
+    xhr.setRequestHeader('X-version', '3');
+    if (token) {
+      xhr.setRequestHeader('X-CSRF-Token', token);
+    }
+
+    xhr.onload = () => {
+      if (xhr.status === 200) {
+        try {
+          const response = JSON.parse(xhr.responseText);
+          const data = response?.data ?? response;
+          if (moduleType === 'eventsource') {
+            const eventSourceId = data?.eventSourceId ?? data?.eventSourceID;
+            if (typeof eventSourceId === 'number') {
+              resolve({ moduleId: eventSourceId });
+              return;
+            }
+          } else if (moduleType === 'logsource') {
+            const logSourceId = data?.logSourceId ?? data?.logSourceID;
+            if (typeof logSourceId === 'number') {
+              resolve({ moduleId: logSourceId });
+              return;
+            }
+          } else {
+            const dataSourceId = data?.dataSourceId ?? data?.dataSourceID;
+            const collectMethod = data?.collectMethod;
+            if (typeof dataSourceId === 'number') {
+              resolve({ moduleId: dataSourceId, collectMethod });
+              return;
+            }
+          }
+        } catch (error) {
+          console.error('LogicMonitor IDE: Failed to parse device module response:', error);
+        }
+      }
+      resolve(null);
+    };
+
+    xhr.onerror = () => resolve(null);
+    xhr.send();
+  });
+
+  const firstAttempt = await requestWithToken(csrfToken);
+  if (firstAttempt) return firstAttempt;
+
+  const refreshedToken = await getCsrfToken(true);
+  if (!refreshedToken) return null;
+  return requestWithToken(refreshedToken);
+}
+
 // Extract device context from current page URL
 // Simplified: only extracts portalId and resourceId from URL
 // Device details (hostname, collectorId) are fetched via API in the editor
@@ -311,9 +382,33 @@ function extractDeviceContext(): DeviceContext {
     if (match) {
       context.resourceId = parseInt(match[1], 10);
     }
+    const dataSourceInstanceMatch = resourcePath.match(/dataSourceInstances-(\d+)/);
+    if (dataSourceInstanceMatch && context.resourceId) {
+      context.resourceDatasourceId = parseInt(dataSourceInstanceMatch[1], 10);
+    }
     const datasourceMatch = resourcePath.match(/resourceDataSources-(\d+)/);
     if (datasourceMatch) {
-      context.resourceDatasourceId = parseInt(datasourceMatch[1], 10);
+      if (context.resourceId) {
+        context.resourceDatasourceId = parseInt(datasourceMatch[1], 10);
+      } else {
+        context.moduleType = 'datasource';
+        context.moduleId = parseInt(datasourceMatch[1], 10);
+      }
+    }
+    const logSourceMatch = resourcePath.match(/resourceLogSources-(\d+)/);
+    if (logSourceMatch) {
+      context.moduleType = 'logsource';
+      context.moduleId = parseInt(logSourceMatch[1], 10);
+    }
+    const configSourceMatch = resourcePath.match(/resourceConfigSources-(\d+)/);
+    if (configSourceMatch) {
+      context.moduleType = 'configsource';
+      context.moduleId = parseInt(configSourceMatch[1], 10);
+    }
+    const eventSourceMatch = resourcePath.match(/resourceEventSources-(\d+)/);
+    if (eventSourceMatch) {
+      context.moduleType = 'eventsource';
+      context.moduleId = parseInt(eventSourceMatch[1], 10);
     }
   }
 
@@ -332,6 +427,22 @@ const COLLECTOR_MENU_INDICATORS = [
   'Collector Status',
   'Restart Collector', 
 
+];
+
+const MODULE_DATAPATH_MAP: Record<string, LogicModuleType> = {
+  exchangeDataSources: 'datasource',
+  exchangeConfigSources: 'configsource',
+  exchangeTopologySources: 'topologysource',
+  exchangePropertySources: 'propertysource',
+  exchangeLogSources: 'logsource',
+  exchangeDiagnosticSources: 'diagnosticsource',
+  exchangeEventSources: 'eventsource',
+};
+
+const EXCLUDED_MODULE_DATAPATH_KEYS = [
+  'exchangeAppliesToFunctions',
+  'exchangeSNMPSysOIDMaps',
+  'exchangeJobMonitors',
 ];
 
 const iconButtonCleanups = new WeakMap<HTMLElement, () => void>();
@@ -383,6 +494,36 @@ function isCollectorOptionsMenu(menuContainer: HTMLElement): boolean {
     menuText.includes(indicator)
   ).length;
   return matchCount >= 2;
+}
+
+function shouldSkipIconButtonInjection(): boolean {
+  return EXCLUDED_MODULE_DATAPATH_KEYS.some((key) => {
+    return !!document.querySelector(`[datapath*="${key}"]`);
+  });
+}
+
+function parseModuleContextFromDatapath(datapath: string): { moduleId: number; moduleType: LogicModuleType } | null {
+  for (const [key, moduleType] of Object.entries(MODULE_DATAPATH_MAP)) {
+    const match = datapath.match(new RegExp(`(?:^|,)${key},(\\d+)`));
+    if (!match) continue;
+    const moduleId = parseInt(match[1], 10);
+    if (!Number.isNaN(moduleId)) {
+      return { moduleId, moduleType };
+    }
+  }
+  return null;
+}
+
+function findModuleContextFromPage(): { moduleId: number; moduleType: LogicModuleType } | null {
+  const datapathElements = document.querySelectorAll('[datapath]');
+  for (const element of datapathElements) {
+    if (!(element instanceof HTMLElement)) continue;
+    const datapath = element.getAttribute('datapath');
+    if (!datapath) continue;
+    const context = parseModuleContextFromDatapath(datapath);
+    if (context) return context;
+  }
+  return null;
 }
 
 // Watch for resource tree menu and inject "Open in LogicMonitor IDE" option
@@ -473,6 +614,18 @@ function injectMenuItem(menuContainer: HTMLElement) {
         context.collectMethod = info.collectMethod;
       }
     }
+    if (context.resourceId && context.moduleType && context.moduleId) {
+      const shouldResolveModuleId = context.moduleType !== 'datasource' || !context.resourceDatasourceId;
+      if (shouldResolveModuleId) {
+        const info = await fetchDeviceModuleId(context.resourceId, context.moduleId, context.moduleType);
+        if (info) {
+          context.moduleId = info.moduleId;
+          if (info.collectMethod) {
+            context.collectMethod = info.collectMethod;
+          }
+        }
+      }
+    }
     const message: ContentToSWMessage = {
       type: 'OPEN_EDITOR',
       payload: context,
@@ -541,6 +694,9 @@ function setupButtonBarObserver() {
 function injectIconButton(buttonBar: HTMLElement, editButtonContainer: HTMLElement) {
   // Don't add if already present
   if (buttonBar.querySelector('.lm-ide-icon-button')) return;
+  if (shouldSkipIconButtonInjection()) return;
+  const moduleContext = findModuleContextFromPage();
+  if (!moduleContext) return;
 
   // Create wrapper div similar to other button containers
   const wrapper = document.createElement('div');
@@ -653,6 +809,8 @@ function injectIconButton(buttonBar: HTMLElement, editButtonContainer: HTMLEleme
     hideTooltip();
     
     const context = extractDeviceContext();
+    context.moduleId = moduleContext.moduleId;
+    context.moduleType = moduleContext.moduleType;
     const message: ContentToSWMessage = {
       type: 'OPEN_EDITOR',
       payload: context,

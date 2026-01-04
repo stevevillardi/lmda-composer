@@ -34,7 +34,8 @@ import {
   AlertDialogMedia,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import type { DraftScript, DraftTabs, LogicModuleInfo, ScriptType } from '@/shared/types';
+import { ALL_LOGIC_MODULE_TYPES } from '@/shared/logic-modules';
+import type { DraftScript, DraftTabs, LogicModuleInfo, LogicModuleType, ScriptType } from '@/shared/types';
 
 const EditorPanelLazy = lazy(() => import('./components/EditorPanel').then((mod) => ({ default: mod.EditorPanel })));
 const LogicModuleSearchLazy = lazy(() => import('./components/LogicModuleSearch').then((mod) => ({ default: mod.LogicModuleSearch })));
@@ -53,6 +54,86 @@ const panelLoadingFallback = (
   </div>
 );
 
+function normalizeModuleScriptType(raw?: string): ScriptType {
+  const normalized = (raw || '').toLowerCase();
+  if (normalized === 'powershell') return 'powerShell';
+  if (normalized === 'file') return 'file';
+  if (normalized === 'embed' || normalized === 'embedded') return 'embed';
+  return 'embed';
+}
+
+function buildModuleScriptsFromResponse(
+  module: Record<string, unknown>,
+  moduleType: LogicModuleType
+): { moduleInfo: LogicModuleInfo; scripts: Array<{ type: 'ad' | 'collection'; content: string }> } | null {
+  const moduleId = module.id as number | undefined;
+  const moduleName = module.name as string | undefined;
+  if (!moduleId || !moduleName) return null;
+
+  let collectionScript = '';
+  let adScript = '';
+  let scriptType: ScriptType = 'embed';
+  let collectMethod = (module.collectMethod as string | undefined) || 'script';
+  let appliesTo = (module.appliesTo as string | undefined) || '';
+  let hasAutoDiscovery = false;
+
+  if (moduleType === 'propertysource' || moduleType === 'diagnosticsource' || moduleType === 'eventsource') {
+    collectionScript = (module.groovyScript as string | undefined) || '';
+    scriptType = normalizeModuleScriptType(module.scriptType as string | undefined);
+    collectMethod = 'script';
+  } else if (moduleType === 'logsource') {
+    appliesTo = (module.appliesToScript as string | undefined) || appliesTo;
+    collectMethod = ((module.collectionMethod as string | undefined) || collectMethod).toLowerCase();
+    const collectionAttribute = module.collectionAttribute as {
+      script?: { embeddedContent?: string; type?: string };
+      groovyScript?: string;
+      scriptType?: string;
+    } | undefined;
+    collectionScript = collectionAttribute?.script?.embeddedContent
+      || collectionAttribute?.groovyScript
+      || '';
+    scriptType = normalizeModuleScriptType(
+      collectionAttribute?.script?.type
+        || collectionAttribute?.scriptType
+        || (module.scriptType as string | undefined)
+    );
+  } else {
+    const collectorAttribute = module.collectorAttribute as { groovyScript?: string; scriptType?: string } | undefined;
+    collectionScript = collectorAttribute?.groovyScript || '';
+    scriptType = normalizeModuleScriptType(collectorAttribute?.scriptType || (module.scriptType as string | undefined));
+
+    if (moduleType !== 'topologysource') {
+      const adMethod = (module.autoDiscoveryConfig as { method?: { groovyScript?: string; linuxScript?: string; winScript?: string } } | undefined)?.method;
+      if (adMethod) {
+        adScript = adMethod.groovyScript || adMethod.linuxScript || adMethod.winScript || '';
+        hasAutoDiscovery = !!adScript.trim();
+      }
+    }
+  }
+
+  const moduleInfo: LogicModuleInfo = {
+    id: moduleId,
+    name: moduleName,
+    displayName: (module.displayName as string | undefined) || moduleName,
+    moduleType,
+    appliesTo,
+    collectMethod,
+    hasAutoDiscovery,
+    scriptType,
+    lineageId: module.lineageId as string | undefined,
+  };
+
+  const scripts: Array<{ type: 'ad' | 'collection'; content: string }> = [];
+  if (collectionScript.trim()) {
+    scripts.push({ type: 'collection', content: collectionScript });
+  }
+  if (adScript.trim()) {
+    scripts.push({ type: 'ad', content: adScript });
+  }
+
+  return { moduleInfo, scripts };
+}
+
 export function App() {
   const { 
     refreshPortals, 
@@ -70,13 +151,9 @@ export function App() {
     loadUserSnippets,
     preferences,
     portals,
-    collectors,
-    devices,
-    isFetchingDevices,
     selectedPortalId,
     setSelectedPortal,
-    setSelectedCollector,
-    setHostname,
+    switchToPortalWithContext,
     openModuleScripts,
     rightSidebarOpen,
     tabsNeedingPermission,
@@ -97,11 +174,11 @@ export function App() {
   
   // Track URL params application state
   const [urlParamsApplied, setUrlParamsApplied] = useState(false);
-  const [pendingCollectorId, setPendingCollectorId] = useState<number | null>(null);
   const [pendingResourceId, setPendingResourceId] = useState<number | null>(null);
   const [pendingDataSourceId, setPendingDataSourceId] = useState<number | null>(null);
   const [pendingCollectMethod, setPendingCollectMethod] = useState<string | null>(null);
-  const [pendingHostname, setPendingHostname] = useState<string | null>(null);
+  const [pendingModuleId, setPendingModuleId] = useState<number | null>(null);
+  const [pendingModuleType, setPendingModuleType] = useState<LogicModuleType | null>(null);
 
   // Draft restore dialog state
   const [pendingDraft, setPendingDraft] = useState<DraftScript | DraftTabs | null>(null);
@@ -234,24 +311,39 @@ export function App() {
     const resourceIdParam = params.get('resourceId');
     const dataSourceIdParam = params.get('dataSourceId');
     const collectMethodParam = params.get('collectMethod');
+    const moduleTypeParam = params.get('moduleType');
+    const moduleIdParam = params.get('moduleId');
     
     if (portalParam) {
       const matchingPortal = portals.find(p => p.id === portalParam || p.hostname === portalParam);
       if (matchingPortal) {
         setSelectedPortal(matchingPortal.id);
-        
+
+        let hasModuleContext = false;
+        if (moduleTypeParam && moduleIdParam) {
+          const moduleType = ALL_LOGIC_MODULE_TYPES.find((type) => type === moduleTypeParam) || null;
+          const moduleId = parseInt(moduleIdParam, 10);
+          if (moduleType && !Number.isNaN(moduleId)) {
+            setPendingModuleType(moduleType);
+            setPendingModuleId(moduleId);
+            hasModuleContext = true;
+          }
+        }
+
         if (resourceIdParam) {
           const resourceId = parseInt(resourceIdParam, 10);
           setPendingResourceId(resourceId);
         }
-        if (dataSourceIdParam) {
-          const dataSourceId = parseInt(dataSourceIdParam, 10);
-          if (!Number.isNaN(dataSourceId)) {
-            setPendingDataSourceId(dataSourceId);
+        if (!hasModuleContext) {
+          if (dataSourceIdParam) {
+            const dataSourceId = parseInt(dataSourceIdParam, 10);
+            if (!Number.isNaN(dataSourceId)) {
+              setPendingDataSourceId(dataSourceId);
+            }
           }
-        }
-        if (collectMethodParam) {
-          setPendingCollectMethod(collectMethodParam);
+          if (collectMethodParam) {
+            setPendingCollectMethod(collectMethodParam);
+          }
         }
       }
     }
@@ -260,7 +352,7 @@ export function App() {
     setUrlParamsApplied(true);
     
     // Clear URL params to avoid confusion on refresh
-    if (portalParam || resourceIdParam || dataSourceIdParam || collectMethodParam) {
+    if (portalParam || resourceIdParam || dataSourceIdParam || collectMethodParam || moduleTypeParam || moduleIdParam) {
       window.history.replaceState({}, '', window.location.pathname);
     }
   }, [portals, urlParamsApplied, setSelectedPortal]);
@@ -270,6 +362,9 @@ export function App() {
     const openFromDeviceDatasource = async () => {
       if (!pendingDataSourceId || !pendingCollectMethod) return;
       if (pendingCollectMethod !== 'script' && pendingCollectMethod !== 'batchscript') {
+        toast.warning('Datasource not script-based', {
+          description: `Collect method is ${pendingCollectMethod}. Only script or batchscript datasources can be opened.`,
+        });
         setPendingDataSourceId(null);
         setPendingCollectMethod(null);
         return;
@@ -323,52 +418,67 @@ export function App() {
     openFromDeviceDatasource();
   }, [pendingDataSourceId, pendingCollectMethod, openModuleScripts, selectedPortalId]);
 
-  // Fetch device details when we have a pending resourceId and collectors are loaded
+  // Auto-open scripts for module links (LMX module tabs)
   useEffect(() => {
-    const fetchDevice = async () => {
-      if (pendingResourceId && collectors.length > 0) {
-        const { selectedPortalId } = useEditorStore.getState();
-        if (selectedPortalId) {
-          const response = await chrome.runtime.sendMessage({
-            type: 'GET_DEVICE_BY_ID',
-            payload: { portalId: selectedPortalId, resourceId: pendingResourceId },
-          });
-          
-          if (response?.type === 'DEVICE_BY_ID_LOADED') {
-            const device = response.payload;
-            setPendingHostname(device.name);
-            
-            const matchingCollector = collectors.find(c => c.id === device.currentCollectorId);
-            if (matchingCollector) {
-              setSelectedCollector(device.currentCollectorId);
-            }
+    const openFromModuleContext = async () => {
+      if (!pendingModuleId || !pendingModuleType) return;
+      if (!selectedPortalId) return;
+
+      try {
+        const response = await chrome.runtime.sendMessage({
+          type: 'FETCH_MODULE',
+          payload: { portalId: selectedPortalId, moduleType: pendingModuleType, moduleId: pendingModuleId },
+        });
+
+        if (response?.type === 'MODULE_FETCHED' && response.payload) {
+          const parsed = buildModuleScriptsFromResponse(response.payload, pendingModuleType);
+          if (parsed && parsed.scripts.length > 0) {
+            openModuleScripts(parsed.moduleInfo, parsed.scripts);
+            const portal = portals.find(p => p.id === selectedPortalId);
+            toast.success('Opened module scripts', {
+              description: `${parsed.moduleInfo.displayName || parsed.moduleInfo.name} • Portal ${portal?.hostname ?? selectedPortalId}`,
+            });
           }
         }
-        setPendingResourceId(null);
+      } catch (error) {
+        console.error('Failed to open module scripts from context:', error);
+      } finally {
+        setPendingModuleId(null);
+        setPendingModuleType(null);
       }
     };
-    
-    fetchDevice();
-  }, [collectors, pendingResourceId, setSelectedCollector]);
 
-  // Set pending hostname after devices are loaded
-  useEffect(() => {
-    if (pendingHostname && !isFetchingDevices && devices.length > 0) {
-      setHostname(pendingHostname);
-      setPendingHostname(null);
-    }
-  }, [pendingHostname, isFetchingDevices, devices, setHostname]);
+    openFromModuleContext();
+  }, [pendingModuleId, pendingModuleType, openModuleScripts, portals, selectedPortalId]);
 
-  // Apply pending collector ID after collectors are loaded
+  // Apply resource context when a resourceId is present
   useEffect(() => {
-    if (pendingCollectorId && collectors.length > 0) {
-      const matchingCollector = collectors.find(c => c.id === pendingCollectorId);
-      if (matchingCollector) {
-        setSelectedCollector(pendingCollectorId);
+    const applyResourceContext = async () => {
+      if (!pendingResourceId || !selectedPortalId) return;
+
+      const response = await chrome.runtime.sendMessage({
+        type: 'GET_DEVICE_BY_ID',
+        payload: { portalId: selectedPortalId, resourceId: pendingResourceId },
+      });
+
+      if (response?.type === 'DEVICE_BY_ID_LOADED') {
+        const device = response.payload;
+        if (device.currentCollectorId) {
+          await switchToPortalWithContext(selectedPortalId, {
+            collectorId: device.currentCollectorId,
+            hostname: device.name,
+          });
+          const portal = portals.find(p => p.id === selectedPortalId);
+          toast.success('Context applied', {
+            description: `Portal ${portal?.hostname ?? selectedPortalId} • Collector ${device.currentCollectorId} • Host ${device.name}`,
+          });
+        }
       }
-      setPendingCollectorId(null);
-    }
-  }, [collectors, pendingCollectorId, setSelectedCollector]);
+      setPendingResourceId(null);
+    };
+
+    applyResourceContext();
+  }, [pendingResourceId, portals, selectedPortalId, switchToPortalWithContext]);
 
   // Update window title with character count and tab info
   useEffect(() => {

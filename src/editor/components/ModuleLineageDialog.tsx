@@ -82,6 +82,11 @@ export function ModuleLineageDialog({ activeTab }: ModuleLineageDialogProps) {
   const formattedUpdatedAt = selectedVersion?.updatedAtMS
     ? new Date(selectedVersion.updatedAtMS).toLocaleString()
     : null;
+  const formatVersionLabel = (version: LineageVersion) => {
+    const updatedAt = version.updatedAtMS ? new Date(version.updatedAtMS).toLocaleString() : 'Unknown time';
+    const author = version.authorUsername || 'Unknown user';
+    return `${version.version || 'unknown'} • ${version.id} • ${updatedAt} • ${author}`;
+  };
 
   const handleRestore = () => {
     if (!selectedVersionScript) {
@@ -106,7 +111,7 @@ export function ModuleLineageDialog({ activeTab }: ModuleLineageDialogProps) {
             View Lineage
           </DialogTitle>
           <DialogDescription>
-            Compare the current script with historical versions and restore when needed.
+            Compare the current script with historical versions and restore when needed. These versions reflect core module changes, not user changes.
           </DialogDescription>
         </DialogHeader>
 
@@ -135,7 +140,7 @@ export function ModuleLineageDialog({ activeTab }: ModuleLineageDialogProps) {
                 <SelectTrigger className="w-full">
                   <SelectValue>
                     {selectedVersion
-                      ? `${selectedVersion.version || 'unknown'} • ${selectedVersion.id}`
+                      ? formatVersionLabel(selectedVersion)
                       : isFetchingLineage
                         ? 'Loading versions...'
                         : 'Select a version'}
@@ -146,7 +151,7 @@ export function ModuleLineageDialog({ activeTab }: ModuleLineageDialogProps) {
                     <SelectItem key={version.id} value={version.id}>
                       <div className="flex items-center gap-2">
                         <span className="font-mono text-xs">
-                          {(version.version || 'unknown') + ' • ' + version.id}
+                          {formatVersionLabel(version)}
                         </span>
                         {version.isLatest && <Badge variant="secondary">Latest</Badge>}
                       </div>
