@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
 import {
   Play,
   Copy,
@@ -19,8 +19,8 @@ import {
   Braces,
   Send,
 } from 'lucide-react';
-import { toast } from 'sonner';
 import { useEditorStore } from '../stores/editor-store';
+import { copyOutputToClipboard, handleGlobalKeyDown } from '../utils/keyboard-shortcuts';
 import {
   Command,
   CommandDialog,
@@ -63,7 +63,6 @@ export function CommandPalette() {
     setDebugCommandsDialogOpen,
     tabs,
     activeTabId,
-    setActiveTab,
     setRightSidebarOpen,
     setRightSidebarTab,
     portals,
@@ -77,53 +76,13 @@ export function CommandPalette() {
     openApiExplorerTab,
   } = useEditorStore();
 
-  const getLastTabIdByKind = useCallback((kind: 'api' | 'script') => {
-    return [...tabs].reverse().find(tab => (tab.kind ?? 'script') === kind)?.id ?? null;
-  }, [tabs]);
-
-  const toggleView = useCallback(() => {
-    const activeTab = activeTabId ? tabs.find(tab => tab.id === activeTabId) : null;
-    const isApiActive = activeTab?.kind === 'api';
-    if (isApiActive) {
-      const lastScript = getLastTabIdByKind('script');
-      if (lastScript) {
-        setActiveTab(lastScript);
-      } else {
-        createNewFile();
-      }
-      return;
-    }
-
-    const lastApi = getLastTabIdByKind('api');
-    if (lastApi) {
-      setActiveTab(lastApi);
-    } else {
-      openApiExplorerTab();
-    }
-  }, [activeTabId, tabs, getLastTabIdByKind, setActiveTab, createNewFile, openApiExplorerTab]);
-
-  // Copy output to clipboard
-  const copyOutput = useCallback(async () => {
-    if (currentExecution?.rawOutput) {
-      try {
-        await navigator.clipboard.writeText(currentExecution.rawOutput);
-        toast.success('Output copied to clipboard');
-      } catch (error) {
-        toast.error('Failed to copy output', {
-          description: 'Could not copy to clipboard',
-        });
-      }
-    }
-    setCommandPaletteOpen(false);
-  }, [currentExecution, setCommandPaletteOpen]);
-
   // Define command groups
   const scriptCommands: CommandAction[] = [
     {
       id: 'new-file',
       label: 'New File',
       icon: <FilePlus className="size-4" />,
-      shortcut: '⌘N',
+      shortcut: '⌘K',
       action: () => {
         setCommandPaletteOpen(false);
         createNewFile();
@@ -187,7 +146,7 @@ export function CommandPalette() {
       id: 'new-api-request',
       label: 'New API Request',
       icon: <Braces className="size-4" />,
-      shortcut: '⌘N',
+      shortcut: '⌘K',
       action: () => {
         setCommandPaletteOpen(false);
         openApiExplorerTab();
@@ -212,7 +171,9 @@ export function CommandPalette() {
       label: 'Copy Output',
       icon: <Copy className="size-4" />,
       shortcut: '⌘⇧C',
-      action: copyOutput,
+      action: () => {
+        void copyOutputToClipboard();
+      },
       disabled: !currentExecution?.rawOutput,
     },
     {
@@ -343,185 +304,9 @@ export function CommandPalette() {
 
   // Keyboard shortcut handler
   useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Cmd/Ctrl + K to open command palette
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault();
-        setCommandPaletteOpen(!commandPaletteOpen);
-        return;
-      }
-
-      // Skip shortcuts when palette is open (it handles its own)
-      if (commandPaletteOpen) return;
-
-      // Cmd/Ctrl + Enter or F5 to run
-      if (((e.metaKey || e.ctrlKey) && e.key === 'Enter') || e.key === 'F5') {
-        e.preventDefault();
-        const activeTab = activeTabId ? tabs.find(tab => tab.id === activeTabId) : null;
-        if (activeTab?.kind === 'api') {
-          executeApiRequest(activeTabId ?? undefined);
-        } else if (!isExecuting && selectedPortalId && selectedCollectorId) {
-          executeScript();
-        }
-        return;
-      }
-
-      // Cmd/Ctrl + Shift + C to copy output
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'c') {
-        e.preventDefault();
-        copyOutput();
-        return;
-      }
-
-      // Cmd/Ctrl + N to create new file
-      if ((e.metaKey || e.ctrlKey) && e.key === 'n') {
-        e.preventDefault();
-        const activeTab = activeTabId ? tabs.find(tab => tab.id === activeTabId) : null;
-        if (activeTab?.kind === 'api') {
-          openApiExplorerTab();
-        } else {
-          createNewFile();
-        }
-        return;
-      }
-
-      // Cmd/Ctrl + Shift + M to toggle views
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'm') {
-        e.preventDefault();
-        toggleView();
-        return;
-      }
-
-      // Cmd/Ctrl + O to open file from disk
-      if ((e.metaKey || e.ctrlKey) && e.key === 'o') {
-        e.preventDefault();
-        openFileFromDisk();
-        return;
-      }
-
-      // Cmd/Ctrl + B to toggle right sidebar
-      if ((e.metaKey || e.ctrlKey) && e.key === 'b') {
-        e.preventDefault();
-        toggleRightSidebar();
-        return;
-      }
-
-      // Cmd/Ctrl + , to open settings
-      if ((e.metaKey || e.ctrlKey) && e.key === ',') {
-        e.preventDefault();
-        setSettingsDialogOpen(true);
-        return;
-      }
-
-      // Cmd/Ctrl + S to save file (check lowercase for non-shift)
-      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === 's') {
-        e.preventDefault();
-        saveFile().then(() => {
-          toast.success('File saved');
-        }).catch((error) => {
-          toast.error('Failed to save file', {
-            description: error instanceof Error ? error.message : 'Unknown error',
-          });
-        });
-        return;
-      }
-
-      // Cmd/Ctrl + Shift + S to save as (check lowercase since shift modifies the key)
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 's') {
-        e.preventDefault();
-        saveFileAs().then(() => {
-          toast.success('File saved');
-        }).catch((error) => {
-          toast.error('Failed to save file', {
-            description: error instanceof Error ? error.message : 'Unknown error',
-          });
-        });
-        return;
-      }
-
-      // Cmd/Ctrl + R to refresh collectors
-      if ((e.metaKey || e.ctrlKey) && e.key === 'r') {
-        e.preventDefault();
-        if (selectedPortalId) {
-          refreshCollectors();
-        }
-        return;
-      }
-
-      // Cmd/Ctrl + Shift + A to open AppliesTo tester
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'a') {
-        e.preventDefault();
-        if (selectedPortalId) {
-          setAppliesToTesterOpen(true);
-        }
-        return;
-      }
-
-      // Cmd/Ctrl + D to open Debug Commands
-      if ((e.metaKey || e.ctrlKey) && !e.shiftKey && e.key.toLowerCase() === 'd') {
-        e.preventDefault();
-        if (selectedPortalId) {
-          setDebugCommandsDialogOpen(true);
-        }
-        return;
-      }
-
-      // Cmd/Ctrl + Shift + E to export file
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'e') {
-        e.preventDefault();
-        exportToFile();
-        return;
-      }
-
-      // Cmd/Ctrl + Shift + F to search LogicModules
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'f') {
-        e.preventDefault();
-        if (selectedPortalId) {
-          setModuleSearchOpen(true);
-        }
-        return;
-      }
-
-      // Cmd/Ctrl + Shift + I to import from LogicModule Exchange
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'i') {
-        e.preventDefault();
-        if (selectedPortalId) {
-          setModuleBrowserOpen(true);
-        }
-        return;
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [
-    commandPaletteOpen,
-    setCommandPaletteOpen,
-    executeScript,
-    isExecuting,
-    selectedPortalId,
-    selectedCollectorId,
-    currentExecution,
-    setModuleBrowserOpen,
-    setModuleSearchOpen,
-    setSettingsDialogOpen,
-    setAppliesToTesterOpen,
-    setDebugCommandsDialogOpen,
-    createNewFile,
-    openApiExplorerTab,
-    activeTabId,
-    tabs,
-    toggleView,
-    saveFile,
-    saveFileAs,
-    openFileFromDisk,
-    exportToFile,
-    refreshCollectors,
-    toggleRightSidebar,
-    copyOutput,
-    executeApiRequest,
-    isExecutingApi,
-  ]);
+    window.addEventListener('keydown', handleGlobalKeyDown, { capture: true });
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown, { capture: true });
+  }, []);
 
   return (
     <CommandDialog 

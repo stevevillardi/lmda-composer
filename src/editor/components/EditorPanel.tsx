@@ -5,6 +5,7 @@ import { useCallback, useRef, useMemo, useEffect } from 'react';
 import { buildMonacoOptions, getMonacoTheme } from '@/editor/utils/monaco-settings';
 import { getPortalBindingStatus } from '../utils/portal-binding';
 import { PortalBindingOverlay } from './PortalBindingOverlay';
+import { registerMonacoShortcuts } from '../utils/keyboard-shortcuts';
 
 // Import the loader config to use bundled Monaco (CSP-safe)
 import '../monaco-loader';
@@ -14,7 +15,6 @@ export function EditorPanel() {
     tabs, 
     activeTabId, 
     updateActiveTabContent, 
-    executeScript, 
     preferences,
     selectedPortalId,
     portals,
@@ -32,22 +32,11 @@ export function EditorPanel() {
     editorRef.current = editor;
     setEditorInstance(editor);
     
-    // Add keyboard shortcut for running script
-    editor.addAction({
-      id: 'run-script',
-      label: 'Run Script',
-      keybindings: [
-        // Ctrl/Cmd + Enter
-        2048 | 3, // CtrlCmd | Enter
-      ],
-      run: () => {
-        executeScript();
-      },
-    });
+    registerMonacoShortcuts(editor);
 
     // Focus editor
     editor.focus();
-  }, [executeScript, setEditorInstance]);
+  }, [setEditorInstance]);
 
   const isPortalLocked = useMemo(() => {
     if (!activeTab || activeTab.source?.type !== 'module') return false;

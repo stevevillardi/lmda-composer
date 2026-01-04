@@ -1,8 +1,10 @@
-import { useId } from 'react';
+import { useCallback, useId } from 'react';
 import { DiffEditor as MonacoDiffEditor } from '@monaco-editor/react';
 // Import Monaco loader to configure workers for Chrome extension CSP
 import '../monaco-loader';
 import type { ScriptLanguage } from '@/shared/types';
+import type { editor } from 'monaco-editor';
+import { registerMonacoShortcuts } from '../utils/keyboard-shortcuts';
 
 interface DiffEditorProps {
   original: string;
@@ -26,6 +28,9 @@ export function DiffEditor({
   const modelId = useId();
   const originalModelPath = `inmemory://model/${modelId}/original`;
   const modifiedModelPath = `inmemory://model/${modelId}/modified`;
+  const handleEditorMount = useCallback((diffEditor: editor.IStandaloneDiffEditor) => {
+    registerMonacoShortcuts(diffEditor);
+  }, []);
 
   return (
     <MonacoDiffEditor
@@ -38,6 +43,7 @@ export function DiffEditor({
       keepCurrentModifiedModel
       height={height}
       theme={theme}
+      onMount={handleEditorMount}
       options={{
         readOnly,
         automaticLayout: true,

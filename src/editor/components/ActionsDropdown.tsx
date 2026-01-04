@@ -136,7 +136,7 @@ export function ActionsDropdown() {
               <DropdownMenuItem onClick={() => openApiExplorerTab()}>
                 <Braces className="size-4 mr-2" />
                 <span className="flex-1">New API Request</span>
-                <Kbd className="ml-auto">⌘N</Kbd>
+                <Kbd className="ml-auto">⌘K</Kbd>
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => executeApiRequest(activeTabId ?? undefined)}
@@ -167,7 +167,7 @@ export function ActionsDropdown() {
               }}>
                 <FilePlus className="size-4 mr-2" />
                 <span className="flex-1">New File</span>
-                <Kbd className="ml-auto">⌘N</Kbd>
+                <Kbd className="ml-auto">⌘K</Kbd>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={switchToApiView}>
                 <Braces className="size-4 mr-2" />

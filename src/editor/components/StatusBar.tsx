@@ -26,7 +26,7 @@ const KEYBOARD_SHORTCUTS = [
     label: 'Editor',
     items: [
       { keys: ['⌘', 'Enter'], action: 'Run script' },
-      { keys: ['⌘', 'K'], action: 'Command palette' },
+      { keys: ['⌘', '⇧', 'P'], action: 'Command palette' },
       { keys: ['⌘', 'B'], action: 'Toggle sidebar' },
       { keys: ['⌘', ','], action: 'Settings' },
       { keys: ['⌘', '⇧', 'M'], action: 'Toggle API/Script view' },
@@ -35,7 +35,7 @@ const KEYBOARD_SHORTCUTS = [
   {
     label: 'Files',
     items: [
-      { keys: ['⌘', 'N'], action: 'New file' },
+      { keys: ['⌘', 'K'], action: 'New file' },
       { keys: ['⌘', 'O'], action: 'Open file' },
       { keys: ['⌘', 'S'], action: 'Save' },
       { keys: ['⌘', '⇧', 'S'], action: 'Save As...' },
@@ -195,7 +195,7 @@ export function StatusBar() {
           ))}
         </div>
         <p className="text-[10px] text-muted-foreground/70 mt-3 pt-2 border-t border-border">
-          Use Ctrl instead of ⌘ on Windows/Linux
+          Use Ctrl/Alt instead of ⌘/⌥ on Windows/Linux
         </p>
       </PopoverContent>
     </Popover>
