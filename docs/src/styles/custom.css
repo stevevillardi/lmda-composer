@@ -1,37 +1,287 @@
 /* Custom styles for LMDA Composer docs */
+/* Based on lm-powershell-module-docs styling */
+
+/* ============================================================================
+   Base Variables & Layout Dimensions
+   ============================================================================ */
 
 :root {
-  /* Primary brand colors - warm amber/orange tones */
-  --sl-color-accent-low: #3d2800;
-  --sl-color-accent: #f59e0b;
-  --sl-color-accent-high: #fef3c7;
-  
-  /* Text colors */
-  --sl-color-white: #ffffff;
-  --sl-color-gray-1: #f8fafc;
-  --sl-color-gray-2: #e2e8f0;
-  --sl-color-gray-3: #cbd5e1;
-  --sl-color-gray-4: #94a3b8;
-  --sl-color-gray-5: #64748b;
-  --sl-color-gray-6: #475569;
-  --sl-color-black: #0f172a;
+    --sl-content-width: 1500px; /* Wider content area */
+    --sl-text-width: 900px; /* Max text width */
+    --sl-nav-height: 4rem;
+    --sl-mobile-toc-height: 3rem;
+    --sl-sidebar-width: 300px; /* Wider sidebar */
 
-  /* Consistent border radius */
-  --card-radius: 0.75rem;
-  --card-radius-sm: 0.5rem;
+    /* Gray scale for dark theme (default) */
+    --sl-color-white: hsl(0, 0%, 100%);
+    --sl-color-gray-1: hsl(224, 20%, 94%);
+    --sl-color-gray-2: hsl(224, 6%, 77%);
+    --sl-color-gray-3: hsl(224, 6%, 56%);
+    --sl-color-gray-4: hsl(224, 7%, 36%);
+    --sl-color-gray-5: hsl(224, 10%, 23%);
+    --sl-color-gray-6: hsl(224, 14%, 16%);
+    --sl-color-black: hsl(224, 10%, 10%);
+
+    /* Theme accent colors - full palette */
+    --sl-hue-orange: 41;
+    --sl-color-orange-low: hsl(var(--sl-hue-orange), 39%, 22%);
+    --sl-color-orange: hsl(var(--sl-hue-orange), 82%, 63%);
+    --sl-color-orange-high: hsl(var(--sl-hue-orange), 82%, 87%);
+    
+    --sl-hue-green: 101;
+    --sl-color-green-low: hsl(var(--sl-hue-green), 39%, 22%);
+    --sl-color-green: hsl(var(--sl-hue-green), 82%, 63%);
+    --sl-color-green-high: hsl(var(--sl-hue-green), 82%, 80%);
+    
+    --sl-hue-blue: 234;
+    --sl-color-blue-low: hsl(var(--sl-hue-blue), 54%, 20%);
+    --sl-color-blue: hsl(var(--sl-hue-blue), 100%, 60%);
+    --sl-color-blue-high: hsl(var(--sl-hue-blue), 100%, 87%);
+    
+    --sl-hue-purple: 281;
+    --sl-color-purple-low: hsl(var(--sl-hue-purple), 39%, 22%);
+    --sl-color-purple: hsl(var(--sl-hue-purple), 82%, 63%);
+    --sl-color-purple-high: hsl(var(--sl-hue-purple), 82%, 89%);
+    
+    --sl-hue-red: 339;
+    --sl-color-red-low: hsl(var(--sl-hue-red), 39%, 22%);
+    --sl-color-red: hsl(var(--sl-hue-red), 82%, 63%);
+    --sl-color-red-high: hsl(var(--sl-hue-red), 82%, 87%);
+
+    /* Accent colors - Blue (matching lm-powershell-module-docs) */
+    --sl-color-accent-low: hsl(224, 54%, 20%);
+    --sl-color-accent: hsl(224, 100%, 60%);
+    --sl-color-accent-high: hsl(224, 100%, 85%);
+    
+    /* Text and background colors */
+    --sl-color-text: var(--sl-color-gray-2);
+    --sl-color-text-accent: var(--sl-color-accent-high);
+    --sl-color-text-invert: var(--sl-color-accent-low);
+    --sl-color-bg: var(--sl-color-black);
+    --sl-color-bg-nav: var(--sl-color-gray-6);
+    --sl-color-bg-sidebar: var(--sl-color-gray-6);
+    --sl-color-bg-inline-code: var(--sl-color-gray-5);
+    --sl-color-bg-accent: var(--sl-color-accent-high);
+    
+    /* Border colors */
+    --sl-color-hairline-light: var(--sl-color-gray-5);
+    --sl-color-hairline: var(--sl-color-gray-6);
+    --sl-color-hairline-shade: var(--sl-color-black);
+    --sl-color-backdrop-overlay: hsla(223, 13%, 10%, .66);
+
+    /* Consistent border radius */
+    --card-radius: 0.75rem;
+    --card-radius-sm: 0.5rem;
 }
 
-:root[data-theme='dark'] {
-  --sl-color-accent-low: #451a03;
-  --sl-color-accent: #f59e0b;
-  --sl-color-accent-high: #fef3c7;
+/* ============================================================================
+   Light Theme Colors
+   ============================================================================ */
+
+[data-theme='light'] {
+    --sl-color-white: hsl(224, 10%, 10%);
+    --sl-color-gray-1: hsl(224, 14%, 16%);
+    --sl-color-gray-2: hsl(224, 10%, 23%);
+    --sl-color-gray-3: hsl(224, 7%, 36%);
+    --sl-color-gray-4: hsl(224, 6%, 56%);
+    --sl-color-gray-5: hsl(224, 6%, 77%);
+    --sl-color-gray-6: hsl(224, 20%, 94%);
+    --sl-color-gray-7: hsl(224, 19%, 97%);
+    --sl-color-black: hsl(0, 0%, 100%);
+
+    /* Light theme accent colors */
+    --sl-color-orange-high: hsl(var(--sl-hue-orange), 80%, 25%);
+    --sl-color-orange: hsl(var(--sl-hue-orange), 90%, 60%);
+    --sl-color-orange-low: hsl(var(--sl-hue-orange), 90%, 88%);
+    
+    --sl-color-green-high: hsl(var(--sl-hue-green), 80%, 22%);
+    --sl-color-green: hsl(var(--sl-hue-green), 90%, 46%);
+    --sl-color-green-low: hsl(var(--sl-hue-green), 85%, 90%);
+    
+    --sl-color-blue-high: hsl(var(--sl-hue-blue), 80%, 30%);
+    --sl-color-blue: hsl(var(--sl-hue-blue), 90%, 60%);
+    --sl-color-blue-low: hsl(var(--sl-hue-blue), 88%, 90%);
+    
+    --sl-color-purple-high: hsl(var(--sl-hue-purple), 90%, 30%);
+    --sl-color-purple: hsl(var(--sl-hue-purple), 90%, 60%);
+    --sl-color-purple-low: hsl(var(--sl-hue-purple), 80%, 90%);
+    
+    --sl-color-red-high: hsl(var(--sl-hue-red), 80%, 30%);
+    --sl-color-red: hsl(var(--sl-hue-red), 90%, 60%);
+    --sl-color-red-low: hsl(var(--sl-hue-red), 80%, 90%);
+
+    /* Light theme UI colors */
+    --sl-color-accent-high: hsl(234, 80%, 30%);
+    --sl-color-accent: hsl(234, 90%, 60%);
+    --sl-color-accent-low: hsl(234, 88%, 90%);
+    
+    --sl-color-text-accent: var(--sl-color-accent);
+    --sl-color-text-invert: var(--sl-color-black);
+    --sl-color-bg-nav: var(--sl-color-gray-7);
+    --sl-color-bg-sidebar: var(--sl-color-bg);
+    --sl-color-bg-inline-code: var(--sl-color-gray-6);
+    --sl-color-bg-accent: var(--sl-color-accent);
+    --sl-color-hairline-light: var(--sl-color-gray-6);
+    --sl-color-hairline-shade: var(--sl-color-gray-6);
+    --sl-color-backdrop-overlay: hsla(225, 9%, 36%, .66);
+}
+
+/* ============================================================================
+   Dark Theme Colors - Enhanced
+   ============================================================================ */
+
+[data-theme='dark'] {
+    --sl-color-bg: #0B0E14;
+    --sl-color-bg-nav: #0F1219;
+    --sl-color-bg-sidebar: #0F1219;
+    --sl-color-bg-inline-code: #1F2937;
+    --sl-color-text: #E4E4E7;
+    --sl-color-text-accent: #3B82F6;
+    --sl-color-border: #1F2937;
+    --sl-color-hairline: #374151;
+    --sl-color-selection-text: #fff;
+    --sl-color-selection-bg: #3B82F6;
+}
+
+/* ============================================================================
+   Heading Colors - Blue
+   ============================================================================ */
+
+h1, h2 {
+    color: var(--sl-color-accent) !important;
+}
+
+[data-theme='dark'] h1,
+[data-theme='dark'] h2 {
+    color: #3B82F6 !important;
+}
+
+[data-theme='light'] h1,
+[data-theme='light'] h2 {
+    color: hsl(var(--sl-hue-blue), 90%, 60%) !important;
+}
+
+/* ============================================================================
+   Main Frame & Layout
+   ============================================================================ */
+
+.main-frame {
+    padding-top: 40px;
+}
+
+/* ============================================================================
+   Right Sidebar Styling
+   ============================================================================ */
+
+/* Override Starlight's right sidebar width using CSS variable and direct styling */
+:root {
+    --sl-sidebar-width-right: 340px;
+}
+
+.right-sidebar {
+    width: 340px !important;
+    min-width: 340px !important;
+    flex-basis: 340px !important;
+}
+
+/* Also target the container */
+.right-sidebar-container {
+    width: 340px !important;
+}
+
+[data-theme='dark'] .right-sidebar {
+    background-color: var(--sl-color-bg-sidebar);
+    border-left: 1px solid var(--sl-color-border);
+}
+
+.right-sidebar-panel {
+    font-size: 0.875rem;
+    padding: 1.5rem 1rem;
+}
+
+.right-sidebar-panel a {
+    text-decoration: none;
+    padding: 0.25rem 0;
+    display: block;
+    border-left: 2px solid transparent;
+    transition: all 0.2s ease;
+}
+
+[data-theme='dark'] .right-sidebar-panel a {
+    color: var(--sl-color-text);
+}
+
+.right-sidebar-panel a:hover {
+    border-left-color: var(--sl-color-border);
+}
+
+[data-theme='dark'] .right-sidebar-panel a:hover {
+    color: var(--sl-color-text-accent);
+}
+
+.right-sidebar-panel a[aria-current="true"] {
+    color: var(--sl-color-text-accent);
+    border-left-color: var(--sl-color-text-accent);
+}
+
+/* ============================================================================
+   Left Sidebar Styling
+   ============================================================================ */
+
+.nav-groups {
+    padding: 1rem;
+}
+
+.nav-group-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.5rem;
+}
+
+[data-theme='dark'] .nav-group-title {
+    color: var(--sl-color-text);
+}
+
+.nav-link a {
+    border-radius: 0.375rem;
+    margin: 0.125rem 0;
+    padding: 0.5rem 1rem;
+    text-decoration: none;
+    transition: background-color 0.2s ease;
+}
+
+[data-theme='dark'] .nav-link a {
+    color: var(--sl-color-text);
+}
+
+[data-theme='dark'] .nav-link a:hover {
+    background-color: var(--sl-color-bg-inline-code);
+}
+
+[data-theme='dark'] .nav-link a[aria-current="page"] {
+    background-color: var(--sl-color-bg-inline-code);
+    color: var(--sl-color-text-accent);
+}
+
+/* ============================================================================
+   Search Bar Styling
+   ============================================================================ */
+
+[data-theme='dark'] #docsearch {
+    --docsearch-searchbox-background: var(--sl-color-bg-nav);
+    --docsearch-searchbox-focus-background: var(--sl-color-bg-nav);
+    --docsearch-text-color: var(--sl-color-text);
+    --docsearch-muted-color: var(--sl-color-text-accent);
+    --docsearch-searchbox-shadow: inset 0 0 0 1px var(--sl-color-border);
+    border-radius: 0.375rem;
 }
 
 /* ============================================================================
    Card Grid - Consistent Heights
    ============================================================================ */
 
-/* Starlight CardGrid equal heights */
 .sl-card-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
@@ -44,7 +294,6 @@
   min-height: 100%;
 }
 
-/* Ensure all direct children of CardGrid stretch */
 .sl-card-grid > .feature-card,
 .sl-card-grid > .sl-card,
 .sl-card-grid > .sl-link-card {
@@ -53,7 +302,6 @@
   height: 100%;
 }
 
-/* Starlight Card consistency */
 .sl-card {
   border-radius: var(--card-radius);
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -66,7 +314,6 @@
   border-color: var(--sl-color-accent-low);
 }
 
-/* Make card content grow to fill space */
 .sl-card > .sl-card__content {
   flex: 1;
 }
@@ -98,7 +345,6 @@
   margin: 0 auto 2rem;
 }
 
-/* Feature grid with equal heights */
 .feature-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
@@ -107,7 +353,6 @@
   align-items: stretch;
 }
 
-/* Feature cards - non-interactive by default */
 .feature-card {
   padding: 1.5rem;
   border-radius: var(--card-radius);
@@ -120,7 +365,6 @@
   flex-direction: column;
 }
 
-/* Feature card content should fill available space */
 .feature-card .feature-content {
   flex: 1;
   display: flex;
@@ -131,7 +375,6 @@
   flex: 1;
 }
 
-/* Only apply hover effects to clickable feature cards */
 .feature-card.clickable {
   cursor: pointer;
   transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
@@ -302,7 +545,6 @@
    UI Elements
    ============================================================================ */
 
-/* Screenshot placeholder styling */
 .screenshot-placeholder {
   background: var(--sl-color-gray-6);
   border: 2px dashed var(--sl-color-gray-4);
@@ -317,7 +559,6 @@
   border-color: var(--sl-color-accent);
 }
 
-/* Keyboard shortcut styling */
 kbd {
   display: inline-block;
   padding: 0.125rem 0.375rem;
@@ -330,12 +571,10 @@ kbd {
   box-shadow: 0 1px 0 var(--sl-color-gray-5);
 }
 
-/* Badge styling */
 .sl-badge {
   font-weight: 500;
 }
 
-/* Improved code block styling */
 pre {
   border: 1px solid var(--sl-color-gray-5);
   border-radius: var(--card-radius-sm);
@@ -345,7 +584,6 @@ pre {
    Starlight Component Overrides
    ============================================================================ */
 
-/* Better spacing for steps component */
 .sl-steps {
   padding-left: 0;
 }
@@ -359,7 +597,6 @@ pre {
   color: var(--sl-color-black);
 }
 
-/* Link cards hover effect - clickable, so show interactive states */
 .sl-link-card {
   transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
   border-radius: var(--card-radius);
@@ -371,7 +608,7 @@ pre {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-/* Tab styling enhancements - fix scrollbar overflow */
+/* Tab styling */
 [role="tablist"] {
   border-bottom: 1px solid var(--sl-color-gray-5);
   margin-bottom: 2px;
@@ -403,50 +640,4 @@ starlight-tabs > [role="tablist"]::-webkit-scrollbar {
 [role="tab"][aria-selected="true"] {
   border-bottom-color: var(--sl-color-accent);
   color: var(--sl-color-accent);
-}
-
-/* ============================================================================
-   Sidebar Adjustments
-   ============================================================================ */
-
-/* Right sidebar - fit to content, no fixed min-width */
-.right-sidebar {
-  width: auto;
-  min-width: 0;
-  max-width: 12rem;
-}
-
-.right-sidebar-container {
-  width: auto;
-  min-width: 0;
-}
-
-/* Make "On this page" TOC more compact */
-.right-sidebar nav {
-  width: max-content;
-  max-width: 12rem;
-}
-
-.right-sidebar a {
-  font-size: 0.8125rem;
-  padding: 0.25rem 0;
-}
-
-/* Give more room to main content */
-@media (min-width: 72rem) {
-  :root {
-    --sl-content-width: 55rem;
-    --sl-sidebar-width: 15rem;
-  }
-  
-  /* Adjust grid to give more space to content */
-  .sl-container {
-    --sl-content-pad-x: 1.5rem;
-  }
-}
-
-@media (min-width: 82rem) {
-  :root {
-    --sl-content-width: 60rem;
-  }
 }

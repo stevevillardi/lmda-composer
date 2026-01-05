@@ -13,7 +13,7 @@ export default defineConfig({
         alt: 'LMDA Composer',
       },
       social: {
-        github: 'https://github.com/stevevillardi/lmda-composer',
+        // GitHub link will be added once the project is open source
       },
       customCss: ['./src/styles/custom.css'],
       head: [
