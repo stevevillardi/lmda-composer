@@ -37,12 +37,15 @@ import type {
   ModuleIndexInfo,
   ExecuteApiRequest,
   ExecuteApiResponse,
+  ModuleSnippetInfo,
+  ModuleSnippetsCacheMeta,
 } from '@/shared/types';
 import { DEFAULT_PREFERENCES } from '@/shared/types';
 import { parseOutput, type ParseResult } from '../utils/output-parser';
 import * as fileHandleStore from '../utils/file-handle-store';
 import { APPLIES_TO_FUNCTIONS } from '../data/applies-to-functions';
 import { DEFAULT_GROOVY_TEMPLATE, DEFAULT_POWERSHELL_TEMPLATE, getDefaultScriptTemplate } from '../config/script-templates';
+import { generateModuleSnippetImport } from '../data/module-snippet-import';
 import { buildApiVariableResolver } from '../utils/api-variables';
 import { appendItemsWithLimit } from '../utils/api-pagination';
 import { getPortalBindingStatus } from '../utils/portal-binding';
@@ -268,6 +271,18 @@ interface EditorState {
   debugCommandResults: Record<number, DebugCommandResult>;
   isExecutingDebugCommand: boolean;
   
+  // Module Snippets state
+  moduleSnippetsDialogOpen: boolean;
+  moduleSnippets: ModuleSnippetInfo[];
+  moduleSnippetsCacheMeta: ModuleSnippetsCacheMeta | null;
+  moduleSnippetsLoading: boolean;
+  selectedModuleSnippet: { name: string; version: string } | null;
+  moduleSnippetSource: string | null;
+  moduleSnippetSourceLoading: boolean;
+  moduleSnippetsSearchQuery: string;
+  // Track which snippet sources have been cached (key: "name:version")
+  cachedSnippetVersions: Set<string>;
+  
   // Actions
   setSelectedPortal: (portalId: string | null) => void;
   switchToPortalWithContext: (portalId: string, context?: { collectorId?: number; hostname?: string }) => Promise<void>;
@@ -436,6 +451,16 @@ interface EditorState {
   executeDebugCommand: (portalId: string, collectorIds: number[], command: string, parameters?: Record<string, string>, positionalArgs?: string[]) => Promise<void>;
   cancelDebugCommandExecution: () => Promise<void>;
   debugCommandExecutionId: string | null;
+  
+  // Module Snippets actions
+  setModuleSnippetsDialogOpen: (open: boolean) => void;
+  fetchModuleSnippets: () => Promise<void>;
+  loadModuleSnippetsFromCache: () => Promise<void>;
+  selectModuleSnippet: (name: string, version: string) => void;
+  fetchModuleSnippetSource: (name: string, version: string) => Promise<void>;
+  insertModuleSnippetImport: (name: string, version: string) => void;
+  setModuleSnippetsSearchQuery: (query: string) => void;
+  clearModuleSnippetsCache: () => Promise<void>;
   
   // Module commit state
   isCommittingModule: boolean;
@@ -852,6 +877,17 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   debugCommandResults: {},
   isExecutingDebugCommand: false,
   debugCommandExecutionId: null,
+  
+  // Module Snippets initial state
+  moduleSnippetsDialogOpen: false,
+  moduleSnippets: [],
+  moduleSnippetsCacheMeta: null,
+  moduleSnippetsLoading: false,
+  cachedSnippetVersions: new Set<string>(),
+  selectedModuleSnippet: null,
+  moduleSnippetSource: null,
+  moduleSnippetSourceLoading: false,
+  moduleSnippetsSearchQuery: '',
   
   // Welcome screen / Recent files state
   recentFiles: [],
@@ -4933,6 +4969,214 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       toast.info('Debug command execution cancelled');
     } catch (error) {
       toast.error('Failed to cancel debug command', {
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  },
+
+  // Module Snippets actions
+  setModuleSnippetsDialogOpen: (open: boolean) => {
+    set({ moduleSnippetsDialogOpen: open });
+    if (open) {
+      // Load from cache when opening
+      get().loadModuleSnippetsFromCache();
+    } else {
+      // Clear selection when closing
+      set({ selectedModuleSnippet: null, moduleSnippetSource: null, moduleSnippetsSearchQuery: '' });
+    }
+  },
+
+  loadModuleSnippetsFromCache: async () => {
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: 'GET_MODULE_SNIPPETS_CACHE',
+      });
+      if (response?.type === 'MODULE_SNIPPETS_CACHE' && response.payload) {
+        set({
+          moduleSnippets: response.payload.snippets,
+          moduleSnippetsCacheMeta: response.payload.meta,
+          cachedSnippetVersions: new Set(response.payload.cachedSourceKeys || []),
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load module snippets from cache:', error);
+    }
+  },
+
+  fetchModuleSnippets: async () => {
+    const { selectedPortalId, selectedCollectorId } = get();
+    
+    if (!selectedPortalId || !selectedCollectorId) {
+      toast.error('No portal or collector selected', {
+        description: 'Please select a portal and collector first.',
+      });
+      return;
+    }
+
+    set({ moduleSnippetsLoading: true });
+
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: 'FETCH_MODULE_SNIPPETS',
+        payload: { portalId: selectedPortalId, collectorId: selectedCollectorId },
+      });
+
+      if (response?.type === 'MODULE_SNIPPETS_FETCHED') {
+        set({
+          moduleSnippets: response.payload.snippets,
+          moduleSnippetsCacheMeta: response.payload.meta,
+          moduleSnippetsLoading: false,
+        });
+        toast.success('Module snippets loaded', {
+          description: `Found ${response.payload.snippets.length} module snippets.`,
+        });
+      } else if (response?.type === 'MODULE_SNIPPETS_ERROR') {
+        set({ moduleSnippetsLoading: false });
+        toast.error('Failed to fetch module snippets', {
+          description: response.payload.error,
+        });
+      } else {
+        set({ moduleSnippetsLoading: false });
+      }
+    } catch (error) {
+      set({ moduleSnippetsLoading: false });
+      toast.error('Failed to fetch module snippets', {
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  },
+
+  selectModuleSnippet: (name: string, version: string) => {
+    set({ 
+      selectedModuleSnippet: { name, version },
+      moduleSnippetSource: null,
+    });
+    // Automatically fetch source when selecting
+    get().fetchModuleSnippetSource(name, version);
+  },
+
+  fetchModuleSnippetSource: async (name: string, version: string) => {
+    const { selectedPortalId, selectedCollectorId } = get();
+    
+    if (!selectedPortalId || !selectedCollectorId) {
+      toast.error('No portal or collector selected');
+      return;
+    }
+
+    set({ moduleSnippetSourceLoading: true });
+
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: 'FETCH_MODULE_SNIPPET_SOURCE',
+        payload: { portalId: selectedPortalId, collectorId: selectedCollectorId, name, version },
+      });
+
+      if (response?.type === 'MODULE_SNIPPET_SOURCE_FETCHED') {
+        const { cachedSnippetVersions } = get();
+        const newCached = new Set(cachedSnippetVersions);
+        newCached.add(`${name}:${version}`);
+        set({
+          moduleSnippetSource: response.payload.code,
+          moduleSnippetSourceLoading: false,
+          cachedSnippetVersions: newCached,
+        });
+      } else if (response?.type === 'MODULE_SNIPPETS_ERROR') {
+        set({ moduleSnippetSourceLoading: false });
+        toast.error('Failed to fetch snippet source', {
+          description: response.payload.error,
+        });
+      } else {
+        set({ moduleSnippetSourceLoading: false });
+      }
+    } catch (error) {
+      set({ moduleSnippetSourceLoading: false });
+      toast.error('Failed to fetch snippet source', {
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  },
+
+  insertModuleSnippetImport: (name: string, version: string) => {
+    const { tabs, activeTabId, editorInstance, openTab } = get();
+    const activeTab = tabs.find(t => t.id === activeTabId);
+
+    // Generate the import boilerplate
+    const importCode = generateModuleSnippetImport(name, version);
+
+    // If no tab exists, create a new groovy file with the import
+    if (!activeTab || tabs.length === 0) {
+      openTab({
+        displayName: 'Untitled.groovy',
+        content: importCode,
+        language: 'groovy',
+        mode: 'freeform',
+      });
+      set({ moduleSnippetsDialogOpen: false });
+      toast.success('Import inserted', {
+        description: `Created new file with ${name} import`,
+      });
+      return;
+    }
+
+    if (editorInstance) {
+      // Insert at cursor position or at the beginning of the file
+      const position = editorInstance.getPosition();
+      if (position) {
+        editorInstance.executeEdits('module-snippet-import', [{
+          range: {
+            startLineNumber: position.lineNumber,
+            startColumn: position.column,
+            endLineNumber: position.lineNumber,
+            endColumn: position.column,
+          },
+          text: importCode,
+          forceMoveMarkers: true,
+        }]);
+        // Move cursor to end of inserted text
+        const lines = importCode.split('\n');
+        const newLineNumber = position.lineNumber + lines.length - 1;
+        const newColumn = lines.length > 1 ? lines[lines.length - 1].length + 1 : position.column + lines[0].length;
+        editorInstance.setPosition({ lineNumber: newLineNumber, column: newColumn });
+        editorInstance.focus();
+      }
+    } else {
+      // Fallback: prepend to content
+      set({
+        tabs: tabs.map(t =>
+          t.id === activeTabId
+            ? { ...t, content: importCode + '\n' + t.content }
+            : t
+        ),
+      });
+    }
+
+    // Close the dialog after successful insert
+    set({ moduleSnippetsDialogOpen: false });
+
+    toast.success('Import inserted', {
+      description: `Added import for ${name}`,
+    });
+  },
+
+  setModuleSnippetsSearchQuery: (query: string) => {
+    set({ moduleSnippetsSearchQuery: query });
+  },
+
+  clearModuleSnippetsCache: async () => {
+    try {
+      await chrome.runtime.sendMessage({
+        type: 'CLEAR_MODULE_SNIPPETS_CACHE',
+      });
+      set({
+        moduleSnippets: [],
+        moduleSnippetsCacheMeta: null,
+        selectedModuleSnippet: null,
+        moduleSnippetSource: null,
+        cachedSnippetVersions: new Set<string>(),
+      });
+      toast.success('Module snippets cache cleared');
+    } catch (error) {
+      toast.error('Failed to clear cache', {
         description: error instanceof Error ? error.message : 'Unknown error',
       });
     }

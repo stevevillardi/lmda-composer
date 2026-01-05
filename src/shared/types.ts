@@ -48,6 +48,29 @@ export interface Snippet {
   isBuiltIn: boolean;
 }
 
+// Module Snippets (LogicMonitor's reusable server-side modules like lm.emit, cisco.meraki, etc.)
+export interface ModuleSnippetInfo {
+  name: string;
+  versions: string[];
+  latestVersion: string;
+  language: 'groovy' | 'powershell';
+  description?: string;
+}
+
+export interface ModuleSnippetSource {
+  name: string;
+  version: string;
+  code: string;
+  fetchedAt: number;
+}
+
+export interface ModuleSnippetsCacheMeta {
+  fetchedAt: number;
+  fetchedFromPortal: string;
+  fetchedFromCollector: number;
+  collectorDescription: string;
+}
+
 export interface FetchDevicesRequest {
   portalId: string;
   collectorId: number;
@@ -563,7 +586,11 @@ export type EditorToSWMessage =
   | { type: 'REFRESH_MODULE_INDEX'; payload: RefreshModuleIndexRequest }
   | { type: 'FETCH_MODULE_DETAILS'; payload: { portalId: string; moduleType: LogicModuleType; moduleId: number; tabId: number } }
   | { type: 'FETCH_ACCESS_GROUPS'; payload: { portalId: string; tabId: number } }
-  | { type: 'OPEN_EDITOR'; payload?: DeviceContext };
+  | { type: 'OPEN_EDITOR'; payload?: DeviceContext }
+  | { type: 'FETCH_MODULE_SNIPPETS'; payload: { portalId: string; collectorId: number } }
+  | { type: 'FETCH_MODULE_SNIPPET_SOURCE'; payload: { portalId: string; collectorId: number; name: string; version: string } }
+  | { type: 'GET_MODULE_SNIPPETS_CACHE' }
+  | { type: 'CLEAR_MODULE_SNIPPETS_CACHE' };
 
 export type SWToEditorMessage =
   | { type: 'PORTALS_UPDATE'; payload: Portal[] }
@@ -595,6 +622,10 @@ export type SWToEditorMessage =
   | { type: 'MODULE_SEARCH_PROGRESS'; payload: ModuleSearchProgress }
   | { type: 'MODULE_INDEX_REFRESHED'; payload: ModuleIndexInfo }
   | { type: 'PORTAL_DISCONNECTED'; payload: { portalId: string; hostname: string } }
+  | { type: 'MODULE_SNIPPETS_FETCHED'; payload: { snippets: ModuleSnippetInfo[]; meta: ModuleSnippetsCacheMeta } }
+  | { type: 'MODULE_SNIPPET_SOURCE_FETCHED'; payload: ModuleSnippetSource }
+  | { type: 'MODULE_SNIPPETS_CACHE'; payload: { snippets: ModuleSnippetInfo[]; meta: ModuleSnippetsCacheMeta; cachedSourceKeys: string[] } | null }
+  | { type: 'MODULE_SNIPPETS_ERROR'; payload: { error: string; code?: number } }
   | { type: 'ERROR'; payload: { code: string; message: string } };
 
 export type ContentToSWMessage =

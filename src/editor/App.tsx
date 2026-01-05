@@ -14,6 +14,7 @@ import { WelcomeScreenV2 } from './components/WelcomeScreenV2';
 import { BraveFileSystemWarning } from './components/BraveFileSystemWarning';
 import { DebugCommandsDialog } from './components/DebugCommandsDialog';
 import { ModuleDetailsDialog } from './components/ModuleDetailsDialog';
+import { ModuleSnippetsDialog } from './components/ModuleSnippetsDialog';
 import { useEditorStore } from './stores/editor-store';
 import { isFileSystemAccessSupported } from './utils/file-handle-store';
 import { isBraveBrowser, isVivaldiBrowser } from './utils/browser-detection';
@@ -643,6 +644,7 @@ export function App() {
         <AppliesToTesterLazy />
       </Suspense>
       <DebugCommandsDialog />
+      <ModuleSnippetsDialog />
       {activeTab && activeTab.source?.type === 'module' && loadedModuleForCommit && (
         <Suspense fallback={null}>
           <ModuleCommitConfirmationDialogLazy

@@ -1,26 +1,68 @@
 import type { ScriptLanguage } from '@/shared/types';
 
-export const DEFAULT_GROOVY_TEMPLATE = `import com.santaba.agent.groovyapi.expect.Expect;
-import com.santaba.agent.groovyapi.snmp.Snmp;
-import com.santaba.agent.groovyapi.http.*;
-import com.santaba.agent.groovyapi.jmx.*;
+function getFormattedDate(): string {
+  return new Date().toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+}
 
-def hostname = hostProps.get("system.hostname");
+export function getDefaultGroovyTemplate(): string {
+  return `/*******************************************************************************
+ * Created via LMDA Composer - ${getFormattedDate()}
+ ******************************************************************************/
 
-// Your script here
+// Debug mode - set to true for verbose output
+def debug = false
 
-return 0;
+def host = hostProps.get("system.hostname")
+
+/**
+ * Helper function for debug output
+ */
+def LMDebugPrint(message) {
+    if (debug) {
+        println(message.toString())
+    }
+}
+
+try {
+    LMDebugPrint("Starting script for host: \${host}")
+    
+    // Your code here
+    
+} catch (Exception e) {
+    println "Error: \${e.message}"
+    return 1
+}
+
+return 0
 `;
+}
 
-export const DEFAULT_POWERSHELL_TEMPLATE = `# LogicMonitor PowerShell Script
+export function getDefaultPowershellTemplate(): string {
+  return `<#******************************************************************************
+ * Created via LMDA Composer - ${getFormattedDate()}
+ *****************************************************************************#>
 
 $hostname = "##SYSTEM.HOSTNAME##"
 
-# Your script here
-
-Exit 0
+try {
+    # Your code here
+    
+    Exit 0
+} catch {
+    Write-Host "Error: $_"
+    Exit 1
+}
 `;
+}
+
+// Keep backwards compatibility
+export const DEFAULT_GROOVY_TEMPLATE = getDefaultGroovyTemplate();
+export const DEFAULT_POWERSHELL_TEMPLATE = getDefaultPowershellTemplate();
 
 export function getDefaultScriptTemplate(language: ScriptLanguage): string {
-  return language === 'groovy' ? DEFAULT_GROOVY_TEMPLATE : DEFAULT_POWERSHELL_TEMPLATE;
+  return language === 'groovy' ? getDefaultGroovyTemplate() : getDefaultPowershellTemplate();
 }

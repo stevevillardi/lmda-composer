@@ -18,6 +18,7 @@ import {
   Terminal,
   Braces,
   Send,
+  Puzzle,
 } from 'lucide-react';
 import { useEditorStore } from '../stores/editor-store';
 import { copyOutputToClipboard, handleGlobalKeyDown } from '../utils/keyboard-shortcuts';
@@ -61,6 +62,7 @@ export function CommandPalette() {
     setSettingsDialogOpen,
     setAppliesToTesterOpen,
     setDebugCommandsDialogOpen,
+    setModuleSnippetsDialogOpen,
     tabs,
     activeTabId,
     setRightSidebarOpen,
@@ -227,12 +229,22 @@ export function CommandPalette() {
       id: 'debug-commands',
       label: 'Debug Commands',
       icon: <Terminal className="size-4" />,
-      shortcut: '⌘D',
+      shortcut: '⌘⇧D',
       action: () => {
         setCommandPaletteOpen(false);
         setDebugCommandsDialogOpen(true);
       },
       disabled: !selectedPortalId,
+    },
+    {
+      id: 'module-snippets',
+      label: 'Module Snippets',
+      icon: <Puzzle className="size-4" />,
+      shortcut: '⌘⇧L',
+      action: () => {
+        setCommandPaletteOpen(false);
+        setModuleSnippetsDialogOpen(true);
+      },
     },
     {
       id: 'execution-history',

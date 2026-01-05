@@ -155,7 +155,7 @@ export function ApiRequestBuilder() {
             updateApiTabRequest(activeTab.id, { path: nextPath });
             updateTabName(method, nextPath);
           }}
-          placeholder="/santaba/rest/device/devices"
+          placeholder="/device/devices"
           className="h-8 flex-1 font-mono text-xs"
         />
 

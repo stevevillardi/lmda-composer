@@ -235,14 +235,14 @@ const shortcuts: ShortcutDescriptor[] = [
   {
     id: 'debug-commands',
     label: 'Debug Commands',
-    match: (event) => matchesModKey(event, 'd', false),
+    match: (event) => matchesModKey(event, 'd', true),
     action: () => {
       const { setDebugCommandsDialogOpen, selectedPortalId } = getState();
       if (selectedPortalId) {
         setDebugCommandsDialogOpen(true);
       }
     },
-    monacoKeybinding: KeyMod.CtrlCmd | KeyCode.KeyD,
+    monacoKeybinding: KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KeyD,
   },
   {
     id: 'export-file',
@@ -277,6 +277,16 @@ const shortcuts: ShortcutDescriptor[] = [
       }
     },
     monacoKeybinding: KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KeyI,
+  },
+  {
+    id: 'module-snippets',
+    label: 'Module Snippets',
+    match: (event) => matchesModKey(event, 'l', true),
+    action: () => {
+      const { setModuleSnippetsDialogOpen } = getState();
+      setModuleSnippetsDialogOpen(true);
+    },
+    monacoKeybinding: KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KeyU,
   },
 ];
 

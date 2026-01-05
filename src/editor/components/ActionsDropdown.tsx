@@ -15,6 +15,7 @@ import {
   Braces,
   ArrowLeftRight,
   Play,
+  Puzzle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEditorStore } from '../stores/editor-store';
@@ -43,6 +44,7 @@ export function ActionsDropdown() {
     setSettingsDialogOpen,
     setAppliesToTesterOpen,
     setDebugCommandsDialogOpen,
+    setModuleSnippetsDialogOpen,
     rightSidebarOpen,
     toggleRightSidebar,
     createNewFile,
@@ -307,7 +309,17 @@ export function ActionsDropdown() {
               >
                 <Wrench className="size-4 mr-2" />
                 <span className="flex-1">Debug Commands</span>
-                <Kbd className="ml-auto">⌘D</Kbd>
+                <Kbd className="ml-auto">⌘⇧D</Kbd>
+              </DropdownMenuItem>
+
+              <DropdownMenuItem 
+                onClick={() => {
+                  setModuleSnippetsDialogOpen(true);
+                }}
+              >
+                <Puzzle className="size-4 mr-2" />
+                <span className="flex-1">Module Snippets</span>
+                <Kbd className="ml-auto">⌘⇧L</Kbd>
               </DropdownMenuItem>
 
               {isModuleTab && (
