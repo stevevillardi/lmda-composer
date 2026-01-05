@@ -83,9 +83,6 @@ export function OnboardingApp() {
         </div>
         <header className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <div className="space-y-4">
-            <div className="inline-flex items-center gap-2 rounded-full border border-border bg-card/70 px-3 py-1 text-xs uppercase tracking-[0.2em] text-muted-foreground">
-              First Launch
-            </div>
             <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">
               LMDA Composer
               <span className="block text-xl text-muted-foreground md:text-2xl">
@@ -185,8 +182,16 @@ export function OnboardingApp() {
           </div>
         </section>
 
-        <footer className="mt-6 text-xs text-muted-foreground">
-          This page shows on first install. You can always reopen the composer from the extension icon.
+        <footer className="mt-6 space-y-3">
+          <div className="rounded-lg border border-border/50 bg-card/50 p-3 text-xs text-muted-foreground">
+            <p>
+              <span className="font-semibold text-amber-600 dark:text-amber-500">Independent Project:</span>{' '}
+              LMDA Composer is an independent project created and maintained by LogicMonitor users. While not an official LogicMonitor product, it&apos;s designed by people who use and understand the platform. We hope you find this tool valuable for your LogicMonitor scripting workflows!
+            </p>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            This page shows on first install only. You can always reopen the composer from the extension icon.
+          </p>
         </footer>
       </div>
     </div>
