@@ -9,3 +9,4 @@ lm-ide-extension-1.0.0.zip
 .env.development.local
 .env.test.local
 .env.production.local
+ref-docs/*
