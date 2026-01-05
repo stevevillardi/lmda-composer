@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from 'react';
+import { useMemo, useState, useCallback, useEffect } from 'react';
 import {
   Combobox,
   ComboboxInput,
@@ -37,6 +37,11 @@ export function ApiPathAutocomplete({
   className,
 }: ApiPathAutocompleteProps) {
   const [inputValue, setInputValue] = useState(value);
+
+  // Sync internal state when value prop changes externally (e.g., sidebar selection)
+  useEffect(() => {
+    setInputValue(value);
+  }, [value]);
 
   // Filter endpoints by method and search query
   const filteredEndpoints = useMemo(() => {
