@@ -1,0 +1,236 @@
+---
+title: Module Snippets
+description: Browse and import LogicMonitor's reusable code modules into your scripts.
+---
+
+import { Card, CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard, Code } from '@astrojs/starlight/components';
+import { Icon } from '@astrojs/starlight/components';
+
+Module Snippets are LogicMonitor's library of reusable Groovy code modules. These modules provide helper functions for common tasks like data emission, debugging, API calls, and vendor-specific integrations.
+
+## Accessing Module Snippets
+
+<CardGrid>
+  <Card title="Keyboard Shortcut" icon="laptop">
+    Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>U</kbd> / <kbd>⌘</kbd>+<kbd>Shift</kbd>+<kbd>U</kbd> to open directly.
+  </Card>
+  <Card title="Command Palette" icon="magnifier">
+    Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> and type "Module Snippets".
+  </Card>
+</CardGrid>
+
+<img src="/lmda-composer/workspace/module-snippets-dialog.png" alt="Module Snippets dialog showing categorized modules and source preview" style="border-radius: 0.5rem; margin: 1.5rem 0;" />
+
+---
+
+## How It Works
+
+Module Snippets are fetched from your portal via a connected collector. The dialog displays all available modules grouped by category with full source code preview.
+
+<Steps>
+
+1. Open the Module Snippets dialog
+
+2. Click **Fetch Module Snippets** to retrieve the list from your collector (first time only)
+
+3. Browse categories or search for a specific module
+
+4. Select a module to preview its full source code
+
+5. Choose a version if multiple are available
+
+6. Click **Insert Import** to add the loader boilerplate to your script
+
+</Steps>
+
+---
+
+## Module Categories
+
+Modules are organized by vendor and functionality:
+
+| Category | Examples | Description |
+|----------|----------|-------------|
+| **LogicMonitor** | `lm.emit`, `lm.debug`, `lm.cache` | Core LM helpers for data emission, debugging, and caching |
+| **Cisco** | `cisco.meraki`, `cisco.aci` | Cisco Meraki, ACI, and network device integrations |
+| **VMware** | `vmware.vsphere` | vSphere, vCenter, and virtualization helpers |
+| **Aruba** | `aruba.*` | Aruba network device integrations |
+| **Palo Alto** | `paloalto.*` | Firewall and security integrations |
+| **NetApp** | `netapp.*` | Storage system integrations |
+| **Juniper** | `juniper.*` | Network device integrations |
+| **Protocols** | `proto.http`, `proto.snmp` | Protocol-specific helpers |
+| **Loader** | `loader.*` | Module loading utilities |
+
+---
+
+## The Import Boilerplate
+
+When you click **Insert Import**, LMDA Composer inserts the proper module loader boilerplate at your cursor position. This is the standard pattern for loading LogicMonitor modules:
+
+```groovy
+/*******************************************************************************
+ * Module Snippet: lm.emit
+ ******************************************************************************/
+import com.logicmonitor.common.sse.utils.GroovyScriptHelper as GSH
+import com.logicmonitor.mod.Snippets
+
+def modLoader = GSH.getInstance()._getScript("Snippets", Snippets.getLoader()).withBinding(getBinding())
+def emit = modLoader.load("lm.emit", "1")
+```
+
+### Understanding the Import
+
+| Component | Purpose |
+|-----------|---------|
+| `GroovyScriptHelper` | LogicMonitor's script execution helper |
+| `Snippets.getLoader()` | Retrieves the module loader from the collector |
+| `withBinding(getBinding())` | Passes the current script context to the module |
+| `modLoader.load(name, version)` | Loads the specified module at the given major version |
+
+### Variable Naming
+
+The variable name is automatically derived from the module name:
+
+| Module Name | Variable |
+|-------------|----------|
+| `lm.emit` | `emit` |
+| `cisco.meraki` | `meraki` |
+| `proto.http` | `http` |
+| `lm.data.topo` | `topo` |
+
+---
+
+## Version Management
+
+Each module can have multiple versions available:
+
+<CardGrid>
+  <Card title="Latest Version" icon="star">
+    Shown by default with a **latest** badge. Recommended for new scripts.
+  </Card>
+  <Card title="Version Selector" icon="list-format">
+    Use the dropdown to select older versions for compatibility with existing scripts.
+  </Card>
+  <Card title="Major Versions" icon="information">
+    The import uses the **major version** number only (e.g., `"1"` for version `1.3.0`).
+  </Card>
+</CardGrid>
+
+<Aside type="note" title="Version in Import">
+  The generated import uses the major version number, not the full version. This ensures your script gets the latest patch within that major version.
+</Aside>
+
+---
+
+## Source Code Preview
+
+The right panel shows the complete source code of the selected module:
+
+- **Full syntax highlighting** with Groovy support
+- **Copy button** to copy the entire source to clipboard
+- **Read-only editor** for browsing and searching within the code
+- **Version indicator** showing which version you're viewing
+
+<Aside type="tip" title="Learn from the Source">
+  Previewing module source code is a great way to understand how LogicMonitor's official modules work. You can learn best practices and patterns directly from the implementation.
+</Aside>
+
+---
+
+## Caching
+
+Module Snippets uses intelligent caching to minimize collector requests:
+
+| Cache Type | Behavior |
+|------------|----------|
+| **Module List** | Cached after first fetch. Shows collector name and timestamp. |
+| **Source Code** | Cached per module+version when viewed. Shows green database icon. |
+
+### Cache Indicators
+
+- **Green database icon** on a module = at least one version's source is cached
+- **Green database icon** on version = that specific version is cached locally
+- **Timestamp** in footer shows when the list was last fetched
+
+### Refreshing
+
+Click the **Refresh** button next to the search box to fetch an updated module list from the collector. This is useful if new modules have been added to your portal.
+
+---
+
+## Using Loaded Modules
+
+Once a module is loaded, you can call its methods. Each module has its own API—preview the source to see available functions.
+
+### Example: Using lm.emit
+
+```groovy
+// After loading the emit module
+def emit = modLoader.load("lm.emit", "1")
+
+// Use the emit helper to output datapoints
+emit.dataPoint("cpuUsage", 75.5)
+emit.dataPoint("memoryUsage", 82.3)
+```
+
+### Example: Using cisco.meraki
+
+```groovy
+// After loading the meraki module
+def meraki = modLoader.load("cisco.meraki", "1")
+
+// Use Meraki API helpers
+def orgs = meraki.getOrganizations(apiKey)
+orgs.each { org ->
+    println "Organization: ${org.name}"
+}
+```
+
+---
+
+## Best Practices
+
+<CardGrid>
+  <Card title="Use Latest Versions" icon="rocket">
+    Start with the latest version unless you need specific compatibility with existing scripts.
+  </Card>
+  <Card title="Review Source First" icon="document">
+    Preview the module source to understand its API before importing.
+  </Card>
+  <Card title="One Loader Per Script" icon="warning">
+    The modLoader setup only needs to be included once per script, even if loading multiple modules.
+  </Card>
+  <Card title="Check Module Updates" icon="sync">
+    Periodically refresh the module list to see if newer versions are available.
+  </Card>
+</CardGrid>
+
+### Loading Multiple Modules
+
+If you need multiple modules, include the loader setup once and call `load()` multiple times:
+
+```groovy
+/*******************************************************************************
+ * Module Snippets
+ ******************************************************************************/
+import com.logicmonitor.common.sse.utils.GroovyScriptHelper as GSH
+import com.logicmonitor.mod.Snippets
+
+def modLoader = GSH.getInstance()._getScript("Snippets", Snippets.getLoader()).withBinding(getBinding())
+def emit = modLoader.load("lm.emit", "1")
+def http = modLoader.load("proto.http", "1")
+def cache = modLoader.load("lm.cache", "1")
+
+// Now use all three modules in your script
+```
+
+---
+
+## Next Steps
+
+<LinkCard
+  title="Snippets Library"
+  description="Use built-in and custom local code snippets."
+  href="/lmda-composer/workspace/snippets/"
+/>
+

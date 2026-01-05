@@ -73,6 +73,7 @@ export default defineConfig({
           items: [
             { label: 'File Management', slug: 'workspace/file-management' },
             { label: 'Snippets Library', slug: 'workspace/snippets' },
+            { label: 'Module Snippets', slug: 'workspace/module-snippets' },
             { label: 'Execution History', slug: 'workspace/execution-history' },
             { label: 'Settings', slug: 'workspace/settings' },
           ],

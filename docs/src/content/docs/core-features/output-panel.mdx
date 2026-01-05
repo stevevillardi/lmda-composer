@@ -21,14 +21,7 @@ The Output Panel sits below the code editor and includes:
 
 Drag the divider between the editor and output panel to resize.
 
-{/* Screenshot placeholder */}
-<div class="screenshot-placeholder" style="background: var(--sl-color-gray-6); border: 2px dashed var(--sl-color-gray-4); border-radius: 0.5rem; padding: 2.5rem 2rem; text-align: center; margin: 1.5rem 0;">
-  <Icon name="image" size="1.5rem" />
-  <p style="margin: 0.5rem 0 0 0; color: var(--sl-color-gray-3); font-size: 0.8rem;">
-    Screenshot: output-raw.png<br />
-    <em>Output panel showing raw script output</em>
-  </p>
-</div>
+<img src="/lmda-composer/core-features/output-raw.png" alt="Output panel showing raw script output" style="border-radius: 0.5rem; margin: 1.5rem 0;" />
 
 ---
 
@@ -43,13 +36,7 @@ Drag the divider between the editor and output panel to resize.
     - Preserves formatting and line breaks
     - Displayed in monospace font
 
-    {/* Screenshot placeholder */}
-    <div class="screenshot-placeholder" style="background: var(--sl-color-gray-6); border: 2px dashed var(--sl-color-gray-4); border-radius: 0.5rem; padding: 2rem; text-align: center; margin: 1rem 0;">
-      <Icon name="image" size="1.25rem" />
-      <p style="margin: 0.5rem 0 0 0; color: var(--sl-color-gray-3); font-size: 0.75rem;">
-        Screenshot: output-raw.png
-      </p>
-    </div>
+    <img src="/lmda-composer/core-features/output-raw.png" alt="Raw output tab" style="border-radius: 0.5rem; margin: 1rem 0;" />
 
     <Aside type="tip" title="Copy Output">
       Click the copy button or use the keyboard shortcut to copy the entire output to your clipboard.
@@ -85,13 +72,7 @@ Drag the divider between the editor and output panel to resize.
     | Datapoint | The datapoint name |
     | Value | The numeric value |
 
-    {/* Screenshot placeholder */}
-    <div class="screenshot-placeholder" style="background: var(--sl-color-gray-6); border: 2px dashed var(--sl-color-gray-4); border-radius: 0.5rem; padding: 2rem; text-align: center; margin: 1rem 0;">
-      <Icon name="image" size="1.25rem" />
-      <p style="margin: 0.5rem 0 0 0; color: var(--sl-color-gray-3); font-size: 0.75rem;">
-        Screenshot: output-parsed-ad.png
-      </p>
-    </div>
+    <img src="/lmda-composer/core-features/output-parsed-ad.png" alt="Parsed output showing Active Discovery instances" style="border-radius: 0.5rem; margin: 1rem 0;" />
   </TabItem>
 
   <TabItem label="Validation" icon="approve-check-circle">
@@ -107,26 +88,47 @@ Drag the divider between the editor and output panel to resize.
 
     The tab header shows a summary: checkmark when valid, or warning/error counts.
 
-    {/* Screenshot placeholder */}
-    <div class="screenshot-placeholder" style="background: var(--sl-color-gray-6); border: 2px dashed var(--sl-color-gray-4); border-radius: 0.5rem; padding: 2rem; text-align: center; margin: 1rem 0;">
-      <Icon name="image" size="1.25rem" />
-      <p style="margin: 0.5rem 0 0 0; color: var(--sl-color-gray-3); font-size: 0.75rem;">
-        Screenshot: output-validation.png
-      </p>
-    </div>
+    <img src="/lmda-composer/core-features/output-validation.png" alt="Validation tab showing output validation results" style="border-radius: 0.5rem; margin: 1rem 0;" />
   </TabItem>
 
   <TabItem label="Graph" icon="random">
-    For **TopologySource** scripts, displays a visual network graph:
+    For **TopologySource** scripts, displays an interactive network topology graph with full visualization capabilities.
 
-    - Interactive node visualization
-    - Relationship lines between nodes
-    - Node labels and metadata
-    - Zoom and pan controls
-    - Click nodes for details
+    **Node Types:**
+    | Type | Color | Description |
+    |------|-------|-------------|
+    | Device | Blue | Vertices defined in your topology output |
+    | External | Gray | Resources referenced in edges but not in vertices |
+
+    **Edge Type Colors:**
+    | Type | Color |
+    |------|-------|
+    | Network | Cyan |
+    | Bridge | Purple |
+    | CDP | Orange |
+    | LLDP | Green |
+
+    **Interactive Features:**
+    - **Pan & Zoom** — Use mouse wheel to zoom, drag to pan the canvas
+    - **Node Selection** — Click any node to view its details in the side panel
+    - **Edge Selection** — Click any edge to see connection info, health data, and metadata
+    - **Details Panel** — Collapsible side panel shows properties for selected elements
+    - **Dynamic Legend** — Shows only edge types and node types present in your topology
+
+    **Node Details Panel:**
+    - Node label and type
+    - Custom properties from your script
+
+    **Edge Details Panel:**
+    - Source and target connection
+    - Edge type and display type
+    - Instance information (from/to instances)
+    - Health DataSources with Tx/Rx datapoints
+    - Custom metadata
+    - Metric reporting node
 
     <Aside type="note">
-      The Graph tab only appears when running in TopologySource-compatible mode.
+      The Graph tab only appears when running in TopologySource-compatible mode. The topology data is parsed from your script's vertex and edge output.
     </Aside>
   </TabItem>
 </Tabs>
