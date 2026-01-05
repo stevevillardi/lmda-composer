@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef } from 'react';
-import { ArrowUpRight, BookOpen, ExternalLink, Layers, Play, Sparkles, Target, Pin, Puzzle } from 'lucide-react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowUpRight, BookOpen, ExternalLink, Layers, Play, Sparkles, Target, Pin, Puzzle, Terminal, X } from 'lucide-react';
 
 const steps = [
   {
@@ -29,6 +29,8 @@ const features = [
 ];
 
 export function OnboardingApp() {
+  const [showPsPromo, setShowPsPromo] = useState(true);
+
   const launchEditor = useMemo(
     () => () => {
       const url = chrome.runtime.getURL('src/editor/index.html');
@@ -70,7 +72,7 @@ export function OnboardingApp() {
         <div className="absolute bottom-0 right-1/3 h-48 w-48 rounded-full bg-[oklch(0.78_0.1_30/0.3)] blur-3xl dark:bg-[oklch(0.5_0.12_30/0.25)]" />
       </div>
 
-      <div className="relative mx-auto max-w-6xl px-6 py-8">
+      <div className="relative mx-auto max-w-7xl px-6 py-4">
         <div className="fixed right-40 top-3 z-10 hidden sm:block">
           <div className="relative animate-[pulse_2.4s_ease-in-out_infinite] rounded-xl border border-border bg-card/90 px-3 py-2 text-xs text-muted-foreground shadow-sm">
             <span className="flex items-center gap-2">
@@ -81,6 +83,39 @@ export function OnboardingApp() {
             <span className="absolute right-6 -top-2 h-3 w-3 rotate-45 border-l border-t border-border bg-card/90" />
           </div>
         </div>
+        {showPsPromo && (
+          <div className="fixed bottom-4 right-4 z-20 max-w-xs animate-in slide-in-from-bottom-4 fade-in duration-300">
+            <div className="rounded-xl border border-border bg-card shadow-lg">
+              <div className="flex items-start gap-3 p-4">
+                <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500">
+                  <Terminal className="size-4" />
+                </span>
+                <div className="flex-1 space-y-1">
+                  <p className="text-sm font-medium text-foreground">Automate LM with PowerShell!</p>
+                  <p className="text-xs text-muted-foreground">
+                    Use the Logic.Monitor PowerShell module to manage your LM environment programmatically.
+                  </p>
+                  <a
+                    href="https://logicmonitor.github.io/lm-powershell-module-docs/"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-xs font-medium text-blue-500 hover:text-blue-400 transition-colors"
+                  >
+                    Learn more
+                    <ExternalLink className="size-3" />
+                  </a>
+                </div>
+                <button
+                  onClick={() => setShowPsPromo(false)}
+                  className="shrink-0 rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                  aria-label="Dismiss"
+                >
+                  <X className="size-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         <header className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <div className="space-y-4">
             <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">

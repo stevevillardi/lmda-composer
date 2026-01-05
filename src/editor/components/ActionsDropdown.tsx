@@ -18,6 +18,7 @@ import {
   Puzzle,
   BookOpen,
   ExternalLink,
+  Terminal,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEditorStore } from '../stores/editor-store';
@@ -405,6 +406,14 @@ export function ActionsDropdown() {
           }}>
             <BookOpen className="size-4 mr-2" />
             <span className="flex-1">Documentation</span>
+            <ExternalLink className="size-3 text-muted-foreground" />
+          </DropdownMenuItem>
+
+          <DropdownMenuItem onClick={() => {
+            window.open('https://logicmonitor.github.io/lm-powershell-module-docs/', '_blank');
+          }}>
+            <Terminal className="size-4 mr-2" />
+            <span className="flex-1">Install the LM Pwsh Module</span>
             <ExternalLink className="size-3 text-muted-foreground" />
           </DropdownMenuItem>
         </DropdownMenuGroup>
