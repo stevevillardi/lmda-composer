@@ -8,3 +8,8 @@ dist
 .env.test.local
 .env.production.local
 ref-docs/*
+
+# Astro
+docs/.astro/
+docs/dist/
+docs/node_modules/

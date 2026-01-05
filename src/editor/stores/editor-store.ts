@@ -1284,9 +1284,15 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       return;
     }
 
-    // For Collection or Batch Collection mode, always show the execution context dialog
+    // For Collection or Batch Collection mode with Groovy, show the execution context dialog
     // This allows users to confirm/modify wildvalue or datasource ID before each run
-    if (mode === 'collection' || mode === 'batchcollection') {
+    // Skip for PowerShell since instanceProps/datasourceinstanceProps are not supported
+    if ((mode === 'collection' || mode === 'batchcollection') && language === 'groovy') {
+      // Look up device ID from hostname for server-side token substitution
+      const pendingDevice = state.hostname 
+        ? state.devices.find(d => d.name === state.hostname) 
+        : undefined;
+      
       set({
         executionContextDialogOpen: true,
         pendingExecution: {
@@ -1296,6 +1302,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           language,
           mode,
           hostname: state.hostname || undefined,
+          deviceId: pendingDevice?.id,
         },
       });
       return;
@@ -1314,6 +1321,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     });
 
     try {
+      // Look up device ID from hostname for server-side token substitution
+      const selectedDevice = state.hostname 
+        ? state.devices.find(d => d.name === state.hostname) 
+        : undefined;
+      
       const response = await chrome.runtime.sendMessage({
         type: 'EXECUTE_SCRIPT',
         payload: {
@@ -1324,6 +1336,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           mode,
           executionId,
           hostname: state.hostname || undefined,
+          deviceId: selectedDevice?.id,
           wildvalue: state.wildvalue || undefined,
           datasourceId: state.datasourceId || undefined,
         },

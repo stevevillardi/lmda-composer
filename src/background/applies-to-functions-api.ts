@@ -1,4 +1,5 @@
 import type { CustomAppliesToFunction } from '@/shared/types';
+import { get403ErrorMessage, get401ErrorMessage } from './error-messages';
 
 const API_VERSION = '3';
 
@@ -34,10 +35,10 @@ export async function fetchCustomFunctions(
 
   if (!response.ok) {
     if (response.status === 403) {
-      throw new Error('CSRF token expired or invalid');
+      throw new Error(get403ErrorMessage('applies-to-functions'));
     }
     if (response.status === 401) {
-      throw new Error('Session expired - please log in to LogicMonitor');
+      throw new Error(get401ErrorMessage());
     }
     throw new Error(`Failed to fetch custom functions: ${response.status} ${response.statusText}`);
   }

@@ -1,6 +1,7 @@
 import type { ExecuteApiRequest, ExecuteApiResponse } from '@/shared/types';
 import { normalizeApiPath } from '@/shared/api-utils';
 import type { ExecutorContext } from './script-executor';
+import { getNoCsrfTokenMessage } from './error-messages';
 
 export class ApiExecutor {
   private context: ExecutorContext;
@@ -14,7 +15,7 @@ export class ApiExecutor {
     let csrfToken = await this.acquireCsrfToken(request.portalId);
 
     if (!csrfToken) {
-      throw new Error('No CSRF token available - please ensure you are logged into the LogicMonitor portal');
+      throw new Error(getNoCsrfTokenMessage());
     }
 
     const response = await this.executeRequest(request, csrfToken);

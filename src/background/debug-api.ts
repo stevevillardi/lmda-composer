@@ -7,6 +7,7 @@
 
 import { API_VERSION, EXECUTION_POLL_INTERVAL_MS, EXECUTION_MAX_ATTEMPTS } from '@/shared/types';
 import { fetchWithRetry, updateRateLimitState } from './rate-limiter';
+import { get403ErrorMessage, get401ErrorMessage } from './error-messages';
 
 export interface PollResult {
   status: 'pending' | 'complete' | 'error';
@@ -57,10 +58,10 @@ export async function executeDebugCommand(
 
   if (!response.ok) {
     if (response.status === 403) {
-      throw new Error('CSRF token expired or invalid');
+      throw new Error(get403ErrorMessage('collector-debug'));
     }
     if (response.status === 401) {
-      throw new Error('Session expired - please log in to LogicMonitor');
+      throw new Error(get401ErrorMessage());
     }
     throw new Error(`Debug API error: ${response.status} ${response.statusText}`);
   }
@@ -110,10 +111,10 @@ export async function pollDebugResult(
 
   if (!response.ok) {
     if (response.status === 403) {
-      throw new Error('CSRF token expired or invalid');
+      throw new Error(get403ErrorMessage('collector-debug'));
     }
     if (response.status === 401) {
-      throw new Error('Session expired - please log in to LogicMonitor');
+      throw new Error(get401ErrorMessage());
     }
     return {
       status: 'error',
@@ -250,9 +251,15 @@ export function buildGroovyCommand(
 
 /**
  * Build a PowerShell debug command line.
+ * 
+ * @param script The PowerShell script to execute
+ * @param hostId Optional device ID for server-side token substitution.
+ *               When provided, the collector substitutes ##TOKEN## patterns
+ *               without exposing values in audit logs.
  */
-export function buildPowerShellCommand(script: string): string {
-  return `!posh \n${script}`;
+export function buildPowerShellCommand(script: string, hostId?: number): string {
+  const hostIdParam = hostId ? ` hostId=${hostId}` : '';
+  return `!posh${hostIdParam}\n${script}`;
 }
 
 /**

@@ -6,8 +6,8 @@
 
 import type { ExecuteScriptRequest, ExecutionResult, ExecuteDebugCommandRequest, DebugCommandResult } from '@/shared/types';
 import { executeAndPoll, buildGroovyCommand, buildPowerShellCommand, buildDebugCommand, buildHealthCheckCommand, executeOnMultipleCollectors } from './debug-api';
-import { hasTokens, substituteTokens, substituteWithEmpty, type SubstitutionResult } from './token-substitutor';
-import { fetchDeviceProperties } from './property-prefetcher';
+import { hasTokens, extractTokens, type SubstitutionResult } from './token-substitutor';
+import { getCsrfRefreshFailedMessage, getNoCsrfTokenMessage } from './error-messages';
 
 export interface ExecutorContext {
   getCsrfToken: (portalId: string) => string | null;
@@ -97,7 +97,7 @@ export class ScriptExecutor {
       let csrfToken = await this.acquireCsrfToken(request.portalId);
       
       if (!csrfToken) {
-        return this.errorResult(executionId, startTime, 'No CSRF token available - please ensure you are logged into the LogicMonitor portal');
+        return this.errorResult(executionId, startTime, getNoCsrfTokenMessage());
       }
 
       // Execute based on language
@@ -116,12 +116,12 @@ export class ScriptExecutor {
           return this.cancelledResult(executionId, startTime);
         }
         
-        // Check if CSRF expired and retry once
-        if (error instanceof Error && error.message.includes('CSRF')) {
+        // Check if access denied and retry once with refreshed token
+        if (error instanceof Error && (error.message.includes('Access denied') || error.message.includes('403'))) {
           csrfToken = await this.context.refreshCsrfToken(request.portalId);
           
           if (!csrfToken) {
-            return this.errorResult(executionId, startTime, 'Failed to refresh CSRF token');
+            return this.errorResult(executionId, startTime, getCsrfRefreshFailedMessage());
           }
           
           // Retry
@@ -199,7 +199,8 @@ export class ScriptExecutor {
 
   /**
    * Execute a PowerShell script.
-   * If tokens are found, performs property prefetch and substitution.
+   * Uses hostId parameter for server-side token substitution to prevent
+   * sensitive values from appearing in audit logs.
    */
   private async executePowerShell(
     request: ExecuteScriptRequest,
@@ -207,35 +208,20 @@ export class ScriptExecutor {
     internals: ExecutionInternals,
     abortSignal: AbortSignal
   ): Promise<string> {
-    let scriptToExecute = request.script;
-    
-    // Check if script contains tokens
-    if (hasTokens(request.script)) {
-      if (request.hostname) {
-        // Fetch properties from collector cache
-        const prefetchResult = await fetchDeviceProperties(
-          request.portalId,
-          request.collectorId,
-          request.hostname,
-          csrfToken
-        );
-        
-        if (prefetchResult.success) {
-          internals.substitutionResult = substituteTokens(request.script, prefetchResult.properties);
-          scriptToExecute = internals.substitutionResult.script;
-        } else {
-          internals.prefetchError = prefetchResult.error;
-          internals.substitutionResult = substituteWithEmpty(request.script);
-          scriptToExecute = internals.substitutionResult.script;
-        }
-      } else {
-        internals.substitutionResult = substituteWithEmpty(request.script);
-        scriptToExecute = internals.substitutionResult.script;
-      }
+    // Check if script contains tokens but no device is selected
+    // This helps users understand why tokens won't be substituted
+    if (hasTokens(request.script) && !request.deviceId) {
+      const tokens = extractTokens(request.script);
+      internals.substitutionResult = {
+        script: request.script,
+        substitutions: [],
+        missing: tokens,
+      };
     }
     
-    // Build and execute command
-    const cmdline = buildPowerShellCommand(scriptToExecute);
+    // Build and execute command with hostId for server-side substitution
+    // The collector will substitute ##TOKEN## patterns without exposing values in audit logs
+    const cmdline = buildPowerShellCommand(request.script, request.deviceId);
     
     return executeAndPoll(
       request.portalId,
@@ -318,7 +304,7 @@ export class ScriptExecutor {
       // Get CSRF token (portalId is the hostname)
       let csrfToken = await this.acquireCsrfToken(request.portalId);
       if (!csrfToken) {
-        throw new Error('No CSRF token available - please ensure you are logged into the LogicMonitor portal');
+        throw new Error(getNoCsrfTokenMessage());
       }
 
       // Build command string - check for health check command
