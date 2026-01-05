@@ -12,9 +12,8 @@
   "dependencies": {
     "@astrojs/starlight": "^0.32.0",
     "@iconify-json/lucide": "^1.2.82",
+    "@lucide/astro": "^0.562.0",
     "astro": "^5.1.0",
     "sharp": "^0.33.0"
   }
 }
-
-

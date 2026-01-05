@@ -1,4 +1,5 @@
 ---
+import { Check, X, Chrome, Globe } from '@lucide/astro';
 import { Icon } from '@astrojs/starlight/components';
 
 interface Props {
@@ -11,12 +12,22 @@ interface Props {
 const { name, icon, supported, note } = Astro.props;
 ---
 
-<div class={`browser-card ${supported ? 'supported' : 'unsupported'}`}>
+<div class:list={['browser-card', { supported, unsupported: !supported }]}>
   <div class="browser-header">
     <Icon name={icon} size="1.5rem" />
     <span class="browser-name">{name}</span>
-    <span class={`status-badge ${supported ? 'yes' : 'no'}`}>
-      {supported ? '✓ Supported' : '✗ Not Supported'}
+    <span class:list={['status-badge', { yes: supported, no: !supported }]}>
+      {supported ? (
+        <>
+          <Check size={12} />
+          <span>Supported</span>
+        </>
+      ) : (
+        <>
+          <X size={12} />
+          <span>Not Supported</span>
+        </>
+      )}
     </span>
   </div>
   {note && (
@@ -57,6 +68,9 @@ const { name, icon, supported, note } = Astro.props;
   }
 
   .status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
     font-size: 0.75rem;
     font-weight: 500;
     padding: 0.25rem 0.5rem;
@@ -64,8 +78,8 @@ const { name, icon, supported, note } = Astro.props;
   }
 
   .status-badge.yes {
-    background: var(--sl-color-green-low);
-    color: var(--sl-color-green-high);
+    background: color-mix(in srgb, #22c55e 15%, transparent);
+    color: #22c55e;
   }
 
   .status-badge.no {
@@ -79,6 +93,3 @@ const { name, icon, supported, note } = Astro.props;
     margin: 0.5rem 0 0 0;
   }
 </style>
-
-
-

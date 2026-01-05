@@ -1,6 +1,10 @@
 ---
 import type { Props } from '@astrojs/starlight/props';
 import { Image } from 'astro:assets';
+import { 
+  Rocket, Package, Search, Wrench, Globe, FileText, History, Zap,
+  Target, Activity, Terminal
+} from '@lucide/astro';
 import logo from '../assets/icon128.png';
 
 const isLandingPage = Astro.url.pathname === '/lmda-composer/' || Astro.url.pathname === '/lmda-composer';
@@ -49,35 +53,35 @@ const isLandingPage = Astro.url.pathname === '/lmda-composer/' || Astro.url.path
       <h2>Features</h2>
       <div class="feature-grid">
         <div class="feature-card">
-          <h3>🚀 Script Execution</h3>
+          <h3><span class="feature-icon"><Rocket size={20} /></span> Script Execution</h3>
           <p>Run Groovy and PowerShell scripts directly on any collector with parsed output validation.</p>
         </div>
         <div class="feature-card">
-          <h3>📦 LogicModule Browser</h3>
+          <h3><span class="feature-icon"><Package size={20} /></span> LogicModule Browser</h3>
           <p>Browse, search, and import scripts from DataSources, ConfigSources, and other module types.</p>
         </div>
         <div class="feature-card">
-          <h3>🔍 Module Search</h3>
+          <h3><span class="feature-icon"><Search size={20} /></span> Module Search</h3>
           <p>Search across all module scripts and datapoints to find code patterns and definitions.</p>
         </div>
         <div class="feature-card">
-          <h3>🔧 AppliesTo Toolbox</h3>
+          <h3><span class="feature-icon"><Wrench size={20} /></span> AppliesTo Toolbox</h3>
           <p>Test and validate AppliesTo expressions with instant feedback on matching resources.</p>
         </div>
         <div class="feature-card">
-          <h3>🌐 API Explorer</h3>
+          <h3><span class="feature-icon"><Globe size={20} /></span> API Explorer</h3>
           <p>Explore the LogicMonitor REST API using your active session with built-in endpoint catalog.</p>
         </div>
         <div class="feature-card">
-          <h3>📝 Module Details Editor</h3>
+          <h3><span class="feature-icon"><FileText size={20} /></span> Module Details Editor</h3>
           <p>Edit module metadata including name, description, appliesTo, and alert settings.</p>
         </div>
         <div class="feature-card">
-          <h3>📜 Version History</h3>
+          <h3><span class="feature-icon"><History size={20} /></span> Version History</h3>
           <p>View module lineage and compare changes across versions with diff viewer.</p>
         </div>
         <div class="feature-card">
-          <h3>⚡ Debug Commands</h3>
+          <h3><span class="feature-icon"><Zap size={20} /></span> Debug Commands</h3>
           <p>Run collector debug commands with visual health check reports.</p>
         </div>
       </div>
@@ -220,12 +224,11 @@ const isLandingPage = Astro.url.pathname === '/lmda-composer/' || Astro.url.path
     border-radius: 0.75rem;
     border: 1px solid var(--sl-color-gray-5);
     background: var(--sl-color-bg-nav);
-    transition: border-color 0.2s ease, transform 0.2s ease;
+    transition: border-color 0.2s ease;
   }
 
   .feature-card:hover {
     border-color: var(--sl-color-accent);
-    transform: translateY(-2px);
   }
 
   .feature-card h3 {
@@ -233,6 +236,21 @@ const isLandingPage = Astro.url.pathname === '/lmda-composer/' || Astro.url.path
     font-weight: 600;
     margin-bottom: 0.5rem;
     color: var(--sl-color-white);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .feature-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 0.375rem;
+    background: color-mix(in srgb, var(--sl-color-accent) 15%, transparent);
+    color: var(--sl-color-accent);
+    flex-shrink: 0;
   }
 
   .feature-card p {
@@ -278,6 +296,3 @@ const isLandingPage = Astro.url.pathname === '/lmda-composer/' || Astro.url.path
     }
   }
 </style>
-
-
-

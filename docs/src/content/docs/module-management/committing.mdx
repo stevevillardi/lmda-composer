@@ -16,7 +16,7 @@ Committing saves your changes from LMDA Composer to the LogicModule in LogicMoni
 
 - Script content is updated
 - Staged metadata changes are applied
-- A new version is created in lineage
+- The module is updated in your portal
 - The commit message is recorded
 
 ---
@@ -26,10 +26,10 @@ Committing saves your changes from LMDA Composer to the LogicModule in LogicMoni
 The Commit button is available when:
 
 <div style="display: grid; gap: 0.5rem; margin: 1rem 0; font-size: 0.875rem;">
-  <div>✅ Tab is bound to a LogicModule (loaded from browser)</div>
-  <div>✅ You have unsaved changes (script or metadata)</div>
-  <div>✅ You're connected to the correct portal</div>
-  <div>✅ You have write permissions for the module</div>
+  <div><Badge text="Required" variant="success" /> Tab is bound to a LogicModule (loaded from browser)</div>
+  <div><Badge text="Required" variant="success" /> You have unsaved changes (script or metadata)</div>
+  <div><Badge text="Required" variant="success" /> You're connected to the correct portal</div>
+  <div><Badge text="Required" variant="success" /> You have write permissions for the module</div>
 </div>
 
 ## Commit Button States
@@ -93,16 +93,16 @@ Enter a descriptive commit message explaining your changes:
 
 <Tabs>
   <TabItem label="Good Examples" icon="approve-check-circle">
-    - ✅ "Fixed SNMP timeout handling for slow devices"
-    - ✅ "Added CPU temperature datapoint (JIRA-1234)"
-    - ✅ "Updated AppliesTo to include Linux 8.x servers"
-    - ✅ "Increased collection interval from 1min to 5min"
+    - "Fixed SNMP timeout handling for slow devices"
+    - "Added CPU temperature datapoint (JIRA-1234)"
+    - "Updated AppliesTo to include Linux 8.x servers"
+    - "Increased collection interval from 1min to 5min"
   </TabItem>
   <TabItem label="Bad Examples" icon="close">
-    - ❌ "Updated script"
-    - ❌ "Changes"
-    - ❌ "Fixed bug"
-    - ❌ "Test"
+    - "Updated script" — too vague
+    - "Changes" — meaningless
+    - "Fixed bug" — which bug?
+    - "Test" — not descriptive
   </TabItem>
 </Tabs>
 
@@ -118,15 +118,15 @@ Add tags to categorize your commit:
 ## Commit Options
 
 <CardGrid>
-  <Card title="Script Only" icon="seti:groovy">
+  <FeatureCard title="Script Only" icon="code" color="green">
     If you only changed the script, only script content is updated. Metadata remains unchanged.
-  </Card>
-  <Card title="Script + Metadata" icon="document">
+  </FeatureCard>
+  <FeatureCard title="Script + Metadata" icon="layers" color="purple">
     Both are committed together in a single atomic update. One version created.
-  </Card>
-  <Card title="Metadata Only" icon="setting">
+  </FeatureCard>
+  <FeatureCard title="Metadata Only" icon="settings" color="blue">
     From Module Details editor—stage metadata changes and commit without script changes.
-  </Card>
+  </FeatureCard>
 </CardGrid>
 
 ---
@@ -156,8 +156,8 @@ Add tags to categorize your commit:
   <TabItem label="Conflict Errors" icon="warning">
     If the module was modified by others:
     - Conflict warning shown
-    - Review their changes first via Lineage
-    - Merge manually if needed
+    - Reload the module to see current state
+    - Merge your changes manually if needed
   </TabItem>
   
   <TabItem label="Network Errors" icon="rocket">
@@ -205,18 +205,18 @@ Script changes take effect immediately:
 ## Best Practices
 
 <CardGrid>
-  <Card title="Always Test First" icon="rocket">
+  <FeatureCard title="Always Test First" icon="play" color="green">
     Run the script multiple times with different devices. Verify output parsing and check edge cases.
-  </Card>
-  <Card title="Use Descriptive Messages" icon="pencil">
+  </FeatureCard>
+  <FeatureCard title="Use Descriptive Messages" icon="edit" color="blue">
     Your commit message helps future you, team members, and auditors understand changes.
-  </Card>
-  <Card title="Commit Small Changes" icon="list-format">
+  </FeatureCard>
+  <FeatureCard title="Commit Small Changes" icon="git-branch" color="purple">
     Prefer frequent small commits over large batches. Easier to identify issues and revert if needed.
-  </Card>
-  <Card title="Coordinate with Team" icon="star">
+  </FeatureCard>
+  <FeatureCard title="Coordinate with Team" icon="users" color="orange">
     Communicate planned changes for shared modules. Avoid simultaneous edits.
-  </Card>
+  </FeatureCard>
 </CardGrid>
 
 ---
@@ -234,21 +234,19 @@ You can save locally as backup before committing.
 
 ## Emergency Rollback
 
-If a commit causes problems:
+<Aside type="caution" title="No Version History for User Changes">
+  LMDA Composer and LogicMonitor do not maintain a history of your changes. There is no built-in way to revert to a previous version of your edits.
+</Aside>
 
-<Steps>
+If a commit causes problems, you'll need to:
 
-1. Open Module Lineage
+- **Restore from backup**: If you exported the script before making changes
+- **Rewrite manually**: Undo the problematic changes by hand
+- **Check Lineage** (for core modules): If you're working with a LogicMonitor Exchange module, you can view the original Exchange version via Lineage and use it as a reference
 
-2. Find the previous working version
-
-3. View its script content
-
-4. Copy to editor
-
-5. Commit as new version (effectively rolling back)
-
-</Steps>
+<Aside type="tip" title="Prevent Data Loss">
+  Before making significant changes, export your script to a local file as a backup. Consider using Git for version control of exported scripts.
+</Aside>
 
 ---
 

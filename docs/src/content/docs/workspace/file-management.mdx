@@ -6,6 +6,7 @@ description: Opening, saving, and managing local script files.
 import { Card, CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
 import { Icon } from '@astrojs/starlight/components';
 import StatusBadge from '../../../components/StatusBadge.astro';
+import FeatureCard from '../../../components/FeatureCard.astro';
 
 LMDA Composer supports working with local files on your computer, allowing you to develop scripts outside of LogicModules and manage your own script library.
 
@@ -35,18 +36,18 @@ When you open a file, the extension determines the language, syntax highlighting
 ## Opening Files
 
 <CardGrid>
-  <Card title="Welcome Screen" icon="rocket">
+  <FeatureCard title="Welcome Screen" icon="rocket" color="orange">
     Click **Open File** and select from the system dialog.
-  </Card>
-  <Card title="Keyboard" icon="laptop">
+  </FeatureCard>
+  <FeatureCard title="Keyboard" icon="laptop" color="blue">
     Press <kbd>Ctrl</kbd>+<kbd>O</kbd> / <kbd>Cmd</kbd>+<kbd>O</kbd>.
-  </Card>
-  <Card title="Drag and Drop" icon="seti:folder">
+  </FeatureCard>
+  <FeatureCard title="Drag and Drop" icon="folder" color="purple">
     Drag a file onto the LMDA Composer window.
-  </Card>
-  <Card title="Recent Files" icon="history">
+  </FeatureCard>
+  <FeatureCard title="Recent Files" icon="history" color="green">
     Click a file from the recent files list on the welcome screen.
-  </Card>
+  </FeatureCard>
 </CardGrid>
 
 ---
@@ -94,35 +95,23 @@ LMDA Composer uses the modern File System Access API for seamless file operation
 
 ### Browser Compatibility
 
-<div style="display: grid; gap: 1rem; margin: 1.5rem 0;">
-  <Card title="Chrome" icon="seti:favicon">
-    <div style="display: flex; align-items: center; gap: 0.5rem;">
-      <StatusBadge status="success" label="Full Support" />
-    </div>
-    <p style="font-size: 0.875rem; margin-top: 0.5rem;">Direct file reading/writing, file handles persist across sessions.</p>
-  </Card>
+<CardGrid>
+  <FeatureCard title="Chrome" icon="globe" color="green">
+    <StatusBadge status="success" label="Full Support" />
+    Direct file reading/writing, file handles persist across sessions.
+  </FeatureCard>
   
-  <Card title="Edge" icon="seti:favicon">
-    <div style="display: flex; align-items: center; gap: 0.5rem;">
-      <StatusBadge status="success" label="Full Support" />
-    </div>
-    <p style="font-size: 0.875rem; margin-top: 0.5rem;">Same capabilities as Chrome.</p>
-  </Card>
+  <FeatureCard title="Edge" icon="globe" color="green">
+    <StatusBadge status="success" label="Full Support" />
+    Same capabilities as Chrome.
+  </FeatureCard>
   
-  <Card title="Brave" icon="seti:favicon">
-    <div style="display: flex; align-items: center; gap: 0.5rem;">
-      <StatusBadge status="warning" label="Requires Setup" />
-    </div>
-    <p style="font-size: 0.875rem; margin-top: 0.5rem;">May need to enable the File System Access API flag.</p>
-  </Card>
+  <FeatureCard title="Brave/Vivaldi" icon="shield" color="orange">
+    <StatusBadge status="warning" label="Requires Setup" />
+    May need to enable the File System Access API flag.
+  </FeatureCard>
   
-  <Card title="Firefox / Safari" icon="seti:favicon">
-    <div style="display: flex; align-items: center; gap: 0.5rem;">
-      <StatusBadge status="error" label="Fallback Mode" />
-    </div>
-    <p style="font-size: 0.875rem; margin-top: 0.5rem;">Opening uses file upload; saving triggers download.</p>
-  </Card>
-</div>
+</CardGrid>
 
 ### Brave Browser Setup
 
@@ -161,12 +150,12 @@ For Vivaldi browser:
 LMDA Composer automatically saves drafts to protect your work.
 
 <CardGrid>
-  <Card title="How It Works" icon="setting">
+  <FeatureCard title="How It Works" icon="save" color="blue">
     Drafts saved every 30 seconds to browser local storage. Recovered on next session.
-  </Card>
-  <Card title="Draft Recovery" icon="history">
+  </FeatureCard>
+  <FeatureCard title="Draft Recovery" icon="history" color="purple">
     If browser closes unexpectedly, draft recovery dialog appears on next open. Click **Restore** or **Discard**.
-  </Card>
+  </FeatureCard>
 </CardGrid>
 
 <Aside type="note" title="Draft Limitations">
@@ -253,15 +242,15 @@ Configure in Settings:
 ## Best Practices
 
 <CardGrid>
-  <Card title="Organize Your Scripts" icon="seti:folder">
+  <FeatureCard title="Organize Your Scripts" icon="folder" color="purple">
     Create a folder structure like `scripts/production/datasources/` for easy navigation.
-  </Card>
-  <Card title="Backup Important Scripts" icon="approve-check-circle">
+  </FeatureCard>
+  <FeatureCard title="Backup Important Scripts" icon="check-circle" color="green">
     Save to cloud-synced folders (Dropbox, OneDrive) or use version control (Git).
-  </Card>
-  <Card title="Use Naming Conventions" icon="tag">
+  </FeatureCard>
+  <FeatureCard title="Use Naming Conventions" icon="tag" color="blue">
     Use clear names like `DS_Linux_CPU_Usage.groovy` or `PS_Windows_Services.ps1`.
-  </Card>
+  </FeatureCard>
 </CardGrid>
 
 ### Local Development Workflow

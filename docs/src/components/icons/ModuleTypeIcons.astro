@@ -1,0 +1,69 @@
+---
+/**
+ * Semantic Module Type Icon Components
+ * 
+ * These icons match the module type representations in the app
+ * to ensure consistent iconography between the app and documentation.
+ */
+import { Activity, FileText, Bell, Tag, Network, ScrollText, Database } from '@lucide/astro';
+
+interface Props {
+  type: 'datasource' | 'configsource' | 'eventsource' | 'propertysource' | 'topologysource' | 'logsource' | 'snmpsysoidmap';
+  size?: number;
+  class?: string;
+}
+
+const { type, size = 16, class: className = '' } = Astro.props;
+
+// Module type configuration matching app conventions
+const typeConfig = {
+  datasource: {
+    color: '#22c55e', // green-500
+    label: 'DataSource'
+  },
+  configsource: {
+    color: '#64748b', // slate-500
+    label: 'ConfigSource'
+  },
+  eventsource: {
+    color: '#f97316', // orange-500
+    label: 'EventSource'
+  },
+  propertysource: {
+    color: '#ec4899', // pink-500
+    label: 'PropertySource'
+  },
+  topologysource: {
+    color: '#06b6d4', // cyan-500
+    label: 'TopologySource'
+  },
+  logsource: {
+    color: '#14b8a6', // teal-500
+    label: 'LogSource'
+  },
+  snmpsysoidmap: {
+    color: '#8b5cf6', // violet-500
+    label: 'SnmpSysOIDMap'
+  }
+};
+
+const config = typeConfig[type];
+---
+
+<span class:list={['module-type-icon', className]} style={`color: ${config.color};`} title={config.label}>
+  {type === 'datasource' && <Activity size={size} />}
+  {type === 'configsource' && <FileText size={size} />}
+  {type === 'eventsource' && <Bell size={size} />}
+  {type === 'propertysource' && <Tag size={size} />}
+  {type === 'topologysource' && <Network size={size} />}
+  {type === 'logsource' && <ScrollText size={size} />}
+  {type === 'snmpsysoidmap' && <Database size={size} />}
+</span>
+
+<style>
+  .module-type-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+</style>

@@ -5,21 +5,22 @@ description: Configure LMDA Composer appearance, defaults, and behavior.
 
 import { Card, CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
 import { Icon } from '@astrojs/starlight/components';
+import FeatureCard from '../../../components/FeatureCard.astro';
 
 The Settings dialog lets you customize LMDA Composer to match your preferences and workflow.
 
 ## Opening Settings
 
 <CardGrid>
-  <Card title="Keyboard" icon="laptop">
+  <FeatureCard title="Keyboard" icon="laptop" color="blue">
     <kbd>Ctrl</kbd>+<kbd>,</kbd> / <kbd>Cmd</kbd>+<kbd>,</kbd>
-  </Card>
-  <Card title="Command Palette" icon="magnifier">
+  </FeatureCard>
+  <FeatureCard title="Command Palette" icon="search" color="purple">
     Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> and type "Settings".
-  </Card>
-  <Card title="Menu" icon="list-format">
+  </FeatureCard>
+  <FeatureCard title="Menu" icon="scroll-text" color="green">
     Actions → Settings
-  </Card>
+  </FeatureCard>
 </CardGrid>
 
 <img src="/lmda-composer/workspace/settings-dialog.png" alt="Settings dialog showing configuration options" style="border-radius: 0.5rem; margin: 1.5rem 0;" />
@@ -223,15 +224,15 @@ While in Settings dialog:
 ## Settings vs. Tab State
 
 <CardGrid>
-  <Card title="Settings (Global)" icon="setting">
+  <FeatureCard title="Settings (Global)" icon="settings" color="blue">
     Configured in Settings dialog. Apply to all sessions, persist across restarts.
-  </Card>
-  <Card title="Tab State (Per-Tab)" icon="document">
+  </FeatureCard>
+  <FeatureCard title="Tab State (Per-Tab)" icon="document" color="purple">
     Managed per tab: language selection, execution mode, script content.
-  </Card>
-  <Card title="Session State" icon="history">
+  </FeatureCard>
+  <FeatureCard title="Session State" icon="history" color="green">
     Temporary: open tabs, sidebar state, last used collector.
-  </Card>
+  </FeatureCard>
 </CardGrid>
 
 ---
@@ -239,15 +240,15 @@ While in Settings dialog:
 ## Troubleshooting Settings
 
 <CardGrid>
-  <Card title="Settings Not Saving" icon="warning">
+  <FeatureCard title="Settings Not Saving" icon="warning" color="orange">
     Check browser storage isn't full. Verify extension has storage permission. Try clearing and re-setting.
-  </Card>
-  <Card title="Theme Not Applying" icon="sun">
+  </FeatureCard>
+  <FeatureCard title="Theme Not Applying" icon="sun" color="amber">
     Refresh the page. Check OS theme setting. Try a specific theme instead of System.
-  </Card>
-  <Card title="Editor Changes Not Visible" icon="pencil">
+  </FeatureCard>
+  <FeatureCard title="Editor Changes Not Visible" icon="edit" color="blue">
     Check you're on a script tab. Try switching tabs. Reload the extension page.
-  </Card>
+  </FeatureCard>
 </CardGrid>
 
 ---

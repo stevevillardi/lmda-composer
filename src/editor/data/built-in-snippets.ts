@@ -15,8 +15,8 @@ export const BUILT_IN_SNIPPETS: Snippet[] = [
     code: `import com.santaba.agent.groovyapi.snmp.Snmp
 import com.santaba.agent.util.Settings
 
-// Debug mode - set to true for verbose output
-def debug = false
+// Debug mode - set to true for verbose output (script-level binding for closure access)
+debug = false
 
 def host = hostProps.get("system.hostname")
 Map props = hostProps.toProperties().collectEntries { k, v -> [(k.toLowerCase()): v] }
@@ -32,8 +32,9 @@ def oidType = "1.3.6.1.2.1.2.2.1.3"   // ifType
 
 /**
  * Helper function for debug output
+ * Uses script-level binding so it can be called from other closures
  */
-def LMDebugPrint(message) {
+LMDebugPrint = { message ->
     if (debug) {
         println(message.toString())
     }
@@ -41,8 +42,9 @@ def LMDebugPrint(message) {
 
 /**
  * SNMP walk with retry logic and timeout management
+ * Uses script-level binding so it can call LMDebugPrint
  */
-def walkWithRetry(hostname, oid, props, timeout, timeoutStart, maxRetries = 5) {
+walkWithRetry = { hostname, oid, props, timeout, timeoutStart, maxRetries = 5 ->
     def retries = 0
     while (retries < maxRetries) {
         def remainingTime = Math.max(0, timeout - (System.currentTimeMillis() - timeoutStart)).intValue()
@@ -94,8 +96,8 @@ return 0
     isBuiltIn: true,
     code: `import groovy.json.JsonSlurper
 
-// Debug mode - set to true for verbose output
-def debug = false
+// Debug mode - set to true for verbose output (script-level binding for closure access)
+debug = false
 
 def hostname = hostProps.get("system.hostname")
 def apiKey = hostProps.get("api.key")
@@ -104,8 +106,9 @@ def apiPort = hostProps.get("api.port")?.toInteger() ?: 443
 
 /**
  * Helper function for debug output
+ * Uses script-level binding so it can be called from other closures
  */
-def LMDebugPrint(message) {
+LMDebugPrint = { message ->
     if (debug) {
         println(message.toString())
     }
@@ -114,7 +117,7 @@ def LMDebugPrint(message) {
 /**
  * Make HTTP GET request with proper error handling
  */
-def httpGet(url, headers = [:], timeout = 30000) {
+httpGet = { url, headers = [:], timeout = 30000 ->
     def connection = url.toURL().openConnection()
     connection.setRequestMethod("GET")
     connection.setConnectTimeout(timeout)
@@ -185,8 +188,8 @@ return 0
     code: `import com.santaba.agent.groovyapi.expect.Expect
 import com.santaba.agent.util.Settings
 
-// Debug mode - set to true for verbose output
-def debug = false
+// Debug mode - set to true for verbose output (script-level binding for closure access)
+debug = false
 
 // Credential retrieval with fallbacks (instance -> host -> config)
 def host = hostProps.get("config.hostname") ?: hostProps.get("system.hostname")
@@ -202,8 +205,9 @@ def ssh = null
 
 /**
  * Helper function for debug output
+ * Uses script-level binding so it can be called from other closures
  */
-def LMDebugPrint(message) {
+LMDebugPrint = { message ->
     if (debug) {
         println(message.toString())
     }
@@ -267,8 +271,8 @@ return 0
     code: `import com.santaba.agent.groovyapi.snmp.Snmp
 import com.santaba.agent.util.Settings
 
-// Debug mode - set to true for verbose output
-def debug = false
+// Debug mode - set to true for verbose output (script-level binding for closure access)
+debug = false
 
 def host = hostProps.get("system.hostname")
 Map props = hostProps.toProperties().collectEntries { k, v -> [(k.toLowerCase()): v] }
@@ -280,8 +284,9 @@ timeout -= 5000 // Buffer for cleanup
 
 /**
  * Helper function for debug output
+ * Uses script-level binding so it can be called from other closures
  */
-def LMDebugPrint(message) {
+LMDebugPrint = { message ->
     if (debug) {
         println(message.toString())
     }
@@ -289,8 +294,9 @@ def LMDebugPrint(message) {
 
 /**
  * Sanitize string for instance output (remove invalid chars)
+ * Uses script-level binding so it can be called from other closures
  */
-def sanitize(str) {
+sanitize = { str ->
     str?.toString()
         ?.trim()
         ?.replaceAll(/\\s+/, " ")  // Collapse whitespace
@@ -299,8 +305,9 @@ def sanitize(str) {
 
 /**
  * URL-encode string for ILP values
+ * Uses script-level binding so it can be called from other closures
  */
-def encode(str) {
+encode = { str ->
     str?.toString()
         ?.replaceAll(/\\+/, "%2B")  // Encode plus
         ?.replaceAll(/=/, "%3D")   // Encode equals
@@ -309,8 +316,9 @@ def encode(str) {
 
 /**
  * Output format: wildvalue##wildalias##description####auto.prop1=val1&auto.prop2=val2
+ * Uses script-level binding so it can call sanitize and encode
  */
-def outputInstance(wildvalue, wildalias, description, Map ilps = [:]) {
+outputInstance = { wildvalue, wildalias, description, Map ilps = [:] ->
     def output = "\${wildvalue}##\${sanitize(wildalias)}##\${sanitize(description)}"
     
     if (ilps) {
@@ -391,8 +399,8 @@ return 0
     code: `import com.santaba.agent.groovyapi.snmp.Snmp
 import com.santaba.agent.util.Settings
 
-// Debug mode - set to true for verbose output
-def debug = false
+// Debug mode - set to true for verbose output (script-level binding for closure access)
+debug = false
 
 def host = hostProps.get("system.hostname")
 Map props = hostProps.toProperties().collectEntries { k, v -> [(k.toLowerCase()): v] }
@@ -409,8 +417,9 @@ timeout -= 2500 // Buffer for cleanup
 
 /**
  * Helper function for debug output
+ * Uses script-level binding so it can be called from other closures
  */
-def LMDebugPrint(message) {
+LMDebugPrint = { message ->
     if (debug) {
         println(message.toString())
     }
@@ -505,8 +514,8 @@ import org.apache.commons.codec.binary.Hex
 import javax.crypto.Mac
 import javax.crypto.spec.SecretKeySpec
 
-// Debug mode - set to true for verbose output
-def debug = false
+// Debug mode - set to true for verbose output (script-level binding for closure access)
+debug = false
 
 // API credentials with fallbacks
 String apiId = hostProps.get("lmaccess.id") ?: hostProps.get("logicmonitor.access.id")
@@ -527,8 +536,9 @@ if (portalName) {
 
 /**
  * Helper function for debug output
+ * Uses script-level binding so it can be called from other closures
  */
-def LMDebugPrint(message) {
+LMDebugPrint = { message ->
     if (debug) {
         println(message.toString())
     }
@@ -536,8 +546,9 @@ def LMDebugPrint(message) {
 
 /**
  * Get collector proxy settings
+ * Uses script-level binding so it can be called from other closures
  */
-Map getProxyInfo() {
+getProxyInfo = {
     Boolean deviceProxy = hostProps.get("proxy.enable")?.toBoolean()
     deviceProxy = (deviceProxy != null) ? deviceProxy : true
     Boolean collectorProxy = Settings.getSetting("proxy.enable")?.toBoolean()
@@ -561,8 +572,9 @@ Map getProxyInfo() {
 
 /**
  * Generate LMv1 API authentication signature
+ * Uses script-level binding so it can be called from other closures
  */
-static String generateAuth(id, key, path) {
+generateAuth = { id, key, path ->
     Long epochTime = System.currentTimeMillis()
     Mac hmac = Mac.getInstance("HmacSHA256")
     hmac.init(new SecretKeySpec(key.getBytes(), "HmacSHA256"))
@@ -574,8 +586,9 @@ static String generateAuth(id, key, path) {
 
 /**
  * Simple GET request
+ * Uses script-level binding so it can call generateAuth and LMDebugPrint
  */
-def apiGet(portalName, apiId, apiKey, apiVersion, endPoint, proxyInfo, Map args = [:]) {
+apiGet = { portalName, apiId, apiKey, apiVersion, endPoint, proxyInfo, Map args = [:] ->
     def auth = generateAuth(apiId, apiKey, endPoint)
     def headers = [
         "Authorization": auth, 
@@ -612,8 +625,9 @@ def apiGet(portalName, apiId, apiKey, apiVersion, endPoint, proxyInfo, Map args 
 
 /**
  * Paginated GET request
+ * Uses script-level binding so it can call apiGet
  */
-List apiGetMany(portalName, apiId, apiKey, apiVersion, endPoint, proxyInfo, Map args = [:]) {
+apiGetMany = { portalName, apiId, apiKey, apiVersion, endPoint, proxyInfo, Map args = [:] ->
     def pageSize = args.get('size', 1000)
     List items = []
     args['size'] = pageSize
@@ -1049,13 +1063,15 @@ def enablePass = hostProps.get("ssh.enable.pass") ?: hostProps.get("config.enabl
     tags: ['debug', 'logging', 'troubleshooting'],
     isBuiltIn: true,
     code: `// Debug flag - set to true for verbose output during development
-def debug = false
+// Use script-level binding (no 'def') so closures can access it
+debug = false
 
 /**
  * Helper function for conditional debug output
  * Used consistently across all production LM scripts
+ * Uses script-level binding so it can be called from other closures
  */
-def LMDebugPrint(message) {
+LMDebugPrint = { message ->
     if (debug) {
         println(message.toString())
     }
@@ -1585,8 +1601,9 @@ def method = devicePreferences.getOrDefault(sysoid, "walk")
 /**
  * Sanitize string for instance output
  * Removes/replaces characters that break parsing
+ * Uses script-level binding so it can be called from other closures
  */
-def sanitize(str) {
+sanitize = { str ->
     str?.toString()
         ?.trim()
         ?.replaceAll(/\\s+/, " ")    // Collapse whitespace to single space
@@ -1597,8 +1614,9 @@ def sanitize(str) {
 /**
  * URL-encode string for ILP values
  * Required to handle special characters in property values
+ * Uses script-level binding so it can be called from other closures
  */
-def encode(str) {
+encode = { str ->
     str?.toString()
         ?.replaceAll(/\\+/, "%2B")   // Encode plus signs
         ?.replaceAll(/=/, "%3D")    // Encode equals
@@ -1607,8 +1625,9 @@ def encode(str) {
 
 /**
  * Output a discovered instance with properties
+ * Uses script-level binding so it can call sanitize and encode
  */
-def outputInstance(wildvalue, wildalias, description = "", Map ilps = [:]) {
+outputInstance = { wildvalue, wildalias, description = "", Map ilps = [:] ->
     def output = "\${sanitize(wildvalue)}##\${sanitize(wildalias)}"
     
     if (description) {
@@ -1666,8 +1685,9 @@ outputInstance("eth0", "Ethernet 0", "Primary interface", [
 
 /**
  * Sanitize a field value for ILP output
+ * Uses script-level binding so it can be called from other closures
  */
-def sanitize(str) {
+sanitize = { str ->
     str?.toString()
         ?.trim()
         ?.replaceAll(/\\s+/, " ")
@@ -1677,8 +1697,9 @@ def sanitize(str) {
 /**
  * URL-encode a field for ILP values
  * Handles the most common problematic characters
+ * Uses script-level binding so it can be called from other closures
  */
-def encode(str) {
+encode = { str ->
     str?.toString()
         ?.replaceAll(/\\+/, "%2B")   // Plus sign
         ?.replaceAll(/=/, "%3D")    // Equals sign
@@ -1689,14 +1710,15 @@ def encode(str) {
  * Full URL encoding using Java's URLEncoder
  * Use this for values that may contain any special characters
  */
-def fullEncode(str) {
+fullEncode = { str ->
     URLEncoder.encode(str?.toString() ?: "", "UTF-8")
 }
 
 /**
  * Build ILP string from a map of properties
+ * Uses script-level binding so it can call encode and sanitize
  */
-def buildIlpString(Map properties) {
+buildIlpString = { Map properties ->
     properties.collect { key, value ->
         // Ensure key starts with auto.
         def ilpKey = key.startsWith("auto.") ? key : "auto.\${key}"

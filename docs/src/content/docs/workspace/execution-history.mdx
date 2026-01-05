@@ -6,21 +6,22 @@ description: Review past script executions and reload scripts.
 import { Card, CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
 import { Icon } from '@astrojs/starlight/components';
 import StatusBadge from '../../../components/StatusBadge.astro';
+import FeatureCard from '../../../components/FeatureCard.astro';
 
 Execution History tracks every script you run in LMDA Composer, allowing you to review past executions and reload scripts.
 
 ## Accessing History
 
 <CardGrid>
-  <Card title="Sidebar" icon="history">
+  <FeatureCard title="Sidebar" icon="history" color="blue">
     Click **History** tab in the right sidebar.
-  </Card>
-  <Card title="Keyboard" icon="laptop">
+  </FeatureCard>
+  <FeatureCard title="Keyboard" icon="laptop" color="purple">
     <kbd>Ctrl</kbd>+<kbd>B</kbd> to toggle sidebar.
-  </Card>
-  <Card title="Command Palette" icon="magnifier">
+  </FeatureCard>
+  <FeatureCard title="Command Palette" icon="search" color="green">
     Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> and type "History".
-  </Card>
+  </FeatureCard>
 </CardGrid>
 
 <img src="/lmda-composer/workspace/execution-history.png" alt="Execution history panel showing past runs" style="border-radius: 0.5rem; margin: 1.5rem 0;" />
@@ -149,18 +150,18 @@ To clear all history:
 ## History Use Cases
 
 <CardGrid>
-  <Card title="Debugging" icon="warning">
+  <FeatureCard title="Debugging" icon="warning" color="orange">
     Find a working historical execution, compare with current script, identify what changed.
-  </Card>
-  <Card title="Recovering Scripts" icon="history">
+  </FeatureCard>
+  <FeatureCard title="Recovering Scripts" icon="history" color="blue">
     If you lose script content, find the last execution and load it back.
-  </Card>
-  <Card title="Performance Analysis" icon="rocket">
+  </FeatureCard>
+  <FeatureCard title="Performance Analysis" icon="zap" color="purple">
     Compare execution durations across runs to identify slow executions.
-  </Card>
-  <Card title="Auditing" icon="document">
+  </FeatureCard>
+  <FeatureCard title="Auditing" icon="document" color="green">
     Track what was executed, check timestamps, document actions taken.
-  </Card>
+  </FeatureCard>
 </CardGrid>
 
 ---
@@ -169,14 +170,14 @@ To clear all history:
 
 | Data | Stored? |
 |------|---------|
-| Script content | ✅ Yes |
-| Output | ✅ Yes |
-| Collector info | ✅ Yes |
-| Device info | ✅ Yes |
-| Timestamp | ✅ Yes |
-| Duration | ✅ Yes |
-| Tab/module name | ✅ Yes |
-| Portal binding | ✅ Yes |
+| Script content | <Badge text="Yes" variant="success" /> |
+| Output | <Badge text="Yes" variant="success" /> |
+| Collector info | <Badge text="Yes" variant="success" /> |
+| Device info | <Badge text="Yes" variant="success" /> |
+| Timestamp | <Badge text="Yes" variant="success" /> |
+| Duration | <Badge text="Yes" variant="success" /> |
+| Tab/module name | <Badge text="Yes" variant="success" /> |
+| Portal binding | <Badge text="Yes" variant="success" /> |
 
 ### Storage Location
 
@@ -205,15 +206,15 @@ History is stored:
 ## Best Practices
 
 <CardGrid>
-  <Card title="Regular Review" icon="magnifier">
+  <FeatureCard title="Regular Review" icon="search" color="blue">
     Periodically review history, export important scripts, document significant executions.
-  </Card>
-  <Card title="Before Clearing" icon="warning">
+  </FeatureCard>
+  <FeatureCard title="Before Clearing" icon="warning" color="orange">
     Review important entries and save scripts you want to keep before clearing.
-  </Card>
-  <Card title="Learn from History" icon="information">
+  </FeatureCard>
+  <FeatureCard title="Learn from History" icon="info" color="green">
     Review successful patterns and past decisions to improve future scripts.
-  </Card>
+  </FeatureCard>
 </CardGrid>
 
 ---

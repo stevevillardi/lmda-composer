@@ -1,0 +1,49 @@
+---
+/**
+ * Semantic Status Icon Components
+ * 
+ * These icons match the status icons defined in src/editor/constants/icons.tsx
+ * to ensure consistent iconography between the app and documentation.
+ */
+import { CheckCircle2, XCircle, AlertTriangle } from '@lucide/astro';
+
+interface Props {
+  status: 'success' | 'error' | 'warning';
+  size?: number;
+  class?: string;
+}
+
+const { status, size = 16, class: className = '' } = Astro.props;
+
+// Status configuration matching src/editor/constants/icons.tsx
+const statusConfig = {
+  success: {
+    color: '#22c55e', // green-500
+    label: 'Success'
+  },
+  error: {
+    color: '#ef4444', // red-500
+    label: 'Error'
+  },
+  warning: {
+    color: '#f59e0b', // amber-500
+    label: 'Warning'
+  }
+};
+
+const config = statusConfig[status];
+---
+
+<span class:list={['status-icon', className]} style={`color: ${config.color};`} title={config.label}>
+  {status === 'success' && <CheckCircle2 size={size} />}
+  {status === 'error' && <XCircle size={size} />}
+  {status === 'warning' && <AlertTriangle size={size} />}
+</span>
+
+<style>
+  .status-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+</style>

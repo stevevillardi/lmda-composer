@@ -5,18 +5,19 @@ description: Browse and import LogicMonitor's reusable code modules into your sc
 
 import { Card, CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard, Code } from '@astrojs/starlight/components';
 import { Icon } from '@astrojs/starlight/components';
+import FeatureCard from '../../../components/FeatureCard.astro';
 
 Module Snippets are LogicMonitor's library of reusable Groovy code modules. These modules provide helper functions for common tasks like data emission, debugging, API calls, and vendor-specific integrations.
 
 ## Accessing Module Snippets
 
 <CardGrid>
-  <Card title="Keyboard Shortcut" icon="laptop">
-    Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>U</kbd> / <kbd>⌘</kbd>+<kbd>Shift</kbd>+<kbd>U</kbd> to open directly.
-  </Card>
-  <Card title="Command Palette" icon="magnifier">
+  <FeatureCard title="Keyboard Shortcut" icon="laptop" color="purple">
+    Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd> / <kbd>⌘</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd> to open directly.
+  </FeatureCard>
+  <FeatureCard title="Command Palette" icon="search" color="green">
     Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> and type "Module Snippets".
-  </Card>
+  </FeatureCard>
 </CardGrid>
 
 <img src="/lmda-composer/workspace/module-snippets-dialog.png" alt="Module Snippets dialog showing categorized modules and source preview" style="border-radius: 0.5rem; margin: 1.5rem 0;" />
@@ -105,15 +106,15 @@ The variable name is automatically derived from the module name:
 Each module can have multiple versions available:
 
 <CardGrid>
-  <Card title="Latest Version" icon="star">
+  <FeatureCard title="Latest Version" icon="star" color="amber">
     Shown by default with a **latest** badge. Recommended for new scripts.
-  </Card>
-  <Card title="Version Selector" icon="list-format">
+  </FeatureCard>
+  <FeatureCard title="Version Selector" icon="list" color="blue">
     Use the dropdown to select older versions for compatibility with existing scripts.
-  </Card>
-  <Card title="Major Versions" icon="information">
+  </FeatureCard>
+  <FeatureCard title="Major Versions" icon="info" color="purple">
     The import uses the **major version** number only (e.g., `"1"` for version `1.3.0`).
-  </Card>
+  </FeatureCard>
 </CardGrid>
 
 <Aside type="note" title="Version in Import">
@@ -191,18 +192,18 @@ orgs.each { org ->
 ## Best Practices
 
 <CardGrid>
-  <Card title="Use Latest Versions" icon="rocket">
+  <FeatureCard title="Use Latest Versions" icon="rocket" color="green">
     Start with the latest version unless you need specific compatibility with existing scripts.
-  </Card>
-  <Card title="Review Source First" icon="document">
+  </FeatureCard>
+  <FeatureCard title="Review Source First" icon="document" color="blue">
     Preview the module source to understand its API before importing.
-  </Card>
-  <Card title="One Loader Per Script" icon="warning">
+  </FeatureCard>
+  <FeatureCard title="One Loader Per Script" icon="warning" color="orange">
     The modLoader setup only needs to be included once per script, even if loading multiple modules.
-  </Card>
-  <Card title="Check Module Updates" icon="sync">
+  </FeatureCard>
+  <FeatureCard title="Check Module Updates" icon="refresh" color="purple">
     Periodically refresh the module list to see if newer versions are available.
-  </Card>
+  </FeatureCard>
 </CardGrid>
 
 ### Loading Multiple Modules

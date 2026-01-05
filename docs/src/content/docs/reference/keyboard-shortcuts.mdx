@@ -3,7 +3,8 @@ title: Keyboard Shortcuts
 description: Complete reference for LMDA Composer keyboard shortcuts.
 ---
 
-import { Card, CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
+import { CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
+import FeatureCard from '../../../components/FeatureCard.astro';
 
 LMDA Composer provides extensive keyboard shortcuts for efficient workflow. This page lists all available shortcuts.
 
@@ -44,7 +45,6 @@ These shortcuts work anywhere in LMDA Composer:
     | Paste | <kbd>Ctrl</kbd>+<kbd>V</kbd> | <kbd>Cmd</kbd>+<kbd>V</kbd> |
     | Select All | <kbd>Ctrl</kbd>+<kbd>A</kbd> | <kbd>Cmd</kbd>+<kbd>A</kbd> |
     | Select Next Occurrence | <kbd>Ctrl</kbd>+<kbd>D</kbd> | <kbd>Cmd</kbd>+<kbd>D</kbd> |
-    | Select All Occurrences | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd> | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd> |
   </TabItem>
   
   <TabItem label="Navigation" icon="seti:folder">
@@ -122,7 +122,7 @@ These shortcuts work anywhere in LMDA Composer:
 | Search LogicModules | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> |
 | AppliesTo Toolbox | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> |
 | Debug Commands | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> |
-| Module Snippets | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>U</kbd> | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>U</kbd> |
+| Module Snippets | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd> | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd> |
 | Toggle API/Script view | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd> | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd> |
 | Refresh Collectors | <kbd>Ctrl</kbd>+<kbd>R</kbd> | <kbd>Cmd</kbd>+<kbd>R</kbd> |
 
@@ -157,23 +157,23 @@ When a dialog is open:
 ## Tips for Learning Shortcuts
 
 <CardGrid>
-  <Card title="Start with Essentials" icon="star">
+  <FeatureCard title="Start with Essentials" icon="star" color="amber">
     Most commonly used:
     1. <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> — Command Palette
     2. <kbd>Ctrl</kbd>+<kbd>Enter</kbd> — Run Script
     3. <kbd>Ctrl</kbd>+<kbd>S</kbd> — Save
     4. <kbd>Ctrl</kbd>+<kbd>B</kbd> — Toggle Sidebar
-  </Card>
-  <Card title="Use Command Palette" icon="magnifier">
+  </FeatureCard>
+  <FeatureCard title="Use Command Palette" icon="command" color="purple">
     The Command Palette shows shortcuts next to commands. Search for an action and note the shortcut shown.
-  </Card>
-  <Card title="Build Muscle Memory" icon="rocket">
+  </FeatureCard>
+  <FeatureCard title="Build Muscle Memory" icon="zap" color="green">
     Focus on a few at a time:
     - Week 1: File operations
     - Week 2: Script execution
     - Week 3: Navigation
     - Week 4: Advanced editing
-  </Card>
+  </FeatureCard>
 </CardGrid>
 
 ---

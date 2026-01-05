@@ -1,13 +1,15 @@
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import Editor from '@monaco-editor/react';
 import { useEditorStore } from '@/editor/stores/editor-store';
 import { ApiKeyValueEditor } from './ApiKeyValueEditor';
-import { Input } from '@/components/ui/input';
+import { ApiPathAutocomplete } from './ApiPathAutocomplete';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import type { ApiRequestMethod } from '@/shared/types';
+import type { ApiEndpointDefinition } from '@/editor/data/api-schema';
 import { useApiSchema } from '@/editor/hooks/useApiSchema';
+import { generateExampleFromSchema } from '@/editor/utils/api-example';
 import { Braces, KeyRound, SlidersHorizontal } from 'lucide-react';
 import { buildMonacoOptions, getMonacoTheme } from '@/editor/utils/monaco-settings';
 import '../../monaco-loader';
@@ -21,6 +23,7 @@ export function ApiRequestBuilder() {
     updateApiTabRequest,
     renameTab,
     preferences,
+    setApiTabResponse,
   } = useEditorStore();
 
   const activeTab = useMemo(() => {
@@ -82,13 +85,33 @@ export function ApiRequestBuilder() {
     });
   };
 
-  const updateTabName = (nextMethod: ApiRequestMethod, nextPath: string) => {
+  const updateTabName = useCallback((nextMethod: ApiRequestMethod, nextPath: string) => {
     if (!activeTabId || !activeTab) return;
     if (!activeTab.displayName.startsWith('API Request')) return;
     const trimmedPath = nextPath.trim();
     const label = trimmedPath ? `${nextMethod} ${trimmedPath}` : 'API Request';
     renameTab(activeTabId, label);
-  };
+  }, [activeTabId, activeTab, renameTab]);
+
+  const handleSelectEndpoint = useCallback((endpoint: ApiEndpointDefinition) => {
+    if (!activeTab || activeTab.kind !== 'api') return;
+
+    const example = endpoint.requestBodySchema
+      ? generateExampleFromSchema(endpoint.requestBodySchema)
+      : null;
+    const body = example ? JSON.stringify(example, null, 2) : '';
+
+    updateApiTabRequest(activeTab.id, {
+      method: endpoint.method,
+      path: endpoint.path,
+      queryParams: {},
+      headerParams: {},
+      body,
+      bodyMode: example ? 'raw' : 'form',
+    });
+    renameTab(activeTab.id, `${endpoint.method} ${endpoint.path}`);
+    setApiTabResponse(activeTab.id, null);
+  }, [activeTab, updateApiTabRequest, renameTab, setApiTabResponse]);
 
   const parsedBody = useMemo(() => {
     if (!body.trim()) return {};
@@ -148,15 +171,16 @@ export function ApiRequestBuilder() {
           </SelectContent>
         </Select>
 
-        <Input
+        <ApiPathAutocomplete
           value={path}
-          onChange={(event) => {
-            const nextPath = event.target.value;
+          method={method}
+          endpoints={schema?.endpoints ?? []}
+          onChange={(nextPath) => {
             updateApiTabRequest(activeTab.id, { path: nextPath });
             updateTabName(method, nextPath);
           }}
-          placeholder="/device/devices"
-          className="h-8 flex-1 font-mono text-xs"
+          onSelectEndpoint={handleSelectEndpoint}
+          className="flex-1"
         />
 
       </div>

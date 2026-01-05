@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { AlertTriangle, HelpCircle } from 'lucide-react';
+import { AlertTriangle, BookOpen, ExternalLink, HelpCircle } from 'lucide-react';
 import { useEditorStore } from '../stores/editor-store';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -195,9 +195,21 @@ export function StatusBar() {
             </div>
           ))}
         </div>
-        <p className="text-[10px] text-muted-foreground/70 mt-3 pt-2 border-t border-border">
-          Use Ctrl/Alt instead of ⌘/⌥ on Windows/Linux
-        </p>
+        <div className="mt-3 pt-2 border-t border-border space-y-2">
+          <p className="text-[10px] text-muted-foreground/70">
+            Use Ctrl/Alt instead of ⌘/⌥ on Windows/Linux
+          </p>
+          <a
+            href="https://stevevillardi.github.io/lmda-composer/"
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-1.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <BookOpen className="size-3" />
+            Full Documentation
+            <ExternalLink className="size-2.5" />
+          </a>
+        </div>
       </PopoverContent>
     </Popover>
   );

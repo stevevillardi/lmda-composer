@@ -12,15 +12,15 @@ The Module Details Editor allows you to view and modify metadata for module-boun
 ## Opening Module Details
 
 <CardGrid>
-  <Card title="Toolbar" icon="pencil">
+  <FeatureCard title="Toolbar" icon="edit" color="blue">
     Click the **Module Details** button in the toolbar.
-  </Card>
-  <Card title="Command Palette" icon="magnifier">
+  </FeatureCard>
+  <FeatureCard title="Command Palette" icon="search" color="purple">
     Press <kbd>Ctrl</kbd>+<kbd>K</kbd> and type "Module Details".
-  </Card>
-  <Card title="Tab Context Menu" icon="list-format">
+  </FeatureCard>
+  <FeatureCard title="Tab Context Menu" icon="list" color="green">
     Right-click a module tab and select **Module Details**.
-  </Card>
+  </FeatureCard>
 </CardGrid>
 
 <Aside type="note" title="Module-Bound Tabs Only">
@@ -140,18 +140,18 @@ Assign to specific collector groups for geo-specific monitoring.
 For DataSources with instance discovery:
 
 <CardGrid>
-  <Card title="Discovery Method" icon="magnifier">
+  <FeatureCard title="Discovery Method" icon="target" color="blue">
     Script-based, SNMP, WMI, or None (single instance).
-  </Card>
-  <Card title="Discovery Interval" icon="rocket">
+  </FeatureCard>
+  <FeatureCard title="Discovery Interval" icon="clock" color="purple">
     Range: 5 minutes to 24 hours. Balance freshness vs. performance.
-  </Card>
-  <Card title="Instance Properties" icon="tag">
+  </FeatureCard>
+  <FeatureCard title="Instance Properties" icon="tag" color="green">
     Define auto-properties discovered for each instance.
-  </Card>
-  <Card title="Filters" icon="funnel">
+  </FeatureCard>
+  <FeatureCard title="Filters" icon="filter" color="orange">
     Post-discovery filtering with include/exclude patterns.
-  </Card>
+  </FeatureCard>
 </CardGrid>
 
 ---
@@ -268,7 +268,7 @@ Click **Reset Changes** to discard all modifications and revert to original valu
 
 <LinkCard
   title="Module Lineage"
-  description="View version history and compare changes across module versions."
+  description="View Exchange release history for LogicMonitor core modules."
   href="/lmda-composer/module-management/lineage/"
 />
 

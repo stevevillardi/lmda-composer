@@ -15,6 +15,10 @@
   --sl-color-gray-5: #64748b;
   --sl-color-gray-6: #475569;
   --sl-color-black: #0f172a;
+
+  /* Consistent border radius */
+  --card-radius: 0.75rem;
+  --card-radius-sm: 0.5rem;
 }
 
 :root[data-theme='dark'] {
@@ -23,7 +27,54 @@
   --sl-color-accent-high: #fef3c7;
 }
 
-/* Custom landing page styles */
+/* ============================================================================
+   Card Grid - Consistent Heights
+   ============================================================================ */
+
+/* Starlight CardGrid equal heights */
+.sl-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.sl-card-grid > * {
+  height: 100%;
+  min-height: 100%;
+}
+
+/* Ensure all direct children of CardGrid stretch */
+.sl-card-grid > .feature-card,
+.sl-card-grid > .sl-card,
+.sl-card-grid > .sl-link-card {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* Starlight Card consistency */
+.sl-card {
+  border-radius: var(--card-radius);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.sl-card:hover {
+  border-color: var(--sl-color-accent-low);
+}
+
+/* Make card content grow to fill space */
+.sl-card > .sl-card__content {
+  flex: 1;
+}
+
+/* ============================================================================
+   Custom Landing Page Styles
+   ============================================================================ */
+
 .hero-section {
   padding: 4rem 1rem;
   text-align: center;
@@ -47,24 +98,49 @@
   margin: 0 auto 2rem;
 }
 
+/* Feature grid with equal heights */
 .feature-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 1.5rem;
   padding: 2rem 0;
+  align-items: stretch;
 }
 
+/* Feature cards - non-interactive by default */
 .feature-card {
   padding: 1.5rem;
-  border-radius: 0.75rem;
+  border-radius: var(--card-radius);
   border: 1px solid var(--sl-color-gray-5);
   background: var(--sl-color-bg-nav);
-  transition: border-color 0.2s ease, transform 0.2s ease;
+  transition: border-color 0.2s ease;
+  height: 100%;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
-.feature-card:hover {
+/* Feature card content should fill available space */
+.feature-card .feature-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.feature-card .feature-description {
+  flex: 1;
+}
+
+/* Only apply hover effects to clickable feature cards */
+.feature-card.clickable {
+  cursor: pointer;
+  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.feature-card.clickable:hover {
   border-color: var(--sl-color-accent);
   transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
 .feature-card h3 {
@@ -72,14 +148,19 @@
   font-weight: 600;
   margin-bottom: 0.5rem;
   color: var(--sl-color-white);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .feature-card p {
   font-size: 0.875rem;
   color: var(--sl-color-gray-3);
   margin: 0;
+  flex: 1;
 }
 
+/* CTA Buttons */
 .cta-buttons {
   display: flex;
   gap: 1rem;
@@ -93,7 +174,7 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.75rem 1.5rem;
-  border-radius: 0.5rem;
+  border-radius: var(--card-radius-sm);
   font-weight: 600;
   text-decoration: none;
   transition: all 0.2s ease;
@@ -106,6 +187,7 @@
 
 .cta-button.primary:hover {
   filter: brightness(1.1);
+  transform: translateY(-1px);
 }
 
 .cta-button.secondary {
@@ -119,11 +201,12 @@
   color: var(--sl-color-accent);
 }
 
+/* Disclaimer box */
 .disclaimer-box {
   margin: 3rem auto;
   max-width: 700px;
   padding: 1.25rem 1.5rem;
-  border-radius: 0.5rem;
+  border-radius: var(--card-radius-sm);
   border: 1px solid var(--sl-color-gray-5);
   background: var(--sl-color-bg-nav);
   text-align: left;
@@ -139,7 +222,10 @@
   margin: 0;
 }
 
-/* Steps section */
+/* ============================================================================
+   Steps Section
+   ============================================================================ */
+
 .steps-section {
   padding: 3rem 1rem;
   max-width: 900px;
@@ -155,10 +241,14 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 2rem;
+  align-items: stretch;
 }
 
 .step-item {
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .step-number {
@@ -173,6 +263,7 @@
   font-weight: 700;
   font-size: 1.25rem;
   margin-bottom: 1rem;
+  flex-shrink: 0;
 }
 
 .step-item h3 {
@@ -183,9 +274,13 @@
 .step-item p {
   font-size: 0.875rem;
   color: var(--sl-color-gray-3);
+  flex: 1;
 }
 
-/* Responsive adjustments */
+/* ============================================================================
+   Responsive Adjustments
+   ============================================================================ */
+
 @media (max-width: 768px) {
   .hero-section {
     padding: 2rem 1rem;
@@ -203,11 +298,15 @@
   }
 }
 
+/* ============================================================================
+   UI Elements
+   ============================================================================ */
+
 /* Screenshot placeholder styling */
 .screenshot-placeholder {
   background: var(--sl-color-gray-6);
   border: 2px dashed var(--sl-color-gray-4);
-  border-radius: 0.75rem;
+  border-radius: var(--card-radius);
   padding: 3rem 2rem;
   text-align: center;
   margin: 1.5rem 0;
@@ -231,10 +330,20 @@ kbd {
   box-shadow: 0 1px 0 var(--sl-color-gray-5);
 }
 
-/* Enhanced card grid for features */
-.sl-card-grid {
-  gap: 1rem;
+/* Badge styling */
+.sl-badge {
+  font-weight: 500;
 }
+
+/* Improved code block styling */
+pre {
+  border: 1px solid var(--sl-color-gray-5);
+  border-radius: var(--card-radius-sm);
+}
+
+/* ============================================================================
+   Starlight Component Overrides
+   ============================================================================ */
 
 /* Better spacing for steps component */
 .sl-steps {
@@ -250,14 +359,16 @@ kbd {
   color: var(--sl-color-black);
 }
 
-/* Link cards hover effect */
+/* Link cards hover effect - clickable, so show interactive states */
 .sl-link-card {
-  transition: transform 0.2s ease, border-color 0.2s ease;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  border-radius: var(--card-radius);
 }
 
 .sl-link-card:hover {
   transform: translateY(-2px);
   border-color: var(--sl-color-accent);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 /* Tab styling enhancements - fix scrollbar overflow */
@@ -293,6 +404,10 @@ starlight-tabs > [role="tablist"]::-webkit-scrollbar {
   border-bottom-color: var(--sl-color-accent);
   color: var(--sl-color-accent);
 }
+
+/* ============================================================================
+   Sidebar Adjustments
+   ============================================================================ */
 
 /* Right sidebar - fit to content, no fixed min-width */
 .right-sidebar {
@@ -335,25 +450,3 @@ starlight-tabs > [role="tablist"]::-webkit-scrollbar {
     --sl-content-width: 60rem;
   }
 }
-
-/* Badge styling */
-.sl-badge {
-  font-weight: 500;
-}
-
-/* Improved code block styling */
-pre {
-  border: 1px solid var(--sl-color-gray-5);
-  border-radius: 0.5rem;
-}
-
-/* Card improvements */
-.sl-card {
-  border-radius: 0.75rem;
-  transition: border-color 0.2s ease;
-}
-
-.sl-card:hover {
-  border-color: var(--sl-color-accent-low);
-}
-

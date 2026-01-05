@@ -14,38 +14,38 @@ The API Explorer provides a built-in tool for exploring, testing, and learning t
 
 The API Explorer is an integrated REST client that:
 
-<div style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin: 1rem 0;">
-  <FeatureCard title="Session Auth" icon="approve-check-circle" color="green">
+<CardGrid>
+  <FeatureCard title="Session Auth" icon="check-circle" color="green">
     Uses your active LogicMonitor session—no API tokens needed.
   </FeatureCard>
-  <FeatureCard title="Endpoint Catalog" icon="open-book" color="blue">
+  <FeatureCard title="Endpoint Catalog" icon="book" color="blue">
     Browse all available API endpoints organized by category.
   </FeatureCard>
-  <FeatureCard title="Request Builder" icon="pencil" color="purple">
+  <FeatureCard title="Request Builder" icon="edit" color="purple">
     Build and execute requests with guided parameter input.
   </FeatureCard>
   <FeatureCard title="Request History" icon="history" color="orange">
     Review past requests and reload them for quick retesting.
   </FeatureCard>
-</div>
+</CardGrid>
 
 ---
 
 ## Opening the API Explorer
 
 <CardGrid>
-  <Card title="Welcome Screen" icon="rocket">
+  <FeatureCard title="Welcome Screen" icon="rocket" color="orange">
     Click **API Explorer** on the welcome screen.
-  </Card>
-  <Card title="Command Palette" icon="magnifier">
+  </FeatureCard>
+  <FeatureCard title="Command Palette" icon="search" color="purple">
     Press <kbd>Ctrl</kbd>+<kbd>K</kbd> and type "API".
-  </Card>
-  <Card title="New Tab" icon="add-document">
+  </FeatureCard>
+  <FeatureCard title="New Tab" icon="document" color="blue">
     Click **+** and select **New API Request**.
-  </Card>
-  <Card title="Keyboard" icon="laptop">
-    Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> directly.
-  </Card>
+  </FeatureCard>
+  <FeatureCard title="Keyboard" icon="laptop" color="green">
+    Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd> to toggle to API view.
+  </FeatureCard>
 </CardGrid>
 
 ---
@@ -212,18 +212,18 @@ The status bar shows response timing to help identify slow endpoints.
 ## When to Use API Explorer
 
 <CardGrid>
-  <Card title="Learning the API" icon="open-book">
+  <FeatureCard title="Learning the API" icon="book" color="blue">
     Explore endpoints interactively before writing automation code.
-  </Card>
-  <Card title="Quick Operations" icon="rocket">
+  </FeatureCard>
+  <FeatureCard title="Quick Operations" icon="zap" color="green">
     Make one-off API calls without building full scripts.
-  </Card>
-  <Card title="Debugging" icon="warning">
+  </FeatureCard>
+  <FeatureCard title="Debugging" icon="warning" color="orange">
     Test specific API calls to troubleshoot integration issues.
-  </Card>
-  <Card title="Data Export" icon="external">
+  </FeatureCard>
+  <FeatureCard title="Data Export" icon="download" color="purple">
     Retrieve data for analysis, reporting, or migration.
-  </Card>
+  </FeatureCard>
 </CardGrid>
 
 ---

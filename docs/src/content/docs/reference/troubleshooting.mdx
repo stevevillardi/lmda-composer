@@ -3,8 +3,9 @@ title: Troubleshooting
 description: Solutions for common issues with LMDA Composer.
 ---
 
-import { Card, CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
+import { CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
 import StatusBadge from '../../../components/StatusBadge.astro';
+import FeatureCard from '../../../components/FeatureCard.astro';
 
 This guide covers common issues you might encounter with LMDA Composer and how to resolve them.
 
@@ -101,15 +102,15 @@ This guide covers common issues you might encounter with LMDA Composer and how t
     **Solutions:**
 
     <CardGrid>
-      <Card title="Check Context" icon="setting">
+      <FeatureCard title="Check Context" icon="settings" color="blue">
         Ensure portal is selected, collector is selected, and collector is online.
-      </Card>
-      <Card title="Check for Running Execution" icon="rocket">
+      </FeatureCard>
+      <FeatureCard title="Check for Running Execution" icon="play" color="green">
         Only one execution at a time. Cancel current execution first. Look for spinner on Run button.
-      </Card>
-      <Card title="Script Errors" icon="warning">
+      </FeatureCard>
+      <FeatureCard title="Script Errors" icon="warning" color="orange">
         Check for syntax errors. Validate script compiles. Review error messages.
-      </Card>
+      </FeatureCard>
     </CardGrid>
   </TabItem>
   
@@ -214,11 +215,11 @@ This guide covers common issues you might encounter with LMDA Composer and how t
     1. **Grant Permissions**  
        Browser may need file access permission. Click "Allow" when prompted. Choose "Edit" not "View".
 
-    2. **Browser Support**  
-       File System Access requires Chrome/Edge. Firefox/Safari use download fallback.
-
-    3. **Brave Browser**  
+    2. **Brave Browser**  
        May require enabling File System Access API in `brave://flags`
+
+    3. **Vivaldi Browser**  
+       May require enabling File System Access API in `vivaldi://extensions`
 
     </Steps>
   </TabItem>
@@ -268,18 +269,18 @@ This guide covers common issues you might encounter with LMDA Composer and how t
     **Solutions:**
 
     <CardGrid>
-      <Card title="Check Endpoint Path" icon="seti:json">
+      <FeatureCard title="Check Endpoint Path" icon="braces" color="blue">
         Verify path is correct. Include required path parameters. Check LogicMonitor API docs.
-      </Card>
-      <Card title="Check Request Body" icon="document">
+      </FeatureCard>
+      <FeatureCard title="Check Request Body" icon="document" color="purple">
         Validate JSON syntax. Include required fields. Check data types.
-      </Card>
-      <Card title="Check Permissions" icon="close">
+      </FeatureCard>
+      <FeatureCard title="Check Permissions" icon="lock" color="red">
         403 means insufficient permissions. Verify your user role. Contact admin if needed.
-      </Card>
-      <Card title="Rate Limiting" icon="rocket">
+      </FeatureCard>
+      <FeatureCard title="Rate Limiting" icon="clock" color="orange">
         429 means rate limited. Wait before retrying. Reduce request frequency.
-      </Card>
+      </FeatureCard>
     </CardGrid>
   </TabItem>
   
@@ -353,7 +354,7 @@ This guide covers common issues you might encounter with LMDA Composer and how t
 ## Performance Issues
 
 <CardGrid>
-  <Card title="Slow Performance" icon="rocket">
+  <FeatureCard title="Slow Performance" icon="zap" color="orange">
     **Symptoms:** Typing lag, slow scrolling, delayed responses
 
     **Solutions:**
@@ -361,15 +362,15 @@ This guide covers common issues you might encounter with LMDA Composer and how t
     - Close unused tabs
     - Close other browser tabs
     - Disable Minimap in Settings
-  </Card>
-  <Card title="High Memory Usage" icon="warning">
+  </FeatureCard>
+  <FeatureCard title="High Memory Usage" icon="warning" color="red">
     **Symptoms:** Browser using lots of RAM, system slowdown
 
     **Solutions:**
     - Each tab uses memory—close when done
     - Clear large history
     - Refresh page periodically (save work first)
-  </Card>
+  </FeatureCard>
 </CardGrid>
 
 ---
@@ -377,20 +378,20 @@ This guide covers common issues you might encounter with LMDA Composer and how t
 ## Getting Help
 
 <CardGrid>
-  <Card title="Report a Bug" icon="github">
+  <FeatureCard title="Report a Bug" icon="warning" color="orange">
     1. Note the steps to reproduce
     2. Check browser console for errors (<kbd>F12</kbd>)
     3. Create an issue on GitHub
     4. Include browser and OS version
-  </Card>
-  <Card title="Community Support" icon="star">
+  </FeatureCard>
+  <FeatureCard title="Community Support" icon="users" color="purple">
     - GitHub Discussions for questions
     - Review existing issues for solutions
     - Contribute fixes if you can
-  </Card>
-  <Card title="Check for Updates" icon="rocket">
+  </FeatureCard>
+  <FeatureCard title="Check for Updates" icon="refresh" color="blue">
     Ensure you're running the latest version. Check extension version in Settings. Compare with releases on GitHub.
-  </Card>
+  </FeatureCard>
 </CardGrid>
 
 ---

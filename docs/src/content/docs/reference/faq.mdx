@@ -3,8 +3,9 @@ title: FAQ
 description: Frequently asked questions about LMDA Composer.
 ---
 
-import { Card, CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
+import { CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
 import { Icon } from '@astrojs/starlight/components';
+import FeatureCard from '../../../components/FeatureCard.astro';
 
 Answers to common questions about LMDA Composer.
 
@@ -35,22 +36,22 @@ Answers to common questions about LMDA Composer.
 ## Browser Support
 
 <CardGrid>
-  <Card title="Chrome" icon="seti:favicon">
+  <FeatureCard title="Chrome" icon="globe" color="green">
     <Badge text="Recommended" variant="success" />
     Full support for all features.
-  </Card>
-  <Card title="Edge" icon="seti:favicon">
+  </FeatureCard>
+  <FeatureCard title="Edge" icon="globe" color="green">
     <Badge text="Full Support" variant="success" />
     Same capabilities as Chrome.
-  </Card>
-  <Card title="Brave" icon="seti:favicon">
+  </FeatureCard>
+  <FeatureCard title="Brave" icon="shield" color="orange">
     <Badge text="With Limitations" variant="note" />
     May need to enable File System Access API.
-  </Card>
-  <Card title="Firefox / Safari" icon="seti:favicon">
+  </FeatureCard>
+  <FeatureCard title="Firefox / Safari" icon="globe" color="red">
     <Badge text="Not Supported" variant="caution" />
     Extension API limitations prevent support.
-  </Card>
+  </FeatureCard>
 </CardGrid>
 
 ---
@@ -203,15 +204,14 @@ Answers to common questions about LMDA Composer.
     When you commit:
     1. Your script changes are pushed to LogicMonitor
     2. Any staged metadata changes are applied
-    3. A new version is created in module lineage
-    4. The module is updated in production
+    3. The module is updated in your portal immediately
   </TabItem>
   
   <TabItem label="Revert to previous version?" icon="history">
-    LogicMonitor doesn't support direct rollbacks. You can:
-    1. View the previous version in Module Lineage
-    2. Copy its content
-    3. Commit as a new version
+    There is no built-in version history for user changes. To protect your work:
+    - Export scripts to local files before major changes
+    - Use Git for version control of exported scripts
+    - For Exchange modules, Lineage shows the original LM versions (not your edits)
   </TabItem>
 </Tabs>
 
@@ -220,17 +220,17 @@ Answers to common questions about LMDA Composer.
 ## Snippets and History
 
 <CardGrid>
-  <Card title="Share snippets with team?" icon="star">
+  <FeatureCard title="Share snippets with team?" icon="users" color="purple">
     Snippets are stored locally in your browser. To share:
     - Export snippet content manually
     - Include in team documentation
     - Add to shared code repositories
-  </Card>
-  <Card title="How long is history kept?" icon="history">
+  </FeatureCard>
+  <FeatureCard title="How long is history kept?" icon="history" color="blue">
     History is kept until you manually clear it, the configured limit is reached (oldest removed), or browser storage is cleared.
     
     Default limit is **50** entries, configurable in Settings.
-  </Card>
+  </FeatureCard>
 </CardGrid>
 
 ---
@@ -238,15 +238,15 @@ Answers to common questions about LMDA Composer.
 ## Security
 
 <CardGrid>
-  <Card title="Is my data secure?" icon="approve-check-circle">
+  <FeatureCard title="Is my data secure?" icon="shield" color="green">
     - Runs entirely in your browser
     - No data sent to third-party servers
     - All communication is with LogicMonitor using your session
     - Local storage is limited to your browser
-  </Card>
-  <Card title="Can others see my scripts?" icon="close">
+  </FeatureCard>
+  <FeatureCard title="Can others see my scripts?" icon="lock" color="blue">
     Scripts in local files are only on your computer. Scripts in LogicModules follow your LogicMonitor access controls.
-  </Card>
+  </FeatureCard>
 </CardGrid>
 
 ### What data is stored locally?
@@ -291,17 +291,17 @@ Answers to common questions about LMDA Composer.
 ## Get Help
 
 <CardGrid>
-  <Card title="Documentation" icon="document">
+  <FeatureCard title="Documentation" icon="book" color="blue">
     You're here! Browse the full documentation.
-  </Card>
-  <Card title="GitHub Discussions" icon="github">
+  </FeatureCard>
+  <FeatureCard title="GitHub Discussions" icon="message" color="purple">
     Ask questions and connect with the community.
-  </Card>
-  <Card title="GitHub Issues" icon="warning">
+  </FeatureCard>
+  <FeatureCard title="GitHub Issues" icon="warning" color="orange">
     Report bugs and track fixes.
-  </Card>
-  <Card title="LogicMonitor Community" icon="star">
+  </FeatureCard>
+  <FeatureCard title="LogicMonitor Community" icon="users" color="green">
     Connect with other LM users.
-  </Card>
+  </FeatureCard>
 </CardGrid>
 

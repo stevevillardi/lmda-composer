@@ -1,36 +1,234 @@
 ---
-import { Icon } from '@astrojs/starlight/components';
+import { 
+  Target, Activity, Layers, Terminal, Bell, FileText, Network, Tag as TagIcon, ScrollText,
+  Database, Info, FolderTree, Shield, Filter, CheckCircle2, XCircle, AlertTriangle,
+  Upload, Rocket, Settings, Search, History, Code, Puzzle, Wrench, Globe, Server,
+  Laptop, BookOpen, ExternalLink, Copy, Play, Save, Download, FilePlus, FolderOpen,
+  RefreshCw, Diff, GitBranch, Eye, Edit, Trash2, Star, Sun, Zap, Clock, Timer,
+  ArrowRight, ArrowLeft, ChevronRight, ChevronDown, Check, X, Plus, Minus, Hash,
+  List, Grid, Table, LayoutGrid, PanelLeft, PanelRight, Maximize2, Minimize2,
+  Link, Unlink, Lock, Unlock, Key, User, Users, HelpCircle, MessageSquare, Send,
+  FileCode, FileJson, FileCog, Braces, Command, Keyboard, MousePointer, Monitor
+} from '@lucide/astro';
 
 interface Props {
   title: string;
-  icon: string;
-  color?: 'blue' | 'green' | 'purple' | 'orange' | 'cyan' | 'pink' | 'amber';
+  icon?: string;
+  color?: 'blue' | 'green' | 'purple' | 'orange' | 'cyan' | 'pink' | 'amber' | 'default' | 'red';
+  href?: string;
 }
 
-const { title, icon, color = 'amber' } = Astro.props;
+const { title, icon, color = 'amber', href } = Astro.props;
 
-const colorMap = {
-  blue: 'var(--sl-color-blue)',
-  green: 'var(--sl-color-green)',
-  purple: 'var(--sl-color-purple)',
-  orange: 'var(--sl-color-orange)',
+const colorMap: Record<string, string> = {
+  blue: '#3b82f6',
+  green: '#22c55e',
+  purple: '#a855f7',
+  orange: '#f97316',
   cyan: '#06b6d4',
   pink: '#ec4899',
-  amber: 'var(--sl-color-accent)',
+  amber: '#f59e0b',
+  default: '#64748b',
+  red: '#ef4444',
 };
+
+// Comprehensive icon mapping for all documentation needs
+const iconComponents: Record<string, any> = {
+  // Navigation & Actions
+  target: Target,
+  activity: Activity,
+  layers: Layers,
+  'layers-3': Layers,
+  terminal: Terminal,
+  play: Play,
+  execute: Play,
+  run: Play,
+  
+  // Files & Documents
+  bell: Bell,
+  'file-text': FileText,
+  document: FileText,
+  file: FileText,
+  'file-code': FileCode,
+  'file-json': FileJson,
+  'file-cog': FileCog,
+  'add-document': FilePlus,
+  'file-plus': FilePlus,
+  
+  // Network & Connectivity
+  network: Network,
+  random: Network,
+  globe: Globe,
+  server: Server,
+  laptop: Laptop,
+  monitor: Monitor,
+  
+  // Data & Storage
+  tag: TagIcon,
+  'scroll-text': ScrollText,
+  'list-format': ScrollText,
+  list: List,
+  database: Database,
+  'seti:db': Database,
+  
+  // Information & Help
+  information: Info,
+  info: Info,
+  'help-circle': HelpCircle,
+  help: HelpCircle,
+  
+  // Folders & Organization
+  'seti:folder': FolderTree,
+  folder: FolderTree,
+  'folder-open': FolderOpen,
+  
+  // Security
+  shield: Shield,
+  lock: Lock,
+  unlock: Unlock,
+  key: Key,
+  
+  // Filters & Settings
+  funnel: Filter,
+  filter: Filter,
+  setting: Settings,
+  settings: Settings,
+  cog: Settings,
+  
+  // Status & Validation
+  'approve-check-circle': CheckCircle2,
+  success: CheckCircle2,
+  check: Check,
+  'check-circle': CheckCircle2,
+  close: XCircle,
+  error: XCircle,
+  x: X,
+  warning: AlertTriangle,
+  'alert-triangle': AlertTriangle,
+  
+  // Actions
+  upload: Upload,
+  download: Download,
+  save: Save,
+  copy: Copy,
+  edit: Edit,
+  pencil: Edit,
+  delete: Trash2,
+  trash: Trash2,
+  refresh: RefreshCw,
+  sync: RefreshCw,
+  
+  // Rocket & Speed
+  rocket: Rocket,
+  zap: Zap,
+  
+  // Search & Find
+  magnifier: Search,
+  search: Search,
+  
+  // History & Time
+  history: History,
+  clock: Clock,
+  timer: Timer,
+  
+  // Code & Development
+  'seti:groovy': Code,
+  'seti:powershell': Code,
+  'seti:html': Code,
+  'seti:json': Braces,
+  code: Code,
+  braces: Braces,
+  
+  // Books & Documentation
+  'seti:notebook': BookOpen,
+  'open-book': BookOpen,
+  book: BookOpen,
+  
+  // UI Components
+  puzzle: Puzzle,
+  wrench: Wrench,
+  tool: Wrench,
+  
+  // External & Links
+  external: ExternalLink,
+  'external-link': ExternalLink,
+  link: Link,
+  unlink: Unlink,
+  
+  // Navigation
+  'forward-slash': Code,
+  'arrow-right': ArrowRight,
+  'arrow-left': ArrowLeft,
+  'chevron-right': ChevronRight,
+  'chevron-down': ChevronDown,
+  
+  // Special mappings for Starlight icons
+  'heart-pulse': Activity,
+  'seti:todo': Target,
+  star: Star,
+  sun: Sun,
+  github: ExternalLink,
+  
+  // Layout & Panels
+  'panel-left': PanelLeft,
+  'panel-right': PanelRight,
+  sidebar: PanelRight,
+  grid: Grid,
+  table: Table,
+  'layout-grid': LayoutGrid,
+  maximize: Maximize2,
+  minimize: Minimize2,
+  
+  // Diff & Version Control
+  diff: Diff,
+  'git-branch': GitBranch,
+  compare: Diff,
+  lineage: GitBranch,
+  
+  // Users
+  user: User,
+  users: Users,
+  
+  // Communication
+  message: MessageSquare,
+  send: Send,
+  
+  // Misc
+  plus: Plus,
+  minus: Minus,
+  hash: Hash,
+  eye: Eye,
+  view: Eye,
+  command: Command,
+  keyboard: Keyboard,
+  mouse: MousePointer,
+};
+
+const IconComponent = icon ? iconComponents[icon.toLowerCase()] || iconComponents[icon] || Info : null;
+const isClickable = !!href;
+const Element = href ? 'a' : 'div';
 ---
 
-<div class="feature-card" style={`--card-color: ${colorMap[color]};`}>
-  <div class="feature-icon">
-    <Icon name={icon} size="1.5rem" />
-  </div>
+<Element 
+  class:list={['feature-card', { clickable: isClickable }]} 
+  style={`--card-color: ${colorMap[color]};`}
+  href={href}
+>
+  {IconComponent && (
+    <div class="feature-icon">
+      <IconComponent size={24} />
+    </div>
+  )}
   <div class="feature-content">
-    <h4 class="feature-title">{title}</h4>
+    <h4 class="feature-title">
+      {title}
+      {isClickable && <ExternalLink size={12} class="external-icon" />}
+    </h4>
     <div class="feature-description">
       <slot />
     </div>
   </div>
-</div>
+</Element>
 
 <style>
   .feature-card {
@@ -41,10 +239,24 @@ const colorMap = {
     border: 1px solid var(--sl-color-gray-5);
     border-radius: 0.75rem;
     transition: border-color 0.2s ease;
+    text-decoration: none;
+    color: inherit;
+    height: 100%;
   }
 
-  .feature-card:hover {
+  .feature-card.clickable {
+    cursor: pointer;
+    transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .feature-card.clickable:hover {
     border-color: var(--card-color);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  .feature-card:not(.clickable):hover {
+    border-color: var(--sl-color-gray-4);
   }
 
   .feature-icon {
@@ -62,6 +274,8 @@ const colorMap = {
   .feature-content {
     flex: 1;
     min-width: 0;
+    display: flex;
+    flex-direction: column;
   }
 
   .feature-title {
@@ -69,18 +283,46 @@ const colorMap = {
     font-weight: 600;
     margin: 0 0 0.25rem 0;
     color: var(--sl-color-white);
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+  }
+
+  .external-icon {
+    opacity: 0.5;
+  }
+
+  .feature-card.clickable:hover .external-icon {
+    opacity: 1;
   }
 
   .feature-description {
     font-size: 0.875rem;
     color: var(--sl-color-gray-3);
     line-height: 1.5;
+    flex: 1;
   }
 
   .feature-description :global(p) {
     margin: 0;
   }
+
+  .feature-description :global(code) {
+    background: var(--sl-color-gray-6);
+    padding: 0.125rem 0.375rem;
+    border-radius: 0.25rem;
+    font-size: 0.8125rem;
+  }
+
+  .feature-description :global(kbd) {
+    display: inline-block;
+    padding: 0.125rem 0.375rem;
+    font-size: 0.75rem;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    color: var(--sl-color-white);
+    background: var(--sl-color-gray-6);
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.25rem;
+    box-shadow: 0 1px 0 var(--sl-color-gray-5);
+  }
 </style>
-
-
-

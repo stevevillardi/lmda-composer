@@ -65,18 +65,18 @@ Use the language toggle in the toolbar to switch between Groovy and PowerShell:
 ## Editor Features
 
 <CardGrid>
-  <Card title="Find & Replace" icon="magnifier">
+  <FeatureCard title="Find & Replace" icon="search" color="blue">
     Press <kbd>Ctrl</kbd>+<kbd>F</kbd> to search. Supports regex, case-sensitive, and whole word matching. <kbd>Ctrl</kbd>+<kbd>H</kbd> for replace.
-  </Card>
-  <Card title="Multiple Cursors" icon="pencil">
+  </FeatureCard>
+  <FeatureCard title="Multiple Cursors" icon="edit" color="purple">
     <kbd>Alt</kbd>+Click to add cursors. <kbd>Ctrl</kbd>+<kbd>D</kbd> selects next occurrence. Edit multiple locations at once.
-  </Card>
-  <Card title="Code Folding" icon="list-format">
+  </FeatureCard>
+  <FeatureCard title="Code Folding" icon="list" color="green">
     Click fold icons in the gutter to collapse methods, classes, and comment blocks for easier navigation.
-  </Card>
-  <Card title="Go to Line" icon="forward-slash">
+  </FeatureCard>
+  <FeatureCard title="Go to Line" icon="hash" color="orange">
     Press <kbd>Ctrl</kbd>+<kbd>G</kbd> to jump to any line number. Essential for navigating large scripts.
-  </Card>
+  </FeatureCard>
 </CardGrid>
 
 ### Keyboard Shortcuts
@@ -125,20 +125,20 @@ Customize the editor experience in **Settings** (<kbd>Ctrl</kbd>+<kbd>,</kbd>):
 
 <img src="/lmda-composer/core-features/editor-settings.png" alt="Settings dialog with editor configuration options" style="border-radius: 0.5rem; margin: 1rem 0;" />
 
-<div style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); margin: 1.5rem 0;">
-  <FeatureCard title="Font Size" icon="text" color="blue">
+<CardGrid>
+  <FeatureCard title="Font Size" icon="type" color="blue">
     Adjust from 10px to 24px for comfortable reading on any display.
   </FeatureCard>
-  <FeatureCard title="Tab Size" icon="forward-slash" color="green">
+  <FeatureCard title="Tab Size" icon="code" color="green">
     Set indentation width from 2 to 8 spaces. Default is 2.
   </FeatureCard>
-  <FeatureCard title="Word Wrap" icon="list-format" color="purple">
+  <FeatureCard title="Word Wrap" icon="wrap-text" color="purple">
     Enable to wrap long lines within the viewport instead of horizontal scrolling.
   </FeatureCard>
-  <FeatureCard title="Minimap" icon="laptop" color="orange">
+  <FeatureCard title="Minimap" icon="monitor" color="orange">
     Toggle the code overview minimap on the right side of the editor.
   </FeatureCard>
-</div>
+</CardGrid>
 
 ---
 

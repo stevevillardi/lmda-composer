@@ -17,15 +17,15 @@ Click the **Context** button in the toolbar to open the selection dropdown:
 <img src="/lmda-composer/core-features/context-dropdown.png" alt="Context dropdown showing Portal, Collector, and Device sections" style="border-radius: 0.5rem; margin: 1.5rem 0;" />
 
 <CardGrid>
-  <Card title="Portal" icon="globe">
+  <FeatureCard title="Portal" icon="globe" color="green">
     Your LogicMonitor account. Select from detected active sessions.
-  </Card>
-  <Card title="Collector" icon="server">
+  </FeatureCard>
+  <FeatureCard title="Collector" icon="server" color="blue">
     Where scripts execute. Only online collectors can run code.
-  </Card>
-  <Card title="Device" icon="laptop">
+  </FeatureCard>
+  <FeatureCard title="Device" icon="laptop" color="purple">
     Target for property access. Optional but needed for `hostProps`.
-  </Card>
+  </FeatureCard>
 </CardGrid>
 
 ---
@@ -97,9 +97,9 @@ After selecting a portal, the collector list populates:
 
 | Status | Can Execute? | Description |
 |--------|--------------|-------------|
-| <Badge text="Online" variant="success" /> | ✅ Yes | Collector is connected and ready |
-| <Badge text="Offline" variant="default" /> | ❌ No | Collector is not responding |
-| <Badge text="Warning" variant="caution" /> | ⚠️ Check | Collector health issues |
+| <Badge text="Online" variant="success" /> | Yes | Collector is connected and ready |
+| <Badge text="Offline" variant="default" /> | No | Collector is not responding |
+| <Badge text="Warning" variant="caution" /> | Check | Collector health issues |
 
 <Aside type="note">
   Offline collectors appear in the list but cannot be selected for script execution.
@@ -129,17 +129,17 @@ Collectors are organized by their assigned groups:
 
 Selecting a device enables:
 
-<div style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); margin: 1rem 0;">
-  <FeatureCard title="Host Properties" icon="information" color="blue">
+<CardGrid>
+  <FeatureCard title="Host Properties" icon="info" color="blue">
     Access `hostProps.get("property.name")` in your scripts.
   </FeatureCard>
-  <FeatureCard title="Token Substitution" icon="pencil" color="green">
+  <FeatureCard title="Token Substitution" icon="edit" color="green">
     PowerShell `##TOKEN##` patterns resolve to device properties.
   </FeatureCard>
-  <FeatureCard title="Instance Properties" icon="layers-3" color="purple">
+  <FeatureCard title="Instance Properties" icon="layers" color="purple">
     Collection modes can access instance-specific data.
   </FeatureCard>
-</div>
+</CardGrid>
 
 ### Device List
 
@@ -174,9 +174,9 @@ LMDA Composer remembers your selections across sessions:
 
 | Setting | Persisted? | Scope |
 |---------|-----------|-------|
-| Portal | ✅ Yes | Global (last used) |
-| Collector | ✅ Yes | Per portal |
-| Device | ✅ Yes | Per session |
+| Portal | <Badge text="Yes" variant="success" /> | Global (last used) |
+| Collector | <Badge text="Yes" variant="success" /> | Per portal |
+| Device | <Badge text="Yes" variant="success" /> | Per session |
 
 When you return to the composer, your last portal and collector are automatically restored.
 
@@ -187,12 +187,12 @@ When you return to the composer, your last portal and collector are automaticall
 Each tab can have different context settings:
 
 <CardGrid>
-  <Card title="Tab Memory" icon="open-book">
+  <FeatureCard title="Tab Memory" icon="layers" color="blue">
     Tabs remember their execution context. Switching tabs may update the toolbar display.
-  </Card>
-  <Card title="Portal Binding" icon="external">
+  </FeatureCard>
+  <FeatureCard title="Portal Binding" icon="link" color="purple">
     Tabs opened from LogicModules are "bound" to their source portal.
-  </Card>
+  </FeatureCard>
 </CardGrid>
 
 ### Portal Binding

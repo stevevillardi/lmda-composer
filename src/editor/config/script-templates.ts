@@ -13,15 +13,16 @@ export function getDefaultGroovyTemplate(): string {
  * Created via LMDA Composer - ${getFormattedDate()}
  ******************************************************************************/
 
-// Debug mode - set to true for verbose output
-def debug = false
+// Debug mode - set to true for verbose output (script-level binding for closure access)
+debug = false
 
 def host = hostProps.get("system.hostname")
 
 /**
  * Helper function for debug output
+ * Uses script-level binding so it can be called from other closures
  */
-def LMDebugPrint(message) {
+LMDebugPrint = { message ->
     if (debug) {
         println(message.toString())
     }

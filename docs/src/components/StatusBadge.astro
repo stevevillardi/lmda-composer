@@ -1,5 +1,5 @@
 ---
-import { Icon } from '@astrojs/starlight/components';
+import { CheckCircle2, XCircle, AlertTriangle, Loader2, Clock } from '@lucide/astro';
 
 interface Props {
   status: 'success' | 'error' | 'warning' | 'running' | 'timeout';
@@ -13,37 +13,39 @@ const { status, label, size = 'md' } = Astro.props;
 const statusConfig = {
   success: {
     color: '#22c55e', // green-500
-    icon: 'approve-check-circle',
     defaultLabel: 'Complete'
   },
   error: {
     color: '#ef4444', // red-500
-    icon: 'close',
     defaultLabel: 'Error'
   },
   warning: {
     color: '#f59e0b', // amber-500
-    icon: 'warning',
     defaultLabel: 'Warning'
   },
   running: {
     color: '#3b82f6', // blue-500
-    icon: 'rocket',
     defaultLabel: 'Running'
   },
   timeout: {
     color: '#ef4444', // red-500
-    icon: 'close',
     defaultLabel: 'Timeout'
   }
 };
 
 const config = statusConfig[status];
 const displayLabel = label ?? config.defaultLabel;
+const iconSize = size === 'sm' ? 14 : 16;
 ---
 
-<span class={`status-badge ${size}`} style={`--status-color: ${config.color};`}>
-  <Icon name={config.icon} size={size === 'sm' ? '0.875rem' : '1rem'} />
+<span class:list={['status-badge', size]} style={`--status-color: ${config.color};`}>
+  <span class="status-icon">
+    {status === 'success' && <CheckCircle2 size={iconSize} />}
+    {status === 'error' && <XCircle size={iconSize} />}
+    {status === 'warning' && <AlertTriangle size={iconSize} />}
+    {status === 'running' && <Loader2 size={iconSize} class="animate-spin" />}
+    {status === 'timeout' && <Clock size={iconSize} />}
+  </span>
   <span class="status-label">{displayLabel}</span>
 </span>
 
@@ -68,10 +70,26 @@ const displayLabel = label ?? config.defaultLabel;
     font-size: 0.8125rem;
   }
 
+  .status-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
   .status-label {
     line-height: 1;
   }
+
+  @keyframes spin {
+    from {
+      transform: rotate(0deg);
+    }
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  .status-icon :global(.animate-spin) {
+    animation: spin 1s linear infinite;
+  }
 </style>
-
-
-

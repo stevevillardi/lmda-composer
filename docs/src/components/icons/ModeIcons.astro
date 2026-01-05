@@ -1,0 +1,89 @@
+---
+/**
+ * Semantic Mode Icon Components
+ * 
+ * These icons match the mode icons defined in src/editor/constants/icons.tsx
+ * to ensure consistent iconography between the app and documentation.
+ */
+import { 
+  Terminal, 
+  Target, 
+  Activity, 
+  Layers, 
+  FileText, 
+  Bell, 
+  Network, 
+  Tag, 
+  ScrollText 
+} from '@lucide/astro';
+
+interface Props {
+  mode: 'freeform' | 'ad' | 'collection' | 'batch' | 'config' | 'event' | 'topology' | 'property' | 'log';
+  size?: number;
+  class?: string;
+}
+
+const { mode, size = 24, class: className = '' } = Astro.props;
+
+// Mode configuration matching src/editor/constants/icons.tsx
+const modeConfig = {
+  freeform: {
+    color: '#64748b', // slate-500
+    label: 'Freeform'
+  },
+  ad: {
+    color: '#3b82f6', // blue-500
+    label: 'Active Discovery'
+  },
+  collection: {
+    color: '#22c55e', // green-500
+    label: 'Collection'
+  },
+  batch: {
+    color: '#a855f7', // purple-500
+    label: 'Batch Collection'
+  },
+  config: {
+    color: '#64748b', // slate-500
+    label: 'ConfigSource'
+  },
+  event: {
+    color: '#f97316', // orange-500
+    label: 'EventSource'
+  },
+  topology: {
+    color: '#06b6d4', // cyan-500
+    label: 'TopologySource'
+  },
+  property: {
+    color: '#ec4899', // pink-500
+    label: 'PropertySource'
+  },
+  log: {
+    color: '#14b8a6', // teal-500
+    label: 'LogSource'
+  }
+};
+
+const config = modeConfig[mode];
+---
+
+<span class:list={['mode-icon', className]} style={`color: ${config.color};`} title={config.label}>
+  {mode === 'freeform' && <Terminal size={size} />}
+  {mode === 'ad' && <Target size={size} />}
+  {mode === 'collection' && <Activity size={size} />}
+  {mode === 'batch' && <Layers size={size} />}
+  {mode === 'config' && <FileText size={size} />}
+  {mode === 'event' && <Bell size={size} />}
+  {mode === 'topology' && <Network size={size} />}
+  {mode === 'property' && <Tag size={size} />}
+  {mode === 'log' && <ScrollText size={size} />}
+</span>
+
+<style>
+  .mode-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+</style>

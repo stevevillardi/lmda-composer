@@ -16,6 +16,8 @@ import {
   ArrowLeftRight,
   Play,
   Puzzle,
+  BookOpen,
+  ExternalLink,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEditorStore } from '../stores/editor-store';
@@ -384,7 +386,7 @@ export function ActionsDropdown() {
         <div className="relative flex items-center gap-2 my-2">
           <Separator className="flex-1" />
           <span className="shrink-0 px-2 text-xs text-muted-foreground select-none">
-            Settings
+            Settings & Help
           </span>
           <Separator className="flex-1" />
         </div>
@@ -396,6 +398,14 @@ export function ActionsDropdown() {
             <Settings className="size-4 mr-2" />
             <span className="flex-1">Settings</span>
             <Kbd className="ml-auto">⌘,</Kbd>
+          </DropdownMenuItem>
+
+          <DropdownMenuItem onClick={() => {
+            window.open('https://stevevillardi.github.io/lmda-composer/', '_blank');
+          }}>
+            <BookOpen className="size-4 mr-2" />
+            <span className="flex-1">Documentation</span>
+            <ExternalLink className="size-3 text-muted-foreground" />
           </DropdownMenuItem>
         </DropdownMenuGroup>
       </DropdownMenuContent>

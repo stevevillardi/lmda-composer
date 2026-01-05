@@ -3,7 +3,7 @@ title: Interface Overview
 description: A tour of the LMDA Composer workspace layout and key components.
 ---
 
-import { Card, CardGrid, Tabs, TabItem, Aside, LinkCard, Badge } from '@astrojs/starlight/components';
+import { CardGrid, Tabs, TabItem, Aside, LinkCard, Badge } from '@astrojs/starlight/components';
 import { Icon } from '@astrojs/starlight/components';
 import FeatureCard from '../../../components/FeatureCard.astro';
 
@@ -24,24 +24,24 @@ The toolbar contains context selection and primary actions.
 <img src="/lmda-composer/getting-started/interface-toolbar.png" alt="LMDA Composer toolbar" style="border-radius: 0.5rem; margin: 1rem 0;" />
 
 <CardGrid>
-  <Card title="Context Selection" icon="setting">
+  <FeatureCard title="Context Selection" icon="settings" color="blue">
     **Portal** – Your LogicMonitor account  
     **Collector** – Where scripts execute  
     **Device** – Target for property access
-  </Card>
-  <Card title="Script Configuration" icon="pencil">
+  </FeatureCard>
+  <FeatureCard title="Script Configuration" icon="edit" color="purple">
     **Language** – Toggle between Groovy and PowerShell  
     **Mode** – Freeform, AD, Collection, or Batch
-  </Card>
-  <Card title="Module Actions" icon="document">
-    **Lineage** – View version history  
+  </FeatureCard>
+  <FeatureCard title="Module Actions" icon="layers" color="green">
+    **Lineage** – View Exchange release history  
     **Details** – Edit module metadata  
     **Commit** – Push changes to LogicMonitor
-  </Card>
-  <Card title="Execute" icon="rocket">
+  </FeatureCard>
+  <FeatureCard title="Execute" icon="play" color="amber">
     **Run Script** – Execute on selected collector  
     **Actions Menu** – Save, export, import options
-  </Card>
+  </FeatureCard>
 </CardGrid>
 
 ---
@@ -50,20 +50,20 @@ The toolbar contains context selection and primary actions.
 
 Manage multiple open files and module scripts.
 
-<div style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); margin: 1rem 0;">
-  <FeatureCard title="Multiple Tabs" icon="open-book" color="blue">
+<CardGrid>
+  <FeatureCard title="Multiple Tabs" icon="layers" color="blue">
     Work on multiple scripts simultaneously, each in its own tab.
   </FeatureCard>
-  <FeatureCard title="Dirty Indicator" icon="warning" color="orange">
+  <FeatureCard title="Dirty Indicator" icon="alert-triangle" color="orange">
     A dot appears on tabs with unsaved changes.
   </FeatureCard>
-  <FeatureCard title="Language Badge" icon="seti:groovy" color="green">
+  <FeatureCard title="Language Badge" icon="code" color="green">
     Shows <Badge text="GR" variant="success" /> for Groovy or <Badge text="PS" variant="note" /> for PowerShell.
   </FeatureCard>
-  <FeatureCard title="Module Binding" icon="external" color="purple">
+  <FeatureCard title="Module Binding" icon="link" color="purple">
     Link icon indicates tabs bound to a LogicModule.
   </FeatureCard>
-</div>
+</CardGrid>
 
 ### Tab Actions
 
@@ -79,18 +79,18 @@ Right-click any tab for additional options:
 A professional editing experience powered by the Monaco editor.
 
 <CardGrid>
-  <Card title="Syntax Highlighting" icon="seti:groovy">
+  <FeatureCard title="Syntax Highlighting" icon="code" color="green">
     Full syntax highlighting for Groovy and PowerShell with keyword, string, and comment coloring.
-  </Card>
-  <Card title="Smart Editing" icon="puzzle">
+  </FeatureCard>
+  <FeatureCard title="Smart Editing" icon="puzzle" color="purple">
     Bracket matching, auto-indentation, code folding, and multiple cursors.
-  </Card>
-  <Card title="Find & Replace" icon="magnifier">
+  </FeatureCard>
+  <FeatureCard title="Find & Replace" icon="search" color="blue">
     Press <kbd>Ctrl</kbd>+<kbd>F</kbd> to search. Supports regex and case-sensitive matching.
-  </Card>
-  <Card title="Line Numbers" icon="list-format">
+  </FeatureCard>
+  <FeatureCard title="Line Numbers" icon="list" color="default">
     Navigate large scripts easily with line numbers and go-to-line (<kbd>Ctrl</kbd>+<kbd>G</kbd>).
-  </Card>
+  </FeatureCard>
 </CardGrid>
 
 ---
@@ -113,9 +113,9 @@ View script execution results with parsed output and validation.
   </TabItem>
   <TabItem label="Validation" icon="approve-check-circle">
     Real-time validation against mode-specific rules:
-    - ✓ Green = All output valid
-    - ⚠ Yellow = Warnings present
-    - ✗ Red = Errors found
+    - Green checkmark = All output valid
+    - Yellow warning = Warnings present
+    - Red X = Errors found
   </TabItem>
   <TabItem label="Graph" icon="random">
     For TopologySource scripts, displays a visual network graph of discovered topology.
@@ -197,20 +197,20 @@ The bottom bar shows current state at a glance.
 When no tabs are open, the welcome screen provides quick actions:
 
 <CardGrid>
-  <Card title="Quick Start" icon="rocket">
+  <FeatureCard title="Quick Start" icon="rocket" color="orange">
     **New File** – Create a blank script  
     **Open File** – Load from disk  
     **API Explorer** – Explore the REST API  
     **Import from LMX** – Browse portal modules
-  </Card>
-  <Card title="Tools" icon="setting">
+  </FeatureCard>
+  <FeatureCard title="Tools" icon="wrench" color="blue">
     **Search LogicModules** – Find code across modules  
     **AppliesTo Toolbox** – Test expressions  
     **Debug Commands** – Run collector commands
-  </Card>
-  <Card title="Recent Files" icon="history">
+  </FeatureCard>
+  <FeatureCard title="Recent Files" icon="history" color="purple">
     Quick access to recently opened files. Click to reopen instantly.
-  </Card>
+  </FeatureCard>
 </CardGrid>
 
 ---
@@ -233,6 +233,3 @@ LMDA Composer is designed for keyboard-driven workflows.
   description="View all available keyboard shortcuts for efficient navigation."
   href="/lmda-composer/reference/keyboard-shortcuts/"
 />
-
-
-

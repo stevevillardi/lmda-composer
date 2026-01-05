@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { ArrowUpRight, BookOpen, Layers, Play, Sparkles, Target, Pin, Puzzle } from 'lucide-react';
+import { ArrowUpRight, BookOpen, ExternalLink, Layers, Play, Sparkles, Target, Pin, Puzzle } from 'lucide-react';
 
 const steps = [
   {
@@ -189,9 +189,21 @@ export function OnboardingApp() {
               LMDA Composer is an independent project created and maintained by LogicMonitor users. While not an official LogicMonitor product, it&apos;s designed by people who use and understand the platform. We hope you find this tool valuable for your LogicMonitor scripting workflows!
             </p>
           </div>
-          <p className="text-xs text-muted-foreground">
-            This page shows on first install only. You can always reopen the composer from the extension icon.
-          </p>
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <p>
+              This page shows on first install only. You can always reopen the composer from the extension icon.
+            </p>
+            <a
+              href="https://stevevillardi.github.io/lmda-composer/"
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors"
+            >
+              <BookOpen className="size-3.5" />
+              Documentation
+              <ExternalLink className="size-3" />
+            </a>
+          </div>
         </footer>
       </div>
     </div>

@@ -3,9 +3,10 @@ title: Execution Modes
 description: Understanding Freeform, Active Discovery, Collection, and Batch Collection modes.
 ---
 
-import { Card, CardGrid, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
+import { CardGrid, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
 import { Icon } from '@astrojs/starlight/components';
 import ModeCard from '../../../components/ModeCard.astro';
+import FeatureCard from '../../../components/FeatureCard.astro';
 
 LMDA Composer supports four execution modes, each designed for different LogicModule scripting scenarios. The selected mode determines how output is parsed and validated.
 
@@ -81,9 +82,9 @@ LMDA Composer supports four execution modes, each designed for different LogicMo
   ### Validation Checks
 
   The **Validation** tab reports:
-  - ✅ Valid instances with all required fields
-  - ❌ Invalid instance IDs (empty, too long, invalid characters)
-  - ⚠️ Warnings for instance names exceeding 255 characters
+  - **Valid** — Instances with all required fields
+  - **Error** — Invalid instance IDs (empty, too long, invalid characters)
+  - **Warning** — Instance names exceeding 255 characters
   - Total instance count in the tab header
 </ModeCard>
 
@@ -210,15 +211,15 @@ LMDA Composer supports four execution modes, each designed for different LogicMo
 The current mode is displayed in multiple locations:
 
 <CardGrid>
-  <Card title="Toolbar" icon="setting">
+  <FeatureCard title="Toolbar" icon="settings" color="blue">
     Mode selector dropdown shows the active mode with its icon.
-  </Card>
-  <Card title="Status Bar" icon="information">
+  </FeatureCard>
+  <FeatureCard title="Status Bar" icon="info" color="purple">
     Mode badge at the bottom of the window.
-  </Card>
-  <Card title="Tab Bar" icon="open-book">
+  </FeatureCard>
+  <FeatureCard title="Tab Bar" icon="layers" color="green">
     Each tab shows its mode—switch tabs to switch modes.
-  </Card>
+  </FeatureCard>
 </CardGrid>
 
 <Aside type="tip" title="Per-Tab Modes">

@@ -13,15 +13,15 @@ The LogicModule Browser lets you explore all LogicModules in your portal and imp
 ## Opening the Browser
 
 <CardGrid>
-  <Card title="Welcome Screen" icon="rocket">
+  <FeatureCard title="Welcome Screen" icon="rocket" color="orange">
     Click **Browse Modules** or the modules icon on the welcome screen.
-  </Card>
-  <Card title="Command Palette" icon="magnifier">
+  </FeatureCard>
+  <FeatureCard title="Command Palette" icon="search" color="purple">
     Press <kbd>Ctrl</kbd>+<kbd>K</kbd> and type "Browse" to open quickly.
-  </Card>
-  <Card title="Actions Menu" icon="list-format">
+  </FeatureCard>
+  <FeatureCard title="Actions Menu" icon="list" color="blue">
     Click **Actions → Browse LogicModules** in the toolbar.
-  </Card>
+  </FeatureCard>
 </CardGrid>
 
 ---
@@ -72,17 +72,17 @@ Click a module in the list to see its available scripts:
 
 The right panel displays:
 
-<div style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin: 1rem 0;">
-  <FeatureCard title="Module Info" icon="information" color="blue">
+<CardGrid>
+  <FeatureCard title="Module Info" icon="info" color="blue">
     Name, type, and description of the selected module.
   </FeatureCard>
-  <FeatureCard title="Script Selector" icon="document" color="green">
+  <FeatureCard title="Script Selector" icon="file" color="green">
     Choose which script to preview: Groovy, PowerShell, AD, or Pre-script.
   </FeatureCard>
-  <FeatureCard title="Script Preview" icon="seti:groovy" color="purple">
+  <FeatureCard title="Script Preview" icon="code" color="purple">
     Syntax-highlighted read-only view of the script content.
   </FeatureCard>
-</div>
+</CardGrid>
 
 ### Scripts by Module Type
 
@@ -220,15 +220,15 @@ For portals with many modules:
 ## Best Practices
 
 <CardGrid>
-  <Card title="Organize Your Work" icon="open-book">
+  <FeatureCard title="Organize Your Work" icon="book" color="blue">
     Use descriptive tab names when loading multiple scripts. Save local copies before making major changes.
-  </Card>
-  <Card title="Test Module Scripts" icon="rocket">
+  </FeatureCard>
+  <FeatureCard title="Test Module Scripts" icon="play" color="green">
     Load the AD script first to understand instance discovery. Test with the same device the module targets.
-  </Card>
-  <Card title="Making Changes" icon="pencil">
+  </FeatureCard>
+  <FeatureCard title="Making Changes" icon="edit" color="purple">
     Load → Edit → Test with Run Script → Verify parsed output → Commit changes back to the portal.
-  </Card>
+  </FeatureCard>
 </CardGrid>
 
 ---

@@ -1,5 +1,5 @@
 ---
-import { Icon } from '@astrojs/starlight/components';
+import { Terminal, Target, Activity, Layers, FileText, Bell, Network, Tag, ScrollText } from '@lucide/astro';
 
 interface Props {
   mode: 'freeform' | 'ad' | 'collection' | 'batch' | 'config' | 'event' | 'topology' | 'property' | 'log';
@@ -9,51 +9,42 @@ interface Props {
 
 const { mode, title, description } = Astro.props;
 
-// Color mapping matching src/editor/constants/icons.tsx
+// Color and icon mapping matching src/editor/constants/icons.tsx
 const modeConfig = {
   freeform: {
     color: '#64748b', // slate-500 (default)
-    icon: 'seti:shell',
     label: 'Freeform'
   },
   ad: {
     color: '#3b82f6', // blue-500
-    icon: 'seti:todo',
     label: 'Active Discovery'
   },
   collection: {
     color: '#22c55e', // green-500
-    icon: 'heart-pulse',
     label: 'Collection'
   },
   batch: {
     color: '#a855f7', // purple-500
-    icon: 'layers-3',
     label: 'Batch Collection'
   },
   config: {
     color: '#64748b', // slate-500
-    icon: 'document',
     label: 'ConfigSource'
   },
   event: {
     color: '#f97316', // orange-500
-    icon: 'bell',
     label: 'EventSource'
   },
   topology: {
     color: '#06b6d4', // cyan-500
-    icon: 'random',
     label: 'TopologySource'
   },
   property: {
     color: '#ec4899', // pink-500
-    icon: 'tag',
     label: 'PropertySource'
   },
   log: {
     color: '#14b8a6', // teal-500
-    icon: 'list-format',
     label: 'LogSource'
   }
 };
@@ -64,7 +55,15 @@ const config = modeConfig[mode];
 <div class="mode-card" style={`--mode-color: ${config.color};`}>
   <div class="mode-header">
     <div class="mode-icon">
-      <Icon name={config.icon} size="1.5rem" />
+      {mode === 'freeform' && <Terminal size={24} />}
+      {mode === 'ad' && <Target size={24} />}
+      {mode === 'collection' && <Activity size={24} />}
+      {mode === 'batch' && <Layers size={24} />}
+      {mode === 'config' && <FileText size={24} />}
+      {mode === 'event' && <Bell size={24} />}
+      {mode === 'topology' && <Network size={24} />}
+      {mode === 'property' && <Tag size={24} />}
+      {mode === 'log' && <ScrollText size={24} />}
     </div>
     <div class="mode-info">
       <span class="mode-badge">{config.label}</span>
@@ -166,6 +165,3 @@ const config = modeConfig[mode];
     border-radius: 0.5rem;
   }
 </style>
-
-
-

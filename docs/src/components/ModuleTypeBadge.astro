@@ -1,5 +1,5 @@
 ---
-import { Icon } from '@astrojs/starlight/components';
+import { Activity, FileText, Bell, Tag, Network, ScrollText, Database } from '@lucide/astro';
 
 interface Props {
   type: 'datasource' | 'configsource' | 'eventsource' | 'propertysource' | 'topologysource' | 'logsource' | 'snmpsysoidmap';
@@ -12,37 +12,30 @@ const { type, showLabel = true } = Astro.props;
 const typeConfig = {
   datasource: {
     color: '#22c55e', // green-500 (Activity icon)
-    icon: 'heart-pulse',
     label: 'DataSource'
   },
   configsource: {
     color: '#64748b', // slate-500 (FileText icon)
-    icon: 'document',
     label: 'ConfigSource'
   },
   eventsource: {
     color: '#f97316', // orange-500 (Bell icon)
-    icon: 'bell',
     label: 'EventSource'
   },
   propertysource: {
     color: '#ec4899', // pink-500 (Tag icon)
-    icon: 'tag',
     label: 'PropertySource'
   },
   topologysource: {
     color: '#06b6d4', // cyan-500 (Network icon)
-    icon: 'random',
     label: 'TopologySource'
   },
   logsource: {
     color: '#14b8a6', // teal-500 (ScrollText icon)
-    icon: 'list-format',
     label: 'LogSource'
   },
   snmpsysoidmap: {
     color: '#8b5cf6', // violet-500
-    icon: 'seti:json',
     label: 'SnmpSysOIDMap'
   }
 };
@@ -51,7 +44,15 @@ const config = typeConfig[type];
 ---
 
 <span class="module-type-badge" style={`--badge-color: ${config.color};`}>
-  <Icon name={config.icon} size="0.875rem" />
+  <span class="badge-icon">
+    {type === 'datasource' && <Activity size={14} />}
+    {type === 'configsource' && <FileText size={14} />}
+    {type === 'eventsource' && <Bell size={14} />}
+    {type === 'propertysource' && <Tag size={14} />}
+    {type === 'topologysource' && <Network size={14} />}
+    {type === 'logsource' && <ScrollText size={14} />}
+    {type === 'snmpsysoidmap' && <Database size={14} />}
+  </span>
   {showLabel && <span class="badge-label">{config.label}</span>}
 </span>
 
@@ -69,10 +70,13 @@ const config = typeConfig[type];
     white-space: nowrap;
   }
 
+  .badge-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
   .badge-label {
     line-height: 1.2;
   }
 </style>
-
-
-

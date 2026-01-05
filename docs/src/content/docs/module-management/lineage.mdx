@@ -1,48 +1,68 @@
 ---
 title: Module Lineage
-description: View version history and compare changes across module versions.
+description: View the release history of LogicMonitor core modules from the Exchange.
 ---
 
 import { Card, CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
 import { Icon } from '@astrojs/starlight/components';
 import FeatureCard from '../../../components/FeatureCard.astro';
 
-Module Lineage shows the complete version history of a LogicModule, letting you track changes over time and compare versions.
+Module Lineage displays the release history of LogicMonitor's core modules, showing previous versions published to the Exchange.
 
 ## What Is Module Lineage?
 
-Every time a LogicModule is modified and saved in LogicMonitor, a new version is created. Module Lineage provides:
+<Aside type="caution" title="Important Distinction">
+  Module Lineage shows **LogicMonitor's published module versions** from the Exchange—not a history of changes you've made to modules. There is currently no way to view previous versions of user modifications.
+</Aside>
+
+Lineage provides visibility into how LogicMonitor has updated and improved their core modules over time:
 
 <CardGrid>
-  <Card title="Version History" icon="history">
-    Chronological list of all module versions.
-  </Card>
-  <Card title="Change Details" icon="document">
-    See what changed in each version.
-  </Card>
-  <Card title="Diff Viewer" icon="seti:notebook">
-    Compare any two versions side-by-side.
-  </Card>
-  <Card title="Author Tracking" icon="star">
-    Who made each change and when.
-  </Card>
+  <FeatureCard title="Exchange History" icon="history" color="blue">
+    View all versions LogicMonitor has published for a core module.
+  </FeatureCard>
+  <FeatureCard title="Release Notes" icon="file-text" color="green">
+    See what LogicMonitor changed in each release.
+  </FeatureCard>
+  <FeatureCard title="Version Comparison" icon="diff" color="purple">
+    Compare different Exchange releases side-by-side.
+  </FeatureCard>
+  <FeatureCard title="Update Tracking" icon="refresh-cw" color="orange">
+    Identify what's new in the latest Exchange version.
+  </FeatureCard>
 </CardGrid>
+
+---
+
+## When Is Lineage Available?
+
+Lineage is only available for **LogicMonitor core modules** that have been published to the Exchange. This includes:
+
+- DataSources from the LogicMonitor Exchange
+- ConfigSources, PropertySources, EventSources, and TopologySources from LM
+- Any module with an Exchange-published history
+
+<Aside type="note" title="Not Available For">
+  - Custom modules you've created from scratch
+  - Modules without Exchange history
+  - Local files (not bound to a LogicModule)
+</Aside>
 
 ---
 
 ## Opening Lineage View
 
 <CardGrid>
-  <Card title="Toolbar" icon="history">
+  <FeatureCard title="Toolbar" icon="git-branch" color="cyan">
     Click the **View Lineage** button in the toolbar.
-  </Card>
-  <Card title="Command Palette" icon="magnifier">
+  </FeatureCard>
+  <FeatureCard title="Command Palette" icon="search" color="purple">
     Press <kbd>Ctrl</kbd>+<kbd>K</kbd> and type "Lineage".
-  </Card>
+  </FeatureCard>
 </CardGrid>
 
 <Aside type="note" title="Module-Bound Tabs Only">
-  The Lineage button only appears for tabs loaded from a LogicModule. Local files don't have version history.
+  The Lineage button only appears for tabs loaded from a LogicModule with Exchange history.
 </Aside>
 
 ---
@@ -53,27 +73,26 @@ Every time a LogicModule is modified and saved in LogicMonitor, a new version is
 
 ### Version List
 
-The left panel shows all versions:
+The left panel shows all Exchange versions:
 
 | Column | Description |
 |--------|-------------|
-| Version | Version number |
-| Author | Who made the change |
-| Date | When the change was made |
-| Reason | Commit message (if provided) |
+| Version | LogicMonitor's release version number |
+| Date | When LogicMonitor published this version |
+| Notes | Release notes or changelog summary |
 
 Versions are sorted newest first.
 
 ### Version Details
 
 Click a version to see:
-- Full commit message
-- Changed components (script, metadata, etc.)
-- Size/complexity metrics
+- LogicMonitor's release notes
+- Changes from the previous Exchange version
+- Script and configuration updates
 
 ---
 
-## Comparing Versions
+## Comparing Exchange Versions
 
 ### Side-by-Side Comparison
 
@@ -108,62 +127,67 @@ The diff viewer shows changes with color coding:
   </div>
 </div>
 
-### What's Compared
-
-The diff includes:
-- Script content changes
-- Metadata modifications
-- Configuration differences
-
 ---
 
-## Understanding Version Numbers
+## Use Cases
 
-### Version Format
+### Checking for Updates
 
-LogicMonitor versions are numeric and sequential:
-
-- **Version 1**: Initial module creation
-- **Version 2**: First update
-- **Version N**: Nth modification
-
-### Version Gaps
-
-Gaps in version numbers may indicate:
-- Deleted intermediate versions
-- Administrative actions
-- Portal migrations
-
----
-
-## Using Lineage for Troubleshooting
-
-### Finding When a Bug Was Introduced
+Compare your current module version against the latest Exchange release to see what LogicMonitor has improved:
 
 <Steps>
 
-1. Identify when the bug started occurring
+1. Open the module in LMDA Composer
 
-2. Open Module Lineage
+2. View Lineage
 
-3. Find versions around that timeframe
+3. Compare your version against the latest Exchange version
 
-4. Compare working vs. broken versions
-
-5. Identify the problematic change
+4. Decide whether to adopt the updates
 
 </Steps>
 
-### Reverting Changes
+### Understanding Exchange Changes
 
-<Aside type="tip" title="Revert vs. Rollback">
-  LogicMonitor doesn't support direct rollbacks. Create a new version with the old content instead:
+When LogicMonitor releases a new version, use Lineage to understand:
+- What bugs were fixed
+- What new features were added
+- What breaking changes might affect your customizations
 
-  1. Find the desired version in lineage
-  2. View its content
-  3. Copy the script content
-  4. Paste into the current editor
-  5. Commit as a new version
+### Reference Implementation
+
+If you've customized a module and need to see the "original" version:
+
+<Steps>
+
+1. Open Lineage for the module
+
+2. Find the Exchange version your module was based on
+
+3. View the original script content
+
+4. Compare against your customizations
+
+</Steps>
+
+---
+
+## Limitations
+
+<CardGrid>
+  <FeatureCard title="No User History" icon="x-circle" color="red">
+    Lineage does not track changes you make to modules. There's no way to view or revert to previous versions of your own edits.
+  </FeatureCard>
+  <FeatureCard title="Exchange Only" icon="info" color="blue">
+    Only modules with Exchange history have Lineage data. Custom modules created from scratch won't have Lineage.
+  </FeatureCard>
+</CardGrid>
+
+<Aside type="tip" title="Version Control for Your Changes">
+  For tracking your own modifications, consider:
+  - Exporting scripts to local files and using Git
+  - Keeping notes of changes in module descriptions
+  - Maintaining a changelog in your team's documentation
 </Aside>
 
 ---
@@ -171,47 +195,16 @@ Gaps in version numbers may indicate:
 ## Best Practices
 
 <CardGrid>
-  <Card title="Write Good Commit Messages" icon="pencil">
-    Include what changed, why it changed, and any relevant ticket numbers.
-  </Card>
-  <Card title="Regular Reviews" icon="magnifier">
-    Periodically review lineage to understand module evolution and identify unexpected changes.
-  </Card>
-  <Card title="Document Major Changes" icon="document">
-    Note the "before" version and expected behavior changes for significant updates.
-  </Card>
+  <FeatureCard title="Check Before Customizing" icon="search" color="purple">
+    Review the latest Exchange version before making changes to understand the current baseline.
+  </FeatureCard>
+  <FeatureCard title="Track Your Baseline" icon="bookmark" color="green">
+    Note which Exchange version your customization is based on to simplify future comparisons.
+  </FeatureCard>
+  <FeatureCard title="Review Updates Regularly" icon="refresh-cw" color="blue">
+    Periodically check if LogicMonitor has released updates that might benefit your environment.
+  </FeatureCard>
 </CardGrid>
-
----
-
-## Author Information
-
-### Who Made Changes
-
-The author field shows:
-- LogicMonitor username
-- "System" for automated changes
-- "LMDA Composer" for extension commits
-
-### Tracking Contributors
-
-Use lineage to identify module owners, find subject matter experts, and coordinate future changes.
-
----
-
-## Integration with Workflow
-
-### Before Making Changes
-
-1. Check recent lineage entries
-2. Understand current state
-3. Note the current version number
-
-### After Making Changes
-
-1. View your new version in lineage
-2. Verify changes appear correctly
-3. Note version for team communication
 
 ---
 
@@ -222,6 +215,3 @@ Use lineage to identify module owners, find subject matter experts, and coordina
   description="Save script and metadata changes back to LogicMonitor."
   href="/lmda-composer/module-management/committing/"
 />
-
-
-

@@ -3,8 +3,9 @@ title: Changelog
 description: Version history and release notes for LMDA Composer.
 ---
 
-import { Card, CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
+import { CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
 import { Icon } from '@astrojs/starlight/components';
+import FeatureCard from '../../../components/FeatureCard.astro';
 
 This page documents the release history of LMDA Composer. Each release includes new features, improvements, and bug fixes.
 
@@ -29,10 +30,10 @@ LMDA Composer follows semantic versioning (SemVer):
 
 ---
 
-## v1.0.0 — Initial Release
+## v1.3.5 — Initial Public Release
 
 <div style="display: flex; align-items: center; gap: 0.75rem; margin: 1rem 0;">
-  <Badge text="v1.0.0" variant="success" />
+  <Badge text="v1.3.5" variant="success" />
   <span style="font-size: 0.875rem; color: var(--sl-color-gray-3);">January 2026</span>
 </div>
 
@@ -41,29 +42,29 @@ LMDA Composer is now available for LogicMonitor power users! This release includ
 ### Script Editor
 
 <CardGrid>
-  <Card title="Monaco Editor" icon="pencil">
+  <FeatureCard title="Monaco Editor" icon="edit" color="blue">
     Full-featured code editor with syntax highlighting for Groovy and PowerShell.
-  </Card>
-  <Card title="Code Features" icon="list-format">
+  </FeatureCard>
+  <FeatureCard title="Code Features" icon="code" color="purple">
     Code folding, find and replace, multiple cursors, line numbers.
-  </Card>
-  <Card title="Auto-Save" icon="approve-check-circle">
+  </FeatureCard>
+  <FeatureCard title="Auto-Save" icon="check-circle" color="green">
     Automatic draft saving for crash recovery.
-  </Card>
+  </FeatureCard>
 </CardGrid>
 
 ### Script Execution
 
 <CardGrid>
-  <Card title="Collector Execution" icon="rocket">
+  <FeatureCard title="Collector Execution" icon="play" color="green">
     Run scripts on any connected collector with real-time output streaming.
-  </Card>
-  <Card title="Four Execution Modes" icon="setting">
+  </FeatureCard>
+  <FeatureCard title="Four Execution Modes" icon="layers" color="purple">
     Freeform, Active Discovery, Collection, and Batch Collection modes.
-  </Card>
-  <Card title="Output Parsing" icon="document">
+  </FeatureCard>
+  <FeatureCard title="Output Parsing" icon="document" color="blue">
     Parsed output for AD and Collection modes with validation.
-  </Card>
+  </FeatureCard>
 </CardGrid>
 
 ### Portal Tools
@@ -86,66 +87,66 @@ LMDA Composer is now available for LogicMonitor power users! This release includ
 ### API Explorer
 
 <CardGrid>
-  <Card title="Session Auth" icon="approve-check-circle">
+  <FeatureCard title="Session Auth" icon="check-circle" color="green">
     Uses your browser session—no API tokens needed.
-  </Card>
-  <Card title="Endpoint Catalog" icon="list-format">
+  </FeatureCard>
+  <FeatureCard title="Endpoint Catalog" icon="book" color="blue">
     Browse and search available LogicMonitor API endpoints.
-  </Card>
-  <Card title="Request Builder" icon="pencil">
+  </FeatureCard>
+  <FeatureCard title="Request Builder" icon="edit" color="purple">
     Build requests with query parameters, headers, and body.
-  </Card>
-  <Card title="Response Viewer" icon="seti:json">
+  </FeatureCard>
+  <FeatureCard title="Response Viewer" icon="braces" color="orange">
     Formatted JSON responses with syntax highlighting.
-  </Card>
+  </FeatureCard>
 </CardGrid>
 
 ### Module Management
 
 <CardGrid>
-  <Card title="Module Details Editor" icon="setting">
+  <FeatureCard title="Module Details Editor" icon="settings" color="default">
     Edit module metadata including name, description, AppliesTo, and more.
-  </Card>
-  <Card title="Module Lineage" icon="history">
-    View version history and compare changes between versions.
-  </Card>
-  <Card title="Commit" icon="approve-check-circle">
+  </FeatureCard>
+  <FeatureCard title="Module Lineage" icon="git-branch" color="cyan">
+    View Exchange release history for LogicMonitor core modules.
+  </FeatureCard>
+  <FeatureCard title="Commit" icon="upload" color="green">
     Push script and metadata changes back to LogicMonitor.
-  </Card>
+  </FeatureCard>
 </CardGrid>
 
 ### Workspace Features
 
 <CardGrid>
-  <Card title="Multi-Tab Interface" icon="document">
+  <FeatureCard title="Multi-Tab Interface" icon="layers" color="blue">
     Work with multiple scripts simultaneously. Module binding indicators on tabs.
-  </Card>
-  <Card title="Local File Management" icon="seti:folder">
+  </FeatureCard>
+  <FeatureCard title="Local File Management" icon="folder" color="purple">
     Open, save, and manage local script files with File System Access API.
-  </Card>
-  <Card title="Snippets Library" icon="puzzle">
+  </FeatureCard>
+  <FeatureCard title="Snippets Library" icon="puzzle" color="orange">
     Built-in and custom code snippets for rapid development.
-  </Card>
-  <Card title="Execution History" icon="history">
+  </FeatureCard>
+  <FeatureCard title="Execution History" icon="history" color="cyan">
     Track past executions with script replay capability.
-  </Card>
+  </FeatureCard>
 </CardGrid>
 
 ### User Experience
 
 <CardGrid>
-  <Card title="Welcome Screen" icon="rocket">
+  <FeatureCard title="Welcome Screen" icon="rocket" color="orange">
     Quick actions to get started—new file, open file, import module.
-  </Card>
-  <Card title="Command Palette" icon="magnifier">
+  </FeatureCard>
+  <FeatureCard title="Command Palette" icon="search" color="purple">
     Keyboard-driven workflow with <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd>.
-  </Card>
-  <Card title="Keyboard Shortcuts" icon="laptop">
+  </FeatureCard>
+  <FeatureCard title="Keyboard Shortcuts" icon="keyboard" color="blue">
     Comprehensive shortcuts for power users.
-  </Card>
-  <Card title="Customizable Settings" icon="setting">
+  </FeatureCard>
+  <FeatureCard title="Customizable Settings" icon="settings" color="green">
     Theme, font size, editor preferences, and more.
-  </Card>
+  </FeatureCard>
 </CardGrid>
 
 ### Browser Support
@@ -159,31 +160,10 @@ LMDA Composer is now available for LogicMonitor power users! This release includ
 ### Known Limitations
 
 <Aside type="note">
-  - File System Access API not available in Firefox/Safari
+  - Extension not available in Firefox/Safari
   - PowerShell only runs on Windows collectors
   - Custom editor themes not yet supported
 </Aside>
-
----
-
-## Upcoming Features
-
-We're continuously improving LMDA Composer. Here are some features on the roadmap:
-
-<CardGrid>
-  <Card title="Enhanced Autocomplete" icon="pencil">
-    LogicMonitor-specific autocomplete for APIs and properties.
-  </Card>
-  <Card title="Module Export/Import" icon="document">
-    Export modules to files and import from files.
-  </Card>
-  <Card title="Team Snippet Sharing" icon="star">
-    Share snippets across your team.
-  </Card>
-  <Card title="Custom Themes" icon="sun">
-    Create and use custom editor themes.
-  </Card>
-</CardGrid>
 
 ---
 
@@ -192,15 +172,15 @@ We're continuously improving LMDA Composer. Here are some features on the roadma
 LMDA Composer is open source! Contributions are welcome:
 
 <CardGrid>
-  <Card title="Report Bugs" icon="warning">
+  <FeatureCard title="Report Bugs" icon="warning" color="orange">
     Found an issue? Open a GitHub issue with reproduction steps.
-  </Card>
-  <Card title="Suggest Features" icon="information">
+  </FeatureCard>
+  <FeatureCard title="Suggest Features" icon="info" color="blue">
     Have an idea? Start a GitHub Discussion.
-  </Card>
-  <Card title="Submit PRs" icon="approve-check-circle">
+  </FeatureCard>
+  <FeatureCard title="Submit PRs" icon="check-circle" color="green">
     Want to contribute code? Pull requests are welcome.
-  </Card>
+  </FeatureCard>
 </CardGrid>
 
 ---
@@ -212,4 +192,3 @@ We'd love to hear your feedback! If you have suggestions, find bugs, or want to 
 - Open an issue on GitHub
 - Join the discussion in GitHub Discussions
 - Share with the LogicMonitor community
-
