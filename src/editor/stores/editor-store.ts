@@ -2,8 +2,6 @@ import { create } from 'zustand';
 import { toast } from 'sonner';
 import type { 
   Portal, 
-  Collector, 
-  DeviceInfo,
   DeviceProperty,
   Snippet,
   ScriptLanguage, 
@@ -13,7 +11,6 @@ import type {
   LogicModuleType,
   LogicModuleInfo,
   FetchModulesResponse,
-  FetchDevicesResponse,
   ExecutionHistoryEntry,
   DraftScript,
   DraftTabs,
@@ -40,17 +37,18 @@ import type {
   ModuleSnippetsCacheMeta,
 } from '@/shared/types';
 import { createUISlice, type UISlice, uiSliceInitialState } from './slices/ui-slice';
+import { createPortalSlice, type PortalSlice, portalSliceInitialState } from './slices/portal-slice';
+import { createTabsSlice, type TabsSlice, tabsSliceInitialState } from './slices/tabs-slice';
 import {
   isFileDirty as isFileDirtyHelper,
   hasPortalChanges as hasPortalChangesHelper,
   getDocumentType,
-  createScratchDocument,
 } from '../utils/document-helpers';
 // NOTE: DEFAULT_PREFERENCES moved to ui-slice.ts
 import { parseOutput, type ParseResult } from '../utils/output-parser';
 import * as documentStore from '../utils/document-store';
 import { APPLIES_TO_FUNCTIONS } from '../data/applies-to-functions';
-import { DEFAULT_GROOVY_TEMPLATE, DEFAULT_POWERSHELL_TEMPLATE, getDefaultScriptTemplate } from '../config/script-templates';
+import { DEFAULT_GROOVY_TEMPLATE, DEFAULT_POWERSHELL_TEMPLATE } from '../config/script-templates';
 import { generateModuleSnippetImport } from '../data/module-snippet-import';
 import { buildApiVariableResolver } from '../utils/api-variables';
 import { appendItemsWithLimit } from '../utils/api-pagination';
@@ -146,23 +144,13 @@ const findModuleDraftForTab = (
   );
 };
 
-interface EditorState extends UISlice {
-  // Portal/Collector selection
-  portals: Portal[];
-  selectedPortalId: string | null;
-  collectors: Collector[];
-  selectedCollectorId: number | null;
+interface EditorState extends UISlice, PortalSlice, TabsSlice {
+  // NOTE: Portal/Collector selection and Device context now come from PortalSlice
+  // (portals, selectedPortalId, collectors, selectedCollectorId, devices, 
+  //  isFetchingDevices, hostname, wildvalue, datasourceId)
   
-  // Device context (global defaults)
-  devices: DeviceInfo[];
-  isFetchingDevices: boolean;
-  hostname: string;
-  wildvalue: string;
-  datasourceId: string;  // Datasource name or ID for batch collection
-  
-  // Multi-tab editor state
-  tabs: EditorTab[];
-  activeTabId: string | null;
+  // NOTE: Tab state (tabs, activeTabId, tabsNeedingPermission, isRestoringFileHandles,
+  // hasSavedDraft, recentFiles, isLoadingRecentFiles) and core tab actions now come from TabsSlice
 
   // API Explorer state
   apiHistoryByPortal: Record<string, ApiHistoryEntry[]>;
@@ -280,21 +268,14 @@ interface EditorState extends UISlice {
   cachedSnippetVersions: Set<string>;
   
   // Actions
-  setSelectedPortal: (portalId: string | null) => void;
-  switchToPortalWithContext: (portalId: string, context?: { collectorId?: number; hostname?: string }) => Promise<void>;
-  setSelectedCollector: (collectorId: number | null) => void;
-  fetchDevices: () => Promise<void>;
-  setHostname: (hostname: string) => void;
-  setWildvalue: (wildvalue: string) => void;
-  setDatasourceId: (datasourceId: string) => void;
+  // NOTE: Portal actions (setSelectedPortal, switchToPortalWithContext, setSelectedCollector,
+  // fetchDevices, setHostname, setWildvalue, setDatasourceId, refreshPortals, refreshCollectors,
+  // handlePortalDisconnected) now come from PortalSlice
   setLanguage: (language: ScriptLanguage, force?: boolean) => void;
   setMode: (mode: ScriptMode) => void;
   // NOTE: setOutputTab now comes from UISlice
   setEditorInstance: (editor: editor.IStandaloneCodeEditor | null) => void;
   executeScript: () => Promise<void>;
-  refreshPortals: () => Promise<void>;
-  refreshCollectors: () => Promise<void>;
-  handlePortalDisconnected: (portalId: string, hostname: string) => void;
   clearOutput: () => void;
   
   // Parsing actions
@@ -386,23 +367,16 @@ interface EditorState extends UISlice {
   setCancelDialogOpen: (open: boolean) => void;
   cancelExecution: () => Promise<void>;
   
-  // Tab management actions
-  getActiveTab: () => EditorTab | null;
-  openTab: (tab: Omit<EditorTab, 'id'> & { id?: string }) => string;
-  closeTab: (tabId: string) => void;
-  closeOtherTabs: (tabId: string) => void;
-  closeAllTabs: () => void;
-  setActiveTab: (tabId: string) => void;
-  renameTab: (tabId: string, newName: string) => void;
-  updateTabContent: (tabId: string, content: string) => void;
-  updateActiveTabContent: (content: string) => void;
-  setActiveTabLanguage: (language: ScriptLanguage) => void;
-  setActiveTabMode: (mode: ScriptMode) => void;
-  setTabContextOverride: (tabId: string, override: EditorTab['contextOverride']) => void;
+  // NOTE: Core tab management actions (getActiveTab, openTab, closeTab, closeOtherTabs, closeAllTabs,
+  // setActiveTab, renameTab, updateTabContent, updateActiveTabContent, setActiveTabLanguage,
+  // setActiveTabMode, setTabContextOverride, createNewFile, getUniqueUntitledName) now come from TabsSlice
+  
+  // Module-specific tab actions (has portal dependencies)
   openModuleScripts: (module: LogicModuleInfo, scripts: Array<{ type: 'ad' | 'collection'; content: string }>) => void;
   // NOTE: toggleRightSidebar now comes from UISlice
   
   // File operations (Phase 6 - File System Access API)
+  // These remain here due to complexity and dependencies
   openFileFromDisk: () => Promise<void>;
   openModuleFromRepository: () => Promise<void>;
   saveFile: (tabId?: string) => Promise<boolean>;
@@ -413,19 +387,9 @@ interface EditorState extends UISlice {
   getTabDirtyState: (tab: EditorTab) => boolean;
   
   // Welcome screen / Recent files
-  recentFiles: Array<{ 
-    tabId: string; 
-    fileName: string; 
-    lastAccessed: number;
-    isRepositoryModule?: boolean;
-    moduleName?: string;
-    scriptType?: 'collection' | 'ad';
-    portalHostname?: string;
-  }>;
-  isLoadingRecentFiles: boolean;
+  // NOTE: recentFiles, isLoadingRecentFiles now come from TabsSlice
   loadRecentFiles: () => Promise<void>;
   openRecentFile: (tabId: string) => Promise<void>;
-  createNewFile: () => void;
   
   // AppliesTo tester actions
   setAppliesToTesterOpen: (open: boolean) => void;
@@ -647,47 +611,8 @@ const STORAGE_KEYS = {
   LAST_CONTEXT: 'lm-ide-last-context', // Last selected portal/collector/device
 } as const;
 
-// Interface for persisted context
-interface LastContextState {
-  portalId: string | null;
-  collectorId: number | null;
-  hostname: string;
-}
-
-// Debounced context persistence
-let contextPersistTimeout: ReturnType<typeof setTimeout> | null = null;
-const CONTEXT_PERSIST_DELAY = 1000; // 1 second debounce
-
-function persistContext(context: LastContextState) {
-  if (contextPersistTimeout) {
-    clearTimeout(contextPersistTimeout);
-  }
-  contextPersistTimeout = setTimeout(() => {
-    chrome.storage.local.set({ [STORAGE_KEYS.LAST_CONTEXT]: context }).catch(console.error);
-  }, CONTEXT_PERSIST_DELAY);
-}
-
-async function loadLastContext(): Promise<LastContextState | null> {
-  try {
-    const result = await chrome.storage.local.get(STORAGE_KEYS.LAST_CONTEXT);
-    return result[STORAGE_KEYS.LAST_CONTEXT] as LastContextState | null;
-  } catch {
-    return null;
-  }
-}
-
-// Helper to create a default tab
-function createDefaultTab(language: ScriptLanguage = 'groovy', mode: ScriptMode = 'freeform'): EditorTab {
-  return {
-    id: crypto.randomUUID(),
-    kind: 'script',
-    displayName: `Untitled.${language === 'groovy' ? 'groovy' : 'ps1'}`,
-    content: getDefaultScriptTemplate(language),
-    language,
-    mode,
-    document: createScratchDocument(),
-  };
-}
+// NOTE: LastContextState, persistContext, loadLastContext moved to portal-slice.ts
+// NOTE: createDefaultTab moved to tabs-slice.ts
 
 function getUniqueUntitledName(tabs: EditorTab[], language: ScriptLanguage): string {
   const extension = language === 'groovy' ? 'groovy' : 'ps1';
@@ -737,20 +662,11 @@ let activeModuleSearchListener: ((message: any) => boolean) | null = null;
 // No initial tab - WelcomeScreen will show instead
 
 export const useEditorStore = create<EditorState>((set, get) => ({
-  // Initial state
-  portals: [],
-  selectedPortalId: null,
-  collectors: [],
-  selectedCollectorId: null,
-  devices: [],
-  isFetchingDevices: false,
-  hostname: '',
-  wildvalue: '',
-  datasourceId: '',
+  // Portal slice initial state (spread from portalSliceInitialState)
+  ...portalSliceInitialState,
   
-  // Multi-tab state - starts empty, WelcomeScreen shows when no tabs
-  tabs: [],
-  activeTabId: null,
+  // Tabs slice initial state (spread from tabsSliceInitialState)
+  ...tabsSliceInitialState,
 
   // API Explorer state
   apiHistoryByPortal: {},
@@ -844,11 +760,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   
   // NOTE: preferences now comes from uiSliceInitialState spread above
   executionHistory: [],
-  hasSavedDraft: false,
-  
-  // File system initial state
-  tabsNeedingPermission: [],
-  isRestoringFileHandles: false,
+  // NOTE: hasSavedDraft, tabsNeedingPermission, isRestoringFileHandles now come from tabsSliceInitialState
   
   // AppliesTo tester initial state
   appliesToTesterOpen: false,
@@ -919,248 +831,13 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   moduleSnippetSourceLoading: false,
   moduleSnippetsSearchQuery: '',
   
-  // Welcome screen / Recent files state
-  recentFiles: [],
-  isLoadingRecentFiles: false,
+  // NOTE: recentFiles, isLoadingRecentFiles now come from tabsSliceInitialState
 
-  // Actions
-  setSelectedPortal: (portalId) => {
-    set({ 
-      selectedPortalId: portalId, 
-      selectedCollectorId: null, 
-      collectors: [],
-      devices: [],
-      isFetchingDevices: false,
-      hostname: '',
-      // Clear module cache when portal changes
-      modulesCache: {
-        datasource: [],
-        configsource: [],
-        topologysource: [],
-        propertysource: [],
-        logsource: [],
-        diagnosticsource: [],
-        eventsource: [],
-      },
-      modulesMeta: {
-        datasource: { offset: 0, hasMore: true, total: 0 },
-        configsource: { offset: 0, hasMore: true, total: 0 },
-        topologysource: { offset: 0, hasMore: true, total: 0 },
-        propertysource: { offset: 0, hasMore: true, total: 0 },
-        logsource: { offset: 0, hasMore: true, total: 0 },
-        diagnosticsource: { offset: 0, hasMore: true, total: 0 },
-        eventsource: { offset: 0, hasMore: true, total: 0 },
-      },
-      modulesSearch: {
-        datasource: '',
-        configsource: '',
-        topologysource: '',
-        propertysource: '',
-        logsource: '',
-        diagnosticsource: '',
-        eventsource: '',
-      },
-      moduleSearchIndexInfo: null,
-    });
-    if (portalId) {
-      get().refreshCollectors();
-    }
-    // Persist context (null out collector/hostname when portal changes)
-    persistContext({ portalId, collectorId: null, hostname: '' });
-  },
+  // Portal slice actions - spread from createPortalSlice
+  ...createPortalSlice(set, get, {} as any),
 
-  switchToPortalWithContext: async (portalId, context) => {
-    // Switch portal first (this clears collectors, devices, etc.)
-    set({ 
-      selectedPortalId: portalId, 
-      selectedCollectorId: null, 
-      collectors: [],
-      devices: [],
-      isFetchingDevices: false,
-      hostname: '',
-      // Clear module cache when portal changes
-      modulesCache: {
-        datasource: [],
-        configsource: [],
-        topologysource: [],
-        propertysource: [],
-        logsource: [],
-        diagnosticsource: [],
-        eventsource: [],
-      },
-      modulesMeta: {
-        datasource: { offset: 0, hasMore: true, total: 0 },
-        configsource: { offset: 0, hasMore: true, total: 0 },
-        topologysource: { offset: 0, hasMore: true, total: 0 },
-        propertysource: { offset: 0, hasMore: true, total: 0 },
-        logsource: { offset: 0, hasMore: true, total: 0 },
-        diagnosticsource: { offset: 0, hasMore: true, total: 0 },
-        eventsource: { offset: 0, hasMore: true, total: 0 },
-      },
-      modulesSearch: {
-        datasource: '',
-        configsource: '',
-        topologysource: '',
-        propertysource: '',
-        logsource: '',
-        diagnosticsource: '',
-        eventsource: '',
-      },
-      moduleSearchIndexInfo: null,
-    });
-
-    // Fetch collectors for the new portal
-    try {
-      const response = await chrome.runtime.sendMessage({
-        type: 'GET_COLLECTORS',
-        payload: { portalId },
-      });
-      
-      // Prevent race conditions when portal changes while fetching
-      const currentPortal = get().selectedPortalId;
-      if (currentPortal !== portalId) return;
-      
-      if (response?.payload) {
-        const collectors = response.payload as Collector[];
-        set({ collectors });
-        
-        // Try to restore the specific collector from context
-        let selectedCollector: Collector | null = null;
-        if (context?.collectorId) {
-          selectedCollector = collectors.find(c => c.id === context.collectorId) || null;
-        }
-        
-        // If requested collector not found, fall back to first non-down collector
-        if (!selectedCollector && collectors.length > 0) {
-          selectedCollector = collectors.find(c => !c.isDown) || collectors[0];
-        }
-        
-        if (selectedCollector) {
-          set({ selectedCollectorId: selectedCollector.id });
-          
-          // Fetch devices for the selected collector
-          await get().fetchDevices();
-          
-          // Restore hostname if provided and devices are loaded
-          if (context?.hostname) {
-            const { devices } = get();
-            const device = devices.find(d => d.name === context.hostname);
-            if (device) {
-              set({ hostname: context.hostname });
-              get().fetchDeviceProperties(device.id);
-            }
-          }
-          
-          // Persist the restored context
-          persistContext({ 
-            portalId, 
-            collectorId: selectedCollector.id, 
-            hostname: context?.hostname || '' 
-          });
-        }
-      }
-    } catch {
-      // Silently handle - collectors will remain empty
-    }
-  },
-
-  setSelectedCollector: (collectorId) => {
-    const { selectedPortalId } = get();
-    set({ 
-      selectedCollectorId: collectorId,
-      devices: [],
-      isFetchingDevices: false,
-      hostname: '',
-    });
-    // Persist context
-    persistContext({ portalId: selectedPortalId, collectorId, hostname: '' });
-    // Fetch devices when collector changes
-    if (collectorId) {
-      get().fetchDevices();
-    }
-  },
-
-  fetchDevices: async () => {
-    const { selectedPortalId, selectedCollectorId } = get();
-    if (!selectedPortalId || !selectedCollectorId) return;
-
-    const fetchingPortal = selectedPortalId;
-    const fetchingCollector = selectedCollectorId;
-
-    set({ isFetchingDevices: true });
-
-    try {
-      const response = await chrome.runtime.sendMessage({
-        type: 'GET_DEVICES',
-        payload: { 
-          portalId: selectedPortalId, 
-          collectorId: selectedCollectorId 
-        },
-      });
-
-      if (response?.type === 'DEVICES_UPDATE') {
-        const currentPortal = get().selectedPortalId;
-        const currentCollector = get().selectedCollectorId;
-        if (currentPortal !== fetchingPortal || currentCollector !== fetchingCollector) {
-          return;
-        }
-        const fetchResponse = response.payload as FetchDevicesResponse;
-        
-        // Check for error in response (portal tabs may be stale)
-        if (fetchResponse.error) {
-          console.warn('Device fetch returned error:', fetchResponse.error);
-          // Could show a toast notification here in the future
-          set({ devices: [], isFetchingDevices: false });
-          return;
-        }
-        
-        set({ devices: fetchResponse.items, isFetchingDevices: false });
-      } else {
-        console.error('Failed to fetch devices:', response);
-        set({ devices: [], isFetchingDevices: false });
-      }
-    } catch (error) {
-      // Check if portal/collector changed during fetch - discard stale errors
-      const current = get();
-      if (current.selectedPortalId !== fetchingPortal || 
-          current.selectedCollectorId !== fetchingCollector) {
-        return;
-      }
-      console.error('Error fetching devices:', error);
-      toast.error('Failed to load devices', {
-        description: 'Check that you are connected to the portal',
-      });
-      set({ devices: [], isFetchingDevices: false });
-    }
-  },
-
-  setHostname: (hostname) => {
-    const { selectedPortalId, selectedCollectorId } = get();
-    set({ hostname });
-    
-    // Persist context
-    persistContext({ portalId: selectedPortalId, collectorId: selectedCollectorId, hostname });
-    
-    // Auto-fetch device properties when a device is selected
-    if (hostname) {
-      const { devices } = get();
-      const device = devices.find(d => d.name === hostname);
-      if (device) {
-        get().fetchDeviceProperties(device.id);
-      }
-    } else {
-      // Clear properties when hostname is cleared
-      get().clearDeviceProperties();
-    }
-  },
-
-  setWildvalue: (wildvalue) => {
-    set({ wildvalue });
-  },
-
-  setDatasourceId: (datasourceId) => {
-    set({ datasourceId });
-  },
+  // Tabs slice actions - spread from createTabsSlice
+  ...createTabsSlice(set, get, {} as any),
 
   setLanguage: (language, force = false) => {
     const { tabs, activeTabId } = get();
@@ -1451,171 +1128,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     }
   },
 
-  refreshPortals: async () => {
-    try {
-      const response = await chrome.runtime.sendMessage({ type: 'DISCOVER_PORTALS' });
-      if (response?.payload) {
-        const portals = response.payload as Portal[];
-        set({ portals });
-        
-        const state = get();
-        
-        // Try to restore last context if no portal selected
-        if (!state.selectedPortalId && portals.length > 0) {
-          const lastContext = await loadLastContext();
-          
-          // Check if last portal is still available
-          const lastPortal = lastContext?.portalId 
-            ? portals.find(p => p.id === lastContext.portalId)
-            : null;
-          
-          if (lastPortal) {
-            // Restore last portal
-            set({ selectedPortalId: lastPortal.id });
-            
-            // Refresh collectors, then try to restore collector and hostname
-            const collectorsResponse = await chrome.runtime.sendMessage({
-              type: 'GET_COLLECTORS',
-              payload: { portalId: lastPortal.id },
-            });
-            
-            if (collectorsResponse?.payload && lastContext) {
-              const collectors = collectorsResponse.payload as Collector[];
-              set({ collectors });
-              
-              // Check if last collector is still available
-              const lastCollector = lastContext.collectorId
-                ? collectors.find(c => c.id === lastContext.collectorId)
-                : null;
-              
-              if (lastCollector) {
-                set({ selectedCollectorId: lastCollector.id });
-                
-                // Restore hostname if it was set
-                if (lastContext.hostname) {
-                  set({ hostname: lastContext.hostname });
-                }
-                
-                // Fetch devices for the restored collector
-                get().fetchDevices();
-              }
-            }
-          } else {
-            // Fallback to first available portal
-            set({ selectedPortalId: portals[0].id });
-            get().refreshCollectors();
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Failed to refresh portals:', error);
-      toast.error('Failed to refresh portals', {
-        description: 'Make sure you have a LogicMonitor portal tab open',
-      });
-    }
-  },
-
-  refreshCollectors: async () => {
-    const { selectedPortalId } = get();
-    if (!selectedPortalId) return;
-
-    const fetchingForPortal = selectedPortalId;
-
-    try {
-      const response = await chrome.runtime.sendMessage({
-        type: 'GET_COLLECTORS',
-        payload: { portalId: selectedPortalId },
-      });
-      
-      // Prevent race conditions when portal changes while fetching
-      const currentPortal = get().selectedPortalId;
-      if (currentPortal !== fetchingForPortal) return;
-      
-      if (response?.payload) {
-        const collectors = response.payload as Collector[];
-        set({ collectors });
-        
-        // Auto-select first collector if none selected and collectors are available
-        const { selectedCollectorId } = get();
-        if (!selectedCollectorId && collectors.length > 0) {
-          // Find the first non-down collector, or just use the first one
-          const activeCollector = collectors.find(c => !c.isDown) || collectors[0];
-          set({ selectedCollectorId: activeCollector.id });
-          
-          // Persist context with the auto-selected collector
-          persistContext({ portalId: selectedPortalId, collectorId: activeCollector.id, hostname: '' });
-          
-          // Fetch devices for the auto-selected collector
-          get().fetchDevices();
-        }
-      }
-    } catch {
-      // Silently handle - collectors will remain empty
-    }
-  },
-
-  handlePortalDisconnected: (portalId: string, hostname: string) => {
-    const { selectedPortalId, portals } = get();
-    
-    // Remove the disconnected portal from the list
-    const updatedPortals = portals.filter(p => p.id !== portalId);
-    
-    // If the disconnected portal was selected, clear the selection
-    if (selectedPortalId === portalId) {
-      set({
-        portals: updatedPortals,
-        selectedPortalId: null,
-        selectedCollectorId: null,
-        collectors: [],
-        devices: [],
-        isFetchingDevices: false,
-        hostname: '',
-        // Clear module cache since it was for this portal
-        modulesCache: {
-          datasource: [],
-          configsource: [],
-          topologysource: [],
-          propertysource: [],
-          logsource: [],
-          diagnosticsource: [],
-          eventsource: [],
-        },
-        modulesMeta: {
-          datasource: { offset: 0, hasMore: true, total: 0 },
-          configsource: { offset: 0, hasMore: true, total: 0 },
-          topologysource: { offset: 0, hasMore: true, total: 0 },
-          propertysource: { offset: 0, hasMore: true, total: 0 },
-          logsource: { offset: 0, hasMore: true, total: 0 },
-          diagnosticsource: { offset: 0, hasMore: true, total: 0 },
-          eventsource: { offset: 0, hasMore: true, total: 0 },
-        },
-        modulesSearch: {
-          datasource: '',
-          configsource: '',
-          topologysource: '',
-          propertysource: '',
-          logsource: '',
-          diagnosticsource: '',
-          eventsource: '',
-        },
-        moduleSearchIndexInfo: null,
-      });
-      
-      // Show toast notification for the disconnected portal
-      toast.warning(`Portal disconnected: ${hostname}`, {
-        description: 'Open a LogicMonitor tab to reconnect.',
-        duration: 8000,
-      });
-    } else {
-      // Just update the portals list
-      set({ portals: updatedPortals });
-      
-      // Show a less intrusive notification
-      toast.info(`Portal disconnected: ${hostname}`, {
-        duration: 5000,
-      });
-    }
-  },
+  // NOTE: refreshPortals, refreshCollectors, handlePortalDisconnected now come from createPortalSlice spread above
 
   clearOutput: () => {
     set({ currentExecution: null, parsedOutput: null });
@@ -3167,233 +2680,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     set({ cancelDialogOpen: false });
   },
 
-  // Tab management actions
-  getActiveTab: () => {
-    const { tabs, activeTabId } = get();
-    return tabs.find(t => t.id === activeTabId) ?? null;
-  },
-
-  openTab: (tabData) => {
-    const id = tabData.id || crypto.randomUUID();
-    const newTab: EditorTab = {
-      id,
-      kind: tabData.kind ?? 'script',
-      displayName: tabData.displayName,
-      content: tabData.content,
-      language: tabData.language,
-      mode: tabData.mode,
-      source: tabData.source,
-      contextOverride: tabData.contextOverride,
-      api: tabData.api,
-      // Unified document state
-      document: tabData.document,
-      // Legacy fields for backwards compatibility
-      originalContent: tabData.originalContent,
-      hasFileHandle: tabData.hasFileHandle,
-      isLocalFile: tabData.isLocalFile,
-      portalContent: tabData.portalContent,
-    };
-    
-    const { tabs } = get();
-    set({
-      tabs: [...tabs, newTab],
-      activeTabId: id,
-    });
-    
-    return id;
-  },
-
-  closeTab: (tabId) => {
-    const { tabs, activeTabId, tabsNeedingPermission } = get();
-    const tab = tabs.find(t => t.id === tabId);
-    if (!tab) return;
-    
-    const tabIndex = tabs.findIndex(t => t.id === tabId);
-    const newTabs = tabs.filter(t => t.id !== tabId);
-    
-    // NOTE: We intentionally do NOT delete file handles when closing tabs.
-    // This allows them to persist in "Recent Files" for the WelcomeScreen.
-    // Handles are only deleted when opening a recent file that no longer exists.
-    
-    // Remove from permission-needed list if present
-    const newTabsNeedingPermission = tabsNeedingPermission.filter(t => t.tabId !== tabId);
-    
-    // If we're closing the active tab, switch to another one
-    let newActiveTabId: string | null = activeTabId;
-    if (tabId === activeTabId) {
-      if (newTabs.length === 0) {
-        // No tabs left - WelcomeScreen will show
-        newActiveTabId = null;
-      } else {
-        const targetKind = tab.kind ?? 'script';
-        let nextTabId: string | null = null;
-
-        // Prefer same-kind tab to the left
-        for (let i = tabIndex - 1; i >= 0; i -= 1) {
-          const candidate = tabs[i];
-          if (candidate.id !== tabId && (candidate.kind ?? 'script') === targetKind) {
-            nextTabId = candidate.id;
-            break;
-          }
-        }
-
-        // Otherwise, prefer same-kind tab to the right
-        if (!nextTabId) {
-          for (let i = tabIndex + 1; i < tabs.length; i += 1) {
-            const candidate = tabs[i];
-            if (candidate.id !== tabId && (candidate.kind ?? 'script') === targetKind) {
-              nextTabId = candidate.id;
-              break;
-            }
-          }
-        }
-
-        // Fallback: first available tab
-        newActiveTabId = nextTabId ?? newTabs[0].id;
-      }
-    }
-    
-    set({
-      tabs: newTabs,
-      activeTabId: newActiveTabId,
-      tabsNeedingPermission: newTabsNeedingPermission,
-    });
-  },
-
-  closeOtherTabs: (tabId) => {
-    const { tabs } = get();
-    const tabToKeep = tabs.find(t => t.id === tabId);
-    if (!tabToKeep) return;
-
-    const targetKind = tabToKeep.kind ?? 'script';
-    const remainingTabs = tabs.filter(t => (t.kind ?? 'script') !== targetKind || t.id === tabId);
-
-    set({
-      tabs: remainingTabs,
-      activeTabId: tabId,
-    });
-  },
-
-  closeAllTabs: () => {
-    const { tabs, activeTabId } = get();
-    const activeTab = tabs.find(t => t.id === activeTabId);
-    if (!activeTab) {
-      set({
-        tabs: [],
-        activeTabId: null,
-      });
-      return;
-    }
-
-    const targetKind = activeTab.kind ?? 'script';
-    const remainingTabs = tabs.filter(t => (t.kind ?? 'script') !== targetKind);
-    const nextActive = remainingTabs[0]?.id ?? null;
-
-    set({
-      tabs: remainingTabs,
-      activeTabId: nextActive,
-    });
-  },
-
-  setActiveTab: (tabId) => {
-    const { tabs } = get();
-    if (tabs.some(t => t.id === tabId)) {
-      set({ activeTabId: tabId });
-    }
-  },
-
-  renameTab: (tabId, newName) => {
-    const { tabs } = get();
-    const tab = tabs.find(t => t.id === tabId);
-    if (!tab) return;
-    
-    // Ensure name has appropriate extension
-    let displayName = newName.trim();
-    if (!displayName) return;
-    
-    // Add extension if missing for script tabs
-    if (tab.kind !== 'api' && !displayName.endsWith('.groovy') && !displayName.endsWith('.ps1')) {
-      displayName += getExtensionForLanguage(tab.language);
-    }
-    
-    set({
-      tabs: tabs.map(t => 
-        t.id === tabId 
-          ? { ...t, displayName }
-          : t
-      ),
-    });
-  },
-
-  updateTabContent: (tabId, content) => {
-    const { tabs } = get();
-    set({
-      tabs: tabs.map(t => 
-        t.id === tabId 
-          ? { ...t, content }
-          : t
-      ),
-    });
-  },
-
-  updateActiveTabContent: (content) => {
-    const { tabs, activeTabId } = get();
-    if (!activeTabId) return;
-    
-    const activeTab = tabs.find(t => t.id === activeTabId);
-    if (!activeTab || activeTab.kind === 'api') return;
-
-    set({
-      tabs: tabs.map(t => 
-        t.id === activeTabId 
-          ? { ...t, content }
-          : t
-      ),
-    });
-  },
-
-  setActiveTabLanguage: (language) => {
-    const { tabs, activeTabId } = get();
-    if (!activeTabId) return;
-    
-    const activeTab = tabs.find(t => t.id === activeTabId);
-    if (!activeTab || activeTab.kind === 'api') return;
-
-    set({
-      tabs: tabs.map(t => 
-        t.id === activeTabId 
-          ? { ...t, language }
-          : t
-      ),
-    });
-  },
-
-  setActiveTabMode: (mode) => {
-    const { tabs, activeTabId } = get();
-    if (!activeTabId) return;
-    
-    const activeTab = tabs.find(t => t.id === activeTabId);
-    if (!activeTab || activeTab.kind === 'api') return;
-
-    set({
-      tabs: tabs.map(t => 
-        t.id === activeTabId 
-          ? { ...t, mode }
-          : t
-      ),
-    });
-  },
-
-  setTabContextOverride: (tabId, override) => {
-    const { tabs } = get();
-    set({
-      tabs: tabs.map(t => 
-        t.id === tabId 
-          ? { ...t, contextOverride: override }
-          : t
-      ),
-    });
-  },
+  // NOTE: Core tab management actions (getActiveTab, openTab, closeTab, closeOtherTabs, closeAllTabs,
+  // setActiveTab, renameTab, updateTabContent, updateActiveTabContent, setActiveTabLanguage,
+  // setActiveTabMode, setTabContextOverride) now come from createTabsSlice spread above
 
   openModuleScripts: (module, scripts) => {
     const { tabs, selectedPortalId, portals } = get();
@@ -4145,17 +3434,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     }
   },
 
-  createNewFile: () => {
-    const { preferences } = get();
-    const language = preferences.defaultLanguage || 'groovy';
-    const mode = preferences.defaultMode || 'freeform';
-    const newTab = createDefaultTab(language, mode);
-    
-    set({
-      tabs: [...get().tabs, newTab],
-      activeTabId: newTab.id,
-    });
-  },
+  // NOTE: createNewFile now comes from createTabsSlice spread above
 
   createLocalCopyFromTab: (tabId: string, options) => {
     const { tabs } = get();

@@ -482,12 +482,19 @@ export const createPortalSlice: StateCreator<
         ...createEmptyModuleState(),
       });
       
-      toast.warning(`Disconnected from ${hostname}`, {
-        description: 'The portal tab was closed or navigated away',
+      // Show toast notification for the disconnected portal
+      toast.warning(`Portal disconnected: ${hostname}`, {
+        description: 'Open a LogicMonitor tab to reconnect.',
+        duration: 8000,
       });
     } else {
       // Just update the portals list
       set({ portals: updatedPortals });
+      
+      // Show a less intrusive notification
+      toast.info(`Portal disconnected: ${hostname}`, {
+        duration: 5000,
+      });
     }
   },
 });

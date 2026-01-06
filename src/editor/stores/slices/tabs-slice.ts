@@ -1,8 +1,9 @@
 /**
  * Tabs slice - manages multi-tab editor state.
  * 
- * This slice is a placeholder for future extraction from editor-store.ts.
- * The actual implementation remains in editor-store.ts for now.
+ * This slice handles core tab management: opening, closing, switching, and updating tabs.
+ * File operations (openFileFromDisk, saveFile, etc.) remain in editor-store.ts for now
+ * due to their complexity and dependencies on other systems.
  */
 
 import type { StateCreator } from 'zustand';
@@ -11,10 +12,10 @@ import type {
   ScriptLanguage, 
   ScriptMode,
   FilePermissionStatus,
-  DraftScript,
-  DraftTabs,
 } from '@/shared/types';
-import type { RecentFileInfo } from '../../utils/document-store';
+import { getExtensionForLanguage } from '../../utils/file-extensions';
+import { createScratchDocument } from '../../utils/document-helpers';
+import { getDefaultScriptTemplate } from '../../config/script-templates';
 
 // ============================================================================
 // Types
@@ -35,7 +36,15 @@ export interface TabsSliceState {
   hasSavedDraft: boolean;
   
   // Recent files
-  recentFiles: RecentFileInfo[];
+  recentFiles: Array<{ 
+    tabId: string; 
+    fileName: string; 
+    lastAccessed: number;
+    isRepositoryModule?: boolean;
+    moduleName?: string;
+    scriptType?: 'collection' | 'ad';
+    portalHostname?: string;
+  }>;
   isLoadingRecentFiles: boolean;
 }
 
@@ -45,50 +54,42 @@ export interface TabsSliceState {
 export interface TabsSliceActions {
   // Tab management
   getActiveTab: () => EditorTab | null;
-  openTab: (tab: Omit<EditorTab, 'id'> & { id?: string }) => string;
+  openTab: (tab: Omit<EditorTab, 'id'> & { id?: string }, options?: { activate?: boolean }) => string;
   closeTab: (tabId: string) => void;
   closeOtherTabs: (tabId: string) => void;
   closeAllTabs: () => void;
   setActiveTab: (tabId: string) => void;
+  renameTab: (tabId: string, newName: string) => void;
   updateTabContent: (tabId: string, content: string) => void;
-  setTabDisplayName: (tabId: string, name: string) => void;
-  reorderTabs: (startIndex: number, endIndex: number) => void;
-  duplicateTab: (tabId: string) => string;
+  updateActiveTabContent: (content: string) => void;
+  setActiveTabLanguage: (language: ScriptLanguage) => void;
+  setActiveTabMode: (mode: ScriptMode) => void;
+  setTabContextOverride: (tabId: string, override: EditorTab['contextOverride']) => void;
   
-  // Language/Mode
-  setLanguage: (language: ScriptLanguage, force?: boolean) => void;
-  setMode: (mode: ScriptMode) => void;
+  // Helper to create new file
+  createNewFile: () => void;
   
-  // File operations
-  openFileFromDisk: () => Promise<void>;
-  openModuleFromRepository: () => Promise<void>;
-  saveFile: (tabId?: string) => Promise<boolean>;
-  saveFileAs: (tabId?: string) => Promise<void>;
-  exportToFile: () => void;
-  restoreFileHandles: () => Promise<void>;
-  requestFilePermissions: () => Promise<void>;
-  
-  // Recent files
-  loadRecentFiles: () => Promise<void>;
-  openRecentFile: (tabId: string) => Promise<void>;
-  
-  // Draft operations
-  saveDraft: () => Promise<void>;
-  loadDraft: () => Promise<DraftScript | DraftTabs | null>;
-  clearDraft: () => Promise<void>;
-  restoreDraft: (draft: DraftScript) => void;
-  restoreDraftTabs: (draftTabs: DraftTabs) => void;
-  
-  // Dirty state helpers
-  getTabDirtyState: (tabId: string) => boolean;
-  hasAnyDirtyTabs: () => boolean;
-  canCommitModule: (tabId: string) => boolean;
+  // Helper to get unique untitled name
+  getUniqueUntitledName: (language: ScriptLanguage) => string;
 }
 
 /**
  * Combined slice interface.
  */
 export interface TabsSlice extends TabsSliceState, TabsSliceActions {}
+
+// ============================================================================
+// Dependencies - state accessed from other slices
+// ============================================================================
+
+interface TabsSliceDependencies {
+  // From portal slice (for module scripts)
+  selectedPortalId: string | null;
+  portals: Array<{ id: string; hostname: string }>;
+  
+  // From UI slice (for preferences)
+  preferences: { defaultLanguage: ScriptLanguage; defaultMode: ScriptMode };
+}
 
 // ============================================================================
 // Initial State
@@ -105,60 +106,278 @@ export const tabsSliceInitialState: TabsSliceState = {
 };
 
 // ============================================================================
-// Slice Creator (Placeholder)
+// Slice Creator
 // ============================================================================
 
 /**
  * Creates the tabs slice.
- * 
- * Note: This is a placeholder. The actual implementation is still in editor-store.ts.
- * This file defines the types and initial state for future extraction.
  */
 export const createTabsSlice: StateCreator<
-  TabsSlice,
+  TabsSlice & TabsSliceDependencies,
   [],
   [],
   TabsSlice
 > = (set, get) => ({
   ...tabsSliceInitialState,
 
-  // Placeholder implementations - actual logic is in editor-store.ts
   getActiveTab: () => {
     const { tabs, activeTabId } = get();
-    return tabs.find(t => t.id === activeTabId) || null;
+    return tabs.find(t => t.id === activeTabId) ?? null;
   },
-  openTab: () => '', // Implemented in editor-store.ts
-  closeTab: () => { /* Implemented in editor-store.ts */ },
-  closeOtherTabs: () => { /* Implemented in editor-store.ts */ },
-  closeAllTabs: () => set({ tabs: [], activeTabId: null }),
-  setActiveTab: (tabId) => set({ activeTabId: tabId }),
-  updateTabContent: () => { /* Implemented in editor-store.ts */ },
-  setTabDisplayName: () => { /* Implemented in editor-store.ts */ },
-  reorderTabs: () => { /* Implemented in editor-store.ts */ },
-  duplicateTab: () => '', // Implemented in editor-store.ts
-  
-  setLanguage: () => { /* Implemented in editor-store.ts */ },
-  setMode: () => { /* Implemented in editor-store.ts */ },
-  
-  openFileFromDisk: async () => { /* Implemented in editor-store.ts */ },
-  openModuleFromRepository: async () => { /* Implemented in editor-store.ts */ },
-  saveFile: async () => false, // Implemented in editor-store.ts
-  saveFileAs: async () => { /* Implemented in editor-store.ts */ },
-  exportToFile: () => { /* Implemented in editor-store.ts */ },
-  restoreFileHandles: async () => { /* Implemented in editor-store.ts */ },
-  requestFilePermissions: async () => { /* Implemented in editor-store.ts */ },
-  
-  loadRecentFiles: async () => { /* Implemented in editor-store.ts */ },
-  openRecentFile: async () => { /* Implemented in editor-store.ts */ },
-  
-  saveDraft: async () => { /* Implemented in editor-store.ts */ },
-  loadDraft: async () => null, // Implemented in editor-store.ts
-  clearDraft: async () => { /* Implemented in editor-store.ts */ },
-  restoreDraft: () => { /* Implemented in editor-store.ts */ },
-  restoreDraftTabs: () => { /* Implemented in editor-store.ts */ },
-  
-  getTabDirtyState: () => false, // Implemented in editor-store.ts
-  hasAnyDirtyTabs: () => false, // Implemented in editor-store.ts
-  canCommitModule: () => false, // Implemented in editor-store.ts
-});
 
+  openTab: (tabData, options) => {
+    const id = tabData.id || crypto.randomUUID();
+    const newTab: EditorTab = {
+      id,
+      kind: tabData.kind ?? 'script',
+      displayName: tabData.displayName,
+      content: tabData.content,
+      language: tabData.language,
+      mode: tabData.mode,
+      source: tabData.source,
+      contextOverride: tabData.contextOverride,
+      api: tabData.api,
+      // Unified document state
+      document: tabData.document,
+      // Legacy fields for backwards compatibility
+      originalContent: tabData.originalContent,
+      hasFileHandle: tabData.hasFileHandle,
+      isLocalFile: tabData.isLocalFile,
+      portalContent: tabData.portalContent,
+    };
+    
+    const { tabs, activeTabId } = get();
+    set({
+      tabs: [...tabs, newTab],
+      activeTabId: options?.activate === false ? activeTabId : id,
+    });
+    
+    return id;
+  },
+
+  closeTab: (tabId) => {
+    const { tabs, activeTabId, tabsNeedingPermission } = get();
+    const tab = tabs.find(t => t.id === tabId);
+    if (!tab) return;
+    
+    const tabIndex = tabs.findIndex(t => t.id === tabId);
+    const newTabs = tabs.filter(t => t.id !== tabId);
+    
+    // NOTE: We intentionally do NOT delete file handles when closing tabs.
+    // This allows them to persist in "Recent Files" for the WelcomeScreen.
+    
+    // Remove from permission-needed list if present
+    const newTabsNeedingPermission = tabsNeedingPermission.filter(t => t.tabId !== tabId);
+    
+    // If we're closing the active tab, switch to another one
+    let newActiveTabId: string | null = activeTabId;
+    if (tabId === activeTabId) {
+      if (newTabs.length === 0) {
+        // No tabs left - WelcomeScreen will show
+        newActiveTabId = null;
+      } else {
+        const targetKind = tab.kind ?? 'script';
+        let nextTabId: string | null = null;
+
+        // Prefer same-kind tab to the left
+        for (let i = tabIndex - 1; i >= 0; i -= 1) {
+          const candidate = tabs[i];
+          if (candidate.id !== tabId && (candidate.kind ?? 'script') === targetKind) {
+            nextTabId = candidate.id;
+            break;
+          }
+        }
+
+        // Otherwise, prefer same-kind tab to the right
+        if (!nextTabId) {
+          for (let i = tabIndex + 1; i < tabs.length; i += 1) {
+            const candidate = tabs[i];
+            if (candidate.id !== tabId && (candidate.kind ?? 'script') === targetKind) {
+              nextTabId = candidate.id;
+              break;
+            }
+          }
+        }
+
+        // Fallback: first available tab
+        newActiveTabId = nextTabId ?? newTabs[0].id;
+      }
+    }
+    
+    set({
+      tabs: newTabs,
+      activeTabId: newActiveTabId,
+      tabsNeedingPermission: newTabsNeedingPermission,
+    });
+  },
+
+  closeOtherTabs: (tabId) => {
+    const { tabs } = get();
+    const tabToKeep = tabs.find(t => t.id === tabId);
+    if (!tabToKeep) return;
+
+    const targetKind = tabToKeep.kind ?? 'script';
+    const remainingTabs = tabs.filter(t => (t.kind ?? 'script') !== targetKind || t.id === tabId);
+
+    set({
+      tabs: remainingTabs,
+      activeTabId: tabId,
+    });
+  },
+
+  closeAllTabs: () => {
+    const { tabs, activeTabId } = get();
+    const activeTab = tabs.find(t => t.id === activeTabId);
+    if (!activeTab) {
+      set({
+        tabs: [],
+        activeTabId: null,
+      });
+      return;
+    }
+
+    const targetKind = activeTab.kind ?? 'script';
+    const remainingTabs = tabs.filter(t => (t.kind ?? 'script') !== targetKind);
+    const nextActive = remainingTabs[0]?.id ?? null;
+
+    set({
+      tabs: remainingTabs,
+      activeTabId: nextActive,
+    });
+  },
+
+  setActiveTab: (tabId) => {
+    const { tabs } = get();
+    if (tabs.some(t => t.id === tabId)) {
+      set({ activeTabId: tabId });
+    }
+  },
+
+  renameTab: (tabId, newName) => {
+    const { tabs } = get();
+    const tab = tabs.find(t => t.id === tabId);
+    if (!tab) return;
+    
+    // Ensure name has appropriate extension
+    let displayName = newName.trim();
+    if (!displayName) return;
+    
+    // Add extension if missing for script tabs
+    if (tab.kind !== 'api' && !displayName.endsWith('.groovy') && !displayName.endsWith('.ps1')) {
+      displayName += getExtensionForLanguage(tab.language);
+    }
+    
+    set({
+      tabs: tabs.map(t => 
+        t.id === tabId 
+          ? { ...t, displayName }
+          : t
+      ),
+    });
+  },
+
+  updateTabContent: (tabId, content) => {
+    const { tabs } = get();
+    set({
+      tabs: tabs.map(t => 
+        t.id === tabId 
+          ? { ...t, content }
+          : t
+      ),
+    });
+  },
+
+  updateActiveTabContent: (content) => {
+    const { tabs, activeTabId } = get();
+    if (!activeTabId) return;
+    
+    const activeTab = tabs.find(t => t.id === activeTabId);
+    if (!activeTab || activeTab.kind === 'api') return;
+
+    set({
+      tabs: tabs.map(t => 
+        t.id === activeTabId 
+          ? { ...t, content }
+          : t
+      ),
+    });
+  },
+
+  setActiveTabLanguage: (language) => {
+    const { tabs, activeTabId } = get();
+    if (!activeTabId) return;
+    
+    const activeTab = tabs.find(t => t.id === activeTabId);
+    if (!activeTab || activeTab.kind === 'api') return;
+
+    set({
+      tabs: tabs.map(t => 
+        t.id === activeTabId 
+          ? { ...t, language }
+          : t
+      ),
+    });
+  },
+
+  setActiveTabMode: (mode) => {
+    const { tabs, activeTabId } = get();
+    if (!activeTabId) return;
+    
+    const activeTab = tabs.find(t => t.id === activeTabId);
+    if (!activeTab || activeTab.kind === 'api') return;
+
+    set({
+      tabs: tabs.map(t => 
+        t.id === activeTabId 
+          ? { ...t, mode }
+          : t
+      ),
+    });
+  },
+
+  setTabContextOverride: (tabId, override) => {
+    const { tabs } = get();
+    set({
+      tabs: tabs.map(t => 
+        t.id === tabId 
+          ? { ...t, contextOverride: override }
+          : t
+      ),
+    });
+  },
+
+  createNewFile: () => {
+    const { preferences, tabs } = get();
+    const language = preferences.defaultLanguage;
+    const mode = preferences.defaultMode;
+    
+    const newTab: EditorTab = {
+      id: crypto.randomUUID(),
+      kind: 'script',
+      displayName: get().getUniqueUntitledName(language),
+      content: getDefaultScriptTemplate(language),
+      language,
+      mode,
+      document: createScratchDocument(),
+    };
+    
+    set({
+      tabs: [...tabs, newTab],
+      activeTabId: newTab.id,
+    });
+  },
+
+  getUniqueUntitledName: (language) => {
+    const { tabs } = get();
+    const extension = language === 'groovy' ? 'groovy' : 'ps1';
+    let counter = 0;
+    let name = `Untitled.${extension}`;
+    
+    while (tabs.some(t => t.displayName === name)) {
+      counter += 1;
+      name = `Untitled ${counter}.${extension}`;
+    }
+    
+    return name;
+  },
+});
