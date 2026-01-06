@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState, useCallback, KeyboardEvent } from 'react';
-import { X, Plus, Pencil, Circle, Save, Upload, Trash2, AlertTriangle, Braces, Link2 } from 'lucide-react';
+import { X, Plus, Pencil, Circle, Save, Upload, Trash2, AlertTriangle, Braces, Link2, Cloud } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEditorStore } from '../stores/editor-store';
 import { Button } from '@/components/ui/button';
@@ -27,6 +27,7 @@ import type { EditorTab, Portal, LogicModuleType } from '@/shared/types';
 import { getDefaultScriptTemplate } from '../config/script-templates';
 import { getPortalBindingStatus } from '../utils/portal-binding';
 import { normalizeMode } from '../utils/mode-utils';
+import { isFileDirty, hasPortalChanges, getDocumentType } from '../utils/document-helpers';
 import {
   CollectionIcon,
   ConfigSourceIcon,
@@ -110,7 +111,10 @@ interface TabItemProps {
   tab: EditorTab;
   isActive: boolean;
   isRenaming: boolean;
-  isDirty: boolean;
+  /** Has unsaved local file changes (amber indicator) */
+  isFileDirty: boolean;
+  /** Has unpushed portal changes (blue indicator) */
+  hasPortalChanges: boolean;
   canRename: boolean;
   selectedPortalId: string | null;
   portals: Portal[];
@@ -127,7 +131,8 @@ function TabItem({
   tab, 
   isActive, 
   isRenaming,
-  isDirty,
+  isFileDirty: fileDirty,
+  hasPortalChanges: portalChanges,
   canRename,
   selectedPortalId,
   portals,
@@ -139,6 +144,8 @@ function TabItem({
   onRename,
   onCancelRename,
 }: TabItemProps) {
+  // Combined dirty state for close confirmation
+  const isDirty = fileDirty || portalChanges;
   const tabRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [renameValue, setRenameValue] = useState(tab.displayName);
@@ -285,7 +292,44 @@ function TabItem({
                     </span>
                   )}
                   
-                  {/* Close/Dirty indicator */}
+                  {/* Dirty indicators - show both when applicable */}
+                  <span className="flex items-center gap-0.5">
+                    {/* Portal changes indicator (blue cloud) - only show when not hovered */}
+                    {portalChanges && !isCloseHovered && (
+                      <Tooltip>
+                        <TooltipTrigger
+                          render={
+                            <Cloud className={cn(
+                              "size-3",
+                              isActive ? "text-blue-400" : "text-blue-400/70"
+                            )} />
+                          }
+                        />
+                        <TooltipContent side="bottom" className="text-xs">
+                          Unpushed portal changes
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                    
+                    {/* File dirty indicator (amber dot) - only show when not hovered */}
+                    {fileDirty && !isCloseHovered && (
+                      <Tooltip>
+                        <TooltipTrigger
+                          render={
+                            <Circle className={cn(
+                              "size-2.5 fill-current",
+                              isActive ? "text-amber-400" : "text-muted-foreground"
+                            )} />
+                          }
+                        />
+                        <TooltipContent side="bottom" className="text-xs">
+                          Unsaved changes
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                  </span>
+                  
+                  {/* Close button */}
                   <span
                     role="button"
                     className="flex items-center justify-center size-4 rounded hover:bg-destructive/20 focus:outline-none focus:ring-2 focus:ring-destructive focus:ring-offset-1"
@@ -298,24 +342,15 @@ function TabItem({
                     aria-label={`Close ${tab.displayName}`}
                     tabIndex={-1}
                   >
-                    {/* Show X when: hovered on close area, OR (active/group-hover AND not dirty) */}
-                    {/* Show dot when: dirty AND not hovered on close area */}
-                    {isDirty && !isCloseHovered ? (
-                      <Circle className={cn(
-                        "size-2.5 fill-current",
-                        isActive ? "text-amber-400" : "text-muted-foreground"
-                      )} />
-                    ) : (
-                      <X className={cn(
-                        "size-3 hover:text-destructive",
-                        isDirty 
-                          ? "opacity-100" // Always show X when hovering over dirty indicator
-                          : cn(
-                              "opacity-0 group-hover:opacity-100",
-                              isActive && "opacity-100"
-                            )
-                      )} />
-                    )}
+                    <X className={cn(
+                      "size-3 hover:text-destructive",
+                      isDirty && !isCloseHovered
+                        ? "opacity-0" // Hide X when showing dirty indicators
+                        : cn(
+                            "opacity-0 group-hover:opacity-100",
+                            isActive && "opacity-100"
+                          )
+                    )} />
                   </span>
                 </button>
               }
@@ -391,7 +426,6 @@ export function TabBar() {
     openApiExplorerTab,
     renameTab,
     preferences,
-    getTabDirtyState,
     saveFile,
     saveFileAs,
     canCommitModule,
@@ -458,8 +492,9 @@ export function TabBar() {
     const tab = tabs.find(t => t.id === tabId);
     if (!tab) return;
     
-    const isDirty = getTabDirtyState(tab);
-    if (!isDirty) {
+    // Check for either file dirty or portal changes
+    const hasUnsavedChanges = isFileDirty(tab) || hasPortalChanges(tab);
+    if (!hasUnsavedChanges) {
       // Not dirty, close immediately
       closeTab(tabId);
       return;
@@ -467,7 +502,7 @@ export function TabBar() {
     
     // Dirty - show confirmation dialog
     setPendingCloseTabId(tabId);
-  }, [tabs, getTabDirtyState, closeTab]);
+  }, [tabs, closeTab]);
 
   // Handle close confirmation actions
   const handleSaveAndClose = useCallback(async () => {
@@ -553,23 +588,23 @@ export function TabBar() {
     setPendingCloseTabId(null);
   }, []);
 
-  // Close tab after successful commit
+  // Close tab after successful push to portal
   useEffect(() => {
     if (!moduleCommitConfirmationOpen && tabToCloseAfterCommit) {
       const tab = tabs.find(t => t.id === tabToCloseAfterCommit);
-      // If tab exists and is no longer dirty (commit was successful), close it
-      if (tab && !getTabDirtyState(tab)) {
+      // If tab exists and has no more portal changes (push was successful), close it
+      if (tab && !hasPortalChanges(tab)) {
         closeTab(tabToCloseAfterCommit);
         setTabToCloseAfterCommit(null);
       } else if (!tab) {
         // Tab was already closed, just clear the state
         setTabToCloseAfterCommit(null);
       } else {
-        // Commit failed or was cancelled, clear the state
+        // Push failed or was cancelled, clear the state
         setTabToCloseAfterCommit(null);
       }
     }
-  }, [moduleCommitConfirmationOpen, tabToCloseAfterCommit, tabs, getTabDirtyState, closeTab]);
+  }, [moduleCommitConfirmationOpen, tabToCloseAfterCommit, tabs, closeTab]);
 
   // Get pending tab info
   const pendingTab = pendingCloseTabId ? tabs.find(t => t.id === pendingCloseTabId) : null;
@@ -618,8 +653,9 @@ export function TabBar() {
             tab={tab}
             isActive={tab.id === activeTabId}
             isRenaming={renamingTabId === tab.id}
-            isDirty={getTabDirtyState(tab)}
-            canRename={!tab.hasFileHandle}
+            isFileDirty={isFileDirty(tab)}
+            hasPortalChanges={hasPortalChanges(tab)}
+            canRename={!tab.hasFileHandle && getDocumentType(tab) !== 'repository'}
             selectedPortalId={selectedPortalId}
             portals={portals}
             onActivate={() => setActiveTab(tab.id)}

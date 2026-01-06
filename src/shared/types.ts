@@ -180,13 +180,129 @@ export interface EditorTab {
   contextOverride?: EditorTabContextOverride;
   api?: ApiTabState;
   
-  // File system support (Phase 6)
-  /** Content when file was opened or last saved (for dirty detection) */
+  /** Unified document state - replaces scattered flags */
+  document?: DocumentState;
+  
+  // === DEPRECATED: These fields are being replaced by DocumentState ===
+  // Kept for backwards compatibility during migration
+  /** @deprecated Use document.file.lastSavedContent instead */
   originalContent?: string;
-  /** Whether this tab has a persisted file handle in IndexedDB */
+  /** @deprecated Use document.type !== 'scratch' && document.file instead */
   hasFileHandle?: boolean;
-  /** Distinguishes local files from modules, new files, history entries */
+  /** @deprecated Use document.type === 'local' || document.type === 'repository' instead */
   isLocalFile?: boolean;
+  /** @deprecated Use document.portal.lastKnownContent instead */
+  portalContent?: string;
+}
+
+// ============================================================================
+// Unified Document Model
+// ============================================================================
+
+/**
+ * Document type discriminator - determines what operations are available
+ */
+export type DocumentType = 
+  | 'scratch'      // New unsaved file (no file handle, no portal binding)
+  | 'local'        // Plain local file (has file handle, no portal binding)
+  | 'portal'       // Imported from portal (no file handle, has portal binding)
+  | 'repository'   // Cloned to git repo (has file handle AND portal binding)
+  | 'history'      // Readonly history entry
+  | 'api';         // API explorer tab
+
+/**
+ * File state for documents backed by local files
+ */
+export interface FileState {
+  /** Reference to IndexedDB handle */
+  handleId: string;
+  /** Content when last saved to disk - for dirty detection */
+  lastSavedContent: string;
+  /** Timestamp of last save */
+  lastSavedAt?: number;
+  /** File name on disk */
+  fileName?: string;
+}
+
+/**
+ * Portal binding for documents linked to a LogicMonitor module
+ */
+export interface PortalBinding {
+  /** Portal ID (internal) */
+  id: string;
+  /** Portal hostname (e.g., "acme.logicmonitor.com") */
+  hostname: string;
+  /** Module ID in portal */
+  moduleId: number;
+  /** Module type */
+  moduleType: LogicModuleType;
+  /** Technical module name */
+  moduleName: string;
+  /** Which script this document represents */
+  scriptType: 'collection' | 'ad';
+  /** For lineage version history */
+  lineageId?: string;
+  /** Content as it exists on the portal - for push detection */
+  lastKnownContent: string;
+  /** When last pulled from portal */
+  lastPulledAt?: number;
+  /** Portal version number at last pull */
+  lastPulledVersion?: number;
+  /** When last pushed to portal */
+  lastPushedAt?: number;
+}
+
+/**
+ * Repository binding for documents cloned to a git repository
+ */
+export interface RepositoryBinding {
+  /** Repository ID in IndexedDB */
+  id: string;
+  /** Display path for UI */
+  displayPath: string;
+  /** Path within repository (e.g., "acme.logicmonitor.com/datasources/MyDS") */
+  modulePath: string;
+}
+
+/**
+ * Unified document state - single source of truth for document lifecycle
+ */
+export interface DocumentState {
+  /** Document type - determines available operations */
+  type: DocumentType;
+  
+  /** File state (present for 'local' and 'repository' types) */
+  file?: FileState;
+  
+  /** Portal binding (present for 'portal' and 'repository' types) */
+  portal?: PortalBinding;
+  
+  /** Repository info (present for 'repository' type) */
+  repository?: RepositoryBinding;
+}
+
+/**
+ * Recent document entry for the unified recent documents list
+ */
+export interface RecentDocument {
+  /** Unique document ID (maps to tab ID for opened documents) */
+  id: string;
+  /** Document type at time of last access */
+  type: DocumentType;
+  /** Display name */
+  displayName: string;
+  /** Last access timestamp */
+  lastAccessed: number;
+  /** File name (for local/repository types) */
+  fileName?: string;
+  /** For portal/repository types */
+  portalHostname?: string;
+  /** For portal/repository types */
+  moduleName?: string;
+  /** For portal/repository types */
+  scriptType?: 'collection' | 'ad';
+  /** Repository display path (for repository types) */
+  repositoryPath?: string;
 }
 
 // Multi-tab Draft Auto-save
@@ -724,6 +840,121 @@ export interface DebugCommandResult {
 
 export interface DebugCommandComplete {
   results: Record<number, DebugCommandResult>;
+}
+
+// ============================================================================
+// Module Repository Types (Git Version Control)
+// ============================================================================
+
+/**
+ * Module manifest written as module.json in each module directory.
+ * Contains everything needed to restore portal binding.
+ */
+export interface ModuleManifest {
+  /** Schema version for future compatibility */
+  manifestVersion: 1;
+  
+  /** Portal binding (required for commit back to LM) */
+  portal: {
+    /** Portal ID used internally */
+    id: string;
+    /** e.g., "acme.logicmonitor.com" */
+    hostname: string;
+  };
+  
+  /** Module identification */
+  module: {
+    /** Module ID in portal */
+    id: number;
+    /** datasource, propertysource, etc. */
+    type: LogicModuleType;
+    /** Technical name */
+    name: string;
+    /** Human-readable name */
+    displayName?: string;
+    /** For lineage version history */
+    lineageId?: string;
+  };
+  
+  /** Metadata snapshot (for reference, may be stale) */
+  metadata: {
+    description?: string;
+    appliesTo?: string;
+    collectMethod?: string;
+    collectInterval?: number;
+    /** Portal version at time of clone/pull */
+    version?: number;
+  };
+  
+  /** Script file references */
+  scripts: {
+    collection?: {
+      /** e.g., "collection.groovy" */
+      filename: string;
+      language: ScriptLanguage;
+    };
+    ad?: {
+      /** e.g., "ad.groovy" */
+      filename: string;
+      language: ScriptLanguage;
+    };
+  };
+  
+  /** Sync tracking */
+  sync: {
+    /** Timestamp: when first cloned */
+    clonedAt: number;
+    /** Timestamp: when last fetched from portal */
+    lastPulledAt: number;
+    /** Portal version number at last pull */
+    lastPulledVersion?: number;
+    /** Timestamp: when last pushed to portal */
+    lastCommittedAt?: number;
+  };
+}
+
+/**
+ * Repository info returned to UI (without handles for safety).
+ */
+export interface RepositoryInfo {
+  id: string;
+  displayPath: string;
+  lastAccessed: number;
+  portals: string[];
+}
+
+/**
+ * Result of a clone operation.
+ */
+export interface CloneResult {
+  success: boolean;
+  repositoryId: string;
+  modulePath: string;
+  fileIds: {
+    collection?: string;
+    ad?: string;
+  };
+  /** File handles for saving - only available in browser context */
+  fileHandles?: {
+    collection?: FileSystemFileHandle;
+    ad?: FileSystemFileHandle;
+  };
+  /** Filenames for display */
+  filenames?: {
+    collection?: string;
+    ad?: string;
+  };
+  error?: string;
+}
+
+/**
+ * Options for cloning a module to a repository.
+ */
+export interface CloneModuleOptions {
+  /** Repository ID to clone to (if using existing repo) */
+  repositoryId?: string;
+  /** Whether to overwrite if module already exists */
+  overwrite?: boolean;
 }
 
 // Constants

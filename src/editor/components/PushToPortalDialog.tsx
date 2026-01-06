@@ -20,7 +20,7 @@ import { useEditorStore } from '../stores/editor-store';
 import type { LogicModuleType, ScriptLanguage } from '@/shared/types';
 import { MODULE_TYPE_SCHEMAS } from '@/shared/module-type-schemas';
 
-interface ModuleCommitConfirmationDialogProps {
+interface PushToPortalDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: (reason?: string) => Promise<void>;
@@ -32,8 +32,11 @@ interface ModuleCommitConfirmationDialogProps {
   newScript: string;
   hasConflict?: boolean;
   conflictMessage?: string;
-  isCommitting?: boolean;
+  isPushing?: boolean;
 }
+
+/** @deprecated Use PushToPortalDialogProps instead */
+export type ModuleCommitConfirmationDialogProps = PushToPortalDialogProps;
 
 const MODULE_TYPE_LABELS: Record<LogicModuleType, string> = {
   datasource: 'DataSource',
@@ -45,7 +48,7 @@ const MODULE_TYPE_LABELS: Record<LogicModuleType, string> = {
   eventsource: 'EventSource',
 };
 
-export function ModuleCommitConfirmationDialog({
+export function PushToPortalDialog({
   open,
   onOpenChange,
   onConfirm,
@@ -57,10 +60,17 @@ export function ModuleCommitConfirmationDialog({
   newScript,
   hasConflict = false,
   conflictMessage,
-  isCommitting = false,
-}: ModuleCommitConfirmationDialogProps) {
-  const [commitError, setCommitError] = useState<string | null>(null);
-  const [commitReason, setCommitReason] = useState('');
+  isPushing = false,
+}: PushToPortalDialogProps) {
+  const [pushError, setPushError] = useState<string | null>(null);
+  const [pushReason, setPushReason] = useState('');
+  
+  // Backwards compatibility alias
+  const isCommitting = isPushing;
+  const commitReason = pushReason;
+  const setCommitReason = setPushReason;
+  const commitError = pushError;
+  const setCommitError = setPushError;
   const { preferences, activeTabId, moduleDetailsDraftByTabId, accessGroups } = useEditorStore();
   
   // Get module details changes
@@ -466,7 +476,7 @@ export function ModuleCommitConfirmationDialog({
 
   useEffect(() => {
     if (commitError) {
-      toast.error('Commit failed', {
+      toast.error('Push failed', {
         description: commitError,
       });
     }
@@ -478,7 +488,7 @@ export function ModuleCommitConfirmationDialog({
       const trimmedReason = commitReason.trim();
       await onConfirm(trimmedReason.length > 0 ? trimmedReason : undefined);
     } catch (error) {
-      setCommitError(error instanceof Error ? error.message : 'Failed to commit changes');
+      setCommitError(error instanceof Error ? error.message : 'Failed to push changes');
     }
   };
 
@@ -495,16 +505,16 @@ export function ModuleCommitConfirmationDialog({
         <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Upload className="size-5" />
-            Commit Changes to Module
+            Push Changes to Portal
           </DialogTitle>
           <DialogDescription>
             {hasScriptChanges && hasModuleDetailsChanges
-              ? `This will update the ${scriptTypeLabel.toLowerCase()} and module metadata in LogicMonitor for module "${moduleName}".`
+              ? `This will push the ${scriptTypeLabel.toLowerCase()} and module metadata to LogicMonitor for module "${moduleName}".`
               : hasScriptChanges
-              ? `This will update the ${scriptTypeLabel.toLowerCase()} in LogicMonitor for module "${moduleName}".`
+              ? `This will push the ${scriptTypeLabel.toLowerCase()} to LogicMonitor for module "${moduleName}".`
               : hasModuleDetailsChanges
-              ? `This will update module metadata in LogicMonitor for module "${moduleName}".`
-              : `This will update the module in LogicMonitor for module "${moduleName}".`}
+              ? `This will push module metadata to LogicMonitor for module "${moduleName}".`
+              : `This will push the changes to LogicMonitor for module "${moduleName}".`}
           </DialogDescription>
         </DialogHeader>
 
@@ -524,17 +534,17 @@ export function ModuleCommitConfirmationDialog({
               <AlertCircle className="size-4" />
               <AlertDescription>
                 <div className="font-medium mb-1">Conflict Detected</div>
-                {conflictMessage || 'The module has been changed externally. Review the changes below before committing.'}
+                {conflictMessage || 'The module has been changed externally. Review the changes below before pushing.'}
               </AlertDescription>
             </Alert>
           )}
 
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Commit Reason (optional)</Label>
+            <Label className="text-sm font-medium">Change Reason (optional)</Label>
             <Textarea
               value={commitReason}
               onChange={(event) => setCommitReason(event.target.value.slice(0, 4096))}
-              placeholder="Add a reason for this commit (visible in LogicMonitor history)"
+              placeholder="Add a reason for this change (visible in LogicMonitor history)"
               rows={1}
               className="min-h-9 resize-y"
             />
@@ -573,7 +583,7 @@ export function ModuleCommitConfirmationDialog({
               ) : (
                 <div className="flex items-center gap-2 border border-dashed border-border rounded-md p-3 bg-muted/20 text-xs text-muted-foreground">
                   <Info className="size-4" />
-                  No script changes will be committed for this update.
+                  No script changes will be pushed for this update.
                 </div>
               )}
             </div>
@@ -704,12 +714,12 @@ export function ModuleCommitConfirmationDialog({
             {isCommitting ? (
               <>
                 <Loader2 className="size-4 mr-2 animate-spin" />
-                Committing...
+                Pushing...
               </>
             ) : (
               <>
                 <Upload className="size-4 mr-2" />
-                Commit Changes
+                Push to Portal
               </>
             )}
           </Button>
@@ -718,3 +728,6 @@ export function ModuleCommitConfirmationDialog({
     </Dialog>
   );
 }
+
+/** @deprecated Use PushToPortalDialog instead */
+export const ModuleCommitConfirmationDialog = PushToPortalDialog;

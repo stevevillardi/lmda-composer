@@ -10,6 +10,8 @@ import {
   Upload,
   History,
   Settings,
+  GitBranch,
+  CloudDownload,
 } from 'lucide-react';
 import {
   WarningIcon,
@@ -96,6 +98,13 @@ export function Toolbar() {
     setModuleLineageDialogOpen,
     isFetchingLineage,
     setModuleDetailsDialogOpen,
+    // Module clone
+    canCloneModule,
+    setCloneModuleDialogOpen,
+    // Pull latest
+    canPullLatest,
+    pullLatestFromPortal,
+    isPullingLatest,
   } = useEditorStore();
 
   // Get active tab data
@@ -476,7 +485,68 @@ export function Toolbar() {
           </Tooltip>
         )}
 
-        {/* Commit Button - shown for module tabs, disabled unless there are changes */}
+        {/* Clone to Repository Button - shown for module tabs */}
+        {isModuleTab && activeTabId && canCloneModule(activeTabId) && (
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setCloneModuleDialogOpen(true);
+                  }}
+                  className={cn("gap-1.5 text-xs", SIZES.BUTTON_TOOLBAR)}
+                  aria-label="Clone to repository"
+                >
+                  <GitBranch className={SIZES.ICON_MEDIUM} />
+                  Clone
+                </Button>
+              }
+            />
+            <TooltipContent>
+              Clone module to local git repository for version control
+            </TooltipContent>
+          </Tooltip>
+        )}
+
+        {/* Pull Latest Button - shown for module tabs that can pull */}
+        {isModuleTab && activeTabId && canPullLatest(activeTabId) && (
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={async () => {
+                    if (!activeTabId) return;
+                    const result = await pullLatestFromPortal(activeTabId);
+                    if (!result.success) {
+                      toast.error('Failed to pull latest', {
+                        description: result.error,
+                      });
+                    }
+                  }}
+                  disabled={isPullingLatest}
+                  className={cn("gap-1.5 text-xs", SIZES.BUTTON_TOOLBAR)}
+                  aria-label="Pull latest from portal"
+                >
+                  {isPullingLatest ? (
+                    <Loader2 className={cn(SIZES.ICON_MEDIUM, "animate-spin")} />
+                  ) : (
+                    <CloudDownload className={SIZES.ICON_MEDIUM} />
+                  )}
+                  {isPullingLatest ? 'Pulling...' : 'Pull'}
+                </Button>
+              }
+            />
+            <TooltipContent>
+              Pull latest version from LogicMonitor portal
+            </TooltipContent>
+          </Tooltip>
+        )}
+
+        {/* Push to Portal Button - shown for module tabs, disabled unless there are changes */}
         {isModuleTab && (
           <Tooltip>
             <TooltipTrigger
@@ -490,7 +560,7 @@ export function Toolbar() {
                       await fetchModuleForCommit(activeTabId);
                       setModuleCommitConfirmationOpen(true);
                     } catch (error) {
-                      toast.error('Failed to prepare commit', {
+                      toast.error('Failed to prepare push', {
                         description: error instanceof Error ? error.message : 'Unknown error',
                       });
                     }
@@ -501,19 +571,19 @@ export function Toolbar() {
                     SIZES.BUTTON_TOOLBAR,
                     "px-3 font-medium"
                   )}
-                  aria-label="Commit changes to module"
+                  aria-label="Push changes to LogicMonitor portal"
                 >
                   <Upload className={SIZES.ICON_MEDIUM} />
-                  Commit
+                  Push to Portal
                 </Button>
               }
             />
             <TooltipContent>
               {!isPortalBoundActive
-                ? 'Portal mismatch: switch to the bound portal to commit'
+                ? 'Portal mismatch: switch to the bound portal to push'
                 : canCommit
-                  ? 'Commit changes back to LogicMonitor module'
-                  : 'No changes to commit'}
+                  ? 'Push changes to LogicMonitor portal'
+                  : 'No changes to push'}
             </TooltipContent>
           </Tooltip>
         )}

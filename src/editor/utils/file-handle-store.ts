@@ -254,6 +254,14 @@ export interface RecentFileInfo {
   tabId: string;
   fileName: string;
   lastAccessed: number;
+  /** If this is a repository-backed module file */
+  isRepositoryModule?: boolean;
+  /** Module name (e.g., "MyDataSource") */
+  moduleName?: string;
+  /** Script type for display */
+  scriptType?: 'collection' | 'ad';
+  /** Portal hostname for display */
+  portalHostname?: string;
 }
 
 // Maximum number of recent files to keep

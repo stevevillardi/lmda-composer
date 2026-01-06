@@ -43,8 +43,11 @@ const LogicModuleSearchLazy = lazy(() => import('./components/LogicModuleSearch'
 const ApiExplorerPanelLazy = lazy(() => import('./components/api/ApiExplorerPanel').then((mod) => ({ default: mod.ApiExplorerPanel })));
 const ApiRightSidebarLazy = lazy(() => import('./components/api/ApiRightSidebar').then((mod) => ({ default: mod.ApiRightSidebar })));
 const AppliesToTesterLazy = lazy(() => import('./components/AppliesToTester').then((mod) => ({ default: mod.AppliesToTester })));
-const ModuleCommitConfirmationDialogLazy = lazy(() => import('./components/ModuleCommitConfirmationDialog').then((mod) => ({ default: mod.ModuleCommitConfirmationDialog })));
+const PushToPortalDialogLazy = lazy(() => import('./components/PushToPortalDialog').then((mod) => ({ default: mod.PushToPortalDialog })));
 const ModuleLineageDialogLazy = lazy(() => import('./components/ModuleLineageDialog').then((mod) => ({ default: mod.ModuleLineageDialog })));
+const CloneModuleDialogLazy = lazy(() => import('./components/CloneModuleDialog').then((mod) => ({ default: mod.CloneModuleDialog })));
+const RepositoryBrowserLazy = lazy(() => import('./components/RepositoryBrowser').then((mod) => ({ default: mod.RepositoryBrowser })));
+const SaveOptionsDialogLazy = lazy(() => import('./components/SaveOptionsDialog').then((mod) => ({ default: mod.SaveOptionsDialog })));
 
 const panelLoadingFallback = (
   <div className="flex items-center justify-center h-full">
@@ -156,6 +159,7 @@ export function App() {
     setSelectedPortal,
     switchToPortalWithContext,
     openModuleScripts,
+    openTab,
     rightSidebarOpen,
     tabsNeedingPermission,
     restoreFileHandles,
@@ -166,6 +170,19 @@ export function App() {
     loadedModuleForCommit,
     commitModuleScript,
     isCommittingModule,
+    moduleCommitConflict,
+    // Save options dialog
+    saveOptionsDialogOpen,
+    saveOptionsDialogTabId,
+    setSaveOptionsDialogOpen,
+    saveFileAs,
+    // Clone module
+    cloneModuleDialogOpen,
+    setCloneModuleDialogOpen,
+    cloneModuleToRepository,
+    // Repository browser
+    repositoryBrowserOpen,
+    setRepositoryBrowserOpen,
   } = useEditorStore();
   
   // Get active tab for auto-save trigger and window title
@@ -216,6 +233,11 @@ export function App() {
     loadApiHistory();
     loadApiEnvironments();
     loadUserSnippets();
+    
+    // Clean up old repository data in the background
+    import('./utils/repository-store').then(({ cleanupOldData }) => {
+      cleanupOldData().catch(console.error);
+    });
   }, [loadPreferences, loadHistory, loadApiHistory, loadApiEnvironments, loadUserSnippets]);
 
   // Check for File System Access API availability and Brave browser
@@ -647,7 +669,7 @@ export function App() {
       <ModuleSnippetsDialog />
       {activeTab && activeTab.source?.type === 'module' && loadedModuleForCommit && (
         <Suspense fallback={null}>
-          <ModuleCommitConfirmationDialogLazy
+          <PushToPortalDialogLazy
             open={moduleCommitConfirmationOpen}
             onOpenChange={setModuleCommitConfirmationOpen}
             onConfirm={async (reason) => {
@@ -661,8 +683,9 @@ export function App() {
             scriptLanguage={loadedModuleForCommit.scriptType === 'powerShell' ? 'powershell' : 'groovy'}
             originalScript={activeTab.originalContent || ''}
             newScript={activeTab.content}
-            hasConflict={false}
-            isCommitting={isCommittingModule}
+            hasConflict={moduleCommitConflict?.hasConflict ?? false}
+            conflictMessage={moduleCommitConflict?.message}
+            isPushing={isCommittingModule}
           />
         </Suspense>
       )}
@@ -672,12 +695,152 @@ export function App() {
         </Suspense>
       )}
       <ModuleDetailsDialog />
+      {/* Save Options Dialog (for portal documents) */}
+      <Suspense fallback={null}>
+        <SaveOptionsDialogLazy
+          open={saveOptionsDialogOpen}
+          onOpenChange={(open) => setSaveOptionsDialogOpen(open)}
+          tab={saveOptionsDialogTabId ? tabs.find(t => t.id === saveOptionsDialogTabId) ?? null : null}
+          onSaveLocal={async () => {
+            if (saveOptionsDialogTabId) {
+              await saveFileAs(saveOptionsDialogTabId);
+            }
+          }}
+          onCloneToRepository={() => {
+            setSaveOptionsDialogOpen(false);
+            setCloneModuleDialogOpen(true);
+          }}
+        />
+      </Suspense>
+      {/* Clone Module Dialog */}
+      {activeTab && activeTab.source?.type === 'module' && activeTab.source.portalHostname && (
+        <Suspense fallback={null}>
+          <CloneModuleDialogLazy
+            open={cloneModuleDialogOpen}
+            onOpenChange={setCloneModuleDialogOpen}
+            onClone={async (repositoryId, overwrite) => {
+              if (activeTabId) {
+                return await cloneModuleToRepository(activeTabId, repositoryId, overwrite);
+              }
+              return {
+                success: false,
+                repositoryId: repositoryId || '',
+                modulePath: '',
+                fileIds: {},
+                error: 'No active tab',
+              };
+            }}
+            moduleName={activeTab.source.moduleName || activeTab.displayName.split('/')[0]}
+            moduleType={activeTab.source.moduleType!}
+            portalHostname={activeTab.source.portalHostname}
+            hasCollectionScript={activeTab.source.scriptType === 'collection' || tabs.some(
+              t => t.source?.moduleId === activeTab.source?.moduleId &&
+                   t.source?.moduleType === activeTab.source?.moduleType &&
+                   t.source?.scriptType === 'collection'
+            )}
+            hasAdScript={activeTab.source.scriptType === 'ad' || tabs.some(
+              t => t.source?.moduleId === activeTab.source?.moduleId &&
+                   t.source?.moduleType === activeTab.source?.moduleType &&
+                   t.source?.scriptType === 'ad'
+            )}
+            scriptLanguage={activeTab.language === 'powershell' ? 'powershell' : 'groovy'}
+          />
+        </Suspense>
+      )}
       <BraveFileSystemWarning
         open={showBraveWarning}
         onOpenChange={setShowBraveWarning}
         onDismiss={handleBraveWarningDismiss}
         browser={fileSystemWarningBrowser ?? 'brave'}
       />
+
+      {/* Repository Browser */}
+      <Suspense fallback={null}>
+        <RepositoryBrowserLazy
+          open={repositoryBrowserOpen}
+          onOpenChange={setRepositoryBrowserOpen}
+          onOpenModule={async (moduleFile) => {
+            // Open the module file in a new tab
+            const { saveModuleFile, deleteModuleFile, requestFilePermission } = await import('./utils/repository-store');
+            const { readManifest } = await import('./utils/module-repository');
+            
+            try {
+              // Request permission before reading (may have been revoked after browser restart)
+              const hasPermission = await requestFilePermission(moduleFile.fileHandle);
+              if (!hasPermission) {
+                toast.error('Permission denied', {
+                  description: 'Cannot access the file. Please grant permission and try again.',
+                });
+                return;
+              }
+              
+              // Read manifest from the module directory
+              const manifest = await readManifest(moduleFile.moduleDirectoryHandle);
+              if (!manifest) {
+                toast.error('Failed to read module manifest');
+                return;
+              }
+              
+              // Read the script content
+              const file = await moduleFile.fileHandle.getFile();
+              const content = await file.text();
+              
+              // Create the source info
+              const source = {
+                type: 'module' as const,
+                moduleId: manifest.module.id,
+                moduleName: manifest.module.name,
+                moduleType: manifest.module.type,
+                scriptType: moduleFile.scriptType,
+                lineageId: manifest.module.lineageId,
+                portalId: manifest.portal.id,
+                portalHostname: manifest.portal.hostname,
+              };
+              
+              // Open a new tab
+              // portalContent tracks what's on the portal for commit detection
+              // When opening from repo, we assume the file content represents the last synced state
+              const tabId = openTab({
+                displayName: `${manifest.module.name}/${moduleFile.scriptType === 'ad' ? 'AD' : 'Collection'}`,
+                content,
+                language: manifest.scripts[moduleFile.scriptType]?.language || 'groovy',
+                mode: moduleFile.scriptType === 'ad' ? 'ad' : 'collection',
+                originalContent: content,
+                portalContent: content, // Assume file content matches portal on open
+                hasFileHandle: true,
+                isLocalFile: true,
+                source,
+              });
+              
+              // Store file handle for save operations
+              const { saveHandle } = await import('./utils/file-handle-store');
+              await saveHandle(tabId, moduleFile.fileHandle, file.name);
+              
+              // Delete old module file entry before creating new one (prevents duplicates)
+              const oldFileId = moduleFile.fileId;
+              if (oldFileId && oldFileId !== tabId) {
+                await deleteModuleFile(oldFileId);
+              }
+              
+              // Create new module file entry with new tab ID
+              await saveModuleFile({
+                ...moduleFile,
+                fileId: tabId,
+                lastAccessed: Date.now(),
+              });
+              
+              toast.success('Opened module from repository', {
+                description: `${manifest.module.name} - ${moduleFile.scriptType === 'ad' ? 'AD' : 'Collection'}`,
+              });
+            } catch (error) {
+              console.error('Failed to open module:', error);
+              toast.error('Failed to open module', {
+                description: error instanceof Error ? error.message : 'Unknown error',
+              });
+            }
+          }}
+        />
+      </Suspense>
 
       {/* Draft Restore Dialog */}
       <AlertDialog open={showDraftDialog} onOpenChange={setShowDraftDialog}>
