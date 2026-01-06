@@ -1,20 +1,13 @@
 /**
  * Unified IndexedDB-based storage for document handles and metadata.
  * 
- * This store consolidates the previous file-handle-store and repository-store
- * into a single unified storage layer.
- * 
  * Database: lm-ide-documents
  * Object Stores:
  * - file-handles: FileSystemFileHandle objects
- * - repositories: StoredRepository objects (directory handles)
- * - module-files: StoredModuleFile records (file-to-module mappings)
  * - recent-documents: Unified recent documents list
  */
 
 import type { 
-  LogicModuleType, 
-  ScriptLanguage, 
   DocumentType,
   RecentDocument,
 } from '@/shared/types';
@@ -37,108 +30,6 @@ export interface StoredFileHandle {
   lastAccessed: number;
 }
 
-/**
- * Module manifest written as module.json in each module directory.
- * Contains everything needed to restore portal binding.
- */
-export interface ModuleManifest {
-  /** Schema version for future compatibility */
-  manifestVersion: 1;
-  
-  /** Portal binding (required for push back to LM) */
-  portal: {
-    /** Portal ID used internally */
-    id: string;
-    /** e.g., "acme.logicmonitor.com" */
-    hostname: string;
-  };
-  
-  /** Module identification */
-  module: {
-    /** Module ID in portal */
-    id: number;
-    /** datasource, propertysource, etc. */
-    type: LogicModuleType;
-    /** Technical name */
-    name: string;
-    /** Human-readable name */
-    displayName?: string;
-    /** For lineage version history */
-    lineageId?: string;
-  };
-  
-  /** Metadata snapshot (for reference, may be stale) */
-  metadata: {
-    description?: string;
-    appliesTo?: string;
-    collectMethod?: string;
-    collectInterval?: number;
-    /** Portal version at time of clone/pull */
-    version?: number;
-  };
-  
-  /** Script file references */
-  scripts: {
-    collection?: {
-      /** e.g., "collection.groovy" */
-      filename: string;
-      language: ScriptLanguage;
-    };
-    ad?: {
-      /** e.g., "ad.groovy" */
-      filename: string;
-      language: ScriptLanguage;
-    };
-  };
-  
-  /** Sync tracking */
-  sync: {
-    /** Timestamp: when first cloned */
-    clonedAt: number;
-    /** Timestamp: when last fetched from portal */
-    lastPulledAt: number;
-    /** Portal version number at last pull */
-    lastPulledVersion?: number;
-    /** Timestamp: when last pushed to portal */
-    lastPushedAt?: number;
-  };
-}
-
-/**
- * Persisted repository directory handle.
- */
-export interface StoredRepository {
-  /** UUID */
-  id: string;
-  /** The directory handle */
-  handle: FileSystemDirectoryHandle;
-  /** User-friendly path for UI display */
-  displayPath: string;
-  /** For sorting and cleanup */
-  lastAccessed: number;
-  /** Portal hostnames with modules in this repo */
-  portals: string[];
-}
-
-/**
- * Maps opened files back to their module manifests for binding restoration.
- */
-export interface StoredModuleFile {
-  /** UUID (also used as tabId when opened) */
-  fileId: string;
-  /** Reference to StoredRepository */
-  repositoryId: string;
-  /** The script file handle */
-  fileHandle: FileSystemFileHandle;
-  /** Parent module directory */
-  moduleDirectoryHandle: FileSystemDirectoryHandle;
-  /** e.g., "acme.logicmonitor.com/datasources/MyDS/collection.groovy" */
-  relativePath: string;
-  /** Which script this file represents */
-  scriptType: 'collection' | 'ad';
-  /** For sorting and cleanup */
-  lastAccessed: number;
-}
 
 /**
  * Stored recent document entry (persisted to IndexedDB).
@@ -152,28 +43,16 @@ export interface StoredRecentDocument {
   displayName: string;
   /** Last access timestamp */
   lastAccessed: number;
-  /** File name (for local/repository) */
+  /** File name (for local types) */
   fileName?: string;
-  /** Portal hostname (for portal/repository) */
+  /** Portal hostname (for portal types) */
   portalHostname?: string;
-  /** Module name (for portal/repository) */
+  /** Module name (for portal types) */
   moduleName?: string;
-  /** Script type (for portal/repository) */
+  /** Script type (for portal types) */
   scriptType?: 'collection' | 'ad';
-  /** Repository path (for repository) */
-  repositoryPath?: string;
   /** Dedupe key - file path or portal+module+script identity */
   dedupeKey: string;
-}
-
-/**
- * Repository info returned to UI (without handles for safety).
- */
-export interface RepositoryInfo {
-  id: string;
-  displayPath: string;
-  lastAccessed: number;
-  portals: string[];
 }
 
 // ============================================================================
@@ -185,15 +64,11 @@ const DB_VERSION = 1;
 
 const STORES = {
   FILE_HANDLES: 'file-handles',
-  REPOSITORIES: 'repositories',
-  MODULE_FILES: 'module-files',
   RECENT_DOCUMENTS: 'recent-documents',
 } as const;
 
 // Cleanup limits
 const MAX_FILE_HANDLES = 50;
-const MAX_REPOSITORIES = 10;
-const MAX_MODULE_FILES = 100;
 const MAX_RECENT_DOCUMENTS = 30;
 const MAX_AGE_MS = 90 * 24 * 60 * 60 * 1000; // 90 days
 
@@ -229,21 +104,6 @@ function openDatabase(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains(STORES.FILE_HANDLES)) {
         const store = db.createObjectStore(STORES.FILE_HANDLES, { keyPath: 'id' });
         store.createIndex('fileName', 'fileName', { unique: false });
-        store.createIndex('lastAccessed', 'lastAccessed', { unique: false });
-      }
-      
-      // Create repositories store
-      if (!db.objectStoreNames.contains(STORES.REPOSITORIES)) {
-        const store = db.createObjectStore(STORES.REPOSITORIES, { keyPath: 'id' });
-        store.createIndex('displayPath', 'displayPath', { unique: false });
-        store.createIndex('lastAccessed', 'lastAccessed', { unique: false });
-      }
-      
-      // Create module-files store
-      if (!db.objectStoreNames.contains(STORES.MODULE_FILES)) {
-        const store = db.createObjectStore(STORES.MODULE_FILES, { keyPath: 'fileId' });
-        store.createIndex('repositoryId', 'repositoryId', { unique: false });
-        store.createIndex('relativePath', 'relativePath', { unique: false });
         store.createIndex('lastAccessed', 'lastAccessed', { unique: false });
       }
       
@@ -385,14 +245,6 @@ export interface RecentFileInfo {
   tabId: string;
   fileName: string;
   lastAccessed: number;
-  /** If this is a repository-backed module file */
-  isRepositoryModule?: boolean;
-  /** Module name (e.g., "MyDataSource") */
-  moduleName?: string;
-  /** Script type for display */
-  scriptType?: 'collection' | 'ad';
-  /** Portal hostname for display */
-  portalHostname?: string;
 }
 
 /**
@@ -471,232 +323,6 @@ async function cleanupOldFileHandles(allRecords: StoredFileHandle[]): Promise<vo
   }
 }
 
-// ============================================================================
-// Repository Operations
-// ============================================================================
-
-/**
- * Save a repository directory handle.
- */
-export async function saveRepository(repo: StoredRepository): Promise<void> {
-  const db = await openDatabase();
-  
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORES.REPOSITORIES, 'readwrite');
-    const store = transaction.objectStore(STORES.REPOSITORIES);
-    const request = store.put(repo);
-    
-    request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error);
-  });
-}
-
-/**
- * Get a repository by ID.
- */
-export async function getRepository(id: string): Promise<StoredRepository | undefined> {
-  const db = await openDatabase();
-  
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORES.REPOSITORIES, 'readonly');
-    const store = transaction.objectStore(STORES.REPOSITORIES);
-    const request = store.get(id);
-    
-    request.onsuccess = () => resolve(request.result as StoredRepository | undefined);
-    request.onerror = () => reject(request.error);
-  });
-}
-
-/**
- * Get all stored repositories sorted by lastAccessed (most recent first).
- */
-export async function getAllRepositories(): Promise<StoredRepository[]> {
-  const db = await openDatabase();
-  
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORES.REPOSITORIES, 'readonly');
-    const store = transaction.objectStore(STORES.REPOSITORIES);
-    const index = store.index('lastAccessed');
-    const request = index.openCursor(null, 'prev');
-    
-    const results: StoredRepository[] = [];
-    
-    request.onsuccess = () => {
-      const cursor = request.result;
-      if (cursor) {
-        results.push(cursor.value as StoredRepository);
-        cursor.continue();
-      } else {
-        resolve(results);
-      }
-    };
-    
-    request.onerror = () => reject(request.error);
-  });
-}
-
-/**
- * Get repository info for UI display (without handles).
- */
-export async function getRepositoryInfoList(): Promise<RepositoryInfo[]> {
-  const repos = await getAllRepositories();
-  return repos.map(({ id, displayPath, lastAccessed, portals }) => ({
-    id,
-    displayPath,
-    lastAccessed,
-    portals,
-  }));
-}
-
-/**
- * Delete a repository and all its associated file mappings.
- */
-export async function deleteRepository(id: string): Promise<void> {
-  // First, delete all module files for this repository
-  await deleteModuleFilesForRepository(id);
-  
-  const db = await openDatabase();
-  
-  // Then delete the repository itself
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORES.REPOSITORIES, 'readwrite');
-    const store = transaction.objectStore(STORES.REPOSITORIES);
-    const request = store.delete(id);
-    
-    request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error);
-  });
-}
-
-/**
- * Update a repository's lastAccessed timestamp.
- */
-export async function touchRepository(id: string): Promise<void> {
-  const repo = await getRepository(id);
-  if (repo) {
-    repo.lastAccessed = Date.now();
-    await saveRepository(repo);
-  }
-}
-
-/**
- * Add a portal hostname to a repository's portal list.
- */
-export async function addPortalToRepository(repoId: string, portalHostname: string): Promise<void> {
-  const repo = await getRepository(repoId);
-  if (repo && !repo.portals.includes(portalHostname)) {
-    repo.portals.push(portalHostname);
-    repo.lastAccessed = Date.now();
-    await saveRepository(repo);
-  }
-}
-
-// ============================================================================
-// Module File Operations
-// ============================================================================
-
-/**
- * Save a module file mapping.
- */
-export async function saveModuleFile(file: StoredModuleFile): Promise<void> {
-  const db = await openDatabase();
-  
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORES.MODULE_FILES, 'readwrite');
-    const store = transaction.objectStore(STORES.MODULE_FILES);
-    const request = store.put(file);
-    
-    request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error);
-  });
-}
-
-/**
- * Get a module file by ID.
- */
-export async function getModuleFile(fileId: string): Promise<StoredModuleFile | undefined> {
-  const db = await openDatabase();
-  
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORES.MODULE_FILES, 'readonly');
-    const store = transaction.objectStore(STORES.MODULE_FILES);
-    const request = store.get(fileId);
-    
-    request.onsuccess = () => resolve(request.result as StoredModuleFile | undefined);
-    request.onerror = () => reject(request.error);
-  });
-}
-
-/**
- * Find a module file by its relative path.
- */
-export async function findModuleFileByPath(relativePath: string): Promise<StoredModuleFile | undefined> {
-  const db = await openDatabase();
-  
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORES.MODULE_FILES, 'readonly');
-    const store = transaction.objectStore(STORES.MODULE_FILES);
-    const index = store.index('relativePath');
-    const request = index.get(relativePath);
-    
-    request.onsuccess = () => resolve(request.result as StoredModuleFile | undefined);
-    request.onerror = () => reject(request.error);
-  });
-}
-
-/**
- * Get all module files for a repository.
- */
-export async function getModuleFilesForRepository(repositoryId: string): Promise<StoredModuleFile[]> {
-  const db = await openDatabase();
-  
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORES.MODULE_FILES, 'readonly');
-    const store = transaction.objectStore(STORES.MODULE_FILES);
-    const index = store.index('repositoryId');
-    const request = index.getAll(repositoryId);
-    
-    request.onsuccess = () => resolve(request.result as StoredModuleFile[]);
-    request.onerror = () => reject(request.error);
-  });
-}
-
-/**
- * Delete a module file mapping.
- */
-export async function deleteModuleFile(fileId: string): Promise<void> {
-  const db = await openDatabase();
-  
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction(STORES.MODULE_FILES, 'readwrite');
-    const store = transaction.objectStore(STORES.MODULE_FILES);
-    const request = store.delete(fileId);
-    
-    request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error);
-  });
-}
-
-/**
- * Delete all module files for a repository.
- */
-async function deleteModuleFilesForRepository(repositoryId: string): Promise<void> {
-  const files = await getModuleFilesForRepository(repositoryId);
-  for (const file of files) {
-    await deleteModuleFile(file.fileId);
-  }
-}
-
-/**
- * Update a module file's lastAccessed timestamp.
- */
-export async function touchModuleFile(fileId: string): Promise<void> {
-  const file = await getModuleFile(fileId);
-  if (file) {
-    file.lastAccessed = Date.now();
-    await saveModuleFile(file);
-  }
-}
 
 // ============================================================================
 // Recent Documents Operations
@@ -715,7 +341,7 @@ export function createDedupeKey(params: {
   if (params.type === 'local' && params.fileName) {
     return `file:${params.fileName}`;
   }
-  if ((params.type === 'portal' || params.type === 'repository') && 
+  if (params.type === 'portal' && 
       params.portalHostname && params.moduleName && params.scriptType) {
     return `module:${params.portalHostname}:${params.moduleName}:${params.scriptType}`;
   }
@@ -803,7 +429,6 @@ export async function getRecentDocuments(limit: number = 10): Promise<RecentDocu
           portalHostname: doc.portalHostname,
           moduleName: doc.moduleName,
           scriptType: doc.scriptType,
-          repositoryPath: doc.repositoryPath,
         });
         cursor.continue();
       } else {
@@ -997,21 +622,6 @@ export async function readFromHandle(
 export async function cleanupOldData(): Promise<void> {
   const now = Date.now();
   
-  // Clean up old repositories
-  const repos = await getAllRepositories();
-  const reposToDelete: string[] = [];
-  
-  repos.forEach((repo, index) => {
-    if (index >= MAX_REPOSITORIES || (now - repo.lastAccessed) > MAX_AGE_MS) {
-      reposToDelete.push(repo.id);
-    }
-  });
-  
-  for (const id of reposToDelete) {
-    console.log(`[document-store] Removing old repository: ${id}`);
-    await deleteRepository(id);
-  }
-  
   // Clean up old file handles
   const db = await openDatabase();
   const allHandles = await new Promise<StoredFileHandle[]>((resolve, reject) => {
@@ -1045,43 +655,6 @@ export async function cleanupOldData(): Promise<void> {
   for (const id of handlesToDelete) {
     console.log(`[document-store] Removing old file handle: ${id}`);
     await deleteFileHandle(id);
-  }
-  
-  // Clean up orphaned module files
-  const validRepoIds = new Set(repos.map(r => r.id).filter(id => !reposToDelete.includes(id)));
-  const allFiles = await new Promise<StoredModuleFile[]>((resolve, reject) => {
-    const transaction = db.transaction(STORES.MODULE_FILES, 'readonly');
-    const store = transaction.objectStore(STORES.MODULE_FILES);
-    const index = store.index('lastAccessed');
-    const request = index.openCursor(null, 'prev');
-    
-    const results: StoredModuleFile[] = [];
-    
-    request.onsuccess = () => {
-      const cursor = request.result;
-      if (cursor) {
-        results.push(cursor.value as StoredModuleFile);
-        cursor.continue();
-      } else {
-        resolve(results);
-      }
-    };
-    
-    request.onerror = () => reject(request.error);
-  });
-  
-  const filesToDelete: string[] = [];
-  allFiles.forEach((file, index) => {
-    if (!validRepoIds.has(file.repositoryId) || 
-        index >= MAX_MODULE_FILES || 
-        (now - file.lastAccessed) > MAX_AGE_MS) {
-      filesToDelete.push(file.fileId);
-    }
-  });
-  
-  for (const id of filesToDelete) {
-    console.log(`[document-store] Removing old module file: ${id}`);
-    await deleteModuleFile(id);
   }
   
   // Clean up old recent documents

@@ -3,12 +3,11 @@
  * 
  * Offers options to:
  * - Save to Local File (loses portal binding)
- * - Clone to Repository (keeps portal binding)
  * - Cancel
  */
 
 import { useState } from 'react';
-import { Save, GitBranch, X, AlertTriangle } from 'lucide-react';
+import { Save, X, AlertTriangle } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -26,7 +25,6 @@ export interface SaveOptionsDialogProps {
   onOpenChange: (open: boolean) => void;
   tab: EditorTab | null;
   onSaveLocal: () => Promise<void>;
-  onCloneToRepository: () => void;
 }
 
 export function SaveOptionsDialog({
@@ -34,7 +32,6 @@ export function SaveOptionsDialog({
   onOpenChange,
   tab,
   onSaveLocal,
-  onCloneToRepository,
 }: SaveOptionsDialogProps) {
   const [isSaving, setIsSaving] = useState(false);
 
@@ -53,10 +50,6 @@ export function SaveOptionsDialog({
     }
   };
 
-  const handleCloneToRepository = () => {
-    onOpenChange(false);
-    onCloneToRepository();
-  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -106,19 +99,6 @@ export function SaveOptionsDialog({
               </div>
             </Button>
 
-            <Button
-              variant="outline"
-              className="w-full justify-start gap-3 h-auto py-3 border-primary/50 hover:border-primary"
-              onClick={handleCloneToRepository}
-            >
-              <GitBranch className="size-5 shrink-0 text-green-500" />
-              <div className="text-left">
-                <div className="font-medium">Clone to Repository</div>
-                <div className="text-xs text-muted-foreground">
-                  Saves to a git repo while keeping portal connection
-                </div>
-              </div>
-            </Button>
           </div>
         </div>
 

@@ -37,10 +37,6 @@ export function getDocumentType(tab: EditorTab): DocumentType {
   }
   
   if (tab.source?.type === 'module') {
-    // Module can be either 'portal' (no file) or 'repository' (has file)
-    if (tab.isLocalFile && tab.hasFileHandle) {
-      return 'repository';
-    }
     return 'portal';
   }
   
@@ -63,14 +59,14 @@ export function getDocumentType(tab: EditorTab): DocumentType {
  * Check if a document type supports local file operations.
  */
 export function supportsLocalFile(type: DocumentType): boolean {
-  return type === 'local' || type === 'repository';
+  return type === 'local';
 }
 
 /**
  * Check if a document type supports portal operations.
  */
 export function supportsPortal(type: DocumentType): boolean {
-  return type === 'portal' || type === 'repository';
+  return type === 'portal';
 }
 
 // ============================================================================
@@ -83,7 +79,6 @@ export function supportsPortal(type: DocumentType): boolean {
  * Returns true for:
  * - 'scratch': Always dirty (never saved)
  * - 'local': content !== file.lastSavedContent
- * - 'repository': content !== file.lastSavedContent
  * 
  * Returns false for:
  * - 'portal': No local file to save
@@ -98,8 +93,7 @@ export function isFileDirty(tab: EditorTab): boolean {
       // Scratch documents are always "dirty" (never saved)
       return true;
       
-    case 'local':
-    case 'repository': {
+    case 'local': {
       // Check against new document state first
       if (tab.document?.file?.lastSavedContent !== undefined) {
         return tab.content !== tab.document.file.lastSavedContent;
@@ -128,7 +122,6 @@ export function isFileDirty(tab: EditorTab): boolean {
  * 
  * Returns true for:
  * - 'portal': content !== portal.lastKnownContent
- * - 'repository': content !== portal.lastKnownContent
  * 
  * Returns false for:
  * - 'scratch': No portal binding
@@ -140,19 +133,14 @@ export function hasPortalChanges(tab: EditorTab): boolean {
   const type = getDocumentType(tab);
   
   switch (type) {
-    case 'portal':
-    case 'repository': {
+    case 'portal': {
       // Check against new document state first
       if (tab.document?.portal?.lastKnownContent !== undefined) {
         return tab.content !== tab.document.portal.lastKnownContent;
       }
-      // Fallback to legacy portalContent
-      if (tab.portalContent !== undefined) {
-        return tab.content !== tab.portalContent;
-      }
       // For portal type without reference, compare to originalContent
       // (which was the content when imported from portal)
-      if (type === 'portal' && tab.originalContent !== undefined) {
+      if (tab.originalContent !== undefined) {
         return tab.content !== tab.originalContent;
       }
       // If no reference content, consider dirty if there's actual content
@@ -360,50 +348,6 @@ export function createPortalDocument(
   };
 }
 
-/**
- * Create a DocumentState for a repository document.
- */
-export function createRepositoryDocument(
-  handleId: string,
-  content: string,
-  fileName: string,
-  portalId: string,
-  portalHostname: string,
-  moduleId: number,
-  moduleType: LogicModuleType,
-  moduleName: string,
-  scriptType: 'collection' | 'ad',
-  repositoryId: string,
-  repositoryDisplayPath: string,
-  modulePath: string,
-  lineageId?: string
-): DocumentState {
-  return {
-    type: 'repository',
-    file: {
-      handleId,
-      lastSavedContent: content,
-      lastSavedAt: Date.now(),
-      fileName,
-    },
-    portal: {
-      id: portalId,
-      hostname: portalHostname,
-      moduleId,
-      moduleType,
-      moduleName,
-      scriptType,
-      lineageId,
-      lastKnownContent: content,
-      lastPulledAt: Date.now(),
-    },
-    repository: {
-      id: repositoryId,
-      displayPath: repositoryDisplayPath,
-      modulePath,
-    },
-  };
-}
 
 /**
  * Create a DocumentState for a history entry.
@@ -505,49 +449,9 @@ export function updateDocumentAfterPull(
     },
   };
   
-  // Also update file state if this is a repository document
-  if (current.type === 'repository' && current.file) {
-    updatedDoc.file = {
-      ...current.file,
-      lastSavedContent: content,
-      lastSavedAt: Date.now(),
-    };
-  }
-  
   return updatedDoc;
 }
 
-/**
- * Convert a portal document to a repository document after cloning.
- */
-export function convertToRepositoryDocument(
-  current: DocumentState | undefined,
-  handleId: string,
-  fileName: string,
-  repositoryId: string,
-  repositoryDisplayPath: string,
-  modulePath: string
-): DocumentState {
-  if (!current || current.type !== 'portal' || !current.portal) {
-    throw new Error('Can only convert portal documents to repository');
-  }
-  
-  return {
-    type: 'repository',
-    file: {
-      handleId,
-      lastSavedContent: current.portal.lastKnownContent,
-      lastSavedAt: Date.now(),
-      fileName,
-    },
-    portal: current.portal,
-    repository: {
-      id: repositoryId,
-      displayPath: repositoryDisplayPath,
-      modulePath,
-    },
-  };
-}
 
 /**
  * Convert a scratch document to a local document after saving.

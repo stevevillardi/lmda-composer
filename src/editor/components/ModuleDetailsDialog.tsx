@@ -172,9 +172,15 @@ export function ModuleDetailsDialog() {
   useEffect(() => {
     if (moduleDetailsDialogOpen && activeTabId && isModuleTab && !draft) {
       loadModuleDetails(activeTabId);
+    }
+  }, [moduleDetailsDialogOpen, activeTabId, isModuleTab, draft, loadModuleDetails]);
+
+  // Always fetch access groups when dialog opens (needed to display names)
+  useEffect(() => {
+    if (moduleDetailsDialogOpen && activeTabId && isModuleTab) {
       fetchAccessGroups(activeTabId);
     }
-  }, [moduleDetailsDialogOpen, activeTabId, isModuleTab, draft, loadModuleDetails, fetchAccessGroups]);
+  }, [moduleDetailsDialogOpen, activeTabId, isModuleTab, fetchAccessGroups]);
 
   const handleClose = () => {
     if (hasChanges) {

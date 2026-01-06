@@ -19,8 +19,6 @@ import {
   BookOpen,
   ExternalLink,
   Terminal,
-  FolderOpen,
-  GitBranch,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEditorStore } from '../stores/editor-store';
@@ -54,11 +52,9 @@ export function ActionsDropdown() {
     toggleRightSidebar,
     createNewFile,
     openFileFromDisk,
-    openModuleFromRepository,
     saveFile,
     saveFileAs,
     exportToFile,
-    setRepositoryBrowserOpen,
     openApiExplorerTab,
     executeApiRequest,
     executeScript,
@@ -192,19 +188,6 @@ export function ActionsDropdown() {
                 <Kbd className="ml-auto">⌘O</Kbd>
               </DropdownMenuItem>
 
-              <DropdownMenuItem onClick={() => {
-                openModuleFromRepository();
-              }}>
-                <FolderOpen className="size-4 mr-2" />
-                <span className="flex-1">Open from Repository...</span>
-              </DropdownMenuItem>
-
-              <DropdownMenuItem onClick={() => {
-                setRepositoryBrowserOpen(true);
-              }}>
-                <GitBranch className="size-4 mr-2" />
-                <span className="flex-1">Browse Repositories</span>
-              </DropdownMenuItem>
 
               <DropdownMenuItem 
                 onClick={async () => {

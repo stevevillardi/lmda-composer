@@ -10,7 +10,6 @@ import {
   Upload,
   History,
   Settings,
-  GitBranch,
   CloudDownload,
 } from 'lucide-react';
 import {
@@ -98,9 +97,6 @@ export function Toolbar() {
     setModuleLineageDialogOpen,
     isFetchingLineage,
     setModuleDetailsDialogOpen,
-    // Module clone
-    canCloneModule,
-    setCloneModuleDialogOpen,
     // Pull latest
     canPullLatest,
     pullLatestFromPortal,
@@ -111,6 +107,7 @@ export function Toolbar() {
   const activeTab = useMemo(() => {
     return tabs.find(t => t.id === activeTabId) ?? null;
   }, [tabs, activeTabId]);
+  
 
   const portalBinding = useMemo(() => {
     if (!activeTab || activeTab.source?.type !== 'module') return null;
@@ -485,30 +482,6 @@ export function Toolbar() {
           </Tooltip>
         )}
 
-        {/* Clone to Repository Button - shown for module tabs */}
-        {isModuleTab && activeTabId && canCloneModule(activeTabId) && (
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setCloneModuleDialogOpen(true);
-                  }}
-                  className={cn("gap-1.5 text-xs", SIZES.BUTTON_TOOLBAR)}
-                  aria-label="Clone to repository"
-                >
-                  <GitBranch className={SIZES.ICON_MEDIUM} />
-                  Clone
-                </Button>
-              }
-            />
-            <TooltipContent>
-              Clone module to local git repository for version control
-            </TooltipContent>
-          </Tooltip>
-        )}
 
         {/* Pull Latest Button - shown for module tabs that can pull */}
         {isModuleTab && activeTabId && canPullLatest(activeTabId) && (

@@ -1,13 +1,11 @@
 /**
- * Module slice - manages module browser, search, commit, clone, and pull operations.
+ * Module slice - manages module browser, search, commit, and pull operations.
  * 
  * This slice handles:
  * - Module browser (listing and selecting modules from portal)
  * - Module search (searching scripts and datapoints across modules)
  * - Module commit (pushing script changes back to portal)
- * - Module clone (cloning modules to local git repository)
  * - Pull latest (pulling latest module version from portal)
- * - Repository browser
  */
 
 import type { StateCreator } from 'zustand';
@@ -19,7 +17,6 @@ import type {
   DataPointSearchResult,
   ModuleSearchProgress,
   ModuleIndexInfo,
-  CloneResult,
   ScriptLanguage,
   ScriptMode,
   EditorTab,
@@ -31,7 +28,6 @@ import { toast } from 'sonner';
 import { hasPortalChanges } from '../../utils/document-helpers';
 import { getPortalBindingStatus } from '../../utils/portal-binding';
 import { MODULE_TYPE_SCHEMAS, getSchemaFieldName } from '@/shared/module-type-schemas';
-import * as documentStore from '../../utils/document-store';
 
 // ============================================================================
 // Types
@@ -86,15 +82,9 @@ export interface ModuleSliceState {
   saveOptionsDialogOpen: boolean;
   saveOptionsDialogTabId: string | null;
   
-  // Module clone to repository
-  cloneModuleDialogOpen: boolean;
-  
   // Pull latest from portal
   pullLatestDialogOpen: boolean;
   isPullingLatest: boolean;
-  
-  // Repository browser
-  repositoryBrowserOpen: boolean;
 }
 
 /**
@@ -138,18 +128,10 @@ export interface ModuleSliceActions {
   // Save options dialog
   setSaveOptionsDialogOpen: (open: boolean, tabId?: string) => void;
   
-  // Module clone to repository actions
-  setCloneModuleDialogOpen: (open: boolean) => void;
-  cloneModuleToRepository: (tabId: string, repositoryId: string | null, overwrite?: boolean) => Promise<CloneResult>;
-  canCloneModule: (tabId: string) => boolean;
-  
   // Pull latest from portal actions
   setPullLatestDialogOpen: (open: boolean) => void;
   pullLatestFromPortal: (tabId: string) => Promise<{ success: boolean; error?: string }>;
   canPullLatest: (tabId: string) => boolean;
-  
-  // Repository browser
-  setRepositoryBrowserOpen: (open: boolean) => void;
 }
 
 /**
@@ -259,14 +241,9 @@ export const moduleSliceInitialState: ModuleSliceState = {
   saveOptionsDialogTabId: null,
   
   // Clone module
-  cloneModuleDialogOpen: false,
-  
   // Pull latest
   pullLatestDialogOpen: false,
   isPullingLatest: false,
-  
-  // Repository browser
-  repositoryBrowserOpen: false,
 };
 
 // ============================================================================
@@ -1132,12 +1109,7 @@ export const createModuleSlice: StateCreator<
       const hasModuleDetailsChanges = moduleDetailsDraft && moduleDetailsDraft.dirtyFields.size > 0;
       
       // Check if script has changes compared to portal
-      // For cloned files, use portalContent (what's on the portal)
-      // For non-cloned files, use originalContent
-      const compareContent = (tab.isLocalFile && tab.portalContent !== undefined) 
-        ? tab.portalContent 
-        : tab.originalContent;
-      const hasScriptChanges = tab.content !== compareContent;
+      const hasScriptChanges = tab.content !== tab.originalContent;
       
       if (!hasScriptChanges && !hasModuleDetailsChanges) {
         throw new Error('No changes to push');
@@ -1203,14 +1175,12 @@ export const createModuleSlice: StateCreator<
       });
       
       if (response?.type === 'MODULE_COMMITTED') {
-        // Update originalContent and portalContent to reflect the committed state
+        // Update originalContent to reflect the committed state
         const updatedTabs = tabs.map(t => 
           t.id === tabId 
             ? { 
                 ...t, 
                 originalContent: t.content,
-                // Update portalContent for cloned files (portal now has this content)
-                portalContent: t.isLocalFile ? t.content : t.portalContent,
               }
             : t
         );
@@ -1273,199 +1243,6 @@ export const createModuleSlice: StateCreator<
       saveOptionsDialogOpen: open, 
       saveOptionsDialogTabId: tabId ?? null,
     });
-  },
-
-  // ==========================================================================
-  // Module Clone to Repository Actions
-  // ==========================================================================
-
-  setCloneModuleDialogOpen: (open: boolean) => {
-    set({ cloneModuleDialogOpen: open });
-  },
-
-  canCloneModule: (tabId: string) => {
-    const { tabs } = get();
-    const tab = tabs.find(t => t.id === tabId);
-    if (!tab) return false;
-    
-    // Must be a module tab with valid source info
-    if (tab.source?.type !== 'module') return false;
-    if (!tab.source.moduleId || !tab.source.moduleType) return false;
-    if (!tab.source.portalId || !tab.source.portalHostname) return false;
-    
-    // Must have content to clone
-    if (!tab.content || tab.content.trim().length === 0) return false;
-    
-    return true;
-  },
-
-  cloneModuleToRepository: async (tabId: string, repositoryId: string | null, overwrite = false) => {
-    const { tabs } = get();
-    const tab = tabs.find(t => t.id === tabId);
-    
-    if (!tab || tab.source?.type !== 'module') {
-      return {
-        success: false,
-        repositoryId: repositoryId || '',
-        modulePath: '',
-        fileIds: {},
-        error: 'Tab is not a module tab',
-      };
-    }
-    
-    const source = tab.source;
-    if (!source.moduleId || !source.moduleType || !source.portalId || !source.portalHostname) {
-      return {
-        success: false,
-        repositoryId: repositoryId || '',
-        modulePath: '',
-        fileIds: {},
-        error: 'Module source information is incomplete',
-      };
-    }
-    
-    // Dynamic import to avoid circular dependencies
-    const { 
-      pickOrCreateRepository, 
-      cloneModuleToRepository: cloneToRepo,
-      getRepositoryWithStatus,
-    } = await import('../../utils/module-repository');
-    
-    try {
-      // Get or create repository
-      let repo;
-      if (repositoryId) {
-        const repoStatus = await getRepositoryWithStatus(repositoryId);
-        if (!repoStatus) {
-          return {
-            success: false,
-            repositoryId,
-            modulePath: '',
-            fileIds: {},
-            error: 'Repository not found',
-          };
-        }
-        repo = repoStatus.repo;
-      } else {
-        // Pick a new directory
-        repo = await pickOrCreateRepository();
-        if (!repo) {
-          return {
-            success: false,
-            repositoryId: '',
-            modulePath: '',
-            fileIds: {},
-            error: 'No directory selected',
-          };
-        }
-      }
-      
-      // Build module info from tab source
-      const moduleInfo = {
-        id: source.moduleId,
-        name: source.moduleName || tab.displayName.split('/')[0],
-        displayName: source.moduleName || tab.displayName.split('/')[0],
-        moduleType: source.moduleType,
-        appliesTo: '',
-        collectMethod: 'script',
-        hasAutoDiscovery: source.scriptType === 'ad' || tabs.some(
-          t => t.source?.moduleId === source.moduleId && 
-               t.source?.moduleType === source.moduleType &&
-               t.source?.scriptType === 'ad'
-        ),
-        scriptType: tab.language === 'powershell' ? 'powerShell' : 'embed',
-        lineageId: source.lineageId,
-      } as LogicModuleInfo;
-      
-      // Gather scripts from all tabs for this module
-      const scripts: { 
-        collection?: { content: string; language: ScriptLanguage }; 
-        ad?: { content: string; language: ScriptLanguage };
-      } = {};
-      
-      // Find all tabs for this module
-      const moduleTabs = tabs.filter(
-        t => t.source?.type === 'module' &&
-             t.source.moduleId === source.moduleId &&
-             t.source.moduleType === source.moduleType &&
-             t.source.portalId === source.portalId
-      );
-      
-      for (const moduleTab of moduleTabs) {
-        if (moduleTab.source?.scriptType === 'collection') {
-          scripts.collection = { content: moduleTab.content, language: moduleTab.language };
-        } else if (moduleTab.source?.scriptType === 'ad') {
-          scripts.ad = { content: moduleTab.content, language: moduleTab.language };
-        }
-      }
-      
-      // If no scripts found from other tabs, use current tab
-      if (!scripts.collection && !scripts.ad) {
-        if (source.scriptType === 'collection') {
-          scripts.collection = { content: tab.content, language: tab.language };
-        } else if (source.scriptType === 'ad') {
-          scripts.ad = { content: tab.content, language: tab.language };
-        }
-      }
-      
-      // Clone to repository
-      const result = await cloneToRepo(
-        repo,
-        source.portalId,
-        source.portalHostname,
-        moduleInfo,
-        scripts,
-        { overwrite }
-      );
-      
-      // Update tab file handles if successful
-      if (result.success && result.fileHandles && result.filenames) {
-        // Re-read tabs from state to avoid overwriting concurrent changes
-        const currentTabs = get().tabs;
-        const updatedTabs: EditorTab[] = [];
-        
-        for (const t of currentTabs) {
-          if (t.source?.type === 'module' &&
-              t.source.moduleId === source.moduleId &&
-              t.source.moduleType === source.moduleType &&
-              t.source.portalId === source.portalId) {
-            const scriptType = t.source.scriptType;
-            const fileHandle = scriptType === 'ad' ? result.fileHandles.ad : result.fileHandles.collection;
-            const filename = scriptType === 'ad' ? result.filenames.ad : result.filenames.collection;
-            
-            if (fileHandle && filename) {
-              // Save file handle to document-store for save operations
-              await documentStore.saveFileHandle(t.id, fileHandle, filename);
-              
-              updatedTabs.push({
-                ...t,
-                hasFileHandle: true,
-                isLocalFile: true,
-                // Update display name to show the filename from repo
-                displayName: `${source.moduleName || t.displayName.split('/')[0]}/${scriptType === 'ad' ? 'AD' : 'Collection'}`,
-                // Track portal content separately for commit detection
-                // This represents what's currently on the portal
-                portalContent: t.originalContent ?? t.content,
-              });
-              continue;
-            }
-          }
-          updatedTabs.push(t);
-        }
-        set({ tabs: updatedTabs } as Partial<ModuleSlice & ModuleSliceDependencies>);
-      }
-      
-      return result;
-    } catch (error) {
-      console.error('[cloneModuleToRepository] Error:', error);
-      return {
-        success: false,
-        repositoryId: repositoryId || '',
-        modulePath: '',
-        fileIds: {},
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
-    }
   },
 
   // ==========================================================================
@@ -1580,34 +1357,11 @@ export const createModuleSlice: StateCreator<
                 ...t, 
                 content: scriptContent!,
                 originalContent: scriptContent!,
-                // Update portalContent for cloned files (tracks what's on portal for commit detection)
-                portalContent: t.isLocalFile ? scriptContent! : t.portalContent,
               }
             : t
         );
         
         set({ tabs: updatedTabs, isPullingLatest: false } as Partial<ModuleSlice & ModuleSliceDependencies>);
-        
-        // Update local files if this is a repository-backed tab
-        if (tab.hasFileHandle && tab.isLocalFile) {
-          try {
-            const { getModuleFile } = await import('../../utils/document-store');
-            const { updateModuleFilesAfterPull } = await import('../../utils/module-repository');
-            
-            const storedFile = await getModuleFile(tabId);
-            if (storedFile) {
-              await updateModuleFilesAfterPull(
-                tabId,
-                scriptType === 'collection' ? scriptContent : undefined,
-                scriptType === 'ad' ? scriptContent : undefined,
-                module.version
-              );
-            }
-          } catch (fileError) {
-            console.warn('[pullLatestFromPortal] Could not update local files:', fileError);
-            // Don't fail the pull - just warn
-          }
-        }
         
         toast.success('Pulled latest from portal', {
           description: `Updated ${source.moduleName || 'module'} ${scriptType === 'ad' ? 'AD' : 'collection'} script`,
@@ -1632,11 +1386,4 @@ export const createModuleSlice: StateCreator<
     }
   },
 
-  // ==========================================================================
-  // Repository Browser
-  // ==========================================================================
-
-  setRepositoryBrowserOpen: (open: boolean) => {
-    set({ repositoryBrowserOpen: open });
-  },
 });

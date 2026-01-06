@@ -27,7 +27,7 @@ import type { EditorTab, Portal, LogicModuleType } from '@/shared/types';
 import { getDefaultScriptTemplate } from '../config/script-templates';
 import { getPortalBindingStatus } from '../utils/portal-binding';
 import { normalizeMode } from '../utils/mode-utils';
-import { isFileDirty, hasPortalChanges, getDocumentType } from '../utils/document-helpers';
+import { isFileDirty, hasPortalChanges } from '../utils/document-helpers';
 import {
   CollectionIcon,
   ConfigSourceIcon,
@@ -273,12 +273,13 @@ function TabItem({
                   )}
                   
                   {/* Tab name */}
-                  <span className="truncate flex-1 text-left">
+                  <span className="truncate flex-1 text-left flex items-center gap-1.5">
                     {tab.displayName}
                     {tab.hasFileHandle && (
                       <span className="text-[10px] text-muted-foreground ml-1 opacity-70">(local)</span>
                     )}
                   </span>
+                  
 
                   {isPortalBound && (
                     <span
@@ -655,7 +656,7 @@ export function TabBar() {
             isRenaming={renamingTabId === tab.id}
             isFileDirty={isFileDirty(tab)}
             hasPortalChanges={hasPortalChanges(tab)}
-            canRename={!tab.hasFileHandle && getDocumentType(tab) !== 'repository'}
+            canRename={!tab.hasFileHandle}
             selectedPortalId={selectedPortalId}
             portals={portals}
             onActivate={() => setActiveTab(tab.id)}

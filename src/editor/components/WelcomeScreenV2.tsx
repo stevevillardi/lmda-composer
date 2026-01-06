@@ -10,8 +10,6 @@ import {
   FolderSearch,
   Terminal,
   Braces,
-  GitBranch,
-  Globe,
 } from 'lucide-react';
 import { useEditorStore } from '../stores/editor-store';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -88,20 +86,12 @@ interface RecentFileItemProps {
   fileName: string;
   lastAccessed: number;
   onClick: () => void;
-  isRepositoryModule?: boolean;
-  moduleName?: string;
-  scriptType?: 'collection' | 'ad';
-  portalHostname?: string;
 }
 
 function RecentFileItem({ 
   fileName, 
   lastAccessed, 
   onClick,
-  isRepositoryModule,
-  moduleName,
-  scriptType,
-  portalHostname,
 }: RecentFileItemProps) {
   const formatTimeAgo = (timestamp: number) => {
     const seconds = Math.floor((Date.now() - timestamp) / 1000);
@@ -130,11 +120,6 @@ function RecentFileItem({
     );
   };
 
-  // For repository modules, show a more descriptive name
-  const displayName = isRepositoryModule && moduleName 
-    ? `${moduleName}/${scriptType === 'ad' ? 'AD' : 'Collection'}`
-    : fileName;
-
   return (
     <button
       onClick={onClick}
@@ -143,28 +128,13 @@ function RecentFileItem({
         "hover:bg-accent transition-colors group"
       )}
     >
-      {isRepositoryModule ? (
-        <GitBranch className="size-4 text-green-500 group-hover:text-green-400 shrink-0" />
-      ) : (
-        <FileCode className="size-4 text-muted-foreground group-hover:text-primary shrink-0" />
-      )}
+      <FileCode className="size-4 text-muted-foreground group-hover:text-primary shrink-0" />
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <span className="text-sm truncate text-foreground group-hover:text-primary">
-            {displayName}
-          </span>
-          {isRepositoryModule && portalHostname && (
-            <span className="flex items-center gap-1 text-xs text-muted-foreground/70 shrink-0">
-              <Globe className="size-3" />
-              {portalHostname.replace('.logicmonitor.com', '')}
-            </span>
-          )}
-        </div>
-        {isRepositoryModule && (
-          <div className="text-xs text-muted-foreground/60 truncate">
             {fileName}
-          </div>
-        )}
+          </span>
+        </div>
       </div>
       <span className="text-xs text-muted-foreground/60 shrink-0 hidden sm:block">
         {formatDate(lastAccessed)}
@@ -311,10 +281,6 @@ export function WelcomeScreenV2() {
                         fileName={file.fileName}
                         lastAccessed={file.lastAccessed}
                         onClick={() => openRecentFile(file.tabId)}
-                        isRepositoryModule={file.isRepositoryModule}
-                        moduleName={file.moduleName}
-                        scriptType={file.scriptType}
-                        portalHostname={file.portalHostname}
                       />
                     ))}
                   </div>

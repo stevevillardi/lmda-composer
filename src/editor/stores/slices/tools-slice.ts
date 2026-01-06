@@ -356,7 +356,7 @@ export interface ToolsSliceActions {
   // Module details
   setModuleDetailsDialogOpen: (open: boolean) => void;
   loadModuleDetails: (tabId: string) => Promise<void>;
-  updateModuleDetailsField: (tabId: string, field: string, value: unknown) => void;
+  updateModuleDetailsField: (tabId: string, field: string, value: unknown) => Promise<void>;
   resetModuleDetailsDraft: (tabId: string) => void;
   fetchAccessGroups: (tabId: string) => Promise<void>;
 }
@@ -1477,7 +1477,7 @@ export const createToolsSlice: StateCreator<
     }
   },
 
-  updateModuleDetailsField: (tabId: string, field: string, value: unknown) => {
+  updateModuleDetailsField: async (tabId: string, field: string, value: unknown) => {
     const { tabs, moduleDetailsDraftByTabId } = get();
     const draft = moduleDetailsDraftByTabId[tabId];
     if (!draft) return;
@@ -1516,6 +1516,7 @@ export const createToolsSlice: StateCreator<
     });
 
     set({ moduleDetailsDraftByTabId: updatedDrafts });
+    
   },
 
   resetModuleDetailsDraft: (tabId: string) => {
@@ -1573,7 +1574,7 @@ export const createToolsSlice: StateCreator<
 
       if (response?.type === 'ACCESS_GROUPS_FETCHED') {
         set({
-          accessGroups: response.payload.groups || [],
+          accessGroups: response.payload.accessGroups || [],
           isLoadingAccessGroups: false,
         });
       } else if (response?.type === 'ACCESS_GROUPS_ERROR') {

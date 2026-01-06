@@ -9,7 +9,6 @@
  */
 
 import type { StateCreator } from 'zustand';
-import { toast } from 'sonner';
 import type { 
   EditorTab, 
   ScriptLanguage, 
@@ -76,10 +75,6 @@ export interface TabsSliceState {
     tabId: string; 
     fileName: string; 
     lastAccessed: number;
-    isRepositoryModule?: boolean;
-    moduleName?: string;
-    scriptType?: 'collection' | 'ad';
-    portalHostname?: string;
   }>;
   isLoadingRecentFiles: boolean;
 }
@@ -124,7 +119,6 @@ export interface TabsSliceActions {
   
   // File operations
   openFileFromDisk: () => Promise<void>;
-  openModuleFromRepository: () => Promise<void>;
   saveFile: (tabId?: string) => Promise<boolean>;
   saveFileAs: (tabId?: string) => Promise<boolean>;
   restoreFileHandles: () => Promise<void>;
@@ -223,7 +217,6 @@ export const createTabsSlice: StateCreator<
       originalContent: tabData.originalContent,
       hasFileHandle: tabData.hasFileHandle,
       isLocalFile: tabData.isLocalFile,
-      portalContent: tabData.portalContent,
     };
     
     const { tabs, activeTabId } = get();
@@ -728,30 +721,10 @@ export const createTabsSlice: StateCreator<
       // Store handle in IndexedDB
       await documentStore.saveFileHandle(tabId, handle, fileName);
       
-      // Try to restore module binding from stored module files
-      let source: EditorTabSource = { type: 'file' };
-      let displayName = fileName;
-      let mode: ScriptMode = 'freeform';
-      
-      try {
-        const { restoreModuleBinding } = await import('../../utils/module-repository');
-        const binding = await restoreModuleBinding(tabId);
-        
-        if (binding) {
-          source = binding.source;
-          displayName = `${binding.manifest.module.name}/${binding.scriptType === 'ad' ? 'AD' : 'Collection'}`;
-          mode = binding.scriptType === 'ad' ? 'ad' : 'collection';
-          
-          toast.success('Module binding restored', {
-            description: `Linked to ${binding.manifest.portal.hostname} - ${binding.manifest.module.name}`,
-          });
-        }
-      } catch (bindError) {
-        // Binding restoration failed - continue as regular file
-        console.debug('[openFileFromDisk] Could not restore module binding:', bindError);
-      }
-      
       // Create new tab
+      const source: EditorTabSource = { type: 'file' };
+      const displayName = fileName;
+      const mode: ScriptMode = 'freeform';
       const newTab: EditorTab = {
         id: tabId,
         displayName,
@@ -776,149 +749,6 @@ export const createTabsSlice: StateCreator<
     }
   },
 
-  openModuleFromRepository: async () => {
-    try {
-      const { openModuleFromDirectory, MODULE_TYPE_DIRS } = await import('../../utils/module-repository');
-      const { saveModuleFile, generateId } = await import('../../utils/document-store');
-      
-      const result = await openModuleFromDirectory();
-      if (!result) {
-        // User cancelled
-        return;
-      }
-      
-      const { manifest, scripts, directoryHandle } = result;
-      const { tabs, portals } = get();
-      
-      // Check if the portal is connected
-      const matchingPortal = portals.find(p => p.hostname === manifest.portal.hostname);
-      const isPortalConnected = !!matchingPortal;
-      
-      // Create tabs for each script
-      const newTabs: EditorTab[] = [];
-      
-      // Determine repository ID
-      const repositoryId = result.repositoryId || '';
-      
-      if (scripts.collection && manifest.scripts.collection) {
-        const tabId = generateId();
-        
-        // Store file mapping
-        const fileHandle = await directoryHandle.getFileHandle(manifest.scripts.collection.filename);
-        await saveModuleFile({
-          fileId: tabId,
-          repositoryId,
-          fileHandle,
-          moduleDirectoryHandle: directoryHandle,
-          relativePath: `${manifest.portal.hostname}/${MODULE_TYPE_DIRS[manifest.module.type]}/${manifest.module.name}/${manifest.scripts.collection.filename}`,
-          scriptType: 'collection',
-          lastAccessed: Date.now(),
-        });
-        
-        // Store in file handle store for save operations
-        await documentStore.saveFileHandle(tabId, fileHandle, manifest.scripts.collection.filename);
-        
-        const source: EditorTabSource = {
-          type: 'module',
-          moduleId: manifest.module.id,
-          moduleName: manifest.module.name,
-          moduleType: manifest.module.type,
-          scriptType: 'collection',
-          lineageId: manifest.module.lineageId,
-          portalId: manifest.portal.id,
-          portalHostname: manifest.portal.hostname,
-        };
-        
-        newTabs.push({
-          id: tabId,
-          displayName: `${manifest.module.name}/Collection`,
-          content: scripts.collection,
-          language: manifest.scripts.collection.language,
-          mode: 'collection',
-          originalContent: scripts.collection,
-          portalContent: scripts.collection, // Assume file content matches portal on open
-          hasFileHandle: true,
-          isLocalFile: true,
-          source,
-        });
-      }
-      
-      if (scripts.ad && manifest.scripts.ad) {
-        const tabId = generateId();
-        
-        // Store file mapping
-        const fileHandle = await directoryHandle.getFileHandle(manifest.scripts.ad.filename);
-        await saveModuleFile({
-          fileId: tabId,
-          repositoryId,
-          fileHandle,
-          moduleDirectoryHandle: directoryHandle,
-          relativePath: `${manifest.portal.hostname}/${MODULE_TYPE_DIRS[manifest.module.type]}/${manifest.module.name}/${manifest.scripts.ad.filename}`,
-          scriptType: 'ad',
-          lastAccessed: Date.now(),
-        });
-        
-        // Store in file handle store for save operations
-        await documentStore.saveFileHandle(tabId, fileHandle, manifest.scripts.ad.filename);
-        
-        const source: EditorTabSource = {
-          type: 'module',
-          moduleId: manifest.module.id,
-          moduleName: manifest.module.name,
-          moduleType: manifest.module.type,
-          scriptType: 'ad',
-          lineageId: manifest.module.lineageId,
-          portalId: manifest.portal.id,
-          portalHostname: manifest.portal.hostname,
-        };
-        
-        newTabs.push({
-          id: tabId,
-          displayName: `${manifest.module.name}/AD`,
-          content: scripts.ad,
-          language: manifest.scripts.ad.language,
-          mode: 'ad',
-          originalContent: scripts.ad,
-          portalContent: scripts.ad, // Assume file content matches portal on open
-          hasFileHandle: true,
-          isLocalFile: true,
-          source,
-        });
-      }
-      
-      if (newTabs.length === 0) {
-        toast.warning('No scripts found in module', {
-          description: 'The selected module directory does not contain any script files.',
-        });
-        return;
-      }
-      
-      // Add tabs and activate the first one
-      set({
-        tabs: [...tabs, ...newTabs],
-        activeTabId: newTabs[0].id,
-      });
-      
-      const scriptCount = newTabs.length;
-      if (isPortalConnected) {
-        toast.success(`Opened ${scriptCount} script${scriptCount > 1 ? 's' : ''} from repository`, {
-          description: `${manifest.module.name} - linked to ${manifest.portal.hostname}`,
-        });
-      } else {
-        toast.warning(`Opened ${scriptCount} script${scriptCount > 1 ? 's' : ''} from repository`, {
-          description: `${manifest.module.name} - portal ${manifest.portal.hostname} not connected. Connect to the portal to commit changes.`,
-        });
-      }
-    } catch (error) {
-      if ((error as Error).name === 'AbortError') {
-        return;
-      }
-      console.error('[openModuleFromRepository] Error:', error);
-      toast.error('Failed to open module', {
-        description: error instanceof Error ? error.message : 'Unknown error',
-      });
-    }
-  },
 
   saveFile: async (tabId?: string) => {
     const { tabs, activeTabId, setSaveOptionsDialogOpen } = get();
@@ -1202,34 +1032,7 @@ export const createTabsSlice: StateCreator<
     try {
       const recentFiles = await documentStore.getRecentFileHandles(10);
       
-      // Enrich recent files with repository/module info
-      const { getModuleFile } = await import('../../utils/document-store');
-      const { readManifest } = await import('../../utils/module-repository');
-      
-      const enrichedFiles = await Promise.all(
-        recentFiles.map(async (file) => {
-          try {
-            const moduleFile = await getModuleFile(file.tabId);
-            if (moduleFile) {
-              const manifest = await readManifest(moduleFile.moduleDirectoryHandle);
-              if (manifest) {
-                return {
-                  ...file,
-                  isRepositoryModule: true,
-                  moduleName: manifest.module.name,
-                  scriptType: moduleFile.scriptType,
-                  portalHostname: manifest.portal.hostname,
-                };
-              }
-            }
-          } catch {
-            // Ignore errors - just return the file without module info
-          }
-          return file;
-        })
-      );
-      
-      set({ recentFiles: enrichedFiles, isLoadingRecentFiles: false });
+      set({ recentFiles, isLoadingRecentFiles: false });
     } catch (error) {
       console.error('Failed to load recent files:', error);
       set({ recentFiles: [], isLoadingRecentFiles: false });
@@ -1266,81 +1069,17 @@ export const createTabsSlice: StateCreator<
       // Update lastAccessed
       await documentStore.saveFileHandle(tabId, handle, fileName);
 
-      // Check if this is a repository-backed module file
-      let newTab: EditorTab;
-      
-      try {
-        const { getModuleFile } = await import('../../utils/document-store');
-        const { readManifest } = await import('../../utils/module-repository');
-        
-        const moduleFile = await getModuleFile(tabId);
-        if (moduleFile) {
-          // This is a repository-backed module - load the manifest
-          const manifest = await readManifest(moduleFile.moduleDirectoryHandle);
-          if (manifest) {
-            const source: EditorTabSource = {
-              type: 'module',
-              moduleId: manifest.module.id,
-              moduleName: manifest.module.name,
-              moduleType: manifest.module.type,
-              scriptType: moduleFile.scriptType,
-              lineageId: manifest.module.lineageId,
-              portalId: manifest.portal.id,
-              portalHostname: manifest.portal.hostname,
-            };
-            
-            newTab = {
-              id: tabId,
-              displayName: `${manifest.module.name}/${moduleFile.scriptType === 'ad' ? 'AD' : 'Collection'}`,
-              content,
-              language: manifest.scripts[moduleFile.scriptType]?.language || language,
-              mode: moduleFile.scriptType === 'ad' ? 'ad' : 'collection',
-              originalContent: content,
-              portalContent: content, // Assume file content matches portal on open
-              hasFileHandle: true,
-              isLocalFile: true,
-              source,
-            };
-          } else {
-            // Manifest not found, fall back to regular file
-            newTab = {
-              id: tabId,
-              displayName: fileName,
-              content,
-              language,
-              mode: 'freeform',
-              originalContent: content,
-              hasFileHandle: true,
-              isLocalFile: true,
-            };
-          }
-        } else {
-          // Not a module file, create regular file tab
-          newTab = {
-            id: tabId,
-            displayName: fileName,
-            content,
-            language,
-            mode: 'freeform',
-            originalContent: content,
-            hasFileHandle: true,
-            isLocalFile: true,
-          };
-        }
-      } catch (moduleError) {
-        console.warn('Could not check for module file:', moduleError);
-        // Fall back to regular file tab
-        newTab = {
-          id: tabId,
-          displayName: fileName,
-          content,
-          language,
-          mode: 'freeform',
-          originalContent: content,
-          hasFileHandle: true,
-          isLocalFile: true,
-        };
-      }
+      // Create regular file tab
+      const newTab: EditorTab = {
+        id: tabId,
+        displayName: fileName,
+        content,
+        language,
+        mode: 'freeform',
+        originalContent: content,
+        hasFileHandle: true,
+        isLocalFile: true,
+      };
 
       set({
         tabs: [...get().tabs, newTab],

@@ -184,6 +184,7 @@ export function LogicModuleSearch() {
   const collectionDecorationsRef = useRef<string[]>([]);
 
   const monacoTheme = useMemo(() => getMonacoTheme(preferences), [preferences]);
+  
 
   const previewOptions = useMemo(() => buildMonacoOptions(preferences, {
     readOnly: true,
@@ -478,15 +479,17 @@ export function LogicModuleSearch() {
                         onClick={() => setSelectedScriptSearchResult(result)}
                       >
                         <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <div className="text-sm font-medium truncate">
-                              {result.module.displayName || result.module.name}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5">
+                              <div className="text-sm font-medium truncate">
+                                {result.module.displayName || result.module.name}
+                              </div>
                             </div>
                             <div className="text-xs text-muted-foreground font-mono truncate">
                               {result.module.name}
                             </div>
                           </div>
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-1 shrink-0">
                             {adCount > 0 && (
                               <Badge
                                 variant="secondary"
