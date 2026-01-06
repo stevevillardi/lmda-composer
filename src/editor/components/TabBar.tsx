@@ -27,7 +27,7 @@ import type { EditorTab, Portal, LogicModuleType } from '@/shared/types';
 import { getDefaultScriptTemplate } from '../config/script-templates';
 import { getPortalBindingStatus } from '../utils/portal-binding';
 import { normalizeMode } from '../utils/mode-utils';
-import { isFileDirty, hasPortalChanges } from '../utils/document-helpers';
+import { isFileDirty, hasPortalChanges, hasAssociatedFileHandle } from '../utils/document-helpers';
 import {
   CollectionIcon,
   ConfigSourceIcon,
@@ -277,7 +277,7 @@ function TabItem({
                   {/* Tab name */}
                   <span className="min-w-0 flex-1 text-left flex items-center gap-1.5 overflow-hidden">
                     <span className="truncate">{tab.displayName}</span>
-                    {tab.hasFileHandle && (
+                    {hasAssociatedFileHandle(tab) && (
                       <span className="text-[10px] text-muted-foreground ml-1 opacity-70 flex-shrink-0">(local)</span>
                     )}
                   </span>
@@ -405,7 +405,7 @@ function TabItem({
         <div className="text-[10px] text-muted-foreground mt-0.5">
           {tab.kind === 'api'
             ? 'API request tab'
-            : tab.hasFileHandle 
+            : hasAssociatedFileHandle(tab) 
               ? 'Local file • Saved to disk' 
               : 'Double-click to rename'}
         </div>
@@ -516,7 +516,7 @@ export function TabBar() {
     }
 
     // Determine which save function to use
-    const saved = tab.hasFileHandle 
+    const saved = hasAssociatedFileHandle(tab) 
       ? await saveFile(pendingCloseTabId)
       : await saveFileAs(pendingCloseTabId);
     
@@ -584,7 +584,7 @@ export function TabBar() {
   // Get pending tab info
   const pendingTab = pendingCloseTabId ? tabs.find(t => t.id === pendingCloseTabId) : null;
   const isModuleTab = pendingTab?.source?.type === 'module';
-  const isLocalFile = pendingTab?.hasFileHandle;
+  const isLocalFile = pendingTab ? hasAssociatedFileHandle(pendingTab) : false;
   const canCommit = pendingCloseTabId && canCommitModule(pendingCloseTabId);
   // Create a new untitled tab
   const handleNewTab = () => {
@@ -630,7 +630,7 @@ export function TabBar() {
             isRenaming={renamingTabId === tab.id}
             isFileDirty={isFileDirty(tab)}
             hasPortalChanges={hasPortalChanges(tab)}
-            canRename={!tab.hasFileHandle}
+            canRename={!hasAssociatedFileHandle(tab)}
             selectedPortalId={selectedPortalId}
             portals={portals}
             onActivate={() => setActiveTab(tab.id)}

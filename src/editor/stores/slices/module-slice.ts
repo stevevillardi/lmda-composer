@@ -25,9 +25,14 @@ import type {
 } from '@/shared/types';
 import type { ModuleDetailsDraft } from './tools-slice';
 import { toast } from 'sonner';
-import { hasPortalChanges, updateDocumentAfterPush } from '../../utils/document-helpers';
+import { hasPortalChanges, updateDocumentAfterPush, getOriginalContent } from '../../utils/document-helpers';
 import { getPortalBindingStatus } from '../../utils/portal-binding';
 import { MODULE_TYPE_SCHEMAS, getSchemaFieldName } from '@/shared/module-type-schemas';
+import { 
+  isPlainObject, 
+  ensurePortalBindingActive, 
+  getModuleTabIds 
+} from '../helpers/slice-helpers';
 
 // ============================================================================
 // Types
@@ -253,43 +258,6 @@ export const moduleSliceInitialState: ModuleSliceState = {
 let activeModuleSearchListener: ((message: unknown) => boolean) | null = null;
 
 // ============================================================================
-// Helper Functions
-// ============================================================================
-
-const isPlainObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
-
-const ensurePortalBindingActive = (
-  tab: EditorTab,
-  selectedPortalId: string | null,
-  portals: Portal[]
-) => {
-  const binding = getPortalBindingStatus(tab, selectedPortalId, portals);
-  if (!binding.isActive) {
-    throw new Error(binding.reason || 'Portal is not active for this tab.');
-  }
-  return binding;
-};
-
-const getModuleTabIds = (tabs: EditorTab[], tabId: string): string[] => {
-  const tab = tabs.find((t) => t.id === tabId);
-  if (!tab || tab.source?.type !== 'module' || !tab.source.moduleId || !tab.source.moduleType) {
-    return [tabId];
-  }
-  const source = tab.source;
-  const portalId = source.portalId;
-  return tabs
-    .filter(
-      (t) =>
-        t.source?.type === 'module' &&
-        t.source.moduleId === source.moduleId &&
-        t.source.moduleType === source.moduleType &&
-        t.source.portalId === portalId
-    )
-    .map((t) => t.id);
-};
-
-// ============================================================================
 // Slice Creator
 // ============================================================================
 
@@ -335,7 +303,9 @@ export const createModuleSlice: StateCreator<
     const { selectedPortalId, modulesMeta, modulesSearch } = get();
     if (!selectedPortalId) return;
 
-    const pages = Math.max(1, options?.pages ?? 1);
+    // Safety limit to prevent infinite loops in case API misbehaves
+    const MAX_RECURSIVE_PAGES = 10;
+    const pages = Math.min(Math.max(1, options?.pages ?? 1), MAX_RECURSIVE_PAGES);
     if (pages > 1 && !options?.append) {
       for (let i = 0; i < pages; i++) {
         await get().fetchModules(type, {
@@ -1024,8 +994,8 @@ export const createModuleSlice: StateCreator<
         }
         
         // Check for conflicts: compare fetched script with original content
-        const originalContent = tab.originalContent || '';
-        const hasConflict = originalContent.trim() !== currentScript.trim();
+        const origContent = getOriginalContent(tab) || '';
+        const hasConflict = origContent.trim() !== currentScript.trim();
         
         // Normalize scriptType - API may return different casings
         const rawScriptType = module.scriptType || module.collectorAttribute?.scriptType || 'embed';
@@ -1053,7 +1023,7 @@ export const createModuleSlice: StateCreator<
         });
         
         // If there's a conflict, update the originalContent to the current server state
-        if (hasConflict && currentScript !== originalContent) {
+        if (hasConflict && currentScript !== origContent) {
           set({
             tabs: tabs.map(t =>
               t.id === tabId
@@ -1109,7 +1079,7 @@ export const createModuleSlice: StateCreator<
       const hasModuleDetailsChanges = moduleDetailsDraft && moduleDetailsDraft.dirtyFields.size > 0;
       
       // Check if script has changes compared to portal
-      const hasScriptChanges = tab.content !== tab.originalContent;
+      const hasScriptChanges = tab.content !== getOriginalContent(tab);
       
       if (!hasScriptChanges && !hasModuleDetailsChanges) {
         throw new Error('No changes to push');

@@ -8,6 +8,7 @@ import type { UserPreferences, EditorTab, ScriptLanguage, ScriptMode } from '@/s
 import { DEFAULT_PREFERENCES } from '@/shared/types';
 import { DEFAULT_GROOVY_TEMPLATE, DEFAULT_POWERSHELL_TEMPLATE } from '../../config/script-templates';
 import { getExtensionForLanguage } from '../../utils/file-extensions';
+import { normalizeScript } from '../helpers/slice-helpers';
 
 // ============================================================================
 // Types
@@ -172,9 +173,8 @@ export const createUISlice: StateCreator<
         }
         const currentScript = activeTab?.content ?? '';
         
-        const normalize = (s: string) => s.trim().replace(/\r\n/g, '\n');
-        const isDefaultGroovy = normalize(currentScript) === normalize(DEFAULT_GROOVY_TEMPLATE);
-        const isDefaultPowershell = normalize(currentScript) === normalize(DEFAULT_POWERSHELL_TEMPLATE);
+        const isDefaultGroovy = normalizeScript(currentScript) === normalizeScript(DEFAULT_GROOVY_TEMPLATE);
+        const isDefaultPowershell = normalizeScript(currentScript) === normalizeScript(DEFAULT_POWERSHELL_TEMPLATE);
         const isInitialState = isDefaultGroovy || isDefaultPowershell;
         
         // Apply default language/mode from preferences if in initial state

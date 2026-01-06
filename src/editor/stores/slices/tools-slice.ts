@@ -24,7 +24,12 @@ import type {
 import { APPLIES_TO_FUNCTIONS } from '../../data/applies-to-functions';
 import { MODULE_TYPE_SCHEMAS, getSchemaFieldName } from '@/shared/module-type-schemas';
 import { generateModuleSnippetImport } from '../../data/module-snippet-import';
-import { getPortalBindingStatus } from '../../utils/portal-binding';
+import { 
+  deepEqual, 
+  ensurePortalBindingActive, 
+  getModuleTabIds,
+  normalizeAccessGroupIds,
+} from '../helpers/slice-helpers';
 
 // ============================================================================
 // Storage Keys
@@ -32,72 +37,6 @@ import { getPortalBindingStatus } from '../../utils/portal-binding';
 
 const STORAGE_KEY_USER_SNIPPETS = 'lm-ide-user-snippets';
 
-// ============================================================================
-// Helper Functions
-// ============================================================================
-
-const isPlainObject = (value: unknown): value is Record<string, unknown> =>
-  typeof value === 'object' && value !== null && !Array.isArray(value);
-
-const deepEqual = (a: unknown, b: unknown): boolean => {
-  if (Object.is(a, b)) {
-    return true;
-  }
-  if (Array.isArray(a) && Array.isArray(b)) {
-    if (a.length !== b.length) return false;
-    return a.every((item, index) => deepEqual(item, b[index]));
-  }
-  if (isPlainObject(a) && isPlainObject(b)) {
-    const keysA = Object.keys(a);
-    const keysB = Object.keys(b);
-    if (keysA.length !== keysB.length) return false;
-    return keysA.every((key) => deepEqual(a[key], b[key]));
-  }
-  return false;
-};
-
-const normalizeAccessGroupIds = (value: unknown): number[] => {
-  if (Array.isArray(value)) {
-    return value
-      .map((id) => (typeof id === 'string' ? parseInt(id, 10) : id))
-      .filter((id) => typeof id === 'number' && !Number.isNaN(id))
-      .sort((a, b) => a - b);
-  }
-  if (typeof value === 'string' && value.trim()) {
-    return value.split(',').map((s) => parseInt(s.trim(), 10)).filter((n) => !Number.isNaN(n)).sort((a, b) => a - b);
-  }
-  return [];
-};
-
-const ensurePortalBindingActive = (
-  tab: EditorTab,
-  selectedPortalId: string | null,
-  portals: Portal[]
-) => {
-  const binding = getPortalBindingStatus(tab, selectedPortalId, portals);
-  if (!binding.isActive) {
-    throw new Error(binding.reason || 'Portal is not active for this tab.');
-  }
-  return binding;
-};
-
-const getModuleTabIds = (tabs: EditorTab[], tabId: string): string[] => {
-  const tab = tabs.find((t) => t.id === tabId);
-  if (!tab || tab.source?.type !== 'module' || !tab.source.moduleId || !tab.source.moduleType) {
-    return [tabId];
-  }
-  const source = tab.source;
-  const portalId = source.portalId;
-  return tabs
-    .filter(
-      (t) =>
-        t.source?.type === 'module' &&
-        t.source.moduleId === source.moduleId &&
-        t.source.moduleType === source.moduleType &&
-        t.source.portalId === portalId
-    )
-    .map((t) => t.id);
-};
 
 const findModuleDraftForTab = (
   drafts: Record<string, ModuleDetailsDraft>,

@@ -25,6 +25,7 @@ import { createScratchDocument, isFileDirty, getDocumentType, convertToLocalDocu
 import { getDefaultScriptTemplate, DEFAULT_GROOVY_TEMPLATE, DEFAULT_POWERSHELL_TEMPLATE } from '../../config/script-templates';
 import { normalizeMode } from '../../utils/mode-utils';
 import * as documentStore from '../../utils/document-store';
+import { normalizeScript } from '../helpers/slice-helpers';
 import type { ParseResult } from '../../utils/output-parser';
 
 // ============================================================================
@@ -459,9 +460,8 @@ export const createTabsSlice: StateCreator<
     if (language === activeTab.language) return;
     
     // Normalize scripts for comparison (trim whitespace, normalize line endings)
-    const normalize = (s: string) => s.trim().replace(/\r\n/g, '\n');
-    const isDefaultGroovy = normalize(activeTab.content) === normalize(DEFAULT_GROOVY_TEMPLATE);
-    const isDefaultPowershell = normalize(activeTab.content) === normalize(DEFAULT_POWERSHELL_TEMPLATE);
+    const isDefaultGroovy = normalizeScript(activeTab.content) === normalizeScript(DEFAULT_GROOVY_TEMPLATE);
+    const isDefaultPowershell = normalizeScript(activeTab.content) === normalizeScript(DEFAULT_POWERSHELL_TEMPLATE);
     
     // Determine new content
     let newContent = activeTab.content;
@@ -544,16 +544,13 @@ export const createTabsSlice: StateCreator<
     try {
       const { tabs, activeTabId, hasSavedDraft } = get();
       
-      // Normalize for comparison
-      const normalize = (s: string) => s.trim().replace(/\r\n/g, '\n');
-      
       // Check if all tabs are default templates (nothing to save)
       const hasApiTabs = tabs.some(tab => tab.kind === 'api');
       const hasNonDefaultContent = hasApiTabs || tabs.some(tab => {
         if (tab.kind === 'api') return false;
-        const normalizedContent = normalize(tab.content);
-        const isDefaultGroovy = normalizedContent === normalize(DEFAULT_GROOVY_TEMPLATE);
-        const isDefaultPowershell = normalizedContent === normalize(DEFAULT_POWERSHELL_TEMPLATE);
+        const normalizedContent = normalizeScript(tab.content);
+        const isDefaultGroovy = normalizedContent === normalizeScript(DEFAULT_GROOVY_TEMPLATE);
+        const isDefaultPowershell = normalizedContent === normalizeScript(DEFAULT_POWERSHELL_TEMPLATE);
         return !isDefaultGroovy && !isDefaultPowershell;
       });
       
@@ -778,7 +775,7 @@ export const createTabsSlice: StateCreator<
 
 
   saveFile: async (tabId?: string) => {
-    const { tabs, activeTabId, setSaveOptionsDialogOpen } = get();
+    const { activeTabId, setSaveOptionsDialogOpen } = get();
     const targetTabId = tabId ?? activeTabId;
     if (!targetTabId) return false;
     

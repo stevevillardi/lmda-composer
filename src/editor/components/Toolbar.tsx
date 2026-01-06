@@ -53,6 +53,8 @@ import { ContextDropdown } from './ContextDropdown';
 import { ActionsDropdown } from './ActionsDropdown';
 import { getPortalBindingStatus } from '../utils/portal-binding';
 import { normalizeMode } from '../utils/mode-utils';
+import { normalizeScript } from '../stores/helpers/slice-helpers';
+import { hasAssociatedFileHandle } from '../utils/document-helpers';
 
 interface ModeItem {
   value: ScriptMode;
@@ -130,13 +132,12 @@ export function Toolbar() {
     
     // If the tab has a file handle (saved local file), don't warn - the file is already saved
     // Switching language will just disconnect the handle and the original file remains
-    if (activeTab.hasFileHandle) return false;
+    if (hasAssociatedFileHandle(activeTab)) return false;
     
     // For scratch files, check if content differs from default templates
-    const normalize = (s: string) => s.trim().replace(/\r\n/g, '\n');
-    const content = normalize(activeTab.content);
-    const defaultGroovy = normalize(DEFAULT_GROOVY_TEMPLATE);
-    const defaultPs = normalize(DEFAULT_POWERSHELL_TEMPLATE);
+    const content = normalizeScript(activeTab.content);
+    const defaultGroovy = normalizeScript(DEFAULT_GROOVY_TEMPLATE);
+    const defaultPs = normalizeScript(DEFAULT_POWERSHELL_TEMPLATE);
     return content !== defaultGroovy && content !== defaultPs;
   }, [activeTab]);
 

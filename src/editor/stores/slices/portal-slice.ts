@@ -378,14 +378,23 @@ export const createPortalSlice: StateCreator<
             : null;
           
           if (lastPortal) {
+            // Guard: Check if portal was manually selected during async operation
+            if (get().selectedPortalId) return;
+            
             // Restore last portal
             set({ selectedPortalId: lastPortal.id });
+            
+            // Track which portal we're fetching for
+            const restoringPortalId = lastPortal.id;
             
             // Refresh collectors, then try to restore collector and hostname
             const collectorsResponse = await chrome.runtime.sendMessage({
               type: 'GET_COLLECTORS',
               payload: { portalId: lastPortal.id },
             });
+            
+            // Guard: Abort if portal changed during async collectors fetch
+            if (get().selectedPortalId !== restoringPortalId) return;
             
             if (collectorsResponse?.payload && lastContext) {
               const collectors = collectorsResponse.payload as Collector[];

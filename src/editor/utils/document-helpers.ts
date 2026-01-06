@@ -13,6 +13,7 @@ import type {
   LogicModuleType,
 } from '@/shared/types';
 import { DEFAULT_GROOVY_TEMPLATE, DEFAULT_POWERSHELL_TEMPLATE } from '../config/script-templates';
+import { normalizeScript } from '../stores/helpers/slice-helpers';
 
 // ============================================================================
 // Document Type Helpers
@@ -71,6 +72,65 @@ export function supportsPortal(type: DocumentType): boolean {
 }
 
 // ============================================================================
+// Unified Accessor Helpers
+// These functions provide a unified interface for accessing document properties
+// while supporting both legacy fields and the new DocumentState model.
+// ============================================================================
+
+/**
+ * Get the original/saved content for comparison.
+ * Works with both legacy originalContent and new DocumentState model.
+ */
+export function getOriginalContent(tab: EditorTab): string | undefined {
+  // New DocumentState model
+  if (tab.document?.file?.lastSavedContent !== undefined) {
+    return tab.document.file.lastSavedContent;
+  }
+  if (tab.document?.portal?.lastKnownContent !== undefined) {
+    return tab.document.portal.lastKnownContent;
+  }
+  // Legacy field
+  return tab.originalContent;
+}
+
+/**
+ * Check if the tab has an associated file handle (saved local file).
+ * Works with both legacy hasFileHandle and new DocumentState model.
+ */
+export function hasAssociatedFileHandle(tab: EditorTab): boolean {
+  // New DocumentState model - if document type is 'local' and has a fileHandleId
+  if (tab.document?.type === 'local' && tab.fileHandleId) {
+    return true;
+  }
+  // Legacy field
+  if (tab.hasFileHandle) {
+    return true;
+  }
+  // Check for fileHandleId presence
+  return !!tab.fileHandleId;
+}
+
+/**
+ * Check if the tab is a local file (as opposed to scratch or portal).
+ * Works with both legacy isLocalFile and new DocumentState model.
+ */
+export function isLocalFileTab(tab: EditorTab): boolean {
+  // New DocumentState model
+  if (tab.document?.type === 'local') {
+    return true;
+  }
+  // Legacy field
+  if (tab.isLocalFile) {
+    return true;
+  }
+  // Derive from source type and file handle
+  if (tab.source?.type === 'file' || (tab.hasFileHandle && tab.source?.type !== 'module')) {
+    return true;
+  }
+  return false;
+}
+
+// ============================================================================
 // Dirty State Helpers
 // ============================================================================
 
@@ -93,12 +153,11 @@ export function isFileDirty(tab: EditorTab): boolean {
     case 'scratch': {
       // Scratch documents are only "dirty" if content differs from default template
       // This prevents showing unsaved changes dialog for unmodified new files
-      const normalize = (s: string) => s.trim().replace(/\r\n/g, '\n');
-      const normalizedContent = normalize(tab.content);
+      const normalizedContent = normalizeScript(tab.content);
       const defaultTemplate = tab.language === 'powershell' 
         ? DEFAULT_POWERSHELL_TEMPLATE 
         : DEFAULT_GROOVY_TEMPLATE;
-      const normalizedDefault = normalize(defaultTemplate);
+      const normalizedDefault = normalizeScript(defaultTemplate);
       
       // Not dirty if content matches the default template for this language
       if (normalizedContent === normalizedDefault) {
@@ -106,7 +165,7 @@ export function isFileDirty(tab: EditorTab): boolean {
       }
       // Also check against originalContent if set (for restored drafts)
       if (tab.originalContent !== undefined) {
-        return normalizedContent !== normalize(tab.originalContent);
+        return normalizedContent !== normalizeScript(tab.originalContent);
       }
       // Content differs from default - it's dirty
       return true;
