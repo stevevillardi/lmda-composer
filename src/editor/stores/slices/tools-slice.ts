@@ -14,7 +14,110 @@ import type {
   ModuleSnippetInfo,
   ModuleSnippetsCacheMeta,
   LineageVersion,
+  LogicModuleType,
 } from '@/shared/types';
+
+// ============================================================================
+// Module Details Draft Type
+// ============================================================================
+
+/**
+ * Represents the auto-discovery configuration for a module.
+ */
+interface AutoDiscoveryConfig {
+  scheduleInterval?: number;
+  persistentInstance?: boolean;
+  deleteInactiveInstance?: boolean;
+  showDeletedInstanceDays?: number;
+  disableInstance?: boolean;
+  instanceAutoGroupMethod?: string;
+  instanceAutoGroupMethodParams?: string;
+  method?: {
+    name?: string;
+    type?: string;
+    winScript?: string | null;
+    winCmdline?: string | null;
+    linuxCmdline?: string | null;
+    linuxScript?: string | null;
+    groovyScript?: string | null;
+  };
+  filters?: Array<{
+    comment?: string;
+    attribute: string;
+    operation: string;
+    value?: string;
+  }>;
+}
+
+/**
+ * Represents a datapoint configuration.
+ */
+interface DataPointConfig {
+  id: number;
+  name: string;
+  type?: number;
+  description?: string;
+  postProcessorMethod?: string;
+  [key: string]: unknown;
+}
+
+/**
+ * Represents a config check configuration.
+ */
+interface ConfigCheckConfig {
+  id: number;
+  name: string;
+  description?: string;
+  alertLevel?: number;
+  type?: string;
+  ackClearAlert?: boolean;
+  alertEffectiveIval?: number;
+  alertTransitionInterval?: number;
+  script?: unknown;
+  originId?: string | null;
+  [key: string]: unknown;
+}
+
+/**
+ * Represents the module metadata that can be edited.
+ */
+interface ModuleMetadata {
+  id: number;
+  name: string;
+  displayName?: string;
+  description?: string;
+  appliesTo?: string;
+  group?: string;
+  technology?: string;
+  tags?: string;
+  collectInterval?: number;
+  accessGroupIds?: number[] | string;
+  version?: number;
+  alertSubjectTemplate?: string;
+  alertBodyTemplate?: string;
+  alertLevel?: string;
+  clearAfterAck?: boolean;
+  alertEffectiveIval?: number;
+  enableAutoDiscovery?: boolean;
+  autoDiscoveryConfig?: AutoDiscoveryConfig;
+  dataPoints?: DataPointConfig[];
+  configChecks?: ConfigCheckConfig[];
+}
+
+/**
+ * Represents a module details draft for a tab.
+ */
+export interface ModuleDetailsDraft {
+  original: Partial<ModuleMetadata> | null;
+  draft: Partial<ModuleMetadata>;
+  dirtyFields: Set<string>;
+  loadedAt: number;
+  tabId: string;
+  moduleId: number;
+  moduleType: LogicModuleType;
+  portalId?: string;
+  version: number;
+}
 
 // ============================================================================
 // Types
@@ -36,9 +139,11 @@ export interface ToolsSliceState {
   snippetCategoryFilter: 'all' | 'template' | 'pattern';
   snippetLanguageFilter: 'all' | 'groovy' | 'powershell';
   snippetSourceFilter: 'all' | 'builtin' | 'user';
+  createSnippetDialogOpen: boolean;
   editingSnippet: Snippet | null;
   
   // AppliesTo tester
+  appliesToTesterOpen: boolean;
   appliesToExpression: string;
   appliesToResults: Array<{ type: string; id: number; name: string }>;
   appliesToError: string | null;
@@ -55,10 +160,13 @@ export interface ToolsSliceState {
   isDeletingFunction: boolean;
   
   // Debug commands
+  debugCommandsDialogOpen: boolean;
   debugCommandResults: Record<number, DebugCommandResult>;
   isExecutingDebugCommand: boolean;
+  debugCommandExecutionId: string | null;
   
   // Module Snippets
+  moduleSnippetsDialogOpen: boolean;
   moduleSnippets: ModuleSnippetInfo[];
   moduleSnippetsCacheMeta: ModuleSnippetsCacheMeta | null;
   moduleSnippetsLoading: boolean;
@@ -71,22 +179,16 @@ export interface ToolsSliceState {
   // Module lineage
   moduleLineageDialogOpen: boolean;
   lineageVersions: LineageVersion[];
-  isLoadingLineage: boolean;
+  isFetchingLineage: boolean;  // Note: editor-store uses isFetchingLineage, not isLoadingLineage
   lineageError: string | null;
-  selectedLineageVersion: LineageVersion | null;
   
   // Module details
-  moduleDetailsSheetOpen: boolean;
-  moduleDetailsSheetTabId: string | null;
-  moduleDetailsDraftByTabId: Record<string, {
-    portalId: string;
-    moduleId: number;
-    moduleType: string;
-    fields: Record<string, unknown>;
-  }>;
-  isLoadingModuleDetails: boolean;
-  isSavingModuleDetails: boolean;
+  moduleDetailsDraftByTabId: Record<string, ModuleDetailsDraft>;
+  moduleDetailsDialogOpen: boolean;
+  moduleDetailsLoading: boolean;
   moduleDetailsError: string | null;
+  accessGroups: Array<{ id: number; name: string; description?: string; createdOn?: number; updatedOn?: number; createdBy?: string; tenantId?: string | null }>;
+  isLoadingAccessGroups: boolean;
 }
 
 /**
@@ -105,6 +207,7 @@ export interface ToolsSliceActions {
   setSnippetLanguageFilter: (filter: 'all' | 'groovy' | 'powershell') => void;
   setSnippetSourceFilter: (filter: 'all' | 'builtin' | 'user') => void;
   insertSnippet: (snippet: Snippet) => void;
+  setCreateSnippetDialogOpen: (open: boolean) => void;
   setEditingSnippet: (snippet: Snippet | null) => void;
   createUserSnippet: (snippet: Omit<Snippet, 'id' | 'isBuiltIn'>) => void;
   updateUserSnippet: (id: string, updates: Partial<Omit<Snippet, 'id' | 'isBuiltIn'>>) => void;
@@ -112,44 +215,44 @@ export interface ToolsSliceActions {
   loadUserSnippets: () => Promise<void>;
   
   // AppliesTo tester
+  setAppliesToTesterOpen: (open: boolean) => void;
   setAppliesToExpression: (expression: string) => void;
   setAppliesToTestFrom: (from: 'devicesGroup' | 'websiteGroup') => void;
   setAppliesToFunctionSearch: (search: string) => void;
   testAppliesTo: () => Promise<void>;
   clearAppliesToResults: () => void;
-  insertAppliesToFunction: (func: CustomAppliesToFunction) => void;
   
   // Custom AppliesTo functions
-  loadCustomFunctions: () => Promise<void>;
-  createCustomFunction: (func: Omit<CustomAppliesToFunction, 'id'>) => Promise<void>;
-  updateCustomFunction: (id: number, updates: Partial<Omit<CustomAppliesToFunction, 'id'>>) => Promise<void>;
+  fetchCustomFunctions: () => Promise<void>;
+  createCustomFunction: (name: string, code: string, description?: string) => Promise<void>;
+  updateCustomFunction: (id: number, name: string, code: string, description?: string) => Promise<void>;
   deleteCustomFunction: (id: number) => Promise<void>;
+  getAllFunctions: () => Array<{ name: string; syntax: string; parameters: string; description: string; example?: string; source: 'builtin' | 'custom'; customId?: number }>;
   
   // Debug commands
-  executeDebugCommand: (collectorId: number, command: string) => Promise<void>;
-  clearDebugResults: () => void;
+  setDebugCommandsDialogOpen: (open: boolean) => void;
+  executeDebugCommand: (portalId: string, collectorIds: number[], command: string, parameters?: Record<string, string>, positionalArgs?: string[]) => Promise<void>;
+  cancelDebugCommandExecution: () => Promise<void>;
   
   // Module Snippets
-  loadModuleSnippets: () => Promise<void>;
-  setSelectedModuleSnippet: (snippet: { name: string; version: string } | null) => void;
-  loadModuleSnippetSource: (name: string, version: string) => Promise<void>;
+  setModuleSnippetsDialogOpen: (open: boolean) => void;
+  fetchModuleSnippets: () => Promise<void>;
+  loadModuleSnippetsFromCache: () => Promise<void>;
+  selectModuleSnippet: (name: string, version: string) => void;
+  fetchModuleSnippetSource: (name: string, version: string) => Promise<void>;
+  insertModuleSnippetImport: (name: string, version: string) => void;
   setModuleSnippetsSearchQuery: (query: string) => void;
-  insertModuleSnippet: (name: string, version: string) => void;
   
   // Module lineage
   setModuleLineageDialogOpen: (open: boolean) => void;
-  loadModuleLineage: (tabId: string) => Promise<void>;
-  setSelectedLineageVersion: (version: LineageVersion | null) => void;
-  openLineageVersion: (version: LineageVersion, tabId: string) => Promise<void>;
-  restoreLineageVersion: (version: LineageVersion, tabId: string) => Promise<void>;
+  fetchLineageVersions: (tabId: string) => Promise<number>;
   
   // Module details
-  setModuleDetailsSheetOpen: (open: boolean) => void;
-  setModuleDetailsSheetTabId: (tabId: string | null) => void;
+  setModuleDetailsDialogOpen: (open: boolean) => void;
   loadModuleDetails: (tabId: string) => Promise<void>;
-  updateModuleDetailsDraft: (tabId: string, field: string, value: unknown) => void;
-  saveModuleDetails: (tabId: string) => Promise<void>;
-  discardModuleDetailsDraft: (tabId: string) => void;
+  updateModuleDetailsField: (tabId: string, field: string, value: unknown) => void;
+  resetModuleDetailsDraft: (tabId: string) => void;
+  fetchAccessGroups: (tabId: string) => Promise<void>;
 }
 
 /**
@@ -174,9 +277,11 @@ export const toolsSliceInitialState: ToolsSliceState = {
   snippetCategoryFilter: 'all',
   snippetLanguageFilter: 'all',
   snippetSourceFilter: 'all',
+  createSnippetDialogOpen: false,
   editingSnippet: null,
   
   // AppliesTo tester
+  appliesToTesterOpen: false,
   appliesToExpression: '',
   appliesToResults: [],
   appliesToError: null,
@@ -193,10 +298,13 @@ export const toolsSliceInitialState: ToolsSliceState = {
   isDeletingFunction: false,
   
   // Debug commands
+  debugCommandsDialogOpen: false,
   debugCommandResults: {},
   isExecutingDebugCommand: false,
+  debugCommandExecutionId: null,
   
   // Module Snippets
+  moduleSnippetsDialogOpen: false,
   moduleSnippets: [],
   moduleSnippetsCacheMeta: null,
   moduleSnippetsLoading: false,
@@ -209,17 +317,16 @@ export const toolsSliceInitialState: ToolsSliceState = {
   // Module lineage
   moduleLineageDialogOpen: false,
   lineageVersions: [],
-  isLoadingLineage: false,
+  isFetchingLineage: false,
   lineageError: null,
-  selectedLineageVersion: null,
   
   // Module details
-  moduleDetailsSheetOpen: false,
-  moduleDetailsSheetTabId: null,
   moduleDetailsDraftByTabId: {},
-  isLoadingModuleDetails: false,
-  isSavingModuleDetails: false,
+  moduleDetailsDialogOpen: false,
+  moduleDetailsLoading: false,
   moduleDetailsError: null,
+  accessGroups: [],
+  isLoadingAccessGroups: false,
 };
 
 // ============================================================================
@@ -251,44 +358,45 @@ export const createToolsSlice: StateCreator<
   setSnippetLanguageFilter: (filter) => set({ snippetLanguageFilter: filter }),
   setSnippetSourceFilter: (filter) => set({ snippetSourceFilter: filter }),
   insertSnippet: () => { /* Implemented in editor-store.ts */ },
-  setEditingSnippet: (snippet) => set({ editingSnippet: snippet }),
+  setCreateSnippetDialogOpen: (open) => set({ createSnippetDialogOpen: open }),
+  setEditingSnippet: (snippet) => set({ editingSnippet: snippet, createSnippetDialogOpen: snippet !== null }),
   createUserSnippet: () => { /* Implemented in editor-store.ts */ },
   updateUserSnippet: () => { /* Implemented in editor-store.ts */ },
   deleteUserSnippet: () => { /* Implemented in editor-store.ts */ },
   loadUserSnippets: async () => { /* Implemented in editor-store.ts */ },
   
+  setAppliesToTesterOpen: (open) => set({ appliesToTesterOpen: open }),
   setAppliesToExpression: (expression) => set({ appliesToExpression: expression }),
   setAppliesToTestFrom: (from) => set({ appliesToTestFrom: from }),
   setAppliesToFunctionSearch: (search) => set({ appliesToFunctionSearch: search }),
   testAppliesTo: async () => { /* Implemented in editor-store.ts */ },
   clearAppliesToResults: () => set({ appliesToResults: [], appliesToError: null }),
-  insertAppliesToFunction: () => { /* Implemented in editor-store.ts */ },
   
-  loadCustomFunctions: async () => { /* Implemented in editor-store.ts */ },
+  fetchCustomFunctions: async () => { /* Implemented in editor-store.ts */ },
   createCustomFunction: async () => { /* Implemented in editor-store.ts */ },
   updateCustomFunction: async () => { /* Implemented in editor-store.ts */ },
   deleteCustomFunction: async () => { /* Implemented in editor-store.ts */ },
+  getAllFunctions: () => [], // Implemented in editor-store.ts
   
+  setDebugCommandsDialogOpen: (open) => set({ debugCommandsDialogOpen: open }),
   executeDebugCommand: async () => { /* Implemented in editor-store.ts */ },
-  clearDebugResults: () => set({ debugCommandResults: {} }),
+  cancelDebugCommandExecution: async () => { /* Implemented in editor-store.ts */ },
   
-  loadModuleSnippets: async () => { /* Implemented in editor-store.ts */ },
-  setSelectedModuleSnippet: (snippet) => set({ selectedModuleSnippet: snippet }),
-  loadModuleSnippetSource: async () => { /* Implemented in editor-store.ts */ },
+  setModuleSnippetsDialogOpen: (open) => set({ moduleSnippetsDialogOpen: open }),
+  fetchModuleSnippets: async () => { /* Implemented in editor-store.ts */ },
+  loadModuleSnippetsFromCache: async () => { /* Implemented in editor-store.ts */ },
+  selectModuleSnippet: () => { /* Implemented in editor-store.ts */ },
+  fetchModuleSnippetSource: async () => { /* Implemented in editor-store.ts */ },
+  insertModuleSnippetImport: () => { /* Implemented in editor-store.ts */ },
   setModuleSnippetsSearchQuery: (query) => set({ moduleSnippetsSearchQuery: query }),
-  insertModuleSnippet: () => { /* Implemented in editor-store.ts */ },
   
   setModuleLineageDialogOpen: (open) => set({ moduleLineageDialogOpen: open }),
-  loadModuleLineage: async () => { /* Implemented in editor-store.ts */ },
-  setSelectedLineageVersion: (version) => set({ selectedLineageVersion: version }),
-  openLineageVersion: async () => { /* Implemented in editor-store.ts */ },
-  restoreLineageVersion: async () => { /* Implemented in editor-store.ts */ },
+  fetchLineageVersions: async () => 0, // Implemented in editor-store.ts
   
-  setModuleDetailsSheetOpen: (open) => set({ moduleDetailsSheetOpen: open }),
-  setModuleDetailsSheetTabId: (tabId) => set({ moduleDetailsSheetTabId: tabId }),
+  setModuleDetailsDialogOpen: (open) => set({ moduleDetailsDialogOpen: open }),
   loadModuleDetails: async () => { /* Implemented in editor-store.ts */ },
-  updateModuleDetailsDraft: () => { /* Implemented in editor-store.ts */ },
-  saveModuleDetails: async () => { /* Implemented in editor-store.ts */ },
-  discardModuleDetailsDraft: () => { /* Implemented in editor-store.ts */ },
+  updateModuleDetailsField: () => { /* Implemented in editor-store.ts */ },
+  resetModuleDetailsDraft: () => { /* Implemented in editor-store.ts */ },
+  fetchAccessGroups: async () => { /* Implemented in editor-store.ts */ },
 });
 

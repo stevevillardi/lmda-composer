@@ -2,7 +2,6 @@ import { create } from 'zustand';
 import { toast } from 'sonner';
 import type { 
   Portal, 
-  DeviceProperty,
   Snippet,
   ScriptLanguage, 
   ScriptMode,
@@ -23,9 +22,7 @@ import type {
   ApiEnvironmentVariable,
   LineageVersion,
   FilePermissionStatus,
-  CustomAppliesToFunction,
   ExecuteDebugCommandRequest,
-  DebugCommandResult,
   ModuleSearchMatchType,
   ScriptSearchResult,
   DataPointSearchResult,
@@ -33,12 +30,13 @@ import type {
   ModuleIndexInfo,
   ExecuteApiRequest,
   ExecuteApiResponse,
-  ModuleSnippetInfo,
-  ModuleSnippetsCacheMeta,
+  // NOTE: DeviceProperty, CustomAppliesToFunction, DebugCommandResult, 
+  // ModuleSnippetInfo, ModuleSnippetsCacheMeta now come from ToolsSlice
 } from '@/shared/types';
 import { createUISlice, type UISlice, uiSliceInitialState } from './slices/ui-slice';
 import { createPortalSlice, type PortalSlice, portalSliceInitialState } from './slices/portal-slice';
 import { createTabsSlice, type TabsSlice, tabsSliceInitialState } from './slices/tabs-slice';
+import { type ToolsSlice, toolsSliceInitialState } from './slices/tools-slice';
 import {
   isFileDirty as isFileDirtyHelper,
   hasPortalChanges as hasPortalChangesHelper,
@@ -144,13 +142,25 @@ const findModuleDraftForTab = (
   );
 };
 
-interface EditorState extends UISlice, PortalSlice, TabsSlice {
+interface EditorState extends UISlice, PortalSlice, TabsSlice, ToolsSlice {
   // NOTE: Portal/Collector selection and Device context now come from PortalSlice
   // (portals, selectedPortalId, collectors, selectedCollectorId, devices, 
   //  isFetchingDevices, hostname, wildvalue, datasourceId)
   
   // NOTE: Tab state (tabs, activeTabId, tabsNeedingPermission, isRestoringFileHandles,
   // hasSavedDraft, recentFiles, isLoadingRecentFiles) and core tab actions now come from TabsSlice
+  
+  // NOTE: Tools state (deviceProperties, isFetchingProperties, propertiesSearchQuery, selectedDeviceId,
+  // userSnippets, snippetsSearchQuery, snippetCategoryFilter, snippetLanguageFilter, snippetSourceFilter,
+  // editingSnippet, appliesToExpression, appliesToResults, appliesToError, appliesToTestFrom,
+  // isTestingAppliesTo, appliesToFunctionSearch, customFunctions, isLoadingCustomFunctions,
+  // customFunctionError, isCreatingFunction, isUpdatingFunction, isDeletingFunction,
+  // debugCommandResults, isExecutingDebugCommand, moduleSnippets, moduleSnippetsCacheMeta,
+  // moduleSnippetsLoading, selectedModuleSnippet, moduleSnippetSource, moduleSnippetSourceLoading,
+  // moduleSnippetsSearchQuery, cachedSnippetVersions, moduleLineageDialogOpen, lineageVersions,
+  // isLoadingLineage, lineageError, selectedLineageVersion, moduleDetailsDraftByTabId,
+  // moduleDetailsDialogOpen, moduleDetailsLoading, moduleDetailsError, accessGroups,
+  // isLoadingAccessGroups) now come from ToolsSlice
 
   // API Explorer state
   apiHistoryByPortal: Record<string, ApiHistoryEntry[]>;
@@ -204,20 +214,8 @@ interface EditorState extends UISlice, PortalSlice, TabsSlice {
   // NOTE: UI state (outputTab, commandPaletteOpen, settingsDialogOpen, executionHistoryOpen, 
   // rightSidebarOpen, rightSidebarTab, preferences) now comes from UISlice
   
-  // Device properties state
-  deviceProperties: DeviceProperty[];
-  isFetchingProperties: boolean;
-  propertiesSearchQuery: string;
-  selectedDeviceId: number | null;
-  
-  // Snippet library state
-  userSnippets: Snippet[];
-  snippetsSearchQuery: string;
-  snippetCategoryFilter: 'all' | 'template' | 'pattern';
-  snippetLanguageFilter: 'all' | 'groovy' | 'powershell';
-  snippetSourceFilter: 'all' | 'builtin' | 'user';
-  createSnippetDialogOpen: boolean;
-  editingSnippet: Snippet | null;
+  // NOTE: createSnippetDialogOpen, appliesToTesterOpen, debugCommandsDialogOpen,
+  // moduleSnippetsDialogOpen now come from ToolsSlice
   
   // Cancel execution state
   currentExecutionId: string | null;
@@ -226,46 +224,7 @@ interface EditorState extends UISlice, PortalSlice, TabsSlice {
   // Execution history
   executionHistory: ExecutionHistoryEntry[];
   
-  // Draft auto-save
-  hasSavedDraft: boolean;
-  
-  // File system state (Phase 6)
-  tabsNeedingPermission: FilePermissionStatus[];
-  isRestoringFileHandles: boolean;
-  
-  // AppliesTo tester state
-  appliesToTesterOpen: boolean;
-  appliesToExpression: string;
-  appliesToResults: Array<{ type: string; id: number; name: string }>;
-  appliesToError: string | null;
-  appliesToTestFrom: 'devicesGroup' | 'websiteGroup';
-  isTestingAppliesTo: boolean;
-  appliesToFunctionSearch: string;
-  
-  // Custom AppliesTo functions state
-  customFunctions: CustomAppliesToFunction[];
-  isLoadingCustomFunctions: boolean;
-  customFunctionError: string | null;
-  isCreatingFunction: boolean;
-  isUpdatingFunction: boolean;
-  isDeletingFunction: boolean;
-  
-  // Debug commands state
-  debugCommandsDialogOpen: boolean;
-  debugCommandResults: Record<number, DebugCommandResult>;
-  isExecutingDebugCommand: boolean;
-  
-  // Module Snippets state
-  moduleSnippetsDialogOpen: boolean;
-  moduleSnippets: ModuleSnippetInfo[];
-  moduleSnippetsCacheMeta: ModuleSnippetsCacheMeta | null;
-  moduleSnippetsLoading: boolean;
-  selectedModuleSnippet: { name: string; version: string } | null;
-  moduleSnippetSource: string | null;
-  moduleSnippetSourceLoading: boolean;
-  moduleSnippetsSearchQuery: string;
-  // Track which snippet sources have been cached (key: "name:version")
-  cachedSnippetVersions: Set<string>;
+  // NOTE: hasSavedDraft, tabsNeedingPermission, isRestoringFileHandles now come from TabsSlice
   
   // Actions
   // NOTE: Portal actions (setSelectedPortal, switchToPortalWithContext, setSelectedCollector,
@@ -739,20 +698,11 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   // UI slice initial state (spread from uiSliceInitialState)
   ...uiSliceInitialState,
   
-  // Device properties initial state
-  deviceProperties: [],
-  isFetchingProperties: false,
-  propertiesSearchQuery: '',
-  selectedDeviceId: null,
+  // Tools slice initial state (spread from toolsSliceInitialState)
+  ...toolsSliceInitialState,
   
-  // Snippet library initial state
-  userSnippets: [],
-  snippetsSearchQuery: '',
-  snippetCategoryFilter: 'all',
-  snippetLanguageFilter: 'all',
-  snippetSourceFilter: 'all',
-  createSnippetDialogOpen: false,
-  editingSnippet: null,
+  // NOTE: createSnippetDialogOpen, appliesToTesterOpen, debugCommandsDialogOpen,
+  // moduleSnippetsDialogOpen now come from toolsSliceInitialState
   
   // Cancel execution initial state
   currentExecutionId: null,
@@ -761,23 +711,6 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   // NOTE: preferences now comes from uiSliceInitialState spread above
   executionHistory: [],
   // NOTE: hasSavedDraft, tabsNeedingPermission, isRestoringFileHandles now come from tabsSliceInitialState
-  
-  // AppliesTo tester initial state
-  appliesToTesterOpen: false,
-  appliesToExpression: '',
-  appliesToResults: [],
-  appliesToError: null,
-  appliesToTestFrom: 'devicesGroup',
-  isTestingAppliesTo: false,
-  appliesToFunctionSearch: '',
-  
-  // Custom AppliesTo functions initial state
-  customFunctions: [],
-  isLoadingCustomFunctions: false,
-  customFunctionError: null,
-  isCreatingFunction: false,
-  isUpdatingFunction: false,
-  isDeletingFunction: false,
   
   // Module commit initial state
   isCommittingModule: false,
@@ -800,36 +733,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   // Repository browser initial state
   repositoryBrowserOpen: false,
 
-  // Module lineage initial state
-  moduleLineageDialogOpen: false,
-  lineageVersions: [],
-  isFetchingLineage: false,
-  lineageError: null,
-  
-  // Module details initial state
-  moduleDetailsDraftByTabId: {},
-  moduleDetailsDialogOpen: false,
-  moduleDetailsLoading: false,
-  moduleDetailsError: null,
-  accessGroups: [],
-  isLoadingAccessGroups: false,
-  
-  // Debug commands initial state
-  debugCommandsDialogOpen: false,
-  debugCommandResults: {},
-  isExecutingDebugCommand: false,
-  debugCommandExecutionId: null,
-  
-  // Module Snippets initial state
-  moduleSnippetsDialogOpen: false,
-  moduleSnippets: [],
-  moduleSnippetsCacheMeta: null,
-  moduleSnippetsLoading: false,
-  cachedSnippetVersions: new Set<string>(),
-  selectedModuleSnippet: null,
-  moduleSnippetSource: null,
-  moduleSnippetSourceLoading: false,
-  moduleSnippetsSearchQuery: '',
+  // NOTE: Module lineage, module details, debug commands, module snippets
+  // state now comes from toolsSliceInitialState spread above
   
   // NOTE: recentFiles, isLoadingRecentFiles now come from tabsSliceInitialState
 
