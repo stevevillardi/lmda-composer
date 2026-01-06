@@ -19,7 +19,7 @@ import type {
   ApiResponseSummary,
   ApiHistoryEntry,
   ApiEnvironmentState,
-  ApiEnvironmentVariable,
+  // NOTE: ApiEnvironmentVariable now comes from APISlice
   LineageVersion,
   FilePermissionStatus,
   ExecuteDebugCommandRequest,
@@ -37,6 +37,7 @@ import { createUISlice, type UISlice, uiSliceInitialState } from './slices/ui-sl
 import { createPortalSlice, type PortalSlice, portalSliceInitialState } from './slices/portal-slice';
 import { createTabsSlice, type TabsSlice, tabsSliceInitialState } from './slices/tabs-slice';
 import { type ToolsSlice, toolsSliceInitialState } from './slices/tools-slice';
+import { type APISlice, apiSliceInitialState } from './slices/api-slice';
 import {
   isFileDirty as isFileDirtyHelper,
   hasPortalChanges as hasPortalChangesHelper,
@@ -142,7 +143,7 @@ const findModuleDraftForTab = (
   );
 };
 
-interface EditorState extends UISlice, PortalSlice, TabsSlice, ToolsSlice {
+interface EditorState extends UISlice, PortalSlice, TabsSlice, ToolsSlice, APISlice {
   // NOTE: Portal/Collector selection and Device context now come from PortalSlice
   // (portals, selectedPortalId, collectors, selectedCollectorId, devices, 
   //  isFetchingDevices, hostname, wildvalue, datasourceId)
@@ -162,10 +163,8 @@ interface EditorState extends UISlice, PortalSlice, TabsSlice, ToolsSlice {
   // moduleDetailsDialogOpen, moduleDetailsLoading, moduleDetailsError, accessGroups,
   // isLoadingAccessGroups) now come from ToolsSlice
 
-  // API Explorer state
-  apiHistoryByPortal: Record<string, ApiHistoryEntry[]>;
-  apiEnvironmentsByPortal: Record<string, ApiEnvironmentState>;
-  isExecutingApi: boolean;
+  // NOTE: API Explorer state (apiHistoryByPortal, apiEnvironmentsByPortal, isExecutingApi)
+  // now comes from APISlice
   
   // Execution state
   isExecuting: boolean;
@@ -280,16 +279,9 @@ interface EditorState extends UISlice, PortalSlice, TabsSlice, ToolsSlice {
   reloadFromHistory: (entry: ExecutionHistoryEntry) => void;
   reloadFromHistoryWithoutBinding: (entry: ExecutionHistoryEntry) => void;
 
-  // API Explorer actions
-  openApiExplorerTab: () => string;
-  updateApiTabRequest: (tabId: string, request: Partial<ApiRequestSpec>) => void;
-  setApiTabResponse: (tabId: string, response: ApiResponseSummary | null) => void;
-  executeApiRequest: (tabId?: string) => Promise<void>;
-  addApiHistoryEntry: (portalId: string, entry: Omit<ApiHistoryEntry, 'id'>) => void;
-  clearApiHistory: (portalId?: string) => void;
-  loadApiHistory: () => Promise<void>;
-  setApiEnvironment: (portalId: string, variables: ApiEnvironmentVariable[]) => void;
-  loadApiEnvironments: () => Promise<void>;
+  // NOTE: API Explorer actions (openApiExplorerTab, updateApiTabRequest, setApiTabResponse,
+  // executeApiRequest, addApiHistoryEntry, clearApiHistory, loadApiHistory, setApiEnvironment,
+  // loadApiEnvironments) now come from APISlice
   
   // Draft actions
   saveDraft: () => Promise<void>;
@@ -627,10 +619,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   // Tabs slice initial state (spread from tabsSliceInitialState)
   ...tabsSliceInitialState,
 
-  // API Explorer state
-  apiHistoryByPortal: {},
-  apiEnvironmentsByPortal: {},
-  isExecutingApi: false,
+  // API slice initial state (spread from apiSliceInitialState)
+  ...apiSliceInitialState,
   
   isExecuting: false,
   currentExecution: null,
