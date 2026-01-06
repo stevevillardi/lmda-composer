@@ -13,18 +13,13 @@ import type {
   DraftTabs,
   EditorTab,
   EditorTabSource,
-  ApiRequestSpec,
-  ApiResponseSummary,
-  ApiHistoryEntry,
-  ApiEnvironmentState,
-  // NOTE: ApiEnvironmentVariable now comes from APISlice
+  // NOTE: ApiRequestSpec, ApiResponseSummary, ApiHistoryEntry, ApiEnvironmentState,
+  // ExecuteApiRequest, ExecuteApiResponse now come from APISlice
   LineageVersion,
   FilePermissionStatus,
   ExecuteDebugCommandRequest,
   // NOTE: ModuleSearchMatchType, ScriptSearchResult, DataPointSearchResult,
   // ModuleSearchProgress, ModuleIndexInfo now come from ModuleSlice
-  ExecuteApiRequest,
-  ExecuteApiResponse,
   // NOTE: DeviceProperty, CustomAppliesToFunction, DebugCommandResult, 
   // ModuleSnippetInfo, ModuleSnippetsCacheMeta now come from ToolsSlice
 } from '@/shared/types';
@@ -32,7 +27,7 @@ import { createUISlice, type UISlice, uiSliceInitialState } from './slices/ui-sl
 import { createPortalSlice, type PortalSlice, portalSliceInitialState } from './slices/portal-slice';
 import { createTabsSlice, type TabsSlice, tabsSliceInitialState } from './slices/tabs-slice';
 import { type ToolsSlice, toolsSliceInitialState } from './slices/tools-slice';
-import { type APISlice, apiSliceInitialState } from './slices/api-slice';
+import { createAPISlice, type APISlice, apiSliceInitialState } from './slices/api-slice';
 import { createExecutionSlice, type ExecutionSlice, executionSliceInitialState } from './slices/execution-slice';
 import { createModuleSlice, type ModuleSlice, moduleSliceInitialState } from './slices/module-slice';
 import {
@@ -46,8 +41,7 @@ import * as documentStore from '../utils/document-store';
 import { APPLIES_TO_FUNCTIONS } from '../data/applies-to-functions';
 import { DEFAULT_GROOVY_TEMPLATE, DEFAULT_POWERSHELL_TEMPLATE } from '../config/script-templates';
 import { generateModuleSnippetImport } from '../data/module-snippet-import';
-import { buildApiVariableResolver } from '../utils/api-variables';
-import { appendItemsWithLimit } from '../utils/api-pagination';
+// NOTE: buildApiVariableResolver, appendItemsWithLimit moved to api-slice.ts
 import { getPortalBindingStatus } from '../utils/portal-binding';
 import { getExtensionForLanguage, getLanguageFromFilename } from '../utils/file-extensions';
 import { normalizeMode } from '../utils/mode-utils';
@@ -489,36 +483,7 @@ function getUniqueUntitledName(tabs: EditorTab[], language: ScriptLanguage): str
   return displayName;
 }
 
-const DEFAULT_API_REQUEST: ApiRequestSpec = {
-  method: 'GET',
-  path: '',
-  queryParams: {},
-  headerParams: {},
-  body: '',
-  bodyMode: 'form',
-  contentType: 'application/json',
-      pagination: {
-        enabled: false,
-        sizeParam: 'size',
-        offsetParam: 'offset',
-        pageSize: 25,
-      },
-};
-
-function createDefaultApiTab(): EditorTab {
-  return {
-    id: crypto.randomUUID(),
-    kind: 'api',
-    displayName: 'API Request',
-    content: '',
-    language: 'groovy',
-    mode: 'freeform',
-    source: { type: 'api' },
-    api: {
-      request: { ...DEFAULT_API_REQUEST },
-    },
-  };
-}
+// NOTE: DEFAULT_API_REQUEST and createDefaultApiTab moved to api-slice.ts
 
 let activeDebugCommandListener: ((message: any) => boolean) | null = null;
 // NOTE: activeModuleSearchListener moved to module-slice.ts
@@ -650,360 +615,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   // Module state and actions - spread from createModuleSlice
   ...createModuleSlice(set, get, {} as any),
 
-  // API Explorer actions
-  openApiExplorerTab: () => {
-    const { tabs } = get();
-    const newTab = createDefaultApiTab();
-    const baseName = 'API Request';
-    let displayName = baseName;
-    let counter = 2;
-    while (tabs.some(tab => tab.displayName === displayName)) {
-      displayName = `${baseName} ${counter}`;
-      counter += 1;
-    }
-    newTab.displayName = displayName;
-    set({
-      tabs: [...tabs, newTab],
-      activeTabId: newTab.id,
-    });
-    return newTab.id;
-  },
-
-  updateApiTabRequest: (tabId, request) => {
-    const { tabs } = get();
-    set({
-      tabs: tabs.map(tab => {
-        if (tab.id !== tabId || tab.kind !== 'api') return tab;
-        const currentRequest = { ...DEFAULT_API_REQUEST, ...(tab.api?.request ?? {}) };
-        return {
-          ...tab,
-          api: {
-            ...(tab.api ?? { request: currentRequest }),
-            request: {
-              ...currentRequest,
-              ...request,
-            },
-          },
-        };
-      }),
-    });
-  },
-
-  setApiTabResponse: (tabId, response) => {
-    const { tabs } = get();
-    set({
-      tabs: tabs.map(tab => {
-        if (tab.id !== tabId || tab.kind !== 'api') return tab;
-        return {
-          ...tab,
-          api: {
-            ...(tab.api ?? { request: DEFAULT_API_REQUEST }),
-            response: response ?? undefined,
-          },
-        };
-      }),
-    });
-  },
-
-  executeApiRequest: async (tabId) => {
-    const { tabs, activeTabId, selectedPortalId, preferences, apiEnvironmentsByPortal } = get();
-    const targetTabId = tabId ?? activeTabId;
-    if (!targetTabId) return;
-
-    const tab = tabs.find(t => t.id === targetTabId);
-    if (!tab || tab.kind !== 'api' || !tab.api) return;
-
-    if (!selectedPortalId) {
-      toast.error('Select a portal to send API requests.');
-      return;
-    }
-
-    const request = tab.api.request;
-    const envVars = apiEnvironmentsByPortal[selectedPortalId]?.variables ?? [];
-    const resolveValue = buildApiVariableResolver(envVars);
-
-    const baseRequest: ApiRequestSpec = { ...DEFAULT_API_REQUEST, ...request };
-    const resolvedRequest: ApiRequestSpec = {
-      ...baseRequest,
-      path: resolveValue(baseRequest.path),
-      body: resolveValue(baseRequest.body),
-      queryParams: Object.fromEntries(
-        Object.entries(baseRequest.queryParams).map(([key, value]) => [key, resolveValue(value)])
-      ),
-      headerParams: Object.fromEntries(
-        Object.entries(baseRequest.headerParams).map(([key, value]) => [key, resolveValue(value)])
-      ),
-    };
-
-    set({ isExecutingApi: true });
-    const startedAt = Date.now();
-
-    const executeSingle = async (req: ApiRequestSpec): Promise<ExecuteApiResponse> => {
-      const response = await chrome.runtime.sendMessage({
-        type: 'EXECUTE_API_REQUEST',
-        payload: {
-          portalId: selectedPortalId,
-          method: req.method,
-          path: req.path,
-          queryParams: req.queryParams,
-          headerParams: req.headerParams,
-          body: req.body,
-          contentType: req.contentType,
-        } satisfies ExecuteApiRequest,
-      });
-
-      if (response?.type === 'API_RESPONSE') {
-        return response.payload as ExecuteApiResponse;
-      }
-      if (response?.type === 'ERROR') {
-        throw new Error(response.payload?.message ?? 'API request failed.');
-      }
-      throw new Error('Unexpected response from API executor.');
-    };
-
-    try {
-      let finalPayload: ExecuteApiResponse | null = null;
-      let finalBody = '';
-
-      let truncationReason: string | undefined;
-      let truncationMeta: ApiResponseSummary['truncationMeta'];
-
-      if (resolvedRequest.pagination.enabled) {
-        const sizeParam = resolvedRequest.pagination.sizeParam || 'size';
-        const offsetParam = resolvedRequest.pagination.offsetParam || 'offset';
-        const pageSize = Math.max(25, resolvedRequest.pagination.pageSize || 25);
-        const maxPages = 50;
-        let offset = 0;
-        let total: number | null = null;
-        const capEnabled = preferences.apiResponseSizeLimit > 0;
-        const limit = capEnabled ? preferences.apiResponseSizeLimit : Number.POSITIVE_INFINITY;
-        let aggregationState = { items: [] as unknown[], estimatedBytes: 0, truncated: false };
-        let pagesFetched = 0;
-
-        for (let page = 0; page < maxPages; page += 1) {
-          const pagedRequest: ApiRequestSpec = {
-            ...resolvedRequest,
-            queryParams: {
-              ...resolvedRequest.queryParams,
-              [sizeParam]: String(pageSize),
-              [offsetParam]: String(offset),
-            },
-          };
-
-          const payload = await executeSingle(pagedRequest);
-          finalPayload = payload;
-          finalBody = payload.body;
-          pagesFetched += 1;
-
-          let parsed: any;
-          try {
-            parsed = JSON.parse(payload.body);
-          } catch {
-            break;
-          }
-
-          const items = Array.isArray(parsed?.items) ? parsed.items : Array.isArray(parsed?.data) ? parsed.data : null;
-          if (!items) {
-            break;
-          }
-
-          if (capEnabled) {
-            aggregationState = appendItemsWithLimit(aggregationState, items, limit);
-          } else {
-            aggregationState.items.push(...items);
-          }
-          if (typeof parsed?.total === 'number') {
-            total = parsed.total;
-          }
-
-          if (aggregationState.truncated) {
-            truncationReason = 'size_limit';
-            break;
-          }
-
-          if (items.length < pageSize) {
-            break;
-          }
-
-          offset += pageSize;
-          if (total !== null && offset >= total) {
-            break;
-          }
-        }
-
-        if (finalPayload && aggregationState.items.length > 0) {
-          if (!truncationReason && pagesFetched >= maxPages) {
-            const hasMorePages = total !== null ? offset < total : true;
-            if (hasMorePages) {
-              truncationReason = 'max_pages';
-            }
-          }
-          if (truncationReason) {
-            truncationMeta = {
-              itemsFetched: aggregationState.items.length,
-              pagesFetched,
-              limit: preferences.apiResponseSizeLimit,
-            };
-          }
-
-          const aggregated = {
-            items: aggregationState.items,
-            total: total ?? aggregationState.items.length,
-            pageSize,
-            pages: Math.ceil((total ?? aggregationState.items.length) / pageSize),
-            ...(truncationReason ? {
-              _meta: {
-                truncated: true,
-                reason: truncationReason,
-                itemsFetched: aggregationState.items.length,
-                pagesFetched,
-                limit: preferences.apiResponseSizeLimit,
-              },
-            } : {}),
-          };
-          finalBody = JSON.stringify(aggregated, null, 2);
-        }
-      } else {
-        finalPayload = await executeSingle(resolvedRequest);
-        finalBody = finalPayload.body;
-      }
-
-      if (!finalPayload) {
-        throw new Error('No API response received.');
-      }
-
-      let jsonPreview: unknown | undefined;
-      try {
-        const parsed = JSON.parse(finalBody);
-        if (parsed && typeof parsed === 'object') {
-          if (Array.isArray(parsed)) {
-            jsonPreview = parsed.slice(0, 20);
-          } else {
-            jsonPreview = Object.fromEntries(Object.entries(parsed).slice(0, 50));
-          }
-        }
-      } catch {
-        jsonPreview = undefined;
-      }
-
-      const limit = preferences.apiResponseSizeLimit;
-      const trimmedBody = limit > 0 && finalBody.length > limit
-        ? finalBody.slice(0, limit)
-        : finalBody;
-
-      let effectiveTruncationReason = truncationReason;
-      let effectiveTruncationMeta = truncationMeta;
-      if (!effectiveTruncationReason && limit > 0 && finalBody.length > limit) {
-        effectiveTruncationReason = 'size_limit';
-        effectiveTruncationMeta = undefined;
-      }
-
-      const summary: ApiResponseSummary = {
-        status: finalPayload.status,
-        headers: finalPayload.headers,
-        body: trimmedBody,
-        jsonPreview,
-        durationMs: Date.now() - startedAt,
-        timestamp: Date.now(),
-        truncated: Boolean(effectiveTruncationReason),
-        truncationReason: effectiveTruncationReason,
-        truncationMeta: effectiveTruncationMeta,
-      };
-
-      set({
-        tabs: tabs.map(t => 
-          t.id === targetTabId
-            ? {
-              ...t,
-              api: {
-                ...(t.api ?? { request }),
-                response: summary,
-              },
-            }
-            : t
-        ),
-      });
-
-      get().addApiHistoryEntry(selectedPortalId, {
-        portalId: selectedPortalId,
-        request: resolvedRequest,
-        response: summary,
-      });
-    } catch (error) {
-      console.error('Failed to execute API request:', error);
-      toast.error(error instanceof Error ? error.message : 'API request failed.');
-    } finally {
-      set({ isExecutingApi: false });
-    }
-  },
-
-  addApiHistoryEntry: (portalId, entry) => {
-    const { apiHistoryByPortal, preferences } = get();
-    const existing = apiHistoryByPortal[portalId] ?? [];
-    const newEntry: ApiHistoryEntry = {
-      ...entry,
-      id: crypto.randomUUID(),
-      portalId,
-    };
-    const updatedPortalHistory = [newEntry, ...existing].slice(0, preferences.apiHistoryLimit);
-    const updatedHistory = {
-      ...apiHistoryByPortal,
-      [portalId]: updatedPortalHistory,
-    };
-    set({ apiHistoryByPortal: updatedHistory });
-    chrome.storage.local.set({ [STORAGE_KEYS.API_HISTORY]: updatedHistory }).catch(console.error);
-  },
-
-  clearApiHistory: (portalId) => {
-    const { apiHistoryByPortal } = get();
-    if (portalId) {
-      const updated = { ...apiHistoryByPortal };
-      delete updated[portalId];
-      set({ apiHistoryByPortal: updated });
-      chrome.storage.local.set({ [STORAGE_KEYS.API_HISTORY]: updated }).catch(console.error);
-      return;
-    }
-    set({ apiHistoryByPortal: {} });
-    chrome.storage.local.remove(STORAGE_KEYS.API_HISTORY).catch(console.error);
-  },
-
-  loadApiHistory: async () => {
-    try {
-      const result = await chrome.storage.local.get(STORAGE_KEYS.API_HISTORY);
-      const stored = result[STORAGE_KEYS.API_HISTORY] as Record<string, ApiHistoryEntry[]> | undefined;
-      if (stored) {
-        set({ apiHistoryByPortal: stored });
-      }
-    } catch (error) {
-      console.error('Failed to load API history:', error);
-    }
-  },
-
-  setApiEnvironment: (portalId, variables) => {
-    const envState: ApiEnvironmentState = {
-      portalId,
-      variables,
-      lastModified: Date.now(),
-    };
-    const updated = {
-      ...get().apiEnvironmentsByPortal,
-      [portalId]: envState,
-    };
-    set({ apiEnvironmentsByPortal: updated });
-    chrome.storage.local.set({ [STORAGE_KEYS.API_ENVIRONMENTS]: updated }).catch(console.error);
-  },
-
-  loadApiEnvironments: async () => {
-    try {
-      const result = await chrome.storage.local.get(STORAGE_KEYS.API_ENVIRONMENTS);
-      const stored = result[STORAGE_KEYS.API_ENVIRONMENTS] as Record<string, ApiEnvironmentState> | undefined;
-      if (stored) {
-        set({ apiEnvironmentsByPortal: stored });
-      }
-    } catch (error) {
-      console.error('Failed to load API environments:', error);
-    }
-  },
+  // API state and actions - spread from createAPISlice
+  ...createAPISlice(set, get, {} as any),
 
   // Draft actions
   saveDraft: async () => {
