@@ -54,6 +54,43 @@ function getUniqueUntitledName(tabs: EditorTab[], language: ScriptLanguage): str
   return displayName;
 }
 
+/**
+ * Finds the next tab to activate after closing a tab.
+ * Prefers same-kind tab to the left, then right, then falls back to any tab.
+ */
+function findNextTabAfterClose(
+  tabs: EditorTab[],
+  closedTabId: string,
+  closedTabIndex: number,
+  closedTabKind: 'script' | 'api'
+): string | null {
+  // Filter to same-kind tabs (excluding the one being closed)
+  const sameKindTabs = tabs
+    .map((t, idx) => ({ tab: t, originalIndex: idx }))
+    .filter(({ tab }) => tab.id !== closedTabId && (tab.kind ?? 'script') === closedTabKind);
+
+  if (sameKindTabs.length === 0) {
+    // No same-kind tabs left, return first remaining tab
+    const remaining = tabs.filter(t => t.id !== closedTabId);
+    return remaining[0]?.id ?? null;
+  }
+
+  // Find the closest same-kind tab to the left
+  const leftCandidate = sameKindTabs
+    .filter(({ originalIndex }) => originalIndex < closedTabIndex)
+    .pop();
+
+  if (leftCandidate) {
+    return leftCandidate.tab.id;
+  }
+
+  // Otherwise, find closest same-kind tab to the right
+  const rightCandidate = sameKindTabs
+    .find(({ originalIndex }) => originalIndex > closedTabIndex);
+
+  return rightCandidate?.tab.id ?? sameKindTabs[0]?.tab.id ?? null;
+}
+
 // ============================================================================
 // Types
 // ============================================================================
@@ -232,10 +269,10 @@ export const createTabsSlice: StateCreator<
 
   closeTab: (tabId) => {
     const { tabs, activeTabId, tabsNeedingPermission } = get();
-    const tab = tabs.find(t => t.id === tabId);
-    if (!tab) return;
-    
     const tabIndex = tabs.findIndex(t => t.id === tabId);
+    if (tabIndex === -1) return;
+    
+    const tab = tabs[tabIndex];
     const newTabs = tabs.filter(t => t.id !== tabId);
     
     // NOTE: We intentionally do NOT delete file handles when closing tabs.
@@ -244,39 +281,12 @@ export const createTabsSlice: StateCreator<
     // Remove from permission-needed list if present
     const newTabsNeedingPermission = tabsNeedingPermission.filter(t => t.tabId !== tabId);
     
-    // If we're closing the active tab, switch to another one
+    // Determine new active tab if closing the current one
     let newActiveTabId: string | null = activeTabId;
     if (tabId === activeTabId) {
-      if (newTabs.length === 0) {
-        // No tabs left - WelcomeScreen will show
-        newActiveTabId = null;
-      } else {
-        const targetKind = tab.kind ?? 'script';
-        let nextTabId: string | null = null;
-
-        // Prefer same-kind tab to the left
-        for (let i = tabIndex - 1; i >= 0; i -= 1) {
-          const candidate = tabs[i];
-          if (candidate.id !== tabId && (candidate.kind ?? 'script') === targetKind) {
-            nextTabId = candidate.id;
-            break;
-          }
-        }
-
-        // Otherwise, prefer same-kind tab to the right
-        if (!nextTabId) {
-          for (let i = tabIndex + 1; i < tabs.length; i += 1) {
-            const candidate = tabs[i];
-            if (candidate.id !== tabId && (candidate.kind ?? 'script') === targetKind) {
-              nextTabId = candidate.id;
-              break;
-            }
-          }
-        }
-
-        // Fallback: first available tab
-        newActiveTabId = nextTabId ?? newTabs[0].id;
-      }
+      newActiveTabId = newTabs.length === 0
+        ? null
+        : findNextTabAfterClose(tabs, tabId, tabIndex, tab.kind ?? 'script');
     }
     
     set({

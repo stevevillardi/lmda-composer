@@ -165,17 +165,17 @@ export interface ModuleSliceDependencies {
 // Initial State
 // ============================================================================
 
-const emptyModuleCache = {
-  datasource: [],
-  configsource: [],
-  topologysource: [],
-  propertysource: [],
-  logsource: [],
-  diagnosticsource: [],
-  eventsource: [],
+export const emptyModuleCache = {
+  datasource: [] as LogicModuleInfo[],
+  configsource: [] as LogicModuleInfo[],
+  topologysource: [] as LogicModuleInfo[],
+  propertysource: [] as LogicModuleInfo[],
+  logsource: [] as LogicModuleInfo[],
+  diagnosticsource: [] as LogicModuleInfo[],
+  eventsource: [] as LogicModuleInfo[],
 };
 
-const emptyModuleMeta = {
+export const emptyModuleMeta = {
   datasource: { offset: 0, hasMore: true, total: 0 },
   configsource: { offset: 0, hasMore: true, total: 0 },
   topologysource: { offset: 0, hasMore: true, total: 0 },
@@ -185,7 +185,7 @@ const emptyModuleMeta = {
   eventsource: { offset: 0, hasMore: true, total: 0 },
 };
 
-const emptyModuleSearch = {
+export const emptyModuleSearch = {
   datasource: '',
   configsource: '',
   topologysource: '',
@@ -194,6 +194,43 @@ const emptyModuleSearch = {
   diagnosticsource: '',
   eventsource: '',
 };
+
+/**
+ * Creates a fresh copy of empty module state for portal switching.
+ * Returns new objects to avoid shared references.
+ */
+export function createEmptyModuleState() {
+  return {
+    modulesCache: {
+      datasource: [] as LogicModuleInfo[],
+      configsource: [] as LogicModuleInfo[],
+      topologysource: [] as LogicModuleInfo[],
+      propertysource: [] as LogicModuleInfo[],
+      logsource: [] as LogicModuleInfo[],
+      diagnosticsource: [] as LogicModuleInfo[],
+      eventsource: [] as LogicModuleInfo[],
+    },
+    modulesMeta: {
+      datasource: { offset: 0, hasMore: true, total: 0 },
+      configsource: { offset: 0, hasMore: true, total: 0 },
+      topologysource: { offset: 0, hasMore: true, total: 0 },
+      propertysource: { offset: 0, hasMore: true, total: 0 },
+      logsource: { offset: 0, hasMore: true, total: 0 },
+      diagnosticsource: { offset: 0, hasMore: true, total: 0 },
+      eventsource: { offset: 0, hasMore: true, total: 0 },
+    },
+    modulesSearch: {
+      datasource: '',
+      configsource: '',
+      topologysource: '',
+      propertysource: '',
+      logsource: '',
+      diagnosticsource: '',
+      eventsource: '',
+    },
+    moduleSearchIndexInfo: null as ModuleIndexInfo | null,
+  };
+}
 
 export const moduleSliceInitialState: ModuleSliceState = {
   // Module browser
@@ -255,7 +292,55 @@ export const moduleSliceInitialState: ModuleSliceState = {
 // Module-level state for search listener management
 // ============================================================================
 
-let activeModuleSearchListener: ((message: unknown) => boolean) | null = null;
+/**
+ * Manages module search progress listeners with proper cleanup.
+ * Ensures listeners are always cleaned up, even on errors.
+ */
+class ModuleSearchListenerManager {
+  private listener: ((message: unknown) => boolean) | null = null;
+  private currentSearchId: string | null = null;
+
+  /**
+   * Starts listening for progress updates for a specific search.
+   * Automatically cleans up any existing listener first.
+   */
+  start(searchId: string, onProgress: (progress: unknown) => void): void {
+    // Always clean up first to prevent leaks
+    this.cleanup();
+    
+    this.currentSearchId = searchId;
+    this.listener = (message: unknown) => {
+      const msg = message as { type?: string; payload?: { searchId?: string } };
+      if (msg.type === 'MODULE_SEARCH_PROGRESS' && msg.payload?.searchId === searchId) {
+        onProgress(msg.payload);
+      }
+      return false;
+    };
+    
+    chrome.runtime.onMessage.addListener(this.listener);
+  }
+
+  /**
+   * Cleans up the current listener. Safe to call multiple times.
+   */
+  cleanup(): void {
+    if (this.listener) {
+      chrome.runtime.onMessage.removeListener(this.listener);
+      this.listener = null;
+    }
+    this.currentSearchId = null;
+  }
+
+  /**
+   * Gets the current search ID, if any.
+   */
+  getCurrentSearchId(): string | null {
+    return this.currentSearchId;
+  }
+}
+
+// Singleton instance for module search listener management
+const searchListenerManager = new ModuleSearchListenerManager();
 
 // ============================================================================
 // Slice Creator
@@ -572,19 +657,10 @@ export const createModuleSlice: StateCreator<
       moduleSearchProgress: { searchId, stage: 'searching', processed: 0, matched: 0 },
     });
 
-    if (activeModuleSearchListener) {
-      chrome.runtime.onMessage.removeListener(activeModuleSearchListener);
-    }
-
-    activeModuleSearchListener = (message: unknown) => {
-      const msg = message as { type?: string; payload?: { searchId?: string } };
-      if (msg.type === 'MODULE_SEARCH_PROGRESS' && msg.payload?.searchId === searchId) {
-        set({ moduleSearchProgress: msg.payload as ModuleSearchProgress });
-      }
-      return false;
-    };
-
-    chrome.runtime.onMessage.addListener(activeModuleSearchListener);
+    // Use managed listener for proper cleanup
+    searchListenerManager.start(searchId, (progress) => {
+      set({ moduleSearchProgress: progress as ModuleSearchProgress });
+    });
 
     try {
       const response = await chrome.runtime.sendMessage({
@@ -631,10 +707,7 @@ export const createModuleSlice: StateCreator<
         moduleSearchExecutionId: null,
       });
     } finally {
-      if (activeModuleSearchListener) {
-        chrome.runtime.onMessage.removeListener(activeModuleSearchListener);
-        activeModuleSearchListener = null;
-      }
+      searchListenerManager.cleanup();
     }
   },
 
@@ -676,19 +749,10 @@ export const createModuleSlice: StateCreator<
       moduleSearchProgress: { searchId, stage: 'searching', processed: 0, matched: 0 },
     });
 
-    if (activeModuleSearchListener) {
-      chrome.runtime.onMessage.removeListener(activeModuleSearchListener);
-    }
-
-    activeModuleSearchListener = (message: unknown) => {
-      const msg = message as { type?: string; payload?: { searchId?: string } };
-      if (msg.type === 'MODULE_SEARCH_PROGRESS' && msg.payload?.searchId === searchId) {
-        set({ moduleSearchProgress: msg.payload as ModuleSearchProgress });
-      }
-      return false;
-    };
-
-    chrome.runtime.onMessage.addListener(activeModuleSearchListener);
+    // Use managed listener for proper cleanup
+    searchListenerManager.start(searchId, (progress) => {
+      set({ moduleSearchProgress: progress as ModuleSearchProgress });
+    });
 
     try {
       const response = await chrome.runtime.sendMessage({
@@ -734,10 +798,7 @@ export const createModuleSlice: StateCreator<
         moduleSearchExecutionId: null,
       });
     } finally {
-      if (activeModuleSearchListener) {
-        chrome.runtime.onMessage.removeListener(activeModuleSearchListener);
-        activeModuleSearchListener = null;
-      }
+      searchListenerManager.cleanup();
     }
   },
 
@@ -781,19 +842,10 @@ export const createModuleSlice: StateCreator<
       moduleSearchError: null,
     });
 
-    if (activeModuleSearchListener) {
-      chrome.runtime.onMessage.removeListener(activeModuleSearchListener);
-    }
-
-    activeModuleSearchListener = (message: unknown) => {
-      const msg = message as { type?: string; payload?: { searchId?: string } };
-      if (msg.type === 'MODULE_SEARCH_PROGRESS' && msg.payload?.searchId === searchId) {
-        set({ moduleSearchProgress: msg.payload as ModuleSearchProgress });
-      }
-      return false;
-    };
-
-    chrome.runtime.onMessage.addListener(activeModuleSearchListener);
+    // Use managed listener for proper cleanup
+    searchListenerManager.start(searchId, (progress) => {
+      set({ moduleSearchProgress: progress as ModuleSearchProgress });
+    });
 
     try {
       const response = await chrome.runtime.sendMessage({
@@ -828,10 +880,7 @@ export const createModuleSlice: StateCreator<
         moduleSearchExecutionId: null,
       });
     } finally {
-      if (activeModuleSearchListener) {
-        chrome.runtime.onMessage.removeListener(activeModuleSearchListener);
-        activeModuleSearchListener = null;
-      }
+      searchListenerManager.cleanup();
     }
   },
 
@@ -852,10 +901,7 @@ export const createModuleSlice: StateCreator<
         moduleSearchExecutionId: null,
         moduleSearchProgress: null,
       });
-      if (activeModuleSearchListener) {
-        chrome.runtime.onMessage.removeListener(activeModuleSearchListener);
-        activeModuleSearchListener = null;
-      }
+      searchListenerManager.cleanup();
     }
   },
 

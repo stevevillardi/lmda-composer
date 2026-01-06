@@ -687,8 +687,8 @@ export type EditorToSWMessage =
   | { type: 'SEARCH_DATAPOINTS'; payload: SearchDatapointsRequest }
   | { type: 'CANCEL_MODULE_SEARCH'; payload: { searchId: string } }
   | { type: 'REFRESH_MODULE_INDEX'; payload: RefreshModuleIndexRequest }
-  | { type: 'FETCH_MODULE_DETAILS'; payload: { portalId: string; moduleType: LogicModuleType; moduleId: number; tabId: number } }
-  | { type: 'FETCH_ACCESS_GROUPS'; payload: { portalId: string; tabId: number } }
+  | { type: 'FETCH_MODULE_DETAILS'; payload: { portalId: string; moduleType: LogicModuleType; moduleId: number } }
+  | { type: 'FETCH_ACCESS_GROUPS'; payload: { portalId: string } }
   | { type: 'OPEN_EDITOR'; payload?: DeviceContext }
   | { type: 'FETCH_MODULE_SNIPPETS'; payload: { portalId: string; collectorId: number } }
   | { type: 'FETCH_MODULE_SNIPPET_SOURCE'; payload: { portalId: string; collectorId: number; name: string; version: string } }

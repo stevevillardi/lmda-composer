@@ -9,7 +9,10 @@ import type {
   Collector, 
   DeviceInfo,
   LogicModuleType,
+  FetchDevicesResponse,
 } from '@/shared/types';
+import { createEmptyModuleState } from './module-slice';
+import { sendMessage } from '../../utils/chrome-messaging';
 
 // ============================================================================
 // Types
@@ -124,42 +127,6 @@ export const portalSliceInitialState: PortalSliceState = {
   datasourceId: '',
 };
 
-// ============================================================================
-// Helper - creates empty module state for portal changes
-// ============================================================================
-
-function createEmptyModuleState() {
-  return {
-    modulesCache: {
-      datasource: [],
-      configsource: [],
-      topologysource: [],
-      propertysource: [],
-      logsource: [],
-      diagnosticsource: [],
-      eventsource: [],
-    },
-    modulesMeta: {
-      datasource: { offset: 0, hasMore: true, total: 0 },
-      configsource: { offset: 0, hasMore: true, total: 0 },
-      topologysource: { offset: 0, hasMore: true, total: 0 },
-      propertysource: { offset: 0, hasMore: true, total: 0 },
-      logsource: { offset: 0, hasMore: true, total: 0 },
-      diagnosticsource: { offset: 0, hasMore: true, total: 0 },
-      eventsource: { offset: 0, hasMore: true, total: 0 },
-    },
-    modulesSearch: {
-      datasource: '',
-      configsource: '',
-      topologysource: '',
-      propertysource: '',
-      logsource: '',
-      diagnosticsource: '',
-      eventsource: '',
-    },
-    moduleSearchIndexInfo: null,
-  };
-}
 
 // ============================================================================
 // Slice Creator
@@ -208,58 +175,55 @@ export const createPortalSlice: StateCreator<
     });
 
     // Fetch collectors for the new portal
-    try {
-      const response = await chrome.runtime.sendMessage({
-        type: 'GET_COLLECTORS',
-        payload: { portalId },
-      });
+    const result = await sendMessage({
+      type: 'GET_COLLECTORS',
+      payload: { portalId },
+    });
+    
+    // Prevent race conditions when portal changes while fetching
+    const currentPortal = get().selectedPortalId;
+    if (currentPortal !== portalId) return;
+    
+    if (result.ok) {
+      const collectors = result.data as Collector[];
+      set({ collectors });
       
-      // Prevent race conditions when portal changes while fetching
-      const currentPortal = get().selectedPortalId;
-      if (currentPortal !== portalId) return;
-      
-      if (response?.payload) {
-        const collectors = response.payload as Collector[];
-        set({ collectors });
-        
-        // Try to restore the specific collector from context
-        let selectedCollector: Collector | null = null;
-        if (context?.collectorId) {
-          selectedCollector = collectors.find(c => c.id === context.collectorId) || null;
-        }
-        
-        // If requested collector not found, fall back to first non-down collector
-        if (!selectedCollector && collectors.length > 0) {
-          selectedCollector = collectors.find(c => !c.isDown) || collectors[0];
-        }
-        
-        if (selectedCollector) {
-          set({ selectedCollectorId: selectedCollector.id });
-          
-          // Fetch devices for the selected collector
-          await get().fetchDevices();
-          
-          // Restore hostname if provided and devices are loaded
-          if (context?.hostname) {
-            const { devices } = get();
-            const device = devices.find(d => d.name === context.hostname);
-            if (device) {
-              set({ hostname: context.hostname });
-              get().fetchDeviceProperties(device.id);
-            }
-          }
-          
-          // Persist the restored context
-          persistContext({ 
-            portalId, 
-            collectorId: selectedCollector.id, 
-            hostname: context?.hostname || '' 
-          });
-        }
+      // Try to restore the specific collector from context
+      let selectedCollector: Collector | null = null;
+      if (context?.collectorId) {
+        selectedCollector = collectors.find(c => c.id === context.collectorId) || null;
       }
-    } catch {
-      // Silently handle - collectors will remain empty
+      
+      // If requested collector not found, fall back to first non-down collector
+      if (!selectedCollector && collectors.length > 0) {
+        selectedCollector = collectors.find(c => !c.isDown) || collectors[0];
+      }
+      
+      if (selectedCollector) {
+        set({ selectedCollectorId: selectedCollector.id });
+        
+        // Fetch devices for the selected collector
+        await get().fetchDevices();
+        
+        // Restore hostname if provided and devices are loaded
+        if (context?.hostname) {
+          const { devices } = get();
+          const device = devices.find(d => d.name === context.hostname);
+          if (device) {
+            set({ hostname: context.hostname });
+            get().fetchDeviceProperties(device.id);
+          }
+        }
+        
+        // Persist the restored context
+        persistContext({ 
+          portalId, 
+          collectorId: selectedCollector.id, 
+          hostname: context?.hostname || '' 
+        });
+      }
     }
+    // Silently handle errors - collectors will remain empty
   },
 
   setSelectedCollector: (collectorId) => {
@@ -287,43 +251,34 @@ export const createPortalSlice: StateCreator<
 
     set({ isFetchingDevices: true });
 
-    try {
-      const response = await chrome.runtime.sendMessage({
-        type: 'GET_DEVICES',
-        payload: { 
-          portalId: selectedPortalId, 
-          collectorId: selectedCollectorId 
-        },
-      });
+    const result = await sendMessage({
+      type: 'GET_DEVICES',
+      payload: { 
+        portalId: selectedPortalId, 
+        collectorId: selectedCollectorId 
+      },
+    });
 
-      if (response?.type === 'DEVICES_UPDATE') {
-        const currentPortal = get().selectedPortalId;
-        const currentCollector = get().selectedCollectorId;
-        if (currentPortal !== fetchingPortal || currentCollector !== fetchingCollector) {
-          return;
-        }
-        const fetchResponse = response.payload;
-        
-        // Check for error in response (portal tabs may be stale)
-        if (fetchResponse.error) {
-          console.warn('Device fetch returned error:', fetchResponse.error);
-          set({ devices: [], isFetchingDevices: false });
-          return;
-        }
-        
-        set({ devices: fetchResponse.items, isFetchingDevices: false });
-      } else {
-        console.error('Failed to fetch devices:', response);
+    // Prevent race conditions when portal/collector changes while fetching
+    const currentPortal = get().selectedPortalId;
+    const currentCollector = get().selectedCollectorId;
+    if (currentPortal !== fetchingPortal || currentCollector !== fetchingCollector) {
+      return;
+    }
+
+    if (result.ok) {
+      const fetchResponse = result.data as FetchDevicesResponse;
+      
+      // Check for error in response (portal tabs may be stale)
+      if (fetchResponse.error) {
+        console.warn('Device fetch returned error:', fetchResponse.error);
         set({ devices: [], isFetchingDevices: false });
-      }
-    } catch (error) {
-      // Check if portal/collector changed during fetch - discard stale errors
-      const current = get();
-      if (current.selectedPortalId !== fetchingPortal || 
-          current.selectedCollectorId !== fetchingCollector) {
         return;
       }
-      console.error('Error fetching devices:', error);
+      
+      set({ devices: fetchResponse.items, isFetchingDevices: false });
+    } else {
+      console.error('Failed to fetch devices:', result.error);
       toast.error('Failed to load devices', {
         description: 'Check that you are connected to the portal',
       });
@@ -360,75 +315,74 @@ export const createPortalSlice: StateCreator<
   },
 
   refreshPortals: async () => {
-    try {
-      const response = await chrome.runtime.sendMessage({ type: 'DISCOVER_PORTALS' });
-      if (response?.payload) {
-        const portals = response.payload as Portal[];
-        set({ portals });
-        
-        const state = get();
-        
-        // Try to restore last context if no portal selected
-        if (!state.selectedPortalId && portals.length > 0) {
-          const lastContext = await loadLastContext();
-          
-          // Check if last portal is still available
-          const lastPortal = lastContext?.portalId 
-            ? portals.find(p => p.id === lastContext.portalId)
-            : null;
-          
-          if (lastPortal) {
-            // Guard: Check if portal was manually selected during async operation
-            if (get().selectedPortalId) return;
-            
-            // Restore last portal
-            set({ selectedPortalId: lastPortal.id });
-            
-            // Track which portal we're fetching for
-            const restoringPortalId = lastPortal.id;
-            
-            // Refresh collectors, then try to restore collector and hostname
-            const collectorsResponse = await chrome.runtime.sendMessage({
-              type: 'GET_COLLECTORS',
-              payload: { portalId: lastPortal.id },
-            });
-            
-            // Guard: Abort if portal changed during async collectors fetch
-            if (get().selectedPortalId !== restoringPortalId) return;
-            
-            if (collectorsResponse?.payload && lastContext) {
-              const collectors = collectorsResponse.payload as Collector[];
-              set({ collectors });
-              
-              // Check if last collector is still available
-              const lastCollector = lastContext.collectorId
-                ? collectors.find(c => c.id === lastContext.collectorId)
-                : null;
-              
-              if (lastCollector) {
-                set({ selectedCollectorId: lastCollector.id });
-                
-                // Restore hostname if it was set
-                if (lastContext.hostname) {
-                  set({ hostname: lastContext.hostname });
-                }
-                
-                // Fetch devices for the restored collector
-                get().fetchDevices();
-              }
-            }
-          } else {
-            // Fallback to first available portal
-            set({ selectedPortalId: portals[0].id });
-            get().refreshCollectors();
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Failed to refresh portals:', error);
+    const result = await sendMessage({ type: 'DISCOVER_PORTALS' });
+    if (!result.ok) {
+      console.error('Failed to refresh portals:', result.error);
       toast.error('Failed to refresh portals', {
         description: 'Make sure you have a LogicMonitor portal tab open',
       });
+      return;
+    }
+    
+    const portals = result.data as Portal[];
+    set({ portals });
+    
+    const state = get();
+    
+    // Try to restore last context if no portal selected
+    if (!state.selectedPortalId && portals.length > 0) {
+      const lastContext = await loadLastContext();
+      
+      // Check if last portal is still available
+      const lastPortal = lastContext?.portalId 
+        ? portals.find(p => p.id === lastContext.portalId)
+        : null;
+      
+      if (lastPortal) {
+        // Guard: Check if portal was manually selected during async operation
+        if (get().selectedPortalId) return;
+        
+        // Restore last portal
+        set({ selectedPortalId: lastPortal.id });
+        
+        // Track which portal we're fetching for
+        const restoringPortalId = lastPortal.id;
+        
+        // Refresh collectors, then try to restore collector and hostname
+        const collectorsResult = await sendMessage({
+          type: 'GET_COLLECTORS',
+          payload: { portalId: lastPortal.id },
+        });
+        
+        // Guard: Abort if portal changed during async collectors fetch
+        if (get().selectedPortalId !== restoringPortalId) return;
+        
+        if (collectorsResult.ok && lastContext) {
+          const collectors = collectorsResult.data as Collector[];
+          set({ collectors });
+          
+          // Check if last collector is still available
+          const lastCollector = lastContext.collectorId
+            ? collectors.find(c => c.id === lastContext.collectorId)
+            : null;
+          
+          if (lastCollector) {
+            set({ selectedCollectorId: lastCollector.id });
+            
+            // Restore hostname if it was set
+            if (lastContext.hostname) {
+              set({ hostname: lastContext.hostname });
+            }
+            
+            // Fetch devices for the restored collector
+            get().fetchDevices();
+          }
+        }
+      } else {
+        // Fallback to first available portal
+        set({ selectedPortalId: portals[0].id });
+        get().refreshCollectors();
+      }
     }
   },
 
@@ -438,37 +392,34 @@ export const createPortalSlice: StateCreator<
 
     const fetchingForPortal = selectedPortalId;
 
-    try {
-      const response = await chrome.runtime.sendMessage({
-        type: 'GET_COLLECTORS',
-        payload: { portalId: selectedPortalId },
-      });
+    const result = await sendMessage({
+      type: 'GET_COLLECTORS',
+      payload: { portalId: selectedPortalId },
+    });
+    
+    // Prevent race conditions when portal changes while fetching
+    const currentPortal = get().selectedPortalId;
+    if (currentPortal !== fetchingForPortal) return;
+    
+    if (result.ok) {
+      const collectors = result.data as Collector[];
+      set({ collectors });
       
-      // Prevent race conditions when portal changes while fetching
-      const currentPortal = get().selectedPortalId;
-      if (currentPortal !== fetchingForPortal) return;
-      
-      if (response?.payload) {
-        const collectors = response.payload as Collector[];
-        set({ collectors });
+      // Auto-select first collector if none selected and collectors are available
+      const { selectedCollectorId } = get();
+      if (!selectedCollectorId && collectors.length > 0) {
+        // Find the first non-down collector, or just use the first one
+        const activeCollector = collectors.find(c => !c.isDown) || collectors[0];
+        set({ selectedCollectorId: activeCollector.id });
         
-        // Auto-select first collector if none selected and collectors are available
-        const { selectedCollectorId } = get();
-        if (!selectedCollectorId && collectors.length > 0) {
-          // Find the first non-down collector, or just use the first one
-          const activeCollector = collectors.find(c => !c.isDown) || collectors[0];
-          set({ selectedCollectorId: activeCollector.id });
-          
-          // Persist context with the auto-selected collector
-          persistContext({ portalId: selectedPortalId, collectorId: activeCollector.id, hostname: '' });
-          
-          // Fetch devices for the auto-selected collector
-          get().fetchDevices();
-        }
+        // Persist context with the auto-selected collector
+        persistContext({ portalId: selectedPortalId, collectorId: activeCollector.id, hostname: '' });
+        
+        // Fetch devices for the auto-selected collector
+        get().fetchDevices();
       }
-    } catch {
-      // Silently handle - collectors will remain empty
     }
+    // Silently handle errors - collectors will remain empty
   },
 
   handlePortalDisconnected: (portalId: string, hostname: string) => {

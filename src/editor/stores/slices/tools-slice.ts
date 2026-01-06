@@ -1300,27 +1300,14 @@ export const createToolsSlice: StateCreator<
 
     try {
       const binding = ensurePortalBindingActive(tab, selectedPortalId, portals);
-      const portal = portals.find(p => p.id === binding.portalId);
-      if (!portal) {
-        throw new Error('Portal not found');
-      }
 
-      const currentTabs = await chrome.tabs.query({ url: `https://${portal.hostname}/*` });
-      if (currentTabs.length === 0) {
-        throw new Error('No LogicMonitor tab found');
-      }
-      const lmTab = currentTabs[0];
-      if (!lmTab.id) {
-        throw new Error('Invalid tab ID');
-      }
-
+      // Service worker validates tab ID using portalManager.getValidTabIdForPortal()
       const response = await chrome.runtime.sendMessage({
         type: 'FETCH_MODULE_DETAILS',
         payload: {
           portalId: binding.portalId,
           moduleType,
           moduleId,
-          tabId: lmTab.id,
         },
       });
 
@@ -1488,25 +1475,12 @@ export const createToolsSlice: StateCreator<
 
     try {
       const binding = ensurePortalBindingActive(tab, selectedPortalId, portals);
-      const portal = portals.find((entry) => entry.id === binding.portalId);
-      if (!portal) {
-        throw new Error('Portal not found');
-      }
 
-      const currentTabs = await chrome.tabs.query({ url: `https://${portal.hostname}/*` });
-      if (currentTabs.length === 0) {
-        throw new Error('No LogicMonitor tab found');
-      }
-      const lmTab = currentTabs[0];
-      if (!lmTab.id) {
-        throw new Error('Invalid tab ID');
-      }
-
+      // Service worker validates tab ID using portalManager.getValidTabIdForPortal()
       const response = await chrome.runtime.sendMessage({
         type: 'FETCH_ACCESS_GROUPS',
         payload: {
           portalId: binding.portalId,
-          tabId: lmTab.id,
         },
       });
 

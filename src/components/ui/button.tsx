@@ -18,6 +18,9 @@ const buttonVariants = cva(
         commit: "bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-60",
         execute: "bg-green-600 hover:bg-green-500 text-white disabled:opacity-60",
         warning: "bg-amber-600 hover:bg-amber-500 text-white disabled:opacity-60",
+        // Toolbar-specific variants
+        "toolbar-outline": "border-border bg-background hover:bg-muted hover:text-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 text-xs font-medium shadow-xs",
+        "toolbar-ghost": "hover:bg-muted hover:text-foreground dark:hover:bg-muted/50 text-xs font-medium",
       },
       size: {
         default: "h-9 gap-1.5 px-2.5 in-data-[slot=button-group]:rounded-md has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
@@ -28,6 +31,9 @@ const buttonVariants = cva(
         "icon-xs": "size-6 rounded-[min(var(--radius-md),8px)] in-data-[slot=button-group]:rounded-md [&_svg:not([class*='size-'])]:size-3",
         "icon-sm": "size-8 rounded-[min(var(--radius-md),10px)] in-data-[slot=button-group]:rounded-md",
         "icon-lg": "size-10",
+        // Toolbar-specific size (h-7 with gap-1.5 for consistent toolbar buttons)
+        toolbar: "h-7 gap-1.5 rounded-[min(var(--radius-md),8px)] px-3 text-xs [&_svg:not([class*='size-'])]:size-3.5",
+        "toolbar-icon": "size-7 rounded-[min(var(--radius-md),8px)] [&_svg:not([class*='size-'])]:size-3.5",
       },
     },
     defaultVariants: {

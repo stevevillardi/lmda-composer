@@ -157,3 +157,110 @@ export function hasPayload<T>(response: { payload?: T }): response is { payload:
   return response.payload !== undefined && response.payload !== null;
 }
 
+// ============================================================================
+// Type Guards for Runtime Validation
+// ============================================================================
+
+/**
+ * Validates that a value is a plain object (not null, not array).
+ */
+export function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+/**
+ * Validates that a response has the expected structure with type and payload.
+ */
+export function isValidResponse(response: unknown): response is { type: string; payload: unknown } {
+  return (
+    isPlainObject(response) &&
+    typeof response.type === 'string' &&
+    'payload' in response
+  );
+}
+
+/**
+ * Type guard for portal array responses.
+ */
+export function isPortalArray(payload: unknown): payload is Array<{ id: string; hostname: string }> {
+  if (!Array.isArray(payload)) return false;
+  return payload.every(item => 
+    isPlainObject(item) && 
+    typeof item.id === 'string' && 
+    typeof item.hostname === 'string'
+  );
+}
+
+/**
+ * Type guard for collector array responses.
+ */
+export function isCollectorArray(payload: unknown): payload is Array<{ id: number; description: string }> {
+  if (!Array.isArray(payload)) return false;
+  return payload.every(item => 
+    isPlainObject(item) && 
+    typeof item.id === 'number' && 
+    typeof item.description === 'string'
+  );
+}
+
+/**
+ * Type guard for module details response.
+ */
+export function isModuleDetailsPayload(payload: unknown): payload is { module: Record<string, unknown> } {
+  return (
+    isPlainObject(payload) &&
+    'module' in payload &&
+    isPlainObject(payload.module)
+  );
+}
+
+/**
+ * Type guard for access groups response.
+ */
+export function isAccessGroupsPayload(payload: unknown): payload is { accessGroups: Array<{ id: number; name: string }> } {
+  if (!isPlainObject(payload)) return false;
+  if (!('accessGroups' in payload)) return false;
+  const groups = payload.accessGroups;
+  if (!Array.isArray(groups)) return false;
+  return groups.every(g => 
+    isPlainObject(g) && 
+    typeof g.id === 'number' && 
+    typeof g.name === 'string'
+  );
+}
+
+/**
+ * Type guard for execution result response.
+ */
+export function isExecutionResult(payload: unknown): payload is { status: string; output?: string; exitCode?: number } {
+  return (
+    isPlainObject(payload) &&
+    typeof payload.status === 'string'
+  );
+}
+
+/**
+ * Type guard for error payloads.
+ */
+export function isErrorPayload(payload: unknown): payload is { error: string; code?: number | string } {
+  return (
+    isPlainObject(payload) &&
+    typeof payload.error === 'string'
+  );
+}
+
+/**
+ * Validates a response and extracts the payload with type safety.
+ * Returns null if validation fails.
+ */
+export function validateResponse<T>(
+  response: unknown,
+  expectedType: string,
+  payloadValidator?: (payload: unknown) => payload is T
+): T | null {
+  if (!isValidResponse(response)) return null;
+  if (response.type !== expectedType) return null;
+  if (payloadValidator && !payloadValidator(response.payload)) return null;
+  return response.payload as T;
+}
+

@@ -126,17 +126,19 @@ export async function handleFetchLineageVersions(
 }
 
 export async function handleFetchModuleDetails(
-  payload: { portalId: string; moduleType: LogicModuleType; moduleId: number; tabId: number },
+  payload: { portalId: string; moduleType: LogicModuleType; moduleId: number; tabId?: number },
   sendResponse: SendResponse,
   { portalManager }: HandlerContext
 ) {
-  const { portalId, moduleType, moduleId, tabId } = payload;
+  const { portalId, moduleType, moduleId } = payload;
   try {
     const portal = portalManager.getPortal(portalId);
-    if (!portal) {
+    // Use validated tab ID from portal manager instead of trusting frontend
+    const tabId = await portalManager.getValidTabIdForPortal(portalId);
+    if (!portal || !tabId) {
       sendResponse({
         type: 'MODULE_DETAILS_ERROR',
-        payload: { error: 'Portal not found', code: 404 },
+        payload: { error: 'Portal not found or no valid tab available', code: 404 },
       });
       return;
     }
@@ -168,17 +170,19 @@ export async function handleFetchModuleDetails(
 }
 
 export async function handleFetchAccessGroups(
-  payload: { portalId: string; tabId: number },
+  payload: { portalId: string; tabId?: number },
   sendResponse: SendResponse,
   { portalManager }: HandlerContext
 ) {
-  const { portalId, tabId } = payload;
+  const { portalId } = payload;
   try {
     const portal = portalManager.getPortal(portalId);
-    if (!portal) {
+    // Use validated tab ID from portal manager instead of trusting frontend
+    const tabId = await portalManager.getValidTabIdForPortal(portalId);
+    if (!portal || !tabId) {
       sendResponse({
         type: 'ACCESS_GROUPS_ERROR',
-        payload: { error: 'Portal not found', code: 404 },
+        payload: { error: 'Portal not found or no valid tab available', code: 404 },
       });
       return;
     }
