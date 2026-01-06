@@ -35,7 +35,7 @@ import {
   generateId,
   queryDirectoryPermission,
   requestDirectoryPermission,
-} from './repository-store';
+} from './document-store';
 
 // ============================================================================
 // Constants

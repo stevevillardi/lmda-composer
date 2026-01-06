@@ -48,7 +48,7 @@ import {
 } from '../utils/document-helpers';
 import { DEFAULT_PREFERENCES } from '@/shared/types';
 import { parseOutput, type ParseResult } from '../utils/output-parser';
-import * as fileHandleStore from '../utils/file-handle-store';
+import * as documentStore from '../utils/document-store';
 import { APPLIES_TO_FUNCTIONS } from '../data/applies-to-functions';
 import { DEFAULT_GROOVY_TEMPLATE, DEFAULT_POWERSHELL_TEMPLATE, getDefaultScriptTemplate } from '../config/script-templates';
 import { generateModuleSnippetImport } from '../data/module-snippet-import';
@@ -3573,7 +3573,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   // File operations (Phase 6 - File System Access API)
   openFileFromDisk: async () => {
     // Check if File System Access API is supported
-    if (!fileHandleStore.isFileSystemAccessSupported()) {
+    if (!documentStore.isFileSystemAccessSupported()) {
       // Fallback to input element for unsupported browsers
       return new Promise<void>((resolve) => {
         const fileInput = document.createElement('input');
@@ -3638,7 +3638,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       const tabId = crypto.randomUUID();
       
       // Store handle in IndexedDB
-      await fileHandleStore.saveHandle(tabId, handle, fileName);
+      await documentStore.saveFileHandle(tabId, handle, fileName);
       
       // Try to restore module binding from stored module files
       let source: EditorTabSource = { type: 'file' };
@@ -3691,7 +3691,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   openModuleFromRepository: async () => {
     try {
       const { openModuleFromDirectory, MODULE_TYPE_DIRS } = await import('../utils/module-repository');
-      const { saveModuleFile, generateId } = await import('../utils/repository-store');
+      const { saveModuleFile, generateId } = await import('../utils/document-store');
       
       const result = await openModuleFromDirectory();
       if (!result) {
@@ -3732,7 +3732,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         });
         
         // Store in file handle store for save operations
-        await fileHandleStore.saveHandle(tabId, fileHandle, manifest.scripts.collection.filename);
+        await documentStore.saveFileHandle(tabId, fileHandle, manifest.scripts.collection.filename);
         
         const source: EditorTabSource = {
           type: 'module',
@@ -3775,7 +3775,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         });
         
         // Store in file handle store for save operations
-        await fileHandleStore.saveHandle(tabId, fileHandle, manifest.scripts.ad.filename);
+        await documentStore.saveFileHandle(tabId, fileHandle, manifest.scripts.ad.filename);
         
         const source: EditorTabSource = {
           type: 'module',
@@ -3855,18 +3855,18 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
     try {
       // Check for existing handle
-      const handle = await fileHandleStore.getHandle(targetTabId);
+      const handle = await documentStore.getFileHandle(targetTabId);
       
       if (handle) {
         // Check permission
-        const permission = await fileHandleStore.queryPermission(handle);
+        const permission = await documentStore.queryFilePermission(handle);
         
         if (permission === 'granted') {
           // Direct save to existing file
-          await fileHandleStore.writeToHandle(handle, tab.content);
+          await documentStore.writeToHandle(handle, tab.content);
           
           // Update lastAccessed timestamp for recent files
-          await fileHandleStore.saveHandle(targetTabId, handle, tab.displayName);
+          await documentStore.saveFileHandle(targetTabId, handle, tab.displayName);
           
           // Update originalContent to mark as clean
           // Keep module source if tab is a cloned local file (isLocalFile: true)
@@ -3888,12 +3888,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           return true;
         } else if (permission === 'prompt') {
           // Need to request permission
-          const granted = await fileHandleStore.requestPermission(handle);
+          const granted = await documentStore.requestFilePermission(handle);
           if (granted) {
-            await fileHandleStore.writeToHandle(handle, tab.content);
+            await documentStore.writeToHandle(handle, tab.content);
             
             // Update lastAccessed timestamp for recent files
-            await fileHandleStore.saveHandle(targetTabId, handle, tab.displayName);
+            await documentStore.saveFileHandle(targetTabId, handle, tab.displayName);
             
             set({
               tabs: tabs.map(t => 
@@ -3934,7 +3934,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     if (!tab) return false;
 
     // Check if File System Access API is supported
-    if (!fileHandleStore.isFileSystemAccessSupported()) {
+    if (!documentStore.isFileSystemAccessSupported()) {
       // Fallback to download
       get().exportToFile();
       return true;
@@ -3957,10 +3957,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       });
       
       // Write content
-      await fileHandleStore.writeToHandle(handle, tab.content);
+      await documentStore.writeToHandle(handle, tab.content);
       
       // Store new handle in IndexedDB
-      await fileHandleStore.saveHandle(targetTabId, handle, handle.name);
+      await documentStore.saveFileHandle(targetTabId, handle, handle.name);
       
       // Update tab state
       set({
@@ -3992,13 +3992,13 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     
     try {
       const { tabs } = get();
-      const storedHandles = await fileHandleStore.getAllHandles();
+      const storedHandles = await documentStore.getAllFileHandles();
       const needsPermission: FilePermissionStatus[] = [];
       
       // Check permission for each handle that matches a currently open tab
       // NOTE: We do NOT delete handles for tabs that don't exist - those are
       // needed for the recent files list. Cleanup is handled by cleanupOldHandles()
-      // in file-handle-store.ts based on age and count limits.
+      // in document-store.ts based on age and count limits.
       for (const [tabId, record] of storedHandles) {
         // Only process handles for tabs that are currently open
         const tabExists = tabs.some(t => t.id === tabId);
@@ -4007,7 +4007,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
           continue;
         }
         
-        const permission = await fileHandleStore.queryPermission(record.handle);
+        const permission = await documentStore.queryFilePermission(record.handle);
         
         if (permission === 'prompt') {
           needsPermission.push({
@@ -4044,15 +4044,15 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     
     for (const status of tabsNeedingPermission) {
       try {
-        const handle = await fileHandleStore.getHandle(status.tabId);
+        const handle = await documentStore.getFileHandle(status.tabId);
         if (!handle) continue;
         
-        const granted = await fileHandleStore.requestPermission(handle);
+        const granted = await documentStore.requestFilePermission(handle);
         
         if (granted) {
           // Optionally re-read file content to check for external changes
           try {
-            const newContent = await fileHandleStore.readFromHandle(handle);
+            const newContent = await documentStore.readFromHandle(handle);
             const tab = tabs.find(t => t.id === status.tabId);
             
             if (tab && tab.originalContent !== newContent) {
@@ -4112,10 +4112,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   loadRecentFiles: async () => {
     set({ isLoadingRecentFiles: true });
     try {
-      const recentFiles = await fileHandleStore.getRecentHandles(10);
+      const recentFiles = await documentStore.getRecentFileHandles(10);
       
       // Enrich recent files with repository/module info
-      const { getModuleFile } = await import('../utils/repository-store');
+      const { getModuleFile } = await import('../utils/document-store');
       const { readManifest } = await import('../utils/module-repository');
       
       const enrichedFiles = await Promise.all(
@@ -4150,19 +4150,19 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   openRecentFile: async (tabId: string) => {
     try {
-      const handle = await fileHandleStore.getHandle(tabId);
+      const handle = await documentStore.getFileHandle(tabId);
       if (!handle) {
         console.warn('File handle not found for tabId:', tabId);
         // Remove from recent files since handle is gone
-        await fileHandleStore.deleteHandle(tabId);
+        await documentStore.deleteFileHandle(tabId);
         get().loadRecentFiles();
         return;
       }
 
       // Check permission
-      let permission = await fileHandleStore.queryPermission(handle);
+      let permission = await documentStore.queryFilePermission(handle);
       if (permission !== 'granted') {
-        permission = (await fileHandleStore.requestPermission(handle)) ? 'granted' : 'denied';
+        permission = (await documentStore.requestFilePermission(handle)) ? 'granted' : 'denied';
       }
 
       if (permission !== 'granted') {
@@ -4171,18 +4171,18 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       }
 
       // Read file content
-      const content = await fileHandleStore.readFromHandle(handle);
+      const content = await documentStore.readFromHandle(handle);
       const fileName = handle.name;
       const language: ScriptLanguage = getLanguageFromFilename(fileName);
 
       // Update lastAccessed
-      await fileHandleStore.saveHandle(tabId, handle, fileName);
+      await documentStore.saveFileHandle(tabId, handle, fileName);
 
       // Check if this is a repository-backed module file
       let newTab: EditorTab;
       
       try {
-        const { getModuleFile } = await import('../utils/repository-store');
+        const { getModuleFile } = await import('../utils/document-store');
         const { readManifest } = await import('../utils/module-repository');
         
         const moduleFile = await getModuleFile(tabId);
@@ -4716,8 +4716,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
             const filename = scriptType === 'ad' ? result.filenames.ad : result.filenames.collection;
             
             if (fileHandle && filename) {
-              // Save file handle to file-handle-store for save operations
-              await fileHandleStore.saveHandle(t.id, fileHandle, filename);
+              // Save file handle to document-store for save operations
+              await documentStore.saveFileHandle(t.id, fileHandle, filename);
               
               updatedTabs.push({
                 ...t,
@@ -4870,7 +4870,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         // Update local files if this is a repository-backed tab
         if (tab.hasFileHandle && tab.isLocalFile) {
           try {
-            const { getModuleFile } = await import('../utils/repository-store');
+            const { getModuleFile } = await import('../utils/document-store');
             const { updateModuleFilesAfterPull } = await import('../utils/module-repository');
             
             const storedFile = await getModuleFile(tabId);

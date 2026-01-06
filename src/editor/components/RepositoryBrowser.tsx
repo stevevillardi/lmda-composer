@@ -35,8 +35,8 @@ import {
   getModuleFilesForRepository,
   queryDirectoryPermission,
   requestDirectoryPermission,
-} from '../utils/repository-store';
-import type { StoredModuleFile } from '../utils/repository-store';
+} from '../utils/document-store';
+import type { StoredModuleFile } from '../utils/document-store';
 
 interface RepositoryBrowserProps {
   open: boolean;

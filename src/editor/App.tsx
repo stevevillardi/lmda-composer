@@ -16,7 +16,7 @@ import { DebugCommandsDialog } from './components/DebugCommandsDialog';
 import { ModuleDetailsDialog } from './components/ModuleDetailsDialog';
 import { ModuleSnippetsDialog } from './components/ModuleSnippetsDialog';
 import { useEditorStore } from './stores/editor-store';
-import { isFileSystemAccessSupported } from './utils/file-handle-store';
+import { isFileSystemAccessSupported } from './utils/document-store';
 import { isBraveBrowser, isVivaldiBrowser } from './utils/browser-detection';
 import { Button } from '@/components/ui/button';
 import {
@@ -235,7 +235,7 @@ export function App() {
     loadUserSnippets();
     
     // Clean up old repository data in the background
-    import('./utils/repository-store').then(({ cleanupOldData }) => {
+    import('./utils/document-store').then(({ cleanupOldData }) => {
       cleanupOldData().catch(console.error);
     });
   }, [loadPreferences, loadHistory, loadApiHistory, loadApiEnvironments, loadUserSnippets]);
@@ -761,7 +761,7 @@ export function App() {
           onOpenChange={setRepositoryBrowserOpen}
           onOpenModule={async (moduleFile) => {
             // Open the module file in a new tab
-            const { saveModuleFile, deleteModuleFile, requestFilePermission } = await import('./utils/repository-store');
+            const { saveModuleFile, deleteModuleFile, requestFilePermission } = await import('./utils/document-store');
             const { readManifest } = await import('./utils/module-repository');
             
             try {
@@ -813,8 +813,8 @@ export function App() {
               });
               
               // Store file handle for save operations
-              const { saveHandle } = await import('./utils/file-handle-store');
-              await saveHandle(tabId, moduleFile.fileHandle, file.name);
+              const { saveFileHandle } = await import('./utils/document-store');
+              await saveFileHandle(tabId, moduleFile.fileHandle, file.name);
               
               // Delete old module file entry before creating new one (prevents duplicates)
               const oldFileId = moduleFile.fileId;

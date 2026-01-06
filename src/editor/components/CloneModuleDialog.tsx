@@ -28,7 +28,7 @@ import type { LogicModuleType, RepositoryInfo, CloneResult } from '@/shared/type
 import { 
   getRepositoryInfoList, 
   isDirectoryPickerSupported,
-} from '../utils/repository-store';
+} from '../utils/document-store';
 import { pickOrCreateRepository } from '../utils/module-repository';
 
 interface CloneModuleDialogProps {

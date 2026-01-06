@@ -355,6 +355,122 @@ export async function touchFileHandle(id: string): Promise<void> {
   }
 }
 
+/**
+ * Get all stored file handles as a Map keyed by ID.
+ */
+export async function getAllFileHandles(): Promise<Map<string, StoredFileHandle>> {
+  const db = await openDatabase();
+  
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORES.FILE_HANDLES, 'readonly');
+    const store = transaction.objectStore(STORES.FILE_HANDLES);
+    const request = store.getAll();
+    
+    request.onsuccess = () => {
+      const results = request.result as StoredFileHandle[];
+      const map = new Map<string, StoredFileHandle>();
+      for (const record of results) {
+        map.set(record.id, record);
+      }
+      resolve(map);
+    };
+    request.onerror = () => reject(request.error);
+  });
+}
+
+/**
+ * Recent file info returned to UI (without the actual handle for safety).
+ */
+export interface RecentFileInfo {
+  tabId: string;
+  fileName: string;
+  lastAccessed: number;
+  /** If this is a repository-backed module file */
+  isRepositoryModule?: boolean;
+  /** Module name (e.g., "MyDataSource") */
+  moduleName?: string;
+  /** Script type for display */
+  scriptType?: 'collection' | 'ad';
+  /** Portal hostname for display */
+  portalHostname?: string;
+}
+
+/**
+ * Get recent file handles sorted by lastAccessed (most recent first).
+ * Returns metadata only; use getFileHandle() to retrieve the actual handle.
+ * Deduplicates by fileName - only the most recent entry for each file is returned.
+ */
+export async function getRecentFileHandles(limit: number = 10): Promise<RecentFileInfo[]> {
+  const db = await openDatabase();
+  
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORES.FILE_HANDLES, 'readonly');
+    const store = transaction.objectStore(STORES.FILE_HANDLES);
+    const index = store.index('lastAccessed');
+    
+    // Open cursor in reverse order (newest first)
+    const request = index.openCursor(null, 'prev');
+    const results: RecentFileInfo[] = [];
+    const allRecords: StoredFileHandle[] = [];
+    const seenFileNames = new Set<string>();
+    
+    request.onsuccess = () => {
+      const cursor = request.result;
+      if (cursor) {
+        const record = cursor.value as StoredFileHandle;
+        allRecords.push(record);
+        
+        // Dedupe by fileName - only add if we haven't seen this file before
+        // Since we're iterating newest first, this keeps the most recent entry
+        if (!seenFileNames.has(record.fileName) && results.length < limit) {
+          seenFileNames.add(record.fileName);
+          results.push({
+            tabId: record.id,
+            fileName: record.fileName,
+            lastAccessed: record.lastAccessed,
+          });
+        }
+        cursor.continue();
+      } else {
+        // Done iterating - trigger cleanup of old records
+        cleanupOldFileHandles(allRecords).catch(console.error);
+        resolve(results);
+      }
+    };
+    
+    request.onerror = () => reject(request.error);
+  });
+}
+
+/**
+ * Clean up old file handles that exceed our limits.
+ */
+async function cleanupOldFileHandles(allRecords: StoredFileHandle[]): Promise<void> {
+  const now = Date.now();
+  const toDelete: string[] = [];
+  
+  allRecords.forEach((record, index) => {
+    // Delete if beyond max count
+    if (index >= MAX_FILE_HANDLES) {
+      toDelete.push(record.id);
+      return;
+    }
+    
+    // Delete if too old
+    const age = now - record.lastAccessed;
+    if (age > MAX_AGE_MS) {
+      toDelete.push(record.id);
+    }
+  });
+  
+  if (toDelete.length > 0) {
+    console.log(`[document-store] Removing ${toDelete.length} old file handles`);
+    for (const id of toDelete) {
+      await deleteFileHandle(id);
+    }
+  }
+}
+
 // ============================================================================
 // Repository Operations
 // ============================================================================
