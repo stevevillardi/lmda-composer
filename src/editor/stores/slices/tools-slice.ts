@@ -60,10 +60,11 @@ const normalizeAccessGroupIds = (value: unknown): number[] => {
   if (Array.isArray(value)) {
     return value
       .map((id) => (typeof id === 'string' ? parseInt(id, 10) : id))
-      .filter((id) => typeof id === 'number' && !Number.isNaN(id));
+      .filter((id) => typeof id === 'number' && !Number.isNaN(id))
+      .sort((a, b) => a - b);
   }
   if (typeof value === 'string' && value.trim()) {
-    return value.split(',').map((s) => parseInt(s.trim(), 10)).filter((n) => !Number.isNaN(n));
+    return value.split(',').map((s) => parseInt(s.trim(), 10)).filter((n) => !Number.isNaN(n)).sort((a, b) => a - b);
   }
   return [];
 };

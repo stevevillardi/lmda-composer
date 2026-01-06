@@ -1232,13 +1232,11 @@ export const createModuleSlice: StateCreator<
         
         set({
           tabs: updatedTabs,
+          moduleDetailsDraftByTabId: updatedDrafts,
           isCommittingModule: false,
           moduleCommitConfirmationOpen: false,
           loadedModuleForCommit: null,
         } as Partial<ModuleSlice & ModuleSliceDependencies>);
-        
-        // Note: moduleDetailsDraftByTabId is managed by ToolsSlice
-        // The caller should handle updating it if needed
         
         toast.success('Changes pushed to portal successfully');
       } else if (response?.type === 'MODULE_ERROR') {

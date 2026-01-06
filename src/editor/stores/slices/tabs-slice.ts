@@ -25,6 +25,7 @@ import { createScratchDocument, isFileDirty, getDocumentType } from '../../utils
 import { getDefaultScriptTemplate, DEFAULT_GROOVY_TEMPLATE, DEFAULT_POWERSHELL_TEMPLATE } from '../../config/script-templates';
 import { normalizeMode } from '../../utils/mode-utils';
 import * as documentStore from '../../utils/document-store';
+import type { ParseResult } from '../../utils/output-parser';
 
 // ============================================================================
 // Storage Keys
@@ -158,6 +159,9 @@ export interface TabsSliceDependencies {
   // From UI slice (for preferences and output tab)
   preferences: { defaultLanguage: ScriptLanguage; defaultMode: ScriptMode };
   outputTab: string;
+  
+  // From execution slice (for clearing parsed output when mode changes)
+  parsedOutput: ParseResult | null;
   
   // From module slice (for save options dialog)
   setSaveOptionsDialogOpen: (open: boolean, tabId?: string) => void;
@@ -497,9 +501,9 @@ export const createTabsSlice: StateCreator<
     if (!activeTab || activeTab.kind === 'api') return;
     
     // Clear parsed output and switch to raw tab if in freeform mode
-    // Note: We need to update parsedOutput which is in ExecutionSlice
-    // For now, just handle the outputTab switch and tabs update
-    const updates: Partial<TabsSlice & TabsSliceDependencies> = {};
+    const updates: Partial<TabsSlice & TabsSliceDependencies> = {
+      parsedOutput: null, // Always clear parsed output when mode changes
+    };
     if (mode === 'freeform' && (outputTab === 'parsed' || outputTab === 'validation' || outputTab === 'graph')) {
       updates.outputTab = 'raw';
     }
