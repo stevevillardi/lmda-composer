@@ -26,7 +26,12 @@ import type {
   Portal,
   FetchModulesResponse,
 } from '@/shared/types';
+import type { ModuleDetailsDraft } from './tools-slice';
 import { toast } from 'sonner';
+import { hasPortalChanges } from '../../utils/document-helpers';
+import { getPortalBindingStatus } from '../../utils/portal-binding';
+import { MODULE_TYPE_SCHEMAS, getSchemaFieldName } from '@/shared/module-type-schemas';
+import * as documentStore from '../../utils/document-store';
 
 // ============================================================================
 // Types
@@ -164,6 +169,9 @@ export interface ModuleSliceDependencies {
   // From PortalSlice
   selectedPortalId: string | null;
   portals: Portal[];
+  
+  // From ToolsSlice (for commit)
+  moduleDetailsDraftByTabId: Record<string, ModuleDetailsDraft>;
 }
 
 // ============================================================================
@@ -266,6 +274,43 @@ export const moduleSliceInitialState: ModuleSliceState = {
 // ============================================================================
 
 let activeModuleSearchListener: ((message: unknown) => boolean) | null = null;
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+const isPlainObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null && !Array.isArray(value);
+
+const ensurePortalBindingActive = (
+  tab: EditorTab,
+  selectedPortalId: string | null,
+  portals: Portal[]
+) => {
+  const binding = getPortalBindingStatus(tab, selectedPortalId, portals);
+  if (!binding.isActive) {
+    throw new Error(binding.reason || 'Portal is not active for this tab.');
+  }
+  return binding;
+};
+
+const getModuleTabIds = (tabs: EditorTab[], tabId: string): string[] => {
+  const tab = tabs.find((t) => t.id === tabId);
+  if (!tab || tab.source?.type !== 'module' || !tab.source.moduleId || !tab.source.moduleType) {
+    return [tabId];
+  }
+  const source = tab.source;
+  const portalId = source.portalId;
+  return tabs
+    .filter(
+      (t) =>
+        t.source?.type === 'module' &&
+        t.source.moduleId === source.moduleId &&
+        t.source.moduleType === source.moduleType &&
+        t.source.portalId === portalId
+    )
+    .map((t) => t.id);
+};
 
 // ============================================================================
 // Slice Creator
@@ -920,30 +965,305 @@ export const createModuleSlice: StateCreator<
   },
 
   // ==========================================================================
-  // Module Commit Actions (Placeholders - implementation in editor-store)
+  // Module Commit Actions
   // ==========================================================================
-
-  fetchModuleForCommit: async () => {
-    // Placeholder - actual implementation remains in editor-store.ts 
-    // due to complex dependencies on file operations
-  },
-
-  commitModuleScript: async () => {
-    // Placeholder - actual implementation remains in editor-store.ts
-    // due to complex dependencies on file operations and API calls
-  },
-
-  canCommitModule: (tabId: string) => {
-    const { tabs } = get();
-    const tab = tabs.find(t => t.id === tabId);
-    if (!tab) return false;
-    if (tab.source?.type !== 'module') return false;
-    if (!tab.source.portalId) return false;
-    return true;
-  },
 
   setModuleCommitConfirmationOpen: (open: boolean) => {
     set({ moduleCommitConfirmationOpen: open });
+    if (!open) {
+      set({ loadedModuleForCommit: null, moduleCommitError: null, moduleCommitConflict: null });
+    }
+  },
+
+  canCommitModule: (tabId: string) => {
+    const { tabs, selectedPortalId, portals, moduleDetailsDraftByTabId } = get();
+    const tab = tabs.find(t => t.id === tabId);
+    if (!tab) return false;
+    if (tab.source?.type !== 'module') return false;
+    const binding = getPortalBindingStatus(tab, selectedPortalId, portals);
+    if (!binding.isActive) return false;
+    
+    // Use unified helper to check for portal changes
+    const hasScriptChanges = hasPortalChanges(tab);
+    
+    // Check for module details changes
+    const moduleDetailsDraft = moduleDetailsDraftByTabId[tabId];
+    const hasModuleDetailsChanges = moduleDetailsDraft && moduleDetailsDraft.dirtyFields.size > 0;
+    
+    // Can commit (push to portal) if either scripts or module details have changes
+    return hasScriptChanges || hasModuleDetailsChanges;
+  },
+
+  fetchModuleForCommit: async (tabId: string) => {
+    const { tabs, selectedPortalId, portals } = get();
+    const tab = tabs.find(t => t.id === tabId);
+    
+    if (!tab) {
+      throw new Error('Tab not found');
+    }
+    
+    if (tab.source?.type !== 'module' || !tab.source.moduleId || !tab.source.moduleType || !tab.source.scriptType) {
+      throw new Error('Tab is not a module tab');
+    }
+
+    const binding = ensurePortalBindingActive(tab, selectedPortalId, portals);
+    
+    set({ moduleCommitError: null });
+    
+    try {
+      const response = await chrome.runtime.sendMessage({
+        type: 'FETCH_MODULE',
+        payload: {
+          portalId: binding.portalId,
+          moduleType: tab.source.moduleType,
+          moduleId: tab.source.moduleId,
+        },
+      });
+      
+      if (response?.type === 'MODULE_FETCHED') {
+        // Extract module info from the fetched module
+        const module = response.payload;
+        
+        // Extract the current script from the module based on type and script type
+        let currentScript = '';
+        if (tab.source.scriptType === 'ad') {
+          currentScript = module.autoDiscoveryConfig?.method?.groovyScript || '';
+        } else {
+          // Collection script
+          if (
+            tab.source.moduleType === 'propertysource' ||
+            tab.source.moduleType === 'diagnosticsource' ||
+            tab.source.moduleType === 'eventsource'
+          ) {
+            currentScript = module.groovyScript || '';
+          } else if (tab.source.moduleType === 'logsource') {
+            currentScript = module.collectionAttribute?.script?.embeddedContent
+              || module.collectionAttribute?.groovyScript
+              || '';
+          } else {
+            // DataSource, ConfigSource, TopologySource
+            currentScript = module.collectorAttribute?.groovyScript || '';
+          }
+        }
+        
+        // Check for conflicts: compare fetched script with original content
+        const originalContent = tab.originalContent || '';
+        const hasConflict = originalContent.trim() !== currentScript.trim();
+        
+        // Normalize scriptType - API may return different casings
+        const rawScriptType = module.scriptType || module.collectorAttribute?.scriptType || 'embed';
+        const normalizedScriptType = rawScriptType.toLowerCase() === 'powershell' ? 'powerShell' : 'embed';
+        
+        const moduleInfo: LogicModuleInfo = {
+          id: module.id,
+          name: module.name,
+          displayName: module.displayName || module.name,
+          moduleType: tab.source.moduleType!,
+          appliesTo: module.appliesTo || '',
+          collectMethod: module.collectMethod || 'script',
+          hasAutoDiscovery: !!module.enableAutoDiscovery,
+          scriptType: normalizedScriptType,
+        };
+        
+        // Store conflict info
+        set({ 
+          loadedModuleForCommit: moduleInfo,
+          moduleCommitConflict: hasConflict ? {
+            hasConflict: true,
+            message: 'The module has been modified in the portal since you last pulled. Your local copy may not include the latest changes.',
+            portalVersion: module.version,
+          } : { hasConflict: false },
+        });
+        
+        // If there's a conflict, update the originalContent to the current server state
+        if (hasConflict && currentScript !== originalContent) {
+          set({
+            tabs: tabs.map(t =>
+              t.id === tabId
+                ? { ...t, originalContent: currentScript }
+                : t
+            ),
+          } as Partial<ModuleSlice & ModuleSliceDependencies>);
+        }
+      } else if (response?.type === 'MODULE_ERROR') {
+        const error = response.payload.error || 'Failed to fetch module';
+        const errorCode = response.payload.code;
+        
+        // Handle specific error cases
+        if (errorCode === 404) {
+          throw new Error('Module not found. It may have been deleted.');
+        } else if (errorCode === 403) {
+          throw new Error('CSRF token expired. Please refresh the page.');
+        } else if (errorCode === 401) {
+          throw new Error('Session expired. Please log in to LogicMonitor.');
+        }
+        
+        set({ moduleCommitError: error });
+        throw new Error(error);
+      } else {
+        throw new Error('Unknown error occurred');
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch module';
+      set({ moduleCommitError: errorMessage });
+      throw error;
+    }
+  },
+
+  commitModuleScript: async (tabId: string, reason?: string) => {
+    const { tabs, selectedPortalId, portals, moduleDetailsDraftByTabId } = get();
+    const tab = tabs.find(t => t.id === tabId);
+    
+    if (!tab) {
+      throw new Error('Tab not found');
+    }
+    
+    if (tab.source?.type !== 'module' || !tab.source.moduleId || !tab.source.moduleType || !tab.source.scriptType) {
+      throw new Error('Tab is not a module tab');
+    }
+
+    const binding = ensurePortalBindingActive(tab, selectedPortalId, portals);
+    
+    set({ isCommittingModule: true, moduleCommitError: null });
+    
+    try {
+      // Check if there are module details changes
+      const moduleDetailsDraft = moduleDetailsDraftByTabId[tabId];
+      const hasModuleDetailsChanges = moduleDetailsDraft && moduleDetailsDraft.dirtyFields.size > 0;
+      
+      // Check if script has changes compared to portal
+      // For cloned files, use portalContent (what's on the portal)
+      // For non-cloned files, use originalContent
+      const compareContent = (tab.isLocalFile && tab.portalContent !== undefined) 
+        ? tab.portalContent 
+        : tab.originalContent;
+      const hasScriptChanges = tab.content !== compareContent;
+      
+      if (!hasScriptChanges && !hasModuleDetailsChanges) {
+        throw new Error('No changes to push');
+      }
+
+      // Build module details payload if there are changes
+      let moduleDetailsPayload: Record<string, unknown> | undefined;
+
+      if (hasModuleDetailsChanges && moduleDetailsDraft) {
+        const schema = MODULE_TYPE_SCHEMAS[tab.source.moduleType];
+        const payload: Record<string, unknown> = {};
+        for (const field of moduleDetailsDraft.dirtyFields) {
+          const draftValue = moduleDetailsDraft.draft[field as keyof typeof moduleDetailsDraft.draft];
+          const originalValue = moduleDetailsDraft.original?.[field as keyof typeof moduleDetailsDraft.original];
+          const actualField = getSchemaFieldName(schema, field);
+          
+          if (!Object.is(draftValue, originalValue)) {
+            if (field === 'accessGroupIds') {
+              if (Array.isArray(draftValue)) {
+                payload.accessGroupIds = draftValue;
+              } else if (typeof draftValue === 'string') {
+                payload.accessGroupIds = draftValue;
+              }
+            } else if (field === 'autoDiscoveryConfig') {
+              const draftConfig = isPlainObject(draftValue) ? draftValue : {};
+              const baseConfig = schema.autoDiscoveryDefaults
+                ? { ...schema.autoDiscoveryDefaults, ...draftConfig }
+                : draftConfig;
+              payload.autoDiscoveryConfig = baseConfig;
+            } else if (field === 'tags' && tab.source.moduleType === 'logsource') {
+              const tagsText = Array.isArray(draftValue) ? draftValue.join(',') : String(draftValue ?? '');
+              const tagsArray = tagsText
+                .split(',')
+                .map((tag) => tag.trim())
+                .filter(Boolean);
+              payload.tags = tagsArray;
+            } else if (field === 'collectInterval' && schema.intervalFormat === 'object' && actualField === 'collectionInterval') {
+              payload.collectionInterval = {
+                units: 'SECONDS',
+                offset: draftValue,
+              };
+            } else {
+              payload[actualField] = draftValue;
+            }
+          }
+        }
+        moduleDetailsPayload = payload;
+      }
+
+      const trimmedReason = reason?.trim();
+      const limitedReason = trimmedReason ? trimmedReason.slice(0, 4096) : undefined;
+      const response = await chrome.runtime.sendMessage({
+        type: 'COMMIT_MODULE_SCRIPT',
+        payload: {
+          portalId: binding.portalId,
+          moduleType: tab.source.moduleType,
+          moduleId: tab.source.moduleId,
+          scriptType: tab.source.scriptType,
+          newScript: hasScriptChanges ? tab.content : undefined,
+          moduleDetails: moduleDetailsPayload,
+          reason: limitedReason,
+        },
+      });
+      
+      if (response?.type === 'MODULE_COMMITTED') {
+        // Update originalContent and portalContent to reflect the committed state
+        const updatedTabs = tabs.map(t => 
+          t.id === tabId 
+            ? { 
+                ...t, 
+                originalContent: t.content,
+                // Update portalContent for cloned files (portal now has this content)
+                portalContent: t.isLocalFile ? t.content : t.portalContent,
+              }
+            : t
+        );
+        
+        // Clear module details draft if committed
+        const updatedDrafts = { ...moduleDetailsDraftByTabId };
+        const moduleTabIds = getModuleTabIds(tabs, tabId);
+        if (hasModuleDetailsChanges && moduleDetailsDraft) {
+          // Update original to match draft after successful commit across module tabs
+          moduleTabIds.forEach((id) => {
+            updatedDrafts[id] = {
+              ...moduleDetailsDraft,
+              original: moduleDetailsDraft.draft,
+              dirtyFields: new Set<string>(),
+              tabId: id,
+            };
+          });
+        }
+        
+        set({
+          tabs: updatedTabs,
+          isCommittingModule: false,
+          moduleCommitConfirmationOpen: false,
+          loadedModuleForCommit: null,
+        } as Partial<ModuleSlice & ModuleSliceDependencies>);
+        
+        // Note: moduleDetailsDraftByTabId is managed by ToolsSlice
+        // The caller should handle updating it if needed
+        
+        toast.success('Changes pushed to portal successfully');
+      } else if (response?.type === 'MODULE_ERROR') {
+        const error = response.payload.error || 'Failed to push changes to portal';
+        set({ 
+          moduleCommitError: error,
+          isCommittingModule: false,
+        });
+        throw new Error(error);
+      } else {
+        const error = 'Unknown error occurred';
+        set({ 
+          moduleCommitError: error,
+          isCommittingModule: false,
+        });
+        throw new Error(error);
+      }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to push changes to portal';
+      set({ 
+        moduleCommitError: errorMessage,
+        isCommittingModule: false,
+      });
+      throw error;
+    }
   },
 
   // ==========================================================================
@@ -958,55 +1278,360 @@ export const createModuleSlice: StateCreator<
   },
 
   // ==========================================================================
-  // Module Clone to Repository Actions (Placeholders)
+  // Module Clone to Repository Actions
   // ==========================================================================
 
   setCloneModuleDialogOpen: (open: boolean) => {
     set({ cloneModuleDialogOpen: open });
   },
 
-  cloneModuleToRepository: async () => {
-    // Placeholder - actual implementation remains in editor-store.ts
-    // due to complex dependencies on document-store and file operations
-    return { 
-      success: false, 
-      error: 'Not implemented in slice - see editor-store.ts',
-      repositoryId: '',
-      modulePath: '',
-      fileIds: {},
-    };
-  },
-
   canCloneModule: (tabId: string) => {
     const { tabs } = get();
     const tab = tabs.find(t => t.id === tabId);
     if (!tab) return false;
+    
+    // Must be a module tab with valid source info
     if (tab.source?.type !== 'module') return false;
-    if (!tab.source.portalId) return false;
+    if (!tab.source.moduleId || !tab.source.moduleType) return false;
+    if (!tab.source.portalId || !tab.source.portalHostname) return false;
+    
+    // Must have content to clone
+    if (!tab.content || tab.content.trim().length === 0) return false;
+    
     return true;
   },
 
+  cloneModuleToRepository: async (tabId: string, repositoryId: string | null, overwrite = false) => {
+    const { tabs } = get();
+    const tab = tabs.find(t => t.id === tabId);
+    
+    if (!tab || tab.source?.type !== 'module') {
+      return {
+        success: false,
+        repositoryId: repositoryId || '',
+        modulePath: '',
+        fileIds: {},
+        error: 'Tab is not a module tab',
+      };
+    }
+    
+    const source = tab.source;
+    if (!source.moduleId || !source.moduleType || !source.portalId || !source.portalHostname) {
+      return {
+        success: false,
+        repositoryId: repositoryId || '',
+        modulePath: '',
+        fileIds: {},
+        error: 'Module source information is incomplete',
+      };
+    }
+    
+    // Dynamic import to avoid circular dependencies
+    const { 
+      pickOrCreateRepository, 
+      cloneModuleToRepository: cloneToRepo,
+      getRepositoryWithStatus,
+    } = await import('../../utils/module-repository');
+    
+    try {
+      // Get or create repository
+      let repo;
+      if (repositoryId) {
+        const repoStatus = await getRepositoryWithStatus(repositoryId);
+        if (!repoStatus) {
+          return {
+            success: false,
+            repositoryId,
+            modulePath: '',
+            fileIds: {},
+            error: 'Repository not found',
+          };
+        }
+        repo = repoStatus.repo;
+      } else {
+        // Pick a new directory
+        repo = await pickOrCreateRepository();
+        if (!repo) {
+          return {
+            success: false,
+            repositoryId: '',
+            modulePath: '',
+            fileIds: {},
+            error: 'No directory selected',
+          };
+        }
+      }
+      
+      // Build module info from tab source
+      const moduleInfo = {
+        id: source.moduleId,
+        name: source.moduleName || tab.displayName.split('/')[0],
+        displayName: source.moduleName || tab.displayName.split('/')[0],
+        moduleType: source.moduleType,
+        appliesTo: '',
+        collectMethod: 'script',
+        hasAutoDiscovery: source.scriptType === 'ad' || tabs.some(
+          t => t.source?.moduleId === source.moduleId && 
+               t.source?.moduleType === source.moduleType &&
+               t.source?.scriptType === 'ad'
+        ),
+        scriptType: tab.language === 'powershell' ? 'powerShell' : 'embed',
+        lineageId: source.lineageId,
+      } as LogicModuleInfo;
+      
+      // Gather scripts from all tabs for this module
+      const scripts: { 
+        collection?: { content: string; language: ScriptLanguage }; 
+        ad?: { content: string; language: ScriptLanguage };
+      } = {};
+      
+      // Find all tabs for this module
+      const moduleTabs = tabs.filter(
+        t => t.source?.type === 'module' &&
+             t.source.moduleId === source.moduleId &&
+             t.source.moduleType === source.moduleType &&
+             t.source.portalId === source.portalId
+      );
+      
+      for (const moduleTab of moduleTabs) {
+        if (moduleTab.source?.scriptType === 'collection') {
+          scripts.collection = { content: moduleTab.content, language: moduleTab.language };
+        } else if (moduleTab.source?.scriptType === 'ad') {
+          scripts.ad = { content: moduleTab.content, language: moduleTab.language };
+        }
+      }
+      
+      // If no scripts found from other tabs, use current tab
+      if (!scripts.collection && !scripts.ad) {
+        if (source.scriptType === 'collection') {
+          scripts.collection = { content: tab.content, language: tab.language };
+        } else if (source.scriptType === 'ad') {
+          scripts.ad = { content: tab.content, language: tab.language };
+        }
+      }
+      
+      // Clone to repository
+      const result = await cloneToRepo(
+        repo,
+        source.portalId,
+        source.portalHostname,
+        moduleInfo,
+        scripts,
+        { overwrite }
+      );
+      
+      // Update tab file handles if successful
+      if (result.success && result.fileHandles && result.filenames) {
+        // Re-read tabs from state to avoid overwriting concurrent changes
+        const currentTabs = get().tabs;
+        const updatedTabs: EditorTab[] = [];
+        
+        for (const t of currentTabs) {
+          if (t.source?.type === 'module' &&
+              t.source.moduleId === source.moduleId &&
+              t.source.moduleType === source.moduleType &&
+              t.source.portalId === source.portalId) {
+            const scriptType = t.source.scriptType;
+            const fileHandle = scriptType === 'ad' ? result.fileHandles.ad : result.fileHandles.collection;
+            const filename = scriptType === 'ad' ? result.filenames.ad : result.filenames.collection;
+            
+            if (fileHandle && filename) {
+              // Save file handle to document-store for save operations
+              await documentStore.saveFileHandle(t.id, fileHandle, filename);
+              
+              updatedTabs.push({
+                ...t,
+                hasFileHandle: true,
+                isLocalFile: true,
+                // Update display name to show the filename from repo
+                displayName: `${source.moduleName || t.displayName.split('/')[0]}/${scriptType === 'ad' ? 'AD' : 'Collection'}`,
+                // Track portal content separately for commit detection
+                // This represents what's currently on the portal
+                portalContent: t.originalContent ?? t.content,
+              });
+              continue;
+            }
+          }
+          updatedTabs.push(t);
+        }
+        set({ tabs: updatedTabs } as Partial<ModuleSlice & ModuleSliceDependencies>);
+      }
+      
+      return result;
+    } catch (error) {
+      console.error('[cloneModuleToRepository] Error:', error);
+      return {
+        success: false,
+        repositoryId: repositoryId || '',
+        modulePath: '',
+        fileIds: {},
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
+  },
+
   // ==========================================================================
-  // Pull Latest from Portal Actions (Placeholders)
+  // Pull Latest from Portal Actions
   // ==========================================================================
 
   setPullLatestDialogOpen: (open: boolean) => {
     set({ pullLatestDialogOpen: open });
   },
 
-  pullLatestFromPortal: async () => {
-    // Placeholder - actual implementation remains in editor-store.ts
-    // due to complex dependencies on document-store and API calls
-    return { success: false, error: 'Not implemented in slice - see editor-store.ts' };
-  },
-
   canPullLatest: (tabId: string) => {
-    const { tabs } = get();
+    const { tabs, portals } = get();
     const tab = tabs.find(t => t.id === tabId);
     if (!tab) return false;
+    
+    // Must be a module tab with source info
     if (tab.source?.type !== 'module') return false;
-    if (!tab.source.portalId) return false;
-    return true;
+    if (!tab.source.moduleId || !tab.source.moduleType) return false;
+    if (!tab.source.portalId || !tab.source.portalHostname) return false;
+    
+    // Portal must be connected and active
+    const portal = portals.find(p => p.id === tab.source?.portalId);
+    if (!portal) return false;
+    
+    // Must have the source portal selected or be able to reach it
+    return portal.status === 'active';
+  },
+
+  pullLatestFromPortal: async (tabId: string) => {
+    const { tabs, portals } = get();
+    const tab = tabs.find(t => t.id === tabId);
+    
+    if (!tab || tab.source?.type !== 'module') {
+      return { success: false, error: 'Tab is not a module tab' };
+    }
+    
+    const source = tab.source;
+    if (!source.moduleId || !source.moduleType || !source.portalId) {
+      return { success: false, error: 'Module source information is incomplete' };
+    }
+    
+    const portal = portals.find(p => p.id === source.portalId);
+    if (!portal) {
+      return { success: false, error: `Portal ${source.portalHostname} not found` };
+    }
+    
+    set({ isPullingLatest: true });
+    
+    try {
+      // Get current tab for CSRF token
+      const currentTabs = await chrome.tabs.query({ url: `https://${portal.hostname}/*` });
+      if (currentTabs.length === 0) {
+        set({ isPullingLatest: false });
+        return { success: false, error: 'No LogicMonitor tab found for this portal' };
+      }
+      const lmTab = currentTabs[0];
+      if (!lmTab.id) {
+        set({ isPullingLatest: false });
+        return { success: false, error: 'Invalid browser tab ID' };
+      }
+      
+      // Fetch latest module from portal
+      const response = await chrome.runtime.sendMessage({
+        type: 'FETCH_MODULE',
+        payload: {
+          portalId: source.portalId,
+          moduleType: source.moduleType,
+          moduleId: source.moduleId,
+        },
+      });
+      
+      if (response?.type === 'MODULE_FETCHED') {
+        const module = response.payload;
+        
+        // Extract script content
+        let scriptContent: string | undefined;
+        const scriptType = source.scriptType || 'collection';
+        
+        if (scriptType === 'collection') {
+          // Collection script location varies by module type
+          if (source.moduleType === 'propertysource' || source.moduleType === 'diagnosticsource') {
+            scriptContent = module.groovyScript || module.linuxScript || module.windowsScript;
+          } else if (source.moduleType === 'eventsource') {
+            scriptContent = module.groovyScript || module.script;
+          } else if (source.moduleType === 'logsource') {
+            // LogSource has a unique script structure
+            scriptContent = module.collectionAttribute?.script?.embeddedContent ||
+                           module.collectionAttribute?.groovyScript ||
+                           module.collectorAttribute?.groovyScript;
+          } else {
+            // DataSource, ConfigSource, TopologySource and others
+            scriptContent = module.collectorAttribute?.groovyScript ||
+                           module.collectorAttribute?.linuxScript ||
+                           module.collectorAttribute?.windowsScript;
+          }
+        } else if (scriptType === 'ad') {
+          // Active Discovery script
+          scriptContent = module.autoDiscoveryConfig?.method?.groovyScript ||
+                         module.autoDiscoveryConfig?.method?.linuxScript ||
+                         module.autoDiscoveryConfig?.method?.winScript;
+        }
+        
+        if (scriptContent === undefined) {
+          set({ isPullingLatest: false });
+          return { success: false, error: 'Could not extract script from module' };
+        }
+        
+        // Update the tab content
+        const updatedTabs = tabs.map(t => 
+          t.id === tabId 
+            ? { 
+                ...t, 
+                content: scriptContent!,
+                originalContent: scriptContent!,
+                // Update portalContent for cloned files (tracks what's on portal for commit detection)
+                portalContent: t.isLocalFile ? scriptContent! : t.portalContent,
+              }
+            : t
+        );
+        
+        set({ tabs: updatedTabs, isPullingLatest: false } as Partial<ModuleSlice & ModuleSliceDependencies>);
+        
+        // Update local files if this is a repository-backed tab
+        if (tab.hasFileHandle && tab.isLocalFile) {
+          try {
+            const { getModuleFile } = await import('../../utils/document-store');
+            const { updateModuleFilesAfterPull } = await import('../../utils/module-repository');
+            
+            const storedFile = await getModuleFile(tabId);
+            if (storedFile) {
+              await updateModuleFilesAfterPull(
+                tabId,
+                scriptType === 'collection' ? scriptContent : undefined,
+                scriptType === 'ad' ? scriptContent : undefined,
+                module.version
+              );
+            }
+          } catch (fileError) {
+            console.warn('[pullLatestFromPortal] Could not update local files:', fileError);
+            // Don't fail the pull - just warn
+          }
+        }
+        
+        toast.success('Pulled latest from portal', {
+          description: `Updated ${source.moduleName || 'module'} ${scriptType === 'ad' ? 'AD' : 'collection'} script`,
+        });
+        
+        return { success: true };
+      } else if (response?.type === 'MODULE_ERROR') {
+        const error = response.payload.error || 'Failed to fetch module';
+        set({ isPullingLatest: false });
+        return { success: false, error };
+      } else {
+        set({ isPullingLatest: false });
+        return { success: false, error: 'Unexpected response from portal' };
+      }
+    } catch (error) {
+      console.error('[pullLatestFromPortal] Error:', error);
+      set({ isPullingLatest: false });
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error',
+      };
+    }
   },
 
   // ==========================================================================

@@ -1,21 +1,56 @@
 /**
- * Tabs slice - manages multi-tab editor state.
+ * Tabs slice - manages multi-tab editor state and file operations.
  * 
- * This slice handles core tab management: opening, closing, switching, and updating tabs.
- * File operations (openFileFromDisk, saveFile, etc.) remain in editor-store.ts for now
- * due to their complexity and dependencies on other systems.
+ * This slice handles:
+ * - Core tab management: opening, closing, switching, and updating tabs
+ * - File operations: open, save, save as, recent files
+ * - Draft persistence: save/restore drafts
+ * - Language and mode management
  */
 
 import type { StateCreator } from 'zustand';
+import { toast } from 'sonner';
 import type { 
   EditorTab, 
   ScriptLanguage, 
   ScriptMode,
   FilePermissionStatus,
+  DraftScript,
+  DraftTabs,
+  EditorTabSource,
+  Portal,
 } from '@/shared/types';
-import { getExtensionForLanguage } from '../../utils/file-extensions';
-import { createScratchDocument } from '../../utils/document-helpers';
-import { getDefaultScriptTemplate } from '../../config/script-templates';
+import { getExtensionForLanguage, getLanguageFromFilename } from '../../utils/file-extensions';
+import { createScratchDocument, isFileDirty, getDocumentType } from '../../utils/document-helpers';
+import { getDefaultScriptTemplate, DEFAULT_GROOVY_TEMPLATE, DEFAULT_POWERSHELL_TEMPLATE } from '../../config/script-templates';
+import { normalizeMode } from '../../utils/mode-utils';
+import * as documentStore from '../../utils/document-store';
+
+// ============================================================================
+// Storage Keys
+// ============================================================================
+
+const STORAGE_KEYS = {
+  DRAFT: 'lm-ide-draft',           // Legacy single-file draft
+  DRAFT_TABS: 'lm-ide-draft-tabs', // Multi-tab draft
+} as const;
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+function getUniqueUntitledName(tabs: EditorTab[], language: ScriptLanguage): string {
+  const extension = language === 'groovy' ? 'groovy' : 'ps1';
+  let counter = 0;
+  let displayName = `Untitled.${extension}`;
+
+  while (tabs.some(t => t.displayName === displayName)) {
+    counter += 1;
+    displayName = `Untitled ${counter}.${extension}`;
+  }
+
+  return displayName;
+}
 
 // ============================================================================
 // Types
@@ -71,6 +106,39 @@ export interface TabsSliceActions {
   
   // Helper to get unique untitled name
   getUniqueUntitledName: (language: ScriptLanguage) => string;
+  
+  // Language and mode (with template switching)
+  setLanguage: (language: ScriptLanguage, force?: boolean) => void;
+  setMode: (mode: ScriptMode) => void;
+  
+  // Draft management
+  saveDraft: () => Promise<void>;
+  loadDraft: () => Promise<DraftScript | DraftTabs | null>;
+  clearDraft: () => Promise<void>;
+  restoreDraft: (draft: DraftScript) => void;
+  restoreDraftTabs: (draftTabs: DraftTabs) => void;
+  
+  // File export
+  exportToFile: () => void;
+  
+  // File operations
+  openFileFromDisk: () => Promise<void>;
+  openModuleFromRepository: () => Promise<void>;
+  saveFile: (tabId?: string) => Promise<boolean>;
+  saveFileAs: (tabId?: string) => Promise<boolean>;
+  restoreFileHandles: () => Promise<void>;
+  requestFilePermissions: () => Promise<void>;
+  
+  // Dirty state helpers
+  isTabDirty: (tabId: string) => boolean;
+  getTabDirtyState: (tab: EditorTab) => boolean;
+  
+  // Recent files
+  loadRecentFiles: () => Promise<void>;
+  openRecentFile: (tabId: string) => Promise<void>;
+  
+  // Create local copy
+  createLocalCopyFromTab: (tabId: string, options?: { activate?: boolean }) => string | null;
 }
 
 /**
@@ -79,16 +147,20 @@ export interface TabsSliceActions {
 export interface TabsSlice extends TabsSliceState, TabsSliceActions {}
 
 // ============================================================================
-// Dependencies - state accessed from other slices
+// Dependencies - state and actions accessed from other slices
 // ============================================================================
 
-interface TabsSliceDependencies {
+export interface TabsSliceDependencies {
   // From portal slice (for module scripts)
   selectedPortalId: string | null;
-  portals: Array<{ id: string; hostname: string }>;
+  portals: Portal[];
   
-  // From UI slice (for preferences)
+  // From UI slice (for preferences and output tab)
   preferences: { defaultLanguage: ScriptLanguage; defaultMode: ScriptMode };
+  outputTab: string;
+  
+  // From module slice (for save options dialog)
+  setSaveOptionsDialogOpen: (open: boolean, tabId?: string) => void;
 }
 
 // ============================================================================
@@ -119,6 +191,10 @@ export const createTabsSlice: StateCreator<
   TabsSlice
 > = (set, get) => ({
   ...tabsSliceInitialState,
+
+  // =====================
+  // Core Tab Management
+  // =====================
 
   getActiveTab: () => {
     const { tabs, activeTabId } = get();
@@ -369,15 +445,934 @@ export const createTabsSlice: StateCreator<
 
   getUniqueUntitledName: (language) => {
     const { tabs } = get();
-    const extension = language === 'groovy' ? 'groovy' : 'ps1';
-    let counter = 0;
-    let name = `Untitled.${extension}`;
+    return getUniqueUntitledName(tabs, language);
+  },
+
+  // =====================
+  // Language and Mode
+  // =====================
+
+  setLanguage: (language, force = false) => {
+    const { tabs, activeTabId } = get();
+    const activeTab = tabs.find(t => t.id === activeTabId);
+    if (!activeTab || activeTab.kind === 'api') return;
     
-    while (tabs.some(t => t.displayName === name)) {
-      counter += 1;
-      name = `Untitled ${counter}.${extension}`;
+    // If same language, do nothing
+    if (language === activeTab.language) return;
+    
+    // Normalize scripts for comparison (trim whitespace, normalize line endings)
+    const normalize = (s: string) => s.trim().replace(/\r\n/g, '\n');
+    const isDefaultGroovy = normalize(activeTab.content) === normalize(DEFAULT_GROOVY_TEMPLATE);
+    const isDefaultPowershell = normalize(activeTab.content) === normalize(DEFAULT_POWERSHELL_TEMPLATE);
+    
+    // Determine new content
+    let newContent = activeTab.content;
+    let newDisplayName = activeTab.displayName;
+    
+    // Switch templates if:
+    // - force is true (user confirmed reset)
+    // - script is a default template
+    if (force || isDefaultGroovy || isDefaultPowershell) {
+      newContent = language === 'groovy' ? DEFAULT_GROOVY_TEMPLATE : DEFAULT_POWERSHELL_TEMPLATE;
+      // Update display name extension if it's an untitled file
+      // Match both "Untitled.ext" and "Untitled N.ext" patterns
+      const untitledMatch = activeTab.displayName.match(/^(Untitled(?:\s+\d+)?)\.(groovy|ps1)$/);
+      if (untitledMatch) {
+        newDisplayName = `${untitledMatch[1]}.${language === 'groovy' ? 'groovy' : 'ps1'}`;
+      }
     }
     
-    return name;
+    set({
+      tabs: tabs.map(t => 
+        t.id === activeTabId 
+          ? { ...t, language, content: newContent, displayName: newDisplayName }
+          : t
+      ),
+    });
+  },
+
+  setMode: (mode) => {
+    const { tabs, activeTabId, outputTab } = get();
+    const activeTab = tabs.find(t => t.id === activeTabId);
+    if (!activeTab || activeTab.kind === 'api') return;
+    
+    // Clear parsed output and switch to raw tab if in freeform mode
+    // Note: We need to update parsedOutput which is in ExecutionSlice
+    // For now, just handle the outputTab switch and tabs update
+    const updates: Partial<TabsSlice & TabsSliceDependencies> = {};
+    if (mode === 'freeform' && (outputTab === 'parsed' || outputTab === 'validation' || outputTab === 'graph')) {
+      updates.outputTab = 'raw';
+    }
+    
+    set({
+      ...updates,
+      tabs: tabs.map(t => 
+        t.id === activeTabId 
+          ? { ...t, mode }
+          : t
+      ),
+    } as Partial<TabsSlice & TabsSliceDependencies>);
+  },
+
+  // =====================
+  // Draft Management
+  // =====================
+
+  saveDraft: async () => {
+    try {
+      const { tabs, activeTabId, hasSavedDraft } = get();
+      
+      // Normalize for comparison
+      const normalize = (s: string) => s.trim().replace(/\r\n/g, '\n');
+      
+      // Check if all tabs are default templates (nothing to save)
+      const hasApiTabs = tabs.some(tab => tab.kind === 'api');
+      const hasNonDefaultContent = hasApiTabs || tabs.some(tab => {
+        if (tab.kind === 'api') return false;
+        const normalizedContent = normalize(tab.content);
+        const isDefaultGroovy = normalizedContent === normalize(DEFAULT_GROOVY_TEMPLATE);
+        const isDefaultPowershell = normalizedContent === normalize(DEFAULT_POWERSHELL_TEMPLATE);
+        return !isDefaultGroovy && !isDefaultPowershell;
+      });
+      
+      // Skip saving if all tabs are default templates
+      if (!hasNonDefaultContent && tabs.length <= 1) {
+        // If there was a saved draft, clear it since we're back to default
+        if (hasSavedDraft) {
+          await chrome.storage.local.remove(STORAGE_KEYS.DRAFT_TABS);
+          await chrome.storage.local.remove(STORAGE_KEYS.DRAFT);
+          set({ hasSavedDraft: false });
+        }
+        return;
+      }
+      
+      const draftTabs: DraftTabs = {
+        tabs,
+        activeTabId,
+        lastModified: Date.now(),
+      };
+      await chrome.storage.local.set({ [STORAGE_KEYS.DRAFT_TABS]: draftTabs });
+      set({ hasSavedDraft: true });
+    } catch (error) {
+      console.error('Failed to save draft:', error);
+    }
+  },
+
+  loadDraft: async () => {
+    try {
+      // First try to load multi-tab draft
+      const tabsResult = await chrome.storage.local.get(STORAGE_KEYS.DRAFT_TABS);
+      if (tabsResult[STORAGE_KEYS.DRAFT_TABS]) {
+        const draftTabs = tabsResult[STORAGE_KEYS.DRAFT_TABS] as DraftTabs;
+        set({ hasSavedDraft: true });
+        return draftTabs; // Return for dialog, don't auto-restore
+      }
+      
+      // Fall back to legacy single-file draft
+      const result = await chrome.storage.local.get(STORAGE_KEYS.DRAFT);
+      if (result[STORAGE_KEYS.DRAFT]) {
+        set({ hasSavedDraft: true });
+        return result[STORAGE_KEYS.DRAFT] as DraftScript;
+      }
+      return null;
+    } catch (error) {
+      console.error('Failed to load draft:', error);
+      return null;
+    }
+  },
+
+  clearDraft: async () => {
+    try {
+      await chrome.storage.local.remove(STORAGE_KEYS.DRAFT);
+      await chrome.storage.local.remove(STORAGE_KEYS.DRAFT_TABS);
+      set({ hasSavedDraft: false });
+    } catch (error) {
+      console.error('Failed to clear draft:', error);
+    }
+  },
+
+  restoreDraft: (draft) => {
+    // Create a tab from the legacy draft format
+    const extension = draft.language === 'groovy' ? 'groovy' : 'ps1';
+    const newTab: EditorTab = {
+      id: crypto.randomUUID(),
+      displayName: `Recovered.${extension}`,
+      content: draft.script,
+      language: draft.language,
+      mode: normalizeMode(draft.mode),
+    };
+    
+    set({
+      tabs: [newTab],
+      activeTabId: newTab.id,
+      hasSavedDraft: true, // Mark as having saved draft so auto-save will update it
+    });
+    // Don't call clearDraft here - let the auto-save overwrite instead
+    // This prevents race conditions where clear happens before save
+  },
+  
+  restoreDraftTabs: (draftTabs) => {
+    // Normalize any legacy mode values to valid modes
+    const normalizedTabs = draftTabs.tabs.map(tab => ({
+      ...tab,
+      mode: normalizeMode(tab.mode),
+    }));
+    
+    set({
+      tabs: normalizedTabs,
+      activeTabId: draftTabs.activeTabId,
+      hasSavedDraft: true, // Mark as having saved draft so auto-save will update it
+    });
+    // Don't call clearDraft here - let the auto-save overwrite instead
+  },
+
+  // =====================
+  // File Export
+  // =====================
+
+  exportToFile: () => {
+    const { tabs, activeTabId } = get();
+    const activeTab = tabs.find(t => t.id === activeTabId);
+    if (!activeTab) return;
+    
+    const extension = getExtensionForLanguage(activeTab.language);
+    const baseName = activeTab.displayName.replace(/\.(groovy|ps1)$/, '');
+    const fileName = `${baseName}${extension}`;
+
+    const blob = new Blob([activeTab.content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  },
+
+  // =====================
+  // File Operations
+  // =====================
+
+  openFileFromDisk: async () => {
+    // Check if File System Access API is supported
+    if (!documentStore.isFileSystemAccessSupported()) {
+      // Fallback to input element for unsupported browsers
+      return new Promise<void>((resolve) => {
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.groovy,.ps1,.txt';
+        
+        fileInput.onchange = async (e) => {
+          const target = e.target as HTMLInputElement;
+          const file = target.files?.[0];
+          if (!file) {
+            resolve();
+            return;
+          }
+          
+          const content = await file.text();
+          const fileName = file.name;
+          const isGroovy = fileName.endsWith('.groovy');
+          
+          const newTab: EditorTab = {
+            id: crypto.randomUUID(),
+            displayName: fileName,
+            content,
+            language: isGroovy ? 'groovy' : 'powershell',
+            mode: 'freeform',
+            originalContent: content,
+            hasFileHandle: false,
+            isLocalFile: true,
+            source: { type: 'file' },
+          };
+          
+          set({
+            tabs: [...get().tabs, newTab],
+            activeTabId: newTab.id,
+          });
+          resolve();
+        };
+        
+        fileInput.click();
+      });
+    }
+
+    try {
+      // Use File System Access API
+      const [handle] = await window.showOpenFilePicker({
+        types: [
+          {
+            description: 'Script Files',
+            accept: {
+              'text/plain': ['.groovy', '.ps1', '.txt'],
+            },
+          },
+        ],
+        multiple: false,
+      });
+      
+      // Read file content
+      const file = await handle.getFile();
+      const content = await file.text();
+      const fileName = file.name;
+      const isGroovy = fileName.endsWith('.groovy');
+      
+      // Generate tab ID
+      const tabId = crypto.randomUUID();
+      
+      // Store handle in IndexedDB
+      await documentStore.saveFileHandle(tabId, handle, fileName);
+      
+      // Try to restore module binding from stored module files
+      let source: EditorTabSource = { type: 'file' };
+      let displayName = fileName;
+      let mode: ScriptMode = 'freeform';
+      
+      try {
+        const { restoreModuleBinding } = await import('../../utils/module-repository');
+        const binding = await restoreModuleBinding(tabId);
+        
+        if (binding) {
+          source = binding.source;
+          displayName = `${binding.manifest.module.name}/${binding.scriptType === 'ad' ? 'AD' : 'Collection'}`;
+          mode = binding.scriptType === 'ad' ? 'ad' : 'collection';
+          
+          toast.success('Module binding restored', {
+            description: `Linked to ${binding.manifest.portal.hostname} - ${binding.manifest.module.name}`,
+          });
+        }
+      } catch (bindError) {
+        // Binding restoration failed - continue as regular file
+        console.debug('[openFileFromDisk] Could not restore module binding:', bindError);
+      }
+      
+      // Create new tab
+      const newTab: EditorTab = {
+        id: tabId,
+        displayName,
+        content,
+        language: isGroovy ? 'groovy' : 'powershell',
+        mode,
+        originalContent: content,
+        hasFileHandle: true,
+        isLocalFile: true,
+        source,
+      };
+      
+      set({
+        tabs: [...get().tabs, newTab],
+        activeTabId: tabId,
+      });
+    } catch (error) {
+      // User cancelled or error occurred
+      if ((error as Error).name !== 'AbortError') {
+        console.error('Error opening file:', error);
+      }
+    }
+  },
+
+  openModuleFromRepository: async () => {
+    try {
+      const { openModuleFromDirectory, MODULE_TYPE_DIRS } = await import('../../utils/module-repository');
+      const { saveModuleFile, generateId } = await import('../../utils/document-store');
+      
+      const result = await openModuleFromDirectory();
+      if (!result) {
+        // User cancelled
+        return;
+      }
+      
+      const { manifest, scripts, directoryHandle } = result;
+      const { tabs, portals } = get();
+      
+      // Check if the portal is connected
+      const matchingPortal = portals.find(p => p.hostname === manifest.portal.hostname);
+      const isPortalConnected = !!matchingPortal;
+      
+      // Create tabs for each script
+      const newTabs: EditorTab[] = [];
+      
+      // Determine repository ID
+      const repositoryId = result.repositoryId || '';
+      
+      if (scripts.collection && manifest.scripts.collection) {
+        const tabId = generateId();
+        
+        // Store file mapping
+        const fileHandle = await directoryHandle.getFileHandle(manifest.scripts.collection.filename);
+        await saveModuleFile({
+          fileId: tabId,
+          repositoryId,
+          fileHandle,
+          moduleDirectoryHandle: directoryHandle,
+          relativePath: `${manifest.portal.hostname}/${MODULE_TYPE_DIRS[manifest.module.type]}/${manifest.module.name}/${manifest.scripts.collection.filename}`,
+          scriptType: 'collection',
+          lastAccessed: Date.now(),
+        });
+        
+        // Store in file handle store for save operations
+        await documentStore.saveFileHandle(tabId, fileHandle, manifest.scripts.collection.filename);
+        
+        const source: EditorTabSource = {
+          type: 'module',
+          moduleId: manifest.module.id,
+          moduleName: manifest.module.name,
+          moduleType: manifest.module.type,
+          scriptType: 'collection',
+          lineageId: manifest.module.lineageId,
+          portalId: manifest.portal.id,
+          portalHostname: manifest.portal.hostname,
+        };
+        
+        newTabs.push({
+          id: tabId,
+          displayName: `${manifest.module.name}/Collection`,
+          content: scripts.collection,
+          language: manifest.scripts.collection.language,
+          mode: 'collection',
+          originalContent: scripts.collection,
+          portalContent: scripts.collection, // Assume file content matches portal on open
+          hasFileHandle: true,
+          isLocalFile: true,
+          source,
+        });
+      }
+      
+      if (scripts.ad && manifest.scripts.ad) {
+        const tabId = generateId();
+        
+        // Store file mapping
+        const fileHandle = await directoryHandle.getFileHandle(manifest.scripts.ad.filename);
+        await saveModuleFile({
+          fileId: tabId,
+          repositoryId,
+          fileHandle,
+          moduleDirectoryHandle: directoryHandle,
+          relativePath: `${manifest.portal.hostname}/${MODULE_TYPE_DIRS[manifest.module.type]}/${manifest.module.name}/${manifest.scripts.ad.filename}`,
+          scriptType: 'ad',
+          lastAccessed: Date.now(),
+        });
+        
+        // Store in file handle store for save operations
+        await documentStore.saveFileHandle(tabId, fileHandle, manifest.scripts.ad.filename);
+        
+        const source: EditorTabSource = {
+          type: 'module',
+          moduleId: manifest.module.id,
+          moduleName: manifest.module.name,
+          moduleType: manifest.module.type,
+          scriptType: 'ad',
+          lineageId: manifest.module.lineageId,
+          portalId: manifest.portal.id,
+          portalHostname: manifest.portal.hostname,
+        };
+        
+        newTabs.push({
+          id: tabId,
+          displayName: `${manifest.module.name}/AD`,
+          content: scripts.ad,
+          language: manifest.scripts.ad.language,
+          mode: 'ad',
+          originalContent: scripts.ad,
+          portalContent: scripts.ad, // Assume file content matches portal on open
+          hasFileHandle: true,
+          isLocalFile: true,
+          source,
+        });
+      }
+      
+      if (newTabs.length === 0) {
+        toast.warning('No scripts found in module', {
+          description: 'The selected module directory does not contain any script files.',
+        });
+        return;
+      }
+      
+      // Add tabs and activate the first one
+      set({
+        tabs: [...tabs, ...newTabs],
+        activeTabId: newTabs[0].id,
+      });
+      
+      const scriptCount = newTabs.length;
+      if (isPortalConnected) {
+        toast.success(`Opened ${scriptCount} script${scriptCount > 1 ? 's' : ''} from repository`, {
+          description: `${manifest.module.name} - linked to ${manifest.portal.hostname}`,
+        });
+      } else {
+        toast.warning(`Opened ${scriptCount} script${scriptCount > 1 ? 's' : ''} from repository`, {
+          description: `${manifest.module.name} - portal ${manifest.portal.hostname} not connected. Connect to the portal to commit changes.`,
+        });
+      }
+    } catch (error) {
+      if ((error as Error).name === 'AbortError') {
+        return;
+      }
+      console.error('[openModuleFromRepository] Error:', error);
+      toast.error('Failed to open module', {
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
+    }
+  },
+
+  saveFile: async (tabId?: string) => {
+    const { tabs, activeTabId, setSaveOptionsDialogOpen } = get();
+    const targetTabId = tabId ?? activeTabId;
+    if (!targetTabId) return false;
+    
+    const tab = tabs.find(t => t.id === targetTabId);
+    if (!tab) return false;
+
+    // Check if this is a portal document without a file handle
+    // If so, show the save options dialog instead of direct save
+    const docType = getDocumentType(tab);
+    if (docType === 'portal') {
+      // Show save options dialog for portal documents
+      setSaveOptionsDialogOpen(true, targetTabId);
+      return false;
+    }
+
+    try {
+      // Check for existing handle
+      const handle = await documentStore.getFileHandle(targetTabId);
+      
+      if (handle) {
+        // Check permission
+        const permission = await documentStore.queryFilePermission(handle);
+        
+        if (permission === 'granted') {
+          // Direct save to existing file
+          await documentStore.writeToHandle(handle, tab.content);
+          
+          // Update lastAccessed timestamp for recent files
+          await documentStore.saveFileHandle(targetTabId, handle, tab.displayName);
+          
+          // Update originalContent to mark as clean
+          // Keep module source if tab is a cloned local file (isLocalFile: true)
+          // Otherwise convert module tabs to file tabs when saved locally
+          set({
+            tabs: tabs.map(t => 
+              t.id === targetTabId 
+                ? { 
+                    ...t, 
+                    originalContent: tab.content,
+                    // Preserve module binding for cloned files, convert to file otherwise
+                    source: t.source?.type === 'module' && !t.isLocalFile 
+                      ? { type: 'file' } 
+                      : t.source,
+                  }
+                : t
+            ),
+          });
+          return true;
+        } else if (permission === 'prompt') {
+          // Need to request permission
+          const granted = await documentStore.requestFilePermission(handle);
+          if (granted) {
+            await documentStore.writeToHandle(handle, tab.content);
+            
+            // Update lastAccessed timestamp for recent files
+            await documentStore.saveFileHandle(targetTabId, handle, tab.displayName);
+            
+            set({
+              tabs: tabs.map(t => 
+                t.id === targetTabId 
+                  ? { 
+                      ...t, 
+                      originalContent: tab.content,
+                      // Preserve module binding for cloned files, convert to file otherwise
+                      source: t.source?.type === 'module' && !t.isLocalFile 
+                        ? { type: 'file' } 
+                        : t.source,
+                    }
+                  : t
+              ),
+            });
+            return true;
+          }
+        }
+        
+        // Permission denied - fall through to Save As
+      }
+      
+      // No handle or permission denied - trigger Save As
+      return await get().saveFileAs(targetTabId);
+    } catch (error) {
+      console.error('Error saving file:', error);
+      // Fall back to Save As on error
+      return await get().saveFileAs(targetTabId);
+    }
+  },
+
+  saveFileAs: async (tabId?: string) => {
+    const { tabs, activeTabId } = get();
+    const targetTabId = tabId ?? activeTabId;
+    if (!targetTabId) return false;
+    
+    const tab = tabs.find(t => t.id === targetTabId);
+    if (!tab) return false;
+
+    // Check if File System Access API is supported
+    if (!documentStore.isFileSystemAccessSupported()) {
+      // Fallback to download
+      get().exportToFile();
+      return true;
+    }
+
+    try {
+      const extension = getExtensionForLanguage(tab.language);
+      const baseName = tab.displayName.replace(/\.(groovy|ps1)$/, '');
+      const suggestedName = baseName + extension;
+      
+      // Show save picker
+      const handle = await window.showSaveFilePicker({
+        suggestedName,
+        types: [
+          {
+            description: 'Script Files',
+            accept: { 'text/plain': [extension] },
+          },
+        ],
+      });
+      
+      // Write content
+      await documentStore.writeToHandle(handle, tab.content);
+      
+      // Store new handle in IndexedDB
+      await documentStore.saveFileHandle(targetTabId, handle, handle.name);
+      
+      // Update tab state
+      set({
+        tabs: tabs.map(t => 
+          t.id === targetTabId 
+            ? { 
+                ...t, 
+                displayName: handle.name,
+                originalContent: tab.content,
+                hasFileHandle: true,
+                isLocalFile: true,
+                source: { type: 'file' }, // Change from 'module' to 'file' when saved locally
+              }
+            : t
+        ),
+      });
+      
+      return true;
+    } catch (error) {
+      if ((error as Error).name !== 'AbortError') {
+        console.error('Error in Save As:', error);
+      }
+      return false;
+    }
+  },
+
+  restoreFileHandles: async () => {
+    set({ isRestoringFileHandles: true });
+    
+    try {
+      const { tabs } = get();
+      const storedHandles = await documentStore.getAllFileHandles();
+      const needsPermission: FilePermissionStatus[] = [];
+      
+      // Check permission for each handle that matches a currently open tab
+      for (const [tabId, record] of storedHandles) {
+        // Only process handles for tabs that are currently open
+        const tabExists = tabs.some(t => t.id === tabId);
+        if (!tabExists) {
+          // Skip handles for closed tabs - keep them for recent files
+          continue;
+        }
+        
+        const permission = await documentStore.queryFilePermission(record.handle);
+        
+        if (permission === 'prompt') {
+          needsPermission.push({
+            tabId,
+            fileName: record.fileName,
+            state: 'prompt',
+          });
+        } else if (permission === 'denied') {
+          // Update tab to reflect no handle access
+          set({
+            tabs: get().tabs.map(t => 
+              t.id === tabId 
+                ? { ...t, hasFileHandle: false }
+                : t
+            ),
+          });
+        }
+        // If granted, handle is ready to use - no action needed
+      }
+      
+      set({ 
+        tabsNeedingPermission: needsPermission,
+        isRestoringFileHandles: false,
+      });
+    } catch (error) {
+      console.error('Error restoring file handles:', error);
+      set({ isRestoringFileHandles: false });
+    }
+  },
+
+  requestFilePermissions: async () => {
+    const { tabsNeedingPermission, tabs } = get();
+    const stillNeedsPermission: FilePermissionStatus[] = [];
+    
+    for (const status of tabsNeedingPermission) {
+      try {
+        const handle = await documentStore.getFileHandle(status.tabId);
+        if (!handle) continue;
+        
+        const granted = await documentStore.requestFilePermission(handle);
+        
+        if (granted) {
+          // Optionally re-read file content to check for external changes
+          try {
+            const newContent = await documentStore.readFromHandle(handle);
+            const tab = tabs.find(t => t.id === status.tabId);
+            
+            if (tab && tab.originalContent !== newContent) {
+              // File was modified externally - update originalContent
+              // Keep user's current edits, but update the baseline
+              set({
+                tabs: get().tabs.map(t => 
+                  t.id === status.tabId 
+                    ? { ...t, originalContent: newContent, hasFileHandle: true }
+                    : t
+                ),
+              });
+            } else {
+              // Just mark as having handle
+              set({
+                tabs: get().tabs.map(t => 
+                  t.id === status.tabId 
+                    ? { ...t, hasFileHandle: true }
+                    : t
+                ),
+              });
+            }
+          } catch {
+            // File might have been deleted - just mark handle as available
+            set({
+              tabs: get().tabs.map(t => 
+                t.id === status.tabId 
+                  ? { ...t, hasFileHandle: true }
+                  : t
+              ),
+            });
+          }
+        } else {
+          stillNeedsPermission.push(status);
+        }
+      } catch {
+        stillNeedsPermission.push(status);
+      }
+    }
+    
+    set({ tabsNeedingPermission: stillNeedsPermission });
+  },
+
+  // =====================
+  // Dirty State Helpers
+  // =====================
+
+  isTabDirty: (tabId: string) => {
+    const tab = get().tabs.find(t => t.id === tabId);
+    if (!tab) return false;
+    return get().getTabDirtyState(tab);
+  },
+
+  getTabDirtyState: (tab: EditorTab) => {
+    // Use the unified document helper for dirty state detection
+    // This handles both new DocumentState and legacy fields
+    return isFileDirty(tab);
+  },
+
+  // =====================
+  // Recent Files
+  // =====================
+
+  loadRecentFiles: async () => {
+    set({ isLoadingRecentFiles: true });
+    try {
+      const recentFiles = await documentStore.getRecentFileHandles(10);
+      
+      // Enrich recent files with repository/module info
+      const { getModuleFile } = await import('../../utils/document-store');
+      const { readManifest } = await import('../../utils/module-repository');
+      
+      const enrichedFiles = await Promise.all(
+        recentFiles.map(async (file) => {
+          try {
+            const moduleFile = await getModuleFile(file.tabId);
+            if (moduleFile) {
+              const manifest = await readManifest(moduleFile.moduleDirectoryHandle);
+              if (manifest) {
+                return {
+                  ...file,
+                  isRepositoryModule: true,
+                  moduleName: manifest.module.name,
+                  scriptType: moduleFile.scriptType,
+                  portalHostname: manifest.portal.hostname,
+                };
+              }
+            }
+          } catch {
+            // Ignore errors - just return the file without module info
+          }
+          return file;
+        })
+      );
+      
+      set({ recentFiles: enrichedFiles, isLoadingRecentFiles: false });
+    } catch (error) {
+      console.error('Failed to load recent files:', error);
+      set({ recentFiles: [], isLoadingRecentFiles: false });
+    }
+  },
+
+  openRecentFile: async (tabId: string) => {
+    try {
+      const handle = await documentStore.getFileHandle(tabId);
+      if (!handle) {
+        console.warn('File handle not found for tabId:', tabId);
+        // Remove from recent files since handle is gone
+        await documentStore.deleteFileHandle(tabId);
+        get().loadRecentFiles();
+        return;
+      }
+
+      // Check permission
+      let permission = await documentStore.queryFilePermission(handle);
+      if (permission !== 'granted') {
+        permission = (await documentStore.requestFilePermission(handle)) ? 'granted' : 'denied';
+      }
+
+      if (permission !== 'granted') {
+        console.warn('Permission denied for file:', handle.name);
+        return;
+      }
+
+      // Read file content
+      const content = await documentStore.readFromHandle(handle);
+      const fileName = handle.name;
+      const language: ScriptLanguage = getLanguageFromFilename(fileName);
+
+      // Update lastAccessed
+      await documentStore.saveFileHandle(tabId, handle, fileName);
+
+      // Check if this is a repository-backed module file
+      let newTab: EditorTab;
+      
+      try {
+        const { getModuleFile } = await import('../../utils/document-store');
+        const { readManifest } = await import('../../utils/module-repository');
+        
+        const moduleFile = await getModuleFile(tabId);
+        if (moduleFile) {
+          // This is a repository-backed module - load the manifest
+          const manifest = await readManifest(moduleFile.moduleDirectoryHandle);
+          if (manifest) {
+            const source: EditorTabSource = {
+              type: 'module',
+              moduleId: manifest.module.id,
+              moduleName: manifest.module.name,
+              moduleType: manifest.module.type,
+              scriptType: moduleFile.scriptType,
+              lineageId: manifest.module.lineageId,
+              portalId: manifest.portal.id,
+              portalHostname: manifest.portal.hostname,
+            };
+            
+            newTab = {
+              id: tabId,
+              displayName: `${manifest.module.name}/${moduleFile.scriptType === 'ad' ? 'AD' : 'Collection'}`,
+              content,
+              language: manifest.scripts[moduleFile.scriptType]?.language || language,
+              mode: moduleFile.scriptType === 'ad' ? 'ad' : 'collection',
+              originalContent: content,
+              portalContent: content, // Assume file content matches portal on open
+              hasFileHandle: true,
+              isLocalFile: true,
+              source,
+            };
+          } else {
+            // Manifest not found, fall back to regular file
+            newTab = {
+              id: tabId,
+              displayName: fileName,
+              content,
+              language,
+              mode: 'freeform',
+              originalContent: content,
+              hasFileHandle: true,
+              isLocalFile: true,
+            };
+          }
+        } else {
+          // Not a module file, create regular file tab
+          newTab = {
+            id: tabId,
+            displayName: fileName,
+            content,
+            language,
+            mode: 'freeform',
+            originalContent: content,
+            hasFileHandle: true,
+            isLocalFile: true,
+          };
+        }
+      } catch (moduleError) {
+        console.warn('Could not check for module file:', moduleError);
+        // Fall back to regular file tab
+        newTab = {
+          id: tabId,
+          displayName: fileName,
+          content,
+          language,
+          mode: 'freeform',
+          originalContent: content,
+          hasFileHandle: true,
+          isLocalFile: true,
+        };
+      }
+
+      set({
+        tabs: [...get().tabs, newTab],
+        activeTabId: tabId,
+      });
+    } catch (error) {
+      console.error('Failed to open recent file:', error);
+    }
+  },
+
+  // =====================
+  // Create Local Copy
+  // =====================
+
+  createLocalCopyFromTab: (tabId: string, options) => {
+    const { tabs } = get();
+    const tab = tabs.find((entry) => entry.id === tabId);
+    if (!tab || tab.kind === 'api') return null;
+
+    const displayName = getUniqueUntitledName(tabs, tab.language);
+    const newTab: EditorTab = {
+      id: crypto.randomUUID(),
+      kind: 'script',
+      displayName,
+      content: tab.content,
+      language: tab.language,
+      mode: tab.mode,
+      originalContent: tab.content,
+      isLocalFile: true,
+    };
+
+    set({
+      tabs: [...tabs, newTab],
+      activeTabId: options?.activate === false ? get().activeTabId : newTab.id,
+    });
+
+    return newTab.id;
   },
 });
