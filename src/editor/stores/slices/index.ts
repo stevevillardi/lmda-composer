@@ -28,7 +28,7 @@ export type { ExecutionSlice, ExecutionSliceState, ExecutionSliceActions, Execut
 export { createExecutionSlice, executionSliceInitialState } from './execution-slice';
 
 // Module slice
-export type { ModuleSlice, ModuleSliceState, ModuleSliceActions } from './module-slice';
+export type { ModuleSlice, ModuleSliceState, ModuleSliceActions, ModuleSliceDependencies } from './module-slice';
 export { createModuleSlice, moduleSliceInitialState } from './module-slice';
 
 // API slice
