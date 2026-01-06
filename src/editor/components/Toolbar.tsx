@@ -123,9 +123,16 @@ export function Toolbar() {
   const isWindowsCollector = selectedCollector?.arch?.toLowerCase().includes('win') ?? true;
   const powerShellBlocked = language === 'powershell' && !isWindowsCollector;
   
-  // Check if content has been modified from default templates
-  const isModified = useMemo(() => {
+  // Check if content has been modified from default templates (only for scratch files)
+  // For saved local files, we don't need to warn since the file is already persisted
+  const shouldWarnOnLanguageSwitch = useMemo(() => {
     if (!activeTab) return false;
+    
+    // If the tab has a file handle (saved local file), don't warn - the file is already saved
+    // Switching language will just disconnect the handle and the original file remains
+    if (activeTab.hasFileHandle) return false;
+    
+    // For scratch files, check if content differs from default templates
     const normalize = (s: string) => s.trim().replace(/\r\n/g, '\n');
     const content = normalize(activeTab.content);
     const defaultGroovy = normalize(DEFAULT_GROOVY_TEMPLATE);
@@ -140,11 +147,11 @@ export function Toolbar() {
   const handleLanguageClick = (newLanguage: ScriptLanguage) => {
     if (newLanguage === language) return;
     
-    if (isModified) {
-      // Show confirmation dialog if content has been modified
+    if (shouldWarnOnLanguageSwitch) {
+      // Show confirmation dialog if content has been modified from default template
       setPendingLanguage(newLanguage);
     } else {
-      // Default content, switch directly
+      // Default content or saved file, switch directly
       setLanguage(newLanguage);
     }
   };

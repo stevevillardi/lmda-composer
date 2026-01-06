@@ -19,6 +19,7 @@ import type {
   EditorTabSource,
   Portal,
 } from '@/shared/types';
+import { toast } from 'sonner';
 import { getExtensionForLanguage, getLanguageFromFilename } from '../../utils/file-extensions';
 import { createScratchDocument, isFileDirty, getDocumentType, convertToLocalDocument, updateDocumentAfterSave } from '../../utils/document-helpers';
 import { getDefaultScriptTemplate, DEFAULT_GROOVY_TEMPLATE, DEFAULT_POWERSHELL_TEMPLATE } from '../../config/script-templates';
@@ -130,7 +131,7 @@ export interface TabsSliceActions {
   
   // Recent files
   loadRecentFiles: () => Promise<void>;
-  openRecentFile: (tabId: string) => Promise<void>;
+  openRecentFile: (fileHandleId: string) => Promise<void>;
   
   // Create local copy
   createLocalCopyFromTab: (tabId: string, options?: { activate?: boolean }) => string | null;
@@ -465,27 +466,51 @@ export const createTabsSlice: StateCreator<
     // Determine new content
     let newContent = activeTab.content;
     let newDisplayName = activeTab.displayName;
+    let shouldClearFileHandle = false;
     
     // Switch templates if:
     // - force is true (user confirmed reset)
     // - script is a default template
     if (force || isDefaultGroovy || isDefaultPowershell) {
       newContent = language === 'groovy' ? DEFAULT_GROOVY_TEMPLATE : DEFAULT_POWERSHELL_TEMPLATE;
-      // Update display name extension if it's an untitled file
-      // Match both "Untitled.ext" and "Untitled N.ext" patterns
-      const untitledMatch = activeTab.displayName.match(/^(Untitled(?:\s+\d+)?)\.(groovy|ps1)$/);
-      if (untitledMatch) {
-        newDisplayName = `${untitledMatch[1]}.${language === 'groovy' ? 'groovy' : 'ps1'}`;
+    }
+    
+    // Update display name extension to match new language
+    const filenameMatch = activeTab.displayName.match(/^(.+)\.(groovy|ps1)$/);
+    
+    if (filenameMatch) {
+      const baseName = filenameMatch[1];
+      newDisplayName = `${baseName}.${language === 'groovy' ? 'groovy' : 'ps1'}`;
+      
+      // If this tab has a file handle, disconnect it since the extension no longer matches
+      if (activeTab.hasFileHandle) {
+        shouldClearFileHandle = true;
       }
     }
     
     set({
       tabs: tabs.map(t => 
         t.id === activeTabId 
-          ? { ...t, language, content: newContent, displayName: newDisplayName }
+          ? { 
+              ...t, 
+              language, 
+              content: newContent, 
+              displayName: newDisplayName,
+              // Clear both hasFileHandle and fileHandleId when disconnecting
+              // The old file handle remains in IndexedDB for recent files access
+              hasFileHandle: shouldClearFileHandle ? false : t.hasFileHandle,
+              fileHandleId: shouldClearFileHandle ? undefined : t.fileHandleId,
+            }
           : t
       ),
     });
+    
+    // Notify user that the file handle was disconnected
+    if (shouldClearFileHandle) {
+      toast.info('File handle disconnected', {
+        description: 'The file extension no longer matches. Use "Save As" to create a new file with the correct extension.',
+      });
+    }
   },
 
   setMode: (mode) => {
@@ -715,11 +740,12 @@ export const createTabsSlice: StateCreator<
       const fileName = file.name;
       const isGroovy = fileName.endsWith('.groovy');
       
-      // Generate tab ID
+      // Generate tab ID and file handle ID (same initially, but can diverge on language change)
       const tabId = crypto.randomUUID();
+      const fileHandleId = crypto.randomUUID();
       
-      // Store handle in IndexedDB
-      await documentStore.saveFileHandle(tabId, handle, fileName);
+      // Store handle in IndexedDB using fileHandleId
+      await documentStore.saveFileHandle(fileHandleId, handle, fileName);
       
       // Create new tab
       const source: EditorTabSource = { type: 'file' };
@@ -733,6 +759,7 @@ export const createTabsSlice: StateCreator<
         mode,
         originalContent: content,
         hasFileHandle: true,
+        fileHandleId,
         isLocalFile: true,
         source,
       };
@@ -755,98 +782,102 @@ export const createTabsSlice: StateCreator<
     const targetTabId = tabId ?? activeTabId;
     if (!targetTabId) return false;
     
-    const tab = tabs.find(t => t.id === targetTabId);
+    // Get fresh tab state
+    const tab = get().tabs.find(t => t.id === targetTabId);
     if (!tab) return false;
 
-    // Check if this is a portal document without a file handle
-    // If so, show the save options dialog instead of direct save
+    // Portal documents use the save options dialog
     const docType = getDocumentType(tab);
     if (docType === 'portal') {
-      // Show save options dialog for portal documents
       setSaveOptionsDialogOpen(true, targetTabId);
       return false;
     }
 
+    // If no file handle, redirect to Save As (handles language change disconnect)
+    if (!tab.hasFileHandle || !tab.fileHandleId) {
+      return await get().saveFileAs(targetTabId);
+    }
+
     try {
-      // Check for existing handle
-      const handle = await documentStore.getFileHandle(targetTabId);
+      // Look up existing handle in IndexedDB using fileHandleId
+      const handle = await documentStore.getFileHandle(tab.fileHandleId);
       
-      if (handle) {
-        // Check permission
-        const permission = await documentStore.queryFilePermission(handle);
+      if (!handle) {
+        // Handle not found in IndexedDB - trigger Save As
+        return await get().saveFileAs(targetTabId);
+      }
+      
+      // Check permission
+      const permission = await documentStore.queryFilePermission(handle);
+      
+      if (permission === 'granted') {
+        // Get fresh content at time of save
+        const currentTab = get().tabs.find(t => t.id === targetTabId);
+        if (!currentTab) return false;
+        const contentToSave = currentTab.content;
         
-        if (permission === 'granted') {
-          // Get current content at time of save (may have changed since tab was captured)
+        // Write to file
+        await documentStore.writeToHandle(handle, contentToSave);
+        
+        // Update lastAccessed timestamp (use fileHandleId for storage)
+        await documentStore.saveFileHandle(tab.fileHandleId, handle, currentTab.displayName);
+        
+        // Update tab state - sync both originalContent and document state
+        set({
+          tabs: get().tabs.map(t => 
+            t.id === targetTabId 
+              ? { 
+                  ...t, 
+                  originalContent: contentToSave,
+                  document: t.document 
+                    ? updateDocumentAfterSave(t.document, contentToSave) 
+                    : convertToLocalDocument(targetTabId, contentToSave, t.displayName),
+                }
+              : t
+          ),
+        });
+        
+        toast.success('File saved');
+        return true;
+      } else if (permission === 'prompt') {
+        // Request permission
+        const granted = await documentStore.requestFilePermission(handle);
+        if (granted) {
+          // Get fresh content after permission granted
           const currentTab = get().tabs.find(t => t.id === targetTabId);
-          const contentToSave = currentTab?.content ?? tab.content;
+          if (!currentTab) return false;
+          const contentToSave = currentTab.content;
           
-          // Direct save to existing file
           await documentStore.writeToHandle(handle, contentToSave);
+          await documentStore.saveFileHandle(tab.fileHandleId, handle, currentTab.displayName);
           
-          // Update lastAccessed timestamp for recent files
-          await documentStore.saveFileHandle(targetTabId, handle, tab.displayName);
-          
-          // Update tab state - mark as saved with the content that was actually written
           set({
             tabs: get().tabs.map(t => 
               t.id === targetTabId 
                 ? { 
                     ...t, 
-                    content: contentToSave, // Ensure content matches what was saved
-                    originalContent: contentToSave, // Reset dirty state
-                    // Preserve module binding for cloned files, convert to file otherwise
-                    source: t.source?.type === 'module' && !t.isLocalFile 
-                      ? { type: 'file' } 
-                      : t.source,
-                    document: t.document ? updateDocumentAfterSave(t.document, contentToSave) : t.document,
+                    originalContent: contentToSave,
+                    document: t.document 
+                      ? updateDocumentAfterSave(t.document, contentToSave) 
+                      : convertToLocalDocument(targetTabId, contentToSave, t.displayName),
                   }
                 : t
             ),
           });
+          
+          toast.success('File saved');
           return true;
-        } else if (permission === 'prompt') {
-          // Need to request permission
-          const granted = await documentStore.requestFilePermission(handle);
-          if (granted) {
-            // Get current content at time of save (may have changed since tab was captured)
-            const currentTab = get().tabs.find(t => t.id === targetTabId);
-            const contentToSave = currentTab?.content ?? tab.content;
-            
-            await documentStore.writeToHandle(handle, contentToSave);
-            
-            // Update lastAccessed timestamp for recent files
-            await documentStore.saveFileHandle(targetTabId, handle, tab.displayName);
-            
-            // Update tab state - mark as saved with the content that was actually written
-            set({
-              tabs: get().tabs.map(t => 
-                t.id === targetTabId 
-                  ? { 
-                      ...t, 
-                      content: contentToSave, // Ensure content matches what was saved
-                      originalContent: contentToSave, // Reset dirty state
-                      // Preserve module binding for cloned files, convert to file otherwise
-                      source: t.source?.type === 'module' && !t.isLocalFile 
-                        ? { type: 'file' } 
-                        : t.source,
-                      document: t.document ? updateDocumentAfterSave(t.document, contentToSave) : t.document,
-                    }
-                  : t
-              ),
-            });
-            return true;
-          }
         }
-        
-        // Permission denied - fall through to Save As
       }
       
-      // No handle or permission denied - trigger Save As
+      // Permission denied - trigger Save As
       return await get().saveFileAs(targetTabId);
     } catch (error) {
       console.error('Error saving file:', error);
-      // Fall back to Save As on error
-      return await get().saveFileAs(targetTabId);
+      toast.error('Failed to save file', {
+        description: error instanceof Error ? error.message : 'Unknown error',
+      });
+      return false;
     }
   },
 
@@ -862,6 +893,7 @@ export const createTabsSlice: StateCreator<
     if (!documentStore.isFileSystemAccessSupported()) {
       // Fallback to download
       get().exportToFile();
+      toast.success('File exported');
       return true;
     }
 
@@ -881,39 +913,62 @@ export const createTabsSlice: StateCreator<
         ],
       });
       
-      // Get current content at time of save (may have changed since tab was captured)
+      // Get current content at time of save
       const currentTab = get().tabs.find(t => t.id === targetTabId);
       const contentToSave = currentTab?.content ?? tab.content;
       
       // Write content to file
       await documentStore.writeToHandle(handle, contentToSave);
       
-      // Store new handle in IndexedDB
-      await documentStore.saveFileHandle(targetTabId, handle, handle.name);
+      // Generate a new fileHandleId for this file
+      // This ensures the old file handle (if any) remains in IndexedDB for recent files
+      const newFileHandleId = crypto.randomUUID();
       
-      // Update tab state - mark as saved with the content that was actually written
+      // Store new handle in IndexedDB with the new ID
+      await documentStore.saveFileHandle(newFileHandleId, handle, handle.name);
+      
+      // Update tab state - sync both originalContent and document state
       set({
         tabs: get().tabs.map(t => 
           t.id === targetTabId 
             ? { 
                 ...t, 
                 displayName: handle.name,
-                content: contentToSave, // Ensure content matches what was saved
-                originalContent: contentToSave, // Reset dirty state
+                originalContent: contentToSave,
                 hasFileHandle: true,
+                fileHandleId: newFileHandleId,
                 isLocalFile: true,
-                source: { type: 'file' }, // Change from 'module' to 'file' when saved locally
-                document: convertToLocalDocument(targetTabId, contentToSave, handle.name),
+                source: { type: 'file' },
+                document: convertToLocalDocument(newFileHandleId, contentToSave, handle.name),
               }
             : t
         ),
       });
       
+      toast.success('File saved');
       return true;
     } catch (error) {
-      if ((error as Error).name !== 'AbortError') {
-        console.error('Error in Save As:', error);
+      // Check for expected DOMExceptions that shouldn't show error toasts
+      const isDOMException = error instanceof DOMException;
+      
+      if (isDOMException) {
+        // User cancelled file picker
+        if (error.name === 'AbortError') {
+          return false;
+        }
+        // User activation required - happens when save is triggered without direct user interaction
+        // (e.g., from keyboard shortcut losing activation context, or programmatic calls)
+        // This is expected behavior, not an error to show to users
+        if (error.name === 'NotAllowedError') {
+          return false;
+        }
       }
+      
+      // Log and show toast for unexpected errors
+      console.error('Error in Save As:', error);
+      toast.error('Failed to save file', {
+        description: error instanceof Error ? error.message : String(error),
+      });
       return false;
     }
   },
@@ -1056,14 +1111,17 @@ export const createTabsSlice: StateCreator<
     }
   },
 
-  openRecentFile: async (tabId: string) => {
+  openRecentFile: async (fileHandleId: string) => {
+    // Note: The parameter is called fileHandleId because that's what the recent files list stores.
+    // It's the IndexedDB storage key for the file handle, not a tab ID.
+
     try {
-      const handle = await documentStore.getFileHandle(tabId);
+      const handle = await documentStore.getFileHandle(fileHandleId);
       if (!handle) {
-        console.warn('File handle not found for tabId:', tabId);
-        // Remove from recent files since handle is gone
-        await documentStore.deleteFileHandle(tabId);
-        get().loadRecentFiles();
+        // Handle not found - just delete this one entry and reload
+        await documentStore.deleteFileHandle(fileHandleId);
+        await get().loadRecentFiles();
+        toast.error('File not found', { description: 'This file has been removed from recent files.' });
         return;
       }
 
@@ -1074,36 +1132,69 @@ export const createTabsSlice: StateCreator<
       }
 
       if (permission !== 'granted') {
-        console.warn('Permission denied for file:', handle.name);
+        // User denied permission - don't remove from list, they might grant it later
+        toast.info('Permission required', {
+          description: `Permission to access "${handle.name}" was denied. Click again to retry.`,
+        });
         return;
       }
 
-      // Read file content
-      const content = await documentStore.readFromHandle(handle);
+      // Try to read file content - this will fail if file was deleted from disk
+      let content: string;
+      try {
+        content = await documentStore.readFromHandle(handle);
+      } catch (readError) {
+        // File likely deleted from disk - remove this specific handle only
+        // (other handles with the same filename might point to different files)
+        await documentStore.deleteFileHandle(fileHandleId);
+        await get().loadRecentFiles();
+        
+        const isNotFoundError = readError instanceof DOMException && 
+          (readError.name === 'NotFoundError' || readError.name === 'NotReadableError');
+        
+        if (isNotFoundError) {
+          toast.error('File no longer exists', {
+            description: `"${handle.name}" was deleted or moved. It has been removed from recent files.`,
+          });
+        } else {
+          toast.error('Unable to read file', {
+            description: `Could not read "${handle.name}". It has been removed from recent files.`,
+          });
+        }
+        return;
+      }
+
       const fileName = handle.name;
       const language: ScriptLanguage = getLanguageFromFilename(fileName);
+      
+      // Update lastAccessed in IndexedDB
+      await documentStore.saveFileHandle(fileHandleId, handle, fileName);
 
-      // Update lastAccessed
-      await documentStore.saveFileHandle(tabId, handle, fileName);
-
+      // Generate a new tab ID for this session (separate from fileHandleId)
+      const newTabId = crypto.randomUUID();
+      
       // Create regular file tab
       const newTab: EditorTab = {
-        id: tabId,
+        id: newTabId,
         displayName: fileName,
         content,
         language,
         mode: 'freeform',
         originalContent: content,
         hasFileHandle: true,
+        fileHandleId,
         isLocalFile: true,
       };
 
       set({
         tabs: [...get().tabs, newTab],
-        activeTabId: tabId,
+        activeTabId: newTabId,
       });
     } catch (error) {
       console.error('Failed to open recent file:', error);
+      toast.error('Failed to open file', {
+        description: error instanceof Error ? error.message : 'An unexpected error occurred.',
+      });
     }
   },
 

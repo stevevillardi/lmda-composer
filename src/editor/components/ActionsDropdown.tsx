@@ -190,16 +190,7 @@ export function ActionsDropdown() {
 
 
               <DropdownMenuItem 
-                onClick={async () => {
-                  try {
-                    await saveFile();
-                    toast.success('File saved');
-                  } catch (error) {
-                    toast.error('Failed to save file', {
-                      description: error instanceof Error ? error.message : 'Unknown error',
-                    });
-                  }
-                }}
+                onClick={() => void saveFile()}
                 disabled={!hasOpenTabs}
               >
                 <Save className="size-4 mr-2" />
@@ -208,16 +199,7 @@ export function ActionsDropdown() {
               </DropdownMenuItem>
 
               <DropdownMenuItem 
-                onClick={async () => {
-                  try {
-                    await saveFileAs();
-                    toast.success('File saved');
-                  } catch (error) {
-                    toast.error('Failed to save file', {
-                      description: error instanceof Error ? error.message : 'Unknown error',
-                    });
-                  }
-                }}
+                onClick={() => void saveFileAs()}
                 disabled={!hasOpenTabs}
               >
                 <Download className="size-4 mr-2" />

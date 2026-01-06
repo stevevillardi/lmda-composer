@@ -183,6 +183,13 @@ export interface EditorTab {
   /** Unified document state - replaces scattered flags */
   document?: DocumentState;
   
+  /** 
+   * ID used to look up the file handle in IndexedDB.
+   * Separate from tab.id to support scenarios like language change where the
+   * old file remains in recent files while the tab gets a new handle for the new file.
+   */
+  fileHandleId?: string;
+  
   // === DEPRECATED: These fields are being replaced by DocumentState ===
   // Kept for backwards compatibility during migration
   /** @deprecated Use document.file.lastSavedContent instead */

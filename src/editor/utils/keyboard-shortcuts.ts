@@ -101,18 +101,6 @@ export const copyOutputToClipboard = async () => {
   setCommandPaletteOpen(false);
 };
 
-const saveWithToast = (save: () => Promise<unknown>) => {
-  void save()
-    .then(() => {
-      toast.success('File saved');
-    })
-    .catch((error) => {
-      toast.error('Failed to save file', {
-        description: error instanceof Error ? error.message : 'Unknown error',
-      });
-    });
-};
-
 const shortcuts: ShortcutDescriptor[] = [
   {
     id: 'command-palette',
@@ -194,7 +182,7 @@ const shortcuts: ShortcutDescriptor[] = [
     match: (event) => matchesModKey(event, 's', false),
     action: () => {
       const { saveFile } = getState();
-      saveWithToast(saveFile);
+      void saveFile(); // Toast handled inside saveFile()
     },
     monacoKeybinding: KeyMod.CtrlCmd | KeyCode.KeyS,
   },
@@ -204,7 +192,7 @@ const shortcuts: ShortcutDescriptor[] = [
     match: (event) => matchesModKey(event, 's', true),
     action: () => {
       const { saveFileAs } = getState();
-      saveWithToast(saveFileAs);
+      void saveFileAs(); // Toast handled inside saveFileAs()
     },
     monacoKeybinding: KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KeyS,
   },

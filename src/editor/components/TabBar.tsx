@@ -149,7 +149,7 @@ function TabItem({
   const tabRef = useRef<HTMLButtonElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [renameValue, setRenameValue] = useState(tab.displayName);
-  const [isCloseHovered, setIsCloseHovered] = useState(false);
+  const [isTabHovered, setIsTabHovered] = useState(false);
   
   // Scroll active tab into view
   useEffect(() => {
@@ -214,7 +214,7 @@ function TabItem({
       <div
         className={cn(
           "flex items-center gap-1.5 px-3 py-1.5 text-sm border-r border-border",
-          "min-w-[120px] max-w-[200px] shrink-0",
+          "min-w-[120px] flex-shrink-0",
           "bg-background text-foreground border-b-2 border-b-primary"
         )}
       >
@@ -249,13 +249,15 @@ function TabItem({
                   ref={tabRef}
                   onClick={onActivate}
                   onDoubleClick={canRename ? onStartRename : undefined}
+                  onMouseEnter={() => setIsTabHovered(true)}
+                  onMouseLeave={() => setIsTabHovered(false)}
                   role="tab"
                   aria-selected={isActive}
                   aria-controls={`tabpanel-${tab.id}`}
                   tabIndex={isActive ? 0 : -1}
                   className={cn(
                     "group flex items-center gap-1.5 px-3 py-1.5 text-sm border-r border-border",
-                    "min-w-[120px] max-w-[250px] shrink-0",
+                    "min-w-[120px] flex-shrink-0",
                     "transition-colors duration-100",
                     "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1",
                     isActive 
@@ -273,10 +275,10 @@ function TabItem({
                   )}
                   
                   {/* Tab name */}
-                  <span className="truncate flex-1 text-left flex items-center gap-1.5">
-                    {tab.displayName}
+                  <span className="min-w-0 flex-1 text-left flex items-center gap-1.5 overflow-hidden">
+                    <span className="truncate">{tab.displayName}</span>
                     {tab.hasFileHandle && (
-                      <span className="text-[10px] text-muted-foreground ml-1 opacity-70">(local)</span>
+                      <span className="text-[10px] text-muted-foreground ml-1 opacity-70 flex-shrink-0">(local)</span>
                     )}
                   </span>
                   
@@ -293,16 +295,17 @@ function TabItem({
                     </span>
                   )}
                   
-                  {/* Dirty indicators - show both when applicable */}
-                  <span className="flex items-center gap-0.5">
-                    {/* Portal changes indicator (blue cloud) - only show when not hovered */}
-                    {portalChanges && !isCloseHovered && (
+                  {/* Dirty indicators and close button container - fixed width to prevent layout shift */}
+                  <span className="flex items-center gap-0.5 min-w-[20px] flex-shrink-0 justify-end">
+                    {/* Portal changes indicator (blue cloud) - hidden when tab is hovered to show X */}
+                    {portalChanges && (
                       <Tooltip>
                         <TooltipTrigger
                           render={
                             <Cloud className={cn(
-                              "size-3",
-                              isActive ? "text-blue-400" : "text-blue-400/70"
+                              "size-3 flex-shrink-0 transition-opacity duration-100",
+                              isActive ? "text-blue-400" : "text-blue-400/70",
+                              isTabHovered && "opacity-0 pointer-events-none"
                             )} />
                           }
                         />
@@ -312,14 +315,15 @@ function TabItem({
                       </Tooltip>
                     )}
                     
-                    {/* File dirty indicator (amber dot) - only show when not hovered */}
-                    {fileDirty && !isCloseHovered && (
+                    {/* File dirty indicator (amber dot) - hidden when tab is hovered to show X */}
+                    {fileDirty && (
                       <Tooltip>
                         <TooltipTrigger
                           render={
                             <Circle className={cn(
-                              "size-2.5 fill-current",
-                              isActive ? "text-amber-400" : "text-muted-foreground"
+                              "size-2.5 fill-current flex-shrink-0 transition-opacity duration-100",
+                              isActive ? "text-amber-400" : "text-muted-foreground",
+                              isTabHovered && "opacity-0 pointer-events-none"
                             )} />
                           }
                         />
@@ -328,30 +332,27 @@ function TabItem({
                         </TooltipContent>
                       </Tooltip>
                     )}
-                  </span>
-                  
-                  {/* Close button */}
-                  <span
-                    role="button"
-                    className="flex items-center justify-center size-4 rounded hover:bg-destructive/20 focus:outline-none focus:ring-2 focus:ring-destructive focus:ring-offset-1"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onClose();
-                    }}
-                    onMouseEnter={() => setIsCloseHovered(true)}
-                    onMouseLeave={() => setIsCloseHovered(false)}
-                    aria-label={`Close ${tab.displayName}`}
-                    tabIndex={-1}
-                  >
-                    <X className={cn(
-                      "size-3 hover:text-destructive",
-                      isDirty && !isCloseHovered
-                        ? "opacity-0" // Hide X when showing dirty indicators
-                        : cn(
-                            "opacity-0 group-hover:opacity-100",
-                            isActive && "opacity-100"
-                          )
-                    )} />
+                    
+                    {/* Close button - shows on tab hover or when active */}
+                    <span
+                      role="button"
+                      className="flex items-center justify-center size-4 rounded hover:bg-destructive/20 focus:outline-none focus:ring-2 focus:ring-destructive focus:ring-offset-1 flex-shrink-0"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onClose();
+                      }}
+                      aria-label={`Close ${tab.displayName}`}
+                      tabIndex={-1}
+                    >
+                      <X className={cn(
+                        "size-3 hover:text-destructive transition-opacity duration-100",
+                        isDirty && !isTabHovered
+                          ? "opacity-0" // Hide X when showing dirty indicators (tab not hovered)
+                          : isTabHovered || isActive
+                            ? "opacity-100" // Show X when tab is hovered or active
+                            : "opacity-0" // Hide X otherwise
+                      )} />
+                    </span>
                   </span>
                 </button>
               }
@@ -514,44 +515,17 @@ export function TabBar() {
       return;
     }
 
-    try {
-      if (tab.hasFileHandle) {
-        // Local file - save it
-        const saved = await saveFile(pendingCloseTabId);
-        if (saved) {
-          toast.success('File saved');
-          closeTab(pendingCloseTabId);
-        } else {
-          toast.error('Failed to save file');
-        }
-        setPendingCloseTabId(null);
-      } else if (tab.source?.type === 'module') {
-        // Module without file handle - save as local file
-        const saved = await saveFileAs(pendingCloseTabId);
-        if (saved) {
-          toast.success('File saved locally');
-          closeTab(pendingCloseTabId);
-        } else {
-          toast.error('Failed to save file');
-        }
-        setPendingCloseTabId(null);
-      } else {
-        // Other tab types - save as local file
-        const saved = await saveFileAs(pendingCloseTabId);
-        if (saved) {
-          toast.success('File saved locally');
-          closeTab(pendingCloseTabId);
-        } else {
-          toast.error('Failed to save file');
-        }
-        setPendingCloseTabId(null);
-      }
-    } catch (error) {
-      toast.error('Failed to save', {
-        description: error instanceof Error ? error.message : 'Unknown error',
-      });
-      setPendingCloseTabId(null);
+    // Determine which save function to use
+    const saved = tab.hasFileHandle 
+      ? await saveFile(pendingCloseTabId)
+      : await saveFileAs(pendingCloseTabId);
+    
+    // Toast is shown inside saveFile/saveFileAs
+    if (saved) {
+      closeTab(pendingCloseTabId);
     }
+    // If saved is false, user may have cancelled - don't close
+    setPendingCloseTabId(null);
   }, [pendingCloseTabId, tabs, saveFile, saveFileAs, closeTab]);
 
   const handlePreviewCommit = useCallback(async () => {

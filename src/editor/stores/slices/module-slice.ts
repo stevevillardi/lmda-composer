@@ -25,7 +25,7 @@ import type {
 } from '@/shared/types';
 import type { ModuleDetailsDraft } from './tools-slice';
 import { toast } from 'sonner';
-import { hasPortalChanges } from '../../utils/document-helpers';
+import { hasPortalChanges, updateDocumentAfterPush } from '../../utils/document-helpers';
 import { getPortalBindingStatus } from '../../utils/portal-binding';
 import { MODULE_TYPE_SCHEMAS, getSchemaFieldName } from '@/shared/module-type-schemas';
 
@@ -1175,12 +1175,13 @@ export const createModuleSlice: StateCreator<
       });
       
       if (response?.type === 'MODULE_COMMITTED') {
-        // Update originalContent to reflect the committed state
+        // Update both originalContent and document.portal.lastKnownContent to reflect the committed state
         const updatedTabs = tabs.map(t => 
           t.id === tabId 
             ? { 
                 ...t, 
                 originalContent: t.content,
+                document: t.document ? updateDocumentAfterPush(t.document, t.content) : t.document,
               }
             : t
         );

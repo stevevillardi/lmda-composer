@@ -250,7 +250,8 @@ export interface RecentFileInfo {
 /**
  * Get recent file handles sorted by lastAccessed (most recent first).
  * Returns metadata only; use getFileHandle() to retrieve the actual handle.
- * Deduplicates by fileName - only the most recent entry for each file is returned.
+ * Each entry is shown individually - files with the same name but different
+ * locations are distinct entries (FileSystemFileHandle doesn't expose paths).
  */
 export async function getRecentFileHandles(limit: number = 10): Promise<RecentFileInfo[]> {
   const db = await openDatabase();
@@ -264,7 +265,6 @@ export async function getRecentFileHandles(limit: number = 10): Promise<RecentFi
     const request = index.openCursor(null, 'prev');
     const results: RecentFileInfo[] = [];
     const allRecords: StoredFileHandle[] = [];
-    const seenFileNames = new Set<string>();
     
     request.onsuccess = () => {
       const cursor = request.result;
@@ -272,10 +272,8 @@ export async function getRecentFileHandles(limit: number = 10): Promise<RecentFi
         const record = cursor.value as StoredFileHandle;
         allRecords.push(record);
         
-        // Dedupe by fileName - only add if we haven't seen this file before
-        // Since we're iterating newest first, this keeps the most recent entry
-        if (!seenFileNames.has(record.fileName) && results.length < limit) {
-          seenFileNames.add(record.fileName);
+        // Add each entry (no deduplication - different files can have same name)
+        if (results.length < limit) {
           results.push({
             tabId: record.id,
             fileName: record.fileName,

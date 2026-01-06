@@ -12,6 +12,7 @@ import type {
   Portal,
   LogicModuleType,
 } from '@/shared/types';
+import { DEFAULT_GROOVY_TEMPLATE, DEFAULT_POWERSHELL_TEMPLATE } from '../config/script-templates';
 
 // ============================================================================
 // Document Type Helpers
@@ -89,9 +90,27 @@ export function isFileDirty(tab: EditorTab): boolean {
   const type = getDocumentType(tab);
   
   switch (type) {
-    case 'scratch':
-      // Scratch documents are always "dirty" (never saved)
+    case 'scratch': {
+      // Scratch documents are only "dirty" if content differs from default template
+      // This prevents showing unsaved changes dialog for unmodified new files
+      const normalize = (s: string) => s.trim().replace(/\r\n/g, '\n');
+      const normalizedContent = normalize(tab.content);
+      const defaultTemplate = tab.language === 'powershell' 
+        ? DEFAULT_POWERSHELL_TEMPLATE 
+        : DEFAULT_GROOVY_TEMPLATE;
+      const normalizedDefault = normalize(defaultTemplate);
+      
+      // Not dirty if content matches the default template for this language
+      if (normalizedContent === normalizedDefault) {
+        return false;
+      }
+      // Also check against originalContent if set (for restored drafts)
+      if (tab.originalContent !== undefined) {
+        return normalizedContent !== normalize(tab.originalContent);
+      }
+      // Content differs from default - it's dirty
       return true;
+    }
       
     case 'local': {
       // Check against new document state first
