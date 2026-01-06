@@ -119,8 +119,8 @@ const findModuleDraftForTab = (
 };
 
 // Module-scoped listener for debug commands
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-let activeDebugCommandListener: ((message: any) => boolean) | null = null;
+// Message type is dynamic based on executionId, so we use a generic handler
+let activeDebugCommandListener: ((message: { type: string; executionId?: string; payload?: unknown }) => boolean) | null = null;
 
 // ============================================================================
 // Module Details Draft Type
@@ -978,8 +978,7 @@ export const createToolsSlice: StateCreator<
       chrome.runtime.onMessage.removeListener(activeDebugCommandListener);
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const progressListener = (message: any) => {
+    const progressListener = (message: { type: string; executionId?: string; payload?: unknown }) => {
       // Only handle messages for this execution
       if (message.executionId && message.executionId !== executionId) {
         return false;

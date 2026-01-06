@@ -3,8 +3,8 @@
  * 
  * Database: lm-ide-documents
  * Object Stores:
- * - file-handles: FileSystemFileHandle objects
- * - recent-documents: Unified recent documents list
+ * - file-handles: FileSystemFileHandle objects for local file access
+ * - recent-documents: Unified recent documents list with access history
  */
 
 import type { 
@@ -576,8 +576,9 @@ export async function isDirectoryHandleValid(handle: FileSystemDirectoryHandle):
     const handleWithIteration = handle as unknown as { 
       keys(): AsyncIterableIterator<string>;
     };
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    for await (const _ of handleWithIteration.keys()) {
+    // Test if handle supports iteration by calling keys() once
+    // The iterator variable is intentionally unused - we only need to verify iteration is supported
+    for await (const _key of handleWithIteration.keys()) {
       break;
     }
     return true;

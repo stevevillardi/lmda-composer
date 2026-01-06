@@ -702,7 +702,6 @@ async function handleMessage(
           }>;
           reason?: string;
         };
-        console.log(`[SW] COMMIT_MODULE_SCRIPT: portalId=${portalId}, moduleType=${moduleType}, moduleId=${moduleId}, scriptType=${scriptType}, hasScriptChanges=${newScript !== undefined}, hasModuleDetails=${!!moduleDetails}, hasReason=${!!reason}`);
         try {
           const portal = portalManager.getPortal(portalId);
           const tabId = await portalManager.getValidTabIdForPortal(portalId);
@@ -714,9 +713,7 @@ async function handleMessage(
             });
             break;
           }
-          console.log(`[SW] Portal found, tabIds:`, portal.tabIds);
           const csrfToken = await portalManager.getCsrfToken(portalId);
-          console.log(`[SW] CSRF token:`, csrfToken ? 'present' : 'missing');
           const result = await commitModuleScript(
             portal.hostname, 
             csrfToken, 
@@ -728,7 +725,6 @@ async function handleMessage(
             moduleDetails,
             reason
           );
-          console.log(`[SW] Commit result:`, result);
           if (result.success) {
             sendResponse({ type: 'MODULE_COMMITTED', payload: { moduleId, moduleType } });
           } else {

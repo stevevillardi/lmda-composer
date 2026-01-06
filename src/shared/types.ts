@@ -709,6 +709,10 @@ export type SWToEditorMessage =
   | { type: 'MODULE_FETCHED'; payload: any } // Full module object from API
   | { type: 'MODULE_COMMITTED'; payload: { moduleId: number; moduleType: LogicModuleType } }
   | { type: 'MODULE_ERROR'; payload: { error: string; code?: number } }
+  | { type: 'MODULE_DETAILS_FETCHED'; payload: { module: any } } // Full module details object from API
+  | { type: 'MODULE_DETAILS_ERROR'; payload: { error: string; code?: number } }
+  | { type: 'ACCESS_GROUPS_FETCHED'; payload: { accessGroups: Array<{ id: number; name: string; description?: string; createdOn?: number; updatedOn?: number; createdBy?: string; tenantId?: string | null }> } }
+  | { type: 'ACCESS_GROUPS_ERROR'; payload: { error: string; code?: number } }
   | { type: 'LINEAGE_VERSIONS_FETCHED'; payload: { versions: LineageVersion[] } }
   | { type: 'LINEAGE_ERROR'; payload: { error: string; code?: number } }
   | { type: 'MODULE_SCRIPT_SEARCH_RESULTS'; payload: SearchModuleScriptsResponse }
