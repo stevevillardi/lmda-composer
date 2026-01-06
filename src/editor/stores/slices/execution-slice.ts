@@ -22,6 +22,7 @@ import type { editor } from 'monaco-editor';
 import { parseOutput } from '../../utils/output-parser';
 import { getPortalBindingStatus } from '../../utils/portal-binding';
 import { normalizeMode } from '../../utils/mode-utils';
+import { sendMessage } from '../../utils/chrome-messaging';
 
 // ============================================================================
 // Types
@@ -269,7 +270,7 @@ export const createExecutionSlice: StateCreator<
         ? state.devices.find(d => d.name === state.hostname) 
         : undefined;
       
-      const response = await chrome.runtime.sendMessage({
+      const result = await sendMessage({
         type: 'EXECUTE_SCRIPT',
         payload: {
           portalId: executionPortalId,
@@ -285,8 +286,8 @@ export const createExecutionSlice: StateCreator<
         },
       });
 
-      if (response?.type === 'EXECUTION_UPDATE') {
-        const execution = response.payload as ExecutionResult;
+      if (result.ok) {
+        const execution = result.data as ExecutionResult;
         set({ currentExecution: execution, isExecuting: false });
         
         // Add to history
@@ -330,20 +331,7 @@ export const createExecutionSlice: StateCreator<
         if (mode !== 'freeform' && execution.status === 'complete' && execution.rawOutput) {
           get().parseCurrentOutput();
         }
-      } else if (response?.type === 'ERROR') {
-        set({
-          currentExecution: {
-            id: crypto.randomUUID(),
-            status: 'error',
-            rawOutput: '',
-            duration: 0,
-            startTime: Date.now(),
-            error: response.payload?.message ?? 'Unknown error from service worker',
-          },
-          isExecuting: false,
-        });
       } else {
-        console.error('Unexpected response from EXECUTE_SCRIPT:', response);
         set({
           currentExecution: {
             id: crypto.randomUUID(),
@@ -351,7 +339,7 @@ export const createExecutionSlice: StateCreator<
             rawOutput: '',
             duration: 0,
             startTime: Date.now(),
-            error: 'Unexpected response from execution service',
+            error: result.error || 'Unknown error from service worker',
           },
           isExecuting: false,
         });
@@ -422,7 +410,7 @@ export const createExecutionSlice: StateCreator<
     } as Partial<ExecutionSlice & ExecutionSliceDependencies>);
 
     try {
-      const response = await chrome.runtime.sendMessage({
+      const result = await sendMessage({
         type: 'EXECUTE_SCRIPT',
         payload: {
           ...pendingExecution,
@@ -432,8 +420,8 @@ export const createExecutionSlice: StateCreator<
         },
       });
 
-      if (response?.type === 'EXECUTION_UPDATE') {
-        const execution = response.payload as ExecutionResult;
+      if (result.ok) {
+        const execution = result.data as ExecutionResult;
         set({ currentExecution: execution, isExecuting: false });
         
         // Add to history
@@ -455,18 +443,6 @@ export const createExecutionSlice: StateCreator<
         if (execution.status === 'complete' && execution.rawOutput) {
           get().parseCurrentOutput();
         }
-      } else if (response?.type === 'ERROR') {
-        set({
-          currentExecution: {
-            id: crypto.randomUUID(),
-            status: 'error',
-            rawOutput: '',
-            duration: 0,
-            startTime: Date.now(),
-            error: response.payload?.message ?? 'Unknown error from service worker',
-          },
-          isExecuting: false,
-        });
       } else {
         set({
           currentExecution: {
@@ -475,7 +451,7 @@ export const createExecutionSlice: StateCreator<
             rawOutput: '',
             duration: 0,
             startTime: Date.now(),
-            error: 'Unexpected response from execution service',
+            error: result.error || 'Unknown error from service worker',
           },
           isExecuting: false,
         });
@@ -511,28 +487,26 @@ export const createExecutionSlice: StateCreator<
     const { currentExecutionId } = get();
     if (!currentExecutionId) return;
 
-    try {
-      const response = await chrome.runtime.sendMessage({
-        type: 'CANCEL_EXECUTION',
-        payload: { executionId: currentExecutionId },
-      });
+    const result = await sendMessage({
+      type: 'CANCEL_EXECUTION',
+      payload: { executionId: currentExecutionId },
+    });
 
-      if (response?.success) {
-        set({ 
-          isExecuting: false, 
-          cancelDialogOpen: false,
-          currentExecution: {
-            id: currentExecutionId,
-            status: 'cancelled',
-            rawOutput: '',
-            duration: 0,
-            startTime: Date.now(),
-            error: 'Execution cancelled by user',
-          },
-        });
-      }
-    } catch (error) {
-      console.error('Failed to cancel execution:', error);
+    if (result.ok) {
+      set({ 
+        isExecuting: false, 
+        cancelDialogOpen: false,
+        currentExecution: {
+          id: currentExecutionId,
+          status: 'cancelled',
+          rawOutput: '',
+          duration: 0,
+          startTime: Date.now(),
+          error: 'Execution cancelled by user',
+        },
+      });
+    } else {
+      console.error('Failed to cancel execution:', result.error);
     }
     
     set({ cancelDialogOpen: false });

@@ -33,6 +33,7 @@ import {
   ensurePortalBindingActive, 
   getModuleTabIds 
 } from '../helpers/slice-helpers';
+import { sendMessage, sendMessageIgnoreError } from '../../utils/chrome-messaging';
 
 // ============================================================================
 // Types
@@ -412,59 +413,51 @@ export const createModuleSlice: StateCreator<
 
     set({ isFetchingModules: true });
 
-    try {
-      const response = await chrome.runtime.sendMessage({
-        type: 'FETCH_MODULES',
-        payload: {
-          portalId: selectedPortalId,
-          moduleType: type,
-          offset,
-          size: 1000,
-          search: search || undefined,
-        },
+    const result = await sendMessage({
+      type: 'FETCH_MODULES',
+      payload: {
+        portalId: selectedPortalId,
+        moduleType: type,
+        offset,
+        size: 1000,
+        search: search || undefined,
+      },
+    });
+
+    if (result.ok) {
+      const fetchResponse = result.data as FetchModulesResponse;
+      set((state) => {
+        const existing = append ? state.modulesCache[type] : [];
+        const merged = new Map<number, LogicModuleInfo>();
+        for (const item of existing) merged.set(item.id, item);
+        for (const item of fetchResponse.items) merged.set(item.id, item);
+
+        const nextOffset = offset + fetchResponse.items.length;
+
+        return {
+          modulesCache: {
+            ...state.modulesCache,
+            [type]: Array.from(merged.values()),
+          },
+          modulesMeta: {
+            ...state.modulesMeta,
+            [type]: {
+              offset: nextOffset,
+              hasMore: fetchResponse.hasMore,
+              total: fetchResponse.total,
+            },
+          },
+          modulesSearch: {
+            ...state.modulesSearch,
+            [type]: search,
+          },
+          isFetchingModules: false,
+        };
       });
-
-      if (response?.type === 'MODULES_FETCHED') {
-        const fetchResponse = response.payload as FetchModulesResponse;
-        set((state) => {
-          const existing = append ? state.modulesCache[type] : [];
-          const merged = new Map<number, LogicModuleInfo>();
-          for (const item of existing) merged.set(item.id, item);
-          for (const item of fetchResponse.items) merged.set(item.id, item);
-
-          const nextOffset = offset + fetchResponse.items.length;
-
-          return {
-            modulesCache: {
-              ...state.modulesCache,
-              [type]: Array.from(merged.values()),
-            },
-            modulesMeta: {
-              ...state.modulesMeta,
-              [type]: {
-                offset: nextOffset,
-                hasMore: fetchResponse.hasMore,
-                total: fetchResponse.total,
-              },
-            },
-            modulesSearch: {
-              ...state.modulesSearch,
-              [type]: search,
-            },
-            isFetchingModules: false,
-          };
-        });
-      } else {
-        console.error('Failed to fetch modules:', response);
-        toast.error('Failed to load modules', {
-          description: 'Unable to fetch modules from the portal',
-        });
-        set({ isFetchingModules: false });
-      }
-    } catch (error) {
-      console.error('Error fetching modules:', error);
+    } else {
+      console.error('Failed to fetch modules:', result.error);
       toast.error('Failed to load modules', {
-        description: error instanceof Error ? error.message : 'Unknown error',
+        description: result.error || 'Unable to fetch modules from the portal',
       });
       set({ isFetchingModules: false });
     }
@@ -631,11 +624,9 @@ export const createModuleSlice: StateCreator<
     const trimmedQuery = moduleSearchTerm.trim();
     const previousSearchId = get().moduleSearchExecutionId;
     if (previousSearchId) {
-      void chrome.runtime.sendMessage({
+      sendMessageIgnoreError({
         type: 'CANCEL_MODULE_SEARCH',
         payload: { searchId: previousSearchId },
-      }).catch(() => {
-        // Ignore cancellation errors
       });
     }
     if (!trimmedQuery) {
@@ -663,7 +654,7 @@ export const createModuleSlice: StateCreator<
     });
 
     try {
-      const response = await chrome.runtime.sendMessage({
+      const result = await sendMessage({
         type: 'SEARCH_MODULE_SCRIPTS',
         payload: {
           portalId: selectedPortalId,
@@ -680,20 +671,19 @@ export const createModuleSlice: StateCreator<
         return;
       }
 
-      if (response?.type === 'MODULE_SCRIPT_SEARCH_RESULTS') {
-        const results = response.payload.results as ScriptSearchResult[];
+      if (result.ok) {
+        const payload = result.data as { results: ScriptSearchResult[]; indexInfo?: ModuleIndexInfo };
         set({
-          moduleScriptSearchResults: results,
-          selectedScriptSearchResult: results[0] || null,
+          moduleScriptSearchResults: payload.results,
+          selectedScriptSearchResult: payload.results[0] || null,
           isSearchingModules: false,
           moduleSearchProgress: null,
           moduleSearchExecutionId: null,
-          moduleSearchIndexInfo: response.payload.indexInfo ?? null,
+          moduleSearchIndexInfo: payload.indexInfo ?? null,
         });
       } else {
-        const errorMessage = response?.payload?.error || 'Failed to search modules';
         set({
-          moduleSearchError: errorMessage,
+          moduleSearchError: result.error || 'Failed to search modules',
           isSearchingModules: false,
           moduleSearchProgress: null,
           moduleSearchExecutionId: null,
@@ -723,11 +713,9 @@ export const createModuleSlice: StateCreator<
     const trimmedQuery = moduleSearchTerm.trim();
     const previousSearchId = get().moduleSearchExecutionId;
     if (previousSearchId) {
-      void chrome.runtime.sendMessage({
+      sendMessageIgnoreError({
         type: 'CANCEL_MODULE_SEARCH',
         payload: { searchId: previousSearchId },
-      }).catch(() => {
-        // Ignore cancellation errors
       });
     }
     if (!trimmedQuery) {
@@ -755,7 +743,7 @@ export const createModuleSlice: StateCreator<
     });
 
     try {
-      const response = await chrome.runtime.sendMessage({
+      const result = await sendMessage({
         type: 'SEARCH_DATAPOINTS',
         payload: {
           portalId: selectedPortalId,
@@ -771,20 +759,19 @@ export const createModuleSlice: StateCreator<
         return;
       }
 
-      if (response?.type === 'DATAPOINT_SEARCH_RESULTS') {
-        const results = response.payload.results as DataPointSearchResult[];
+      if (result.ok) {
+        const payload = result.data as { results: DataPointSearchResult[]; indexInfo?: ModuleIndexInfo };
         set({
-          moduleDatapointSearchResults: results,
-          selectedDatapointSearchResult: results[0] || null,
+          moduleDatapointSearchResults: payload.results,
+          selectedDatapointSearchResult: payload.results[0] || null,
           isSearchingModules: false,
           moduleSearchProgress: null,
           moduleSearchExecutionId: null,
-          moduleSearchIndexInfo: response.payload.indexInfo ?? null,
+          moduleSearchIndexInfo: payload.indexInfo ?? null,
         });
       } else {
-        const errorMessage = response?.payload?.error || 'Failed to search datapoints';
         set({
-          moduleSearchError: errorMessage,
+          moduleSearchError: result.error || 'Failed to search datapoints',
           isSearchingModules: false,
           moduleSearchProgress: null,
           moduleSearchExecutionId: null,
@@ -827,11 +814,9 @@ export const createModuleSlice: StateCreator<
 
     const previousSearchId = get().moduleSearchExecutionId;
     if (previousSearchId) {
-      void chrome.runtime.sendMessage({
+      sendMessageIgnoreError({
         type: 'CANCEL_MODULE_SEARCH',
         payload: { searchId: previousSearchId },
-      }).catch(() => {
-        // Ignore cancellation errors
       });
     }
 
@@ -848,27 +833,21 @@ export const createModuleSlice: StateCreator<
     });
 
     try {
-      const response = await chrome.runtime.sendMessage({
+      const result = await sendMessage({
         type: 'REFRESH_MODULE_INDEX',
         payload: { portalId: selectedPortalId, searchId },
       });
 
-      if (response?.type === 'MODULE_INDEX_REFRESHED') {
+      if (result.ok) {
         set({
-          moduleSearchIndexInfo: response.payload as ModuleIndexInfo,
+          moduleSearchIndexInfo: result.data as ModuleIndexInfo,
           moduleSearchProgress: null,
           moduleSearchExecutionId: null,
         });
         toast.success('Module search index refreshed');
-      } else if (response?.type === 'MODULE_SCRIPT_SEARCH_ERROR') {
-        set({
-          moduleSearchError: response.payload?.error || 'Failed to refresh module index',
-          moduleSearchProgress: null,
-          moduleSearchExecutionId: null,
-        });
       } else {
         set({
-          moduleSearchError: 'Failed to refresh module index',
+          moduleSearchError: result.error || 'Failed to refresh module index',
           moduleSearchProgress: null,
           moduleSearchExecutionId: null,
         });
@@ -888,21 +867,21 @@ export const createModuleSlice: StateCreator<
     const { moduleSearchExecutionId } = get();
     if (!moduleSearchExecutionId) return;
 
-    try {
-      await chrome.runtime.sendMessage({
-        type: 'CANCEL_MODULE_SEARCH',
-        payload: { searchId: moduleSearchExecutionId },
-      });
-    } catch (error) {
-      console.error('Failed to cancel module search:', error);
-    } finally {
-      set({
-        isSearchingModules: false,
-        moduleSearchExecutionId: null,
-        moduleSearchProgress: null,
-      });
-      searchListenerManager.cleanup();
+    const result = await sendMessage({
+      type: 'CANCEL_MODULE_SEARCH',
+      payload: { searchId: moduleSearchExecutionId },
+    });
+    
+    if (!result.ok) {
+      console.error('Failed to cancel module search:', result.error);
     }
+    
+    set({
+      isSearchingModules: false,
+      moduleSearchExecutionId: null,
+      moduleSearchProgress: null,
+    });
+    searchListenerManager.cleanup();
   },
 
   // ==========================================================================
@@ -1004,7 +983,7 @@ export const createModuleSlice: StateCreator<
     set({ moduleCommitError: null });
     
     try {
-      const response = await chrome.runtime.sendMessage({
+      const result = await sendMessage({
         type: 'FETCH_MODULE',
         payload: {
           portalId: binding.portalId,
@@ -1013,9 +992,10 @@ export const createModuleSlice: StateCreator<
         },
       });
       
-      if (response?.type === 'MODULE_FETCHED') {
+      if (result.ok) {
         // Extract module info from the fetched module
-        const module = response.payload;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const module = result.data as any;
         
         // Extract the current script from the module based on type and script type
         let currentScript = '';
@@ -1078,23 +1058,21 @@ export const createModuleSlice: StateCreator<
             ),
           } as Partial<ModuleSlice & ModuleSliceDependencies>);
         }
-      } else if (response?.type === 'MODULE_ERROR') {
-        const error = response.payload.error || 'Failed to fetch module';
-        const errorCode = response.payload.code;
+      } else {
+        // Handle error response
+        const errorMessage = result.error || 'Failed to fetch module';
         
-        // Handle specific error cases
-        if (errorCode === 404) {
+        // Handle specific error cases based on error code
+        if (result.code === '404') {
           throw new Error('Module not found. It may have been deleted.');
-        } else if (errorCode === 403) {
+        } else if (result.code === '403') {
           throw new Error('CSRF token expired. Please refresh the page.');
-        } else if (errorCode === 401) {
+        } else if (result.code === '401') {
           throw new Error('Session expired. Please log in to LogicMonitor.');
         }
         
-        set({ moduleCommitError: error });
-        throw new Error(error);
-      } else {
-        throw new Error('Unknown error occurred');
+        set({ moduleCommitError: errorMessage });
+        throw new Error(errorMessage);
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to fetch module';
@@ -1177,7 +1155,7 @@ export const createModuleSlice: StateCreator<
 
       const trimmedReason = reason?.trim();
       const limitedReason = trimmedReason ? trimmedReason.slice(0, 4096) : undefined;
-      const response = await chrome.runtime.sendMessage({
+      const result = await sendMessage({
         type: 'COMMIT_MODULE_SCRIPT',
         payload: {
           portalId: binding.portalId,
@@ -1190,7 +1168,7 @@ export const createModuleSlice: StateCreator<
         },
       });
       
-      if (response?.type === 'MODULE_COMMITTED') {
+      if (result.ok) {
         // Update both originalContent and document.portal.lastKnownContent to reflect the committed state
         const updatedTabs = tabs.map(t => 
           t.id === tabId 
@@ -1226,20 +1204,12 @@ export const createModuleSlice: StateCreator<
         } as Partial<ModuleSlice & ModuleSliceDependencies>);
         
         toast.success('Changes pushed to portal successfully');
-      } else if (response?.type === 'MODULE_ERROR') {
-        const error = response.payload.error || 'Failed to push changes to portal';
-        set({ 
-          moduleCommitError: error,
-          isCommittingModule: false,
-        });
-        throw new Error(error);
       } else {
-        const error = 'Unknown error occurred';
         set({ 
-          moduleCommitError: error,
+          moduleCommitError: result.error || 'Failed to push changes to portal',
           isCommittingModule: false,
         });
-        throw new Error(error);
+        throw new Error(result.error || 'Failed to push changes to portal');
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to push changes to portal';
@@ -1322,7 +1292,7 @@ export const createModuleSlice: StateCreator<
       }
       
       // Fetch latest module from portal
-      const response = await chrome.runtime.sendMessage({
+      const result = await sendMessage({
         type: 'FETCH_MODULE',
         payload: {
           portalId: source.portalId,
@@ -1331,8 +1301,9 @@ export const createModuleSlice: StateCreator<
         },
       });
       
-      if (response?.type === 'MODULE_FETCHED') {
-        const module = response.payload;
+      if (result.ok) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const module = result.data as any;
         
         // Extract script content
         let scriptContent: string | undefined;
@@ -1385,13 +1356,9 @@ export const createModuleSlice: StateCreator<
         });
         
         return { success: true };
-      } else if (response?.type === 'MODULE_ERROR') {
-        const error = response.payload.error || 'Failed to fetch module';
-        set({ isPullingLatest: false });
-        return { success: false, error };
       } else {
         set({ isPullingLatest: false });
-        return { success: false, error: 'Unexpected response from portal' };
+        return { success: false, error: result.error || 'Failed to fetch module' };
       }
     } catch (error) {
       console.error('[pullLatestFromPortal] Error:', error);

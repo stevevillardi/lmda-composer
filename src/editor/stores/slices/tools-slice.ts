@@ -30,6 +30,7 @@ import {
   getModuleTabIds,
   normalizeAccessGroupIds,
 } from '../helpers/slice-helpers';
+import { sendMessage } from '../../utils/chrome-messaging';
 
 // ============================================================================
 // Storage Keys
@@ -57,9 +58,71 @@ const findModuleDraftForTab = (
   );
 };
 
-// Module-scoped listener for debug commands
-// Message type is dynamic based on executionId, so we use a generic handler
-let activeDebugCommandListener: ((message: { type: string; executionId?: string; payload?: unknown }) => boolean) | null = null;
+/**
+ * Manages debug command listeners with proper cleanup.
+ * Ensures listeners are always cleaned up, even on errors.
+ */
+class DebugCommandListenerManager {
+  private listener: ((message: { type: string; executionId?: string; payload?: unknown }) => boolean) | null = null;
+  private currentExecutionId: string | null = null;
+
+  /**
+   * Starts listening for debug command updates for a specific execution.
+   * Automatically cleans up any existing listener first.
+   */
+  start(
+    executionId: string,
+    callbacks: {
+      onComplete: (results: Record<number, DebugCommandResult>) => void;
+      onError: (message: string) => void;
+    }
+  ): void {
+    // Always clean up first to prevent leaks
+    this.cleanup();
+    
+    this.currentExecutionId = executionId;
+    this.listener = (message: { type: string; executionId?: string; payload?: unknown }) => {
+      // Only handle messages for this execution
+      if (message.executionId && message.executionId !== executionId) {
+        return false;
+      }
+
+      if (message.type === 'DEBUG_COMMAND_UPDATE') {
+        // Progress updates - could show progress in UI if needed
+      } else if (message.type === 'DEBUG_COMMAND_COMPLETE') {
+        callbacks.onComplete((message.payload as { results: Record<number, DebugCommandResult> }).results);
+        this.cleanup();
+      } else if (message.type === 'ERROR' && (message.payload as { code?: string })?.code === 'DEBUG_COMMAND_ERROR') {
+        callbacks.onError((message.payload as { message?: string })?.message || 'Debug command failed');
+        this.cleanup();
+      }
+      return false;
+    };
+    
+    chrome.runtime.onMessage.addListener(this.listener);
+  }
+
+  /**
+   * Cleans up the current listener. Safe to call multiple times.
+   */
+  cleanup(): void {
+    if (this.listener) {
+      chrome.runtime.onMessage.removeListener(this.listener);
+      this.listener = null;
+    }
+    this.currentExecutionId = null;
+  }
+
+  /**
+   * Gets the current execution ID, if any.
+   */
+  getCurrentExecutionId(): string | null {
+    return this.currentExecutionId;
+  }
+}
+
+// Singleton instance for debug command listener management
+const debugCommandListenerManager = new DebugCommandListenerManager();
 
 // ============================================================================
 // Module Details Draft Type
@@ -418,34 +481,22 @@ export const createToolsSlice: StateCreator<
 
     set({ isFetchingProperties: true, selectedDeviceId: deviceId });
 
-    try {
-      const response = await chrome.runtime.sendMessage({
-        type: 'GET_DEVICE_PROPERTIES',
-        payload: { portalId: selectedPortalId, deviceId },
-      });
+    const result = await sendMessage({
+      type: 'GET_DEVICE_PROPERTIES',
+      payload: { portalId: selectedPortalId, deviceId },
+    });
 
-      const current = get();
-      if (current.selectedPortalId !== fetchingPortal || current.selectedDeviceId !== fetchingDevice) {
-        return;
-      }
+    const current = get();
+    if (current.selectedPortalId !== fetchingPortal || current.selectedDeviceId !== fetchingDevice) {
+      return;
+    }
 
-      if (response?.type === 'DEVICE_PROPERTIES_LOADED') {
-        set({ deviceProperties: response.payload, isFetchingProperties: false });
-      } else {
-        console.error('Failed to fetch device properties:', response);
-        toast.error('Failed to load properties', {
-          description: 'Unable to fetch device properties',
-        });
-        set({ deviceProperties: [], isFetchingProperties: false });
-      }
-    } catch (error) {
-      console.error('Error fetching device properties:', error);
-      const current = get();
-      if (current.selectedPortalId !== fetchingPortal || current.selectedDeviceId !== fetchingDevice) {
-        return;
-      }
+    if (result.ok) {
+      set({ deviceProperties: result.data as DeviceProperty[], isFetchingProperties: false });
+    } else {
+      console.error('Failed to fetch device properties:', result.error);
       toast.error('Failed to load properties', {
-        description: error instanceof Error ? error.message : 'Unknown error',
+        description: result.error || 'Unable to fetch device properties',
       });
       set({ deviceProperties: [], isFetchingProperties: false });
     }
@@ -652,37 +703,26 @@ export const createToolsSlice: StateCreator<
     
     set({ isTestingAppliesTo: true, appliesToError: null, appliesToResults: [] });
     
-    try {
-      const response = await chrome.runtime.sendMessage({
-        type: 'TEST_APPLIES_TO',
-        payload: {
-          portalId: selectedPortalId,
-          currentAppliesTo: appliesToExpression,
-          testFrom: appliesToTestFrom,
-        },
-      });
-      
-      if (response?.type === 'APPLIES_TO_RESULT') {
-        set({ 
-          appliesToResults: response.payload.currentMatches || [],
-          appliesToError: response.payload.warnMessage || null,
-          isTestingAppliesTo: false,
-        });
-      } else if (response?.type === 'APPLIES_TO_ERROR') {
-        set({ 
-          appliesToError: response.payload.errorMessage,
-          appliesToResults: [],
-          isTestingAppliesTo: false,
-        });
-      } else {
-        set({ 
-          appliesToError: 'Unknown error occurred',
-          isTestingAppliesTo: false,
-        });
-      }
-    } catch (error) {
+    const result = await sendMessage({
+      type: 'TEST_APPLIES_TO',
+      payload: {
+        portalId: selectedPortalId,
+        currentAppliesTo: appliesToExpression,
+        testFrom: appliesToTestFrom,
+      },
+    });
+    
+    if (result.ok) {
+      const payload = result.data as { currentMatches?: Array<{ type: string; id: number; name: string }>; warnMessage?: string };
       set({ 
-        appliesToError: error instanceof Error ? error.message : 'Failed to test AppliesTo',
+        appliesToResults: payload.currentMatches || [],
+        appliesToError: payload.warnMessage || null,
+        isTestingAppliesTo: false,
+      });
+    } else {
+      set({ 
+        appliesToError: result.error || 'Failed to test AppliesTo',
+        appliesToResults: [],
         isTestingAppliesTo: false,
       });
     }
@@ -709,31 +749,19 @@ export const createToolsSlice: StateCreator<
     
     set({ isLoadingCustomFunctions: true, customFunctionError: null });
     
-    try {
-      const response = await chrome.runtime.sendMessage({
-        type: 'FETCH_CUSTOM_FUNCTIONS',
-        payload: { portalId: selectedPortalId },
-      });
-      
-      if (response?.type === 'CUSTOM_FUNCTIONS_LOADED') {
-        set({ 
-          customFunctions: response.payload,
-          isLoadingCustomFunctions: false,
-        });
-      } else if (response?.type === 'CUSTOM_FUNCTION_ERROR') {
-        set({ 
-          customFunctionError: response.payload.error,
-          isLoadingCustomFunctions: false,
-        });
-      } else {
-        set({ 
-          customFunctionError: 'Unknown error occurred',
-          isLoadingCustomFunctions: false,
-        });
-      }
-    } catch (error) {
+    const result = await sendMessage({
+      type: 'FETCH_CUSTOM_FUNCTIONS',
+      payload: { portalId: selectedPortalId },
+    });
+    
+    if (result.ok) {
       set({ 
-        customFunctionError: error instanceof Error ? error.message : 'Failed to fetch custom functions',
+        customFunctions: result.data as CustomAppliesToFunction[],
+        isLoadingCustomFunctions: false,
+      });
+    } else {
+      set({ 
+        customFunctionError: result.error || 'Failed to fetch custom functions',
         isLoadingCustomFunctions: false,
       });
     }
@@ -748,35 +776,22 @@ export const createToolsSlice: StateCreator<
     
     set({ isCreatingFunction: true, customFunctionError: null });
     
-    try {
-      const response = await chrome.runtime.sendMessage({
-        type: 'CREATE_CUSTOM_FUNCTION',
-        payload: { portalId: selectedPortalId, name, code, description },
+    const result = await sendMessage({
+      type: 'CREATE_CUSTOM_FUNCTION',
+      payload: { portalId: selectedPortalId, name, code, description },
+    });
+    
+    if (result.ok) {
+      set({ 
+        customFunctions: [...get().customFunctions, result.data as CustomAppliesToFunction],
+        isCreatingFunction: false,
       });
-      
-      if (response?.type === 'CUSTOM_FUNCTION_CREATED') {
-        set({ 
-          customFunctions: [...get().customFunctions, response.payload],
-          isCreatingFunction: false,
-        });
-      } else if (response?.type === 'CUSTOM_FUNCTION_ERROR') {
-        const error = response.payload.error;
-        set({ 
-          customFunctionError: error,
-          isCreatingFunction: false,
-        });
-        throw new Error(error);
-      } else {
-        const error = 'Unknown error occurred';
-        set({ 
-          customFunctionError: error,
-          isCreatingFunction: false,
-        });
-        throw new Error(error);
-      }
-    } catch (error) {
-      set({ isCreatingFunction: false });
-      throw error;
+    } else {
+      set({ 
+        customFunctionError: result.error,
+        isCreatingFunction: false,
+      });
+      throw new Error(result.error);
     }
   },
 
@@ -789,37 +804,24 @@ export const createToolsSlice: StateCreator<
     
     set({ isUpdatingFunction: true, customFunctionError: null });
     
-    try {
-      const response = await chrome.runtime.sendMessage({
-        type: 'UPDATE_CUSTOM_FUNCTION',
-        payload: { portalId: selectedPortalId, functionId: id, name, code, description },
+    const result = await sendMessage({
+      type: 'UPDATE_CUSTOM_FUNCTION',
+      payload: { portalId: selectedPortalId, functionId: id, name, code, description },
+    });
+    
+    if (result.ok) {
+      set({ 
+        customFunctions: get().customFunctions.map(f => 
+          f.id === id ? (result.data as CustomAppliesToFunction) : f
+        ),
+        isUpdatingFunction: false,
       });
-      
-      if (response?.type === 'CUSTOM_FUNCTION_UPDATED') {
-        set({ 
-          customFunctions: get().customFunctions.map(f => 
-            f.id === id ? response.payload : f
-          ),
-          isUpdatingFunction: false,
-        });
-      } else if (response?.type === 'CUSTOM_FUNCTION_ERROR') {
-        const error = response.payload.error;
-        set({ 
-          customFunctionError: error,
-          isUpdatingFunction: false,
-        });
-        throw new Error(error);
-      } else {
-        const error = 'Unknown error occurred';
-        set({ 
-          customFunctionError: error,
-          isUpdatingFunction: false,
-        });
-        throw new Error(error);
-      }
-    } catch (error) {
-      set({ isUpdatingFunction: false });
-      throw error;
+    } else {
+      set({ 
+        customFunctionError: result.error,
+        isUpdatingFunction: false,
+      });
+      throw new Error(result.error);
     }
   },
 
@@ -832,35 +834,22 @@ export const createToolsSlice: StateCreator<
     
     set({ isDeletingFunction: true, customFunctionError: null });
     
-    try {
-      const response = await chrome.runtime.sendMessage({
-        type: 'DELETE_CUSTOM_FUNCTION',
-        payload: { portalId: selectedPortalId, functionId: id },
+    const result = await sendMessage({
+      type: 'DELETE_CUSTOM_FUNCTION',
+      payload: { portalId: selectedPortalId, functionId: id },
+    });
+    
+    if (result.ok) {
+      set({ 
+        customFunctions: get().customFunctions.filter(f => f.id !== id),
+        isDeletingFunction: false,
       });
-      
-      if (response?.type === 'CUSTOM_FUNCTION_DELETED') {
-        set({ 
-          customFunctions: get().customFunctions.filter(f => f.id !== id),
-          isDeletingFunction: false,
-        });
-      } else if (response?.type === 'CUSTOM_FUNCTION_ERROR') {
-        const error = response.payload.error;
-        set({ 
-          customFunctionError: error,
-          isDeletingFunction: false,
-        });
-        throw new Error(error);
-      } else {
-        const error = 'Unknown error occurred';
-        set({ 
-          customFunctionError: error,
-          isDeletingFunction: false,
-        });
-        throw new Error(error);
-      }
-    } catch (error) {
-      set({ isDeletingFunction: false });
-      throw error;
+    } else {
+      set({ 
+        customFunctionError: result.error,
+        isDeletingFunction: false,
+      });
+      throw new Error(result.error);
     }
   },
 
@@ -912,55 +901,36 @@ export const createToolsSlice: StateCreator<
       positionalArgs,
     };
 
-    // Set up message listener for progress updates and completion
-    if (activeDebugCommandListener) {
-      chrome.runtime.onMessage.removeListener(activeDebugCommandListener);
-    }
-
-    const progressListener = (message: { type: string; executionId?: string; payload?: unknown }) => {
-      // Only handle messages for this execution
-      if (message.executionId && message.executionId !== executionId) {
-        return false;
-      }
-
-      if (message.type === 'DEBUG_COMMAND_UPDATE') {
-        // Progress updates - could show progress in UI if needed
-      } else if (message.type === 'DEBUG_COMMAND_COMPLETE') {
+    // Use managed listener for proper cleanup
+    debugCommandListenerManager.start(executionId, {
+      onComplete: (results) => {
         set({
-          debugCommandResults: (message.payload as { results: Record<number, DebugCommandResult> }).results,
+          debugCommandResults: results,
           isExecutingDebugCommand: false,
           debugCommandExecutionId: null,
         });
-        chrome.runtime.onMessage.removeListener(progressListener);
-        activeDebugCommandListener = null;
-      } else if (message.type === 'ERROR' && (message.payload as { code?: string })?.code === 'DEBUG_COMMAND_ERROR') {
+      },
+      onError: (message) => {
         set({
           isExecutingDebugCommand: false,
           debugCommandExecutionId: null,
         });
-        chrome.runtime.onMessage.removeListener(progressListener);
-        activeDebugCommandListener = null;
         toast.error('Debug command execution failed', {
-          description: (message.payload as { message?: string })?.message,
+          description: message,
         });
-      }
-      return false;
-    };
+      },
+    });
 
-    activeDebugCommandListener = progressListener;
-    chrome.runtime.onMessage.addListener(progressListener);
-
-    try {
-      await chrome.runtime.sendMessage({
-        type: 'EXECUTE_DEBUG_COMMAND',
-        payload: { ...request, executionId },
-      });
-    } catch (error) {
+    const result = await sendMessage({
+      type: 'EXECUTE_DEBUG_COMMAND',
+      payload: { ...request, executionId },
+    });
+    
+    if (!result.ok) {
       set({ isExecutingDebugCommand: false, debugCommandExecutionId: null });
-      chrome.runtime.onMessage.removeListener(progressListener);
-      activeDebugCommandListener = null;
+      debugCommandListenerManager.cleanup();
       toast.error('Failed to execute debug command', {
-        description: error instanceof Error ? error.message : 'Unknown error',
+        description: result.error,
       });
     }
   },
@@ -971,23 +941,21 @@ export const createToolsSlice: StateCreator<
       return;
     }
 
-    try {
-      await chrome.runtime.sendMessage({
-        type: 'CANCEL_DEBUG_COMMAND',
-        payload: { executionId: debugCommandExecutionId },
-      });
+    const result = await sendMessage({
+      type: 'CANCEL_DEBUG_COMMAND',
+      payload: { executionId: debugCommandExecutionId },
+    });
+    
+    if (result.ok) {
       set({
         isExecutingDebugCommand: false,
         debugCommandExecutionId: null,
       });
-      if (activeDebugCommandListener) {
-        chrome.runtime.onMessage.removeListener(activeDebugCommandListener);
-        activeDebugCommandListener = null;
-      }
+      debugCommandListenerManager.cleanup();
       toast.info('Debug command execution cancelled');
-    } catch (error) {
+    } else {
       toast.error('Failed to cancel debug command', {
-        description: error instanceof Error ? error.message : 'Unknown error',
+        description: result.error,
       });
     }
   },
@@ -1006,19 +974,19 @@ export const createToolsSlice: StateCreator<
   },
 
   loadModuleSnippetsFromCache: async () => {
-    try {
-      const response = await chrome.runtime.sendMessage({
-        type: 'GET_MODULE_SNIPPETS_CACHE',
+    const result = await sendMessage({
+      type: 'GET_MODULE_SNIPPETS_CACHE',
+    });
+    
+    if (result.ok && result.data) {
+      const payload = result.data as { snippets: ModuleSnippetInfo[]; meta: ModuleSnippetsCacheMeta; cachedSourceKeys?: string[] };
+      set({
+        moduleSnippets: payload.snippets,
+        moduleSnippetsCacheMeta: payload.meta,
+        cachedSnippetVersions: new Set(payload.cachedSourceKeys || []),
       });
-      if (response?.type === 'MODULE_SNIPPETS_CACHE' && response.payload) {
-        set({
-          moduleSnippets: response.payload.snippets,
-          moduleSnippetsCacheMeta: response.payload.meta,
-          cachedSnippetVersions: new Set(response.payload.cachedSourceKeys || []),
-        });
-      }
-    } catch (error) {
-      console.error('Failed to load module snippets from cache:', error);
+    } else if (!result.ok) {
+      console.error('Failed to load module snippets from cache:', result.error);
     }
   },
 
@@ -1034,33 +1002,25 @@ export const createToolsSlice: StateCreator<
 
     set({ moduleSnippetsLoading: true });
 
-    try {
-      const response = await chrome.runtime.sendMessage({
-        type: 'FETCH_MODULE_SNIPPETS',
-        payload: { portalId: selectedPortalId, collectorId: selectedCollectorId },
-      });
+    const result = await sendMessage({
+      type: 'FETCH_MODULE_SNIPPETS',
+      payload: { portalId: selectedPortalId, collectorId: selectedCollectorId },
+    });
 
-      if (response?.type === 'MODULE_SNIPPETS_FETCHED') {
-        set({
-          moduleSnippets: response.payload.snippets,
-          moduleSnippetsCacheMeta: response.payload.meta,
-          moduleSnippetsLoading: false,
-        });
-        toast.success('Module snippets loaded', {
-          description: `Found ${response.payload.snippets.length} module snippets.`,
-        });
-      } else if (response?.type === 'MODULE_SNIPPETS_ERROR') {
-        set({ moduleSnippetsLoading: false });
-        toast.error('Failed to fetch module snippets', {
-          description: response.payload.error,
-        });
-      } else {
-        set({ moduleSnippetsLoading: false });
-      }
-    } catch (error) {
+    if (result.ok) {
+      const payload = result.data as { snippets: ModuleSnippetInfo[]; meta: ModuleSnippetsCacheMeta };
+      set({
+        moduleSnippets: payload.snippets,
+        moduleSnippetsCacheMeta: payload.meta,
+        moduleSnippetsLoading: false,
+      });
+      toast.success('Module snippets loaded', {
+        description: `Found ${payload.snippets.length} module snippets.`,
+      });
+    } else {
       set({ moduleSnippetsLoading: false });
       toast.error('Failed to fetch module snippets', {
-        description: error instanceof Error ? error.message : 'Unknown error',
+        description: result.error,
       });
     }
   },
@@ -1083,33 +1043,24 @@ export const createToolsSlice: StateCreator<
 
     set({ moduleSnippetSourceLoading: true });
 
-    try {
-      const response = await chrome.runtime.sendMessage({
-        type: 'FETCH_MODULE_SNIPPET_SOURCE',
-        payload: { portalId: selectedPortalId, collectorId: selectedCollectorId, name, version },
-      });
+    const result = await sendMessage({
+      type: 'FETCH_MODULE_SNIPPET_SOURCE',
+      payload: { portalId: selectedPortalId, collectorId: selectedCollectorId, name, version },
+    });
 
-      if (response?.type === 'MODULE_SNIPPET_SOURCE_FETCHED') {
-        const { cachedSnippetVersions } = get();
-        const newCached = new Set(cachedSnippetVersions);
-        newCached.add(`${name}:${version}`);
-        set({
-          moduleSnippetSource: response.payload.code,
-          moduleSnippetSourceLoading: false,
-          cachedSnippetVersions: newCached,
-        });
-      } else if (response?.type === 'MODULE_SNIPPETS_ERROR') {
-        set({ moduleSnippetSourceLoading: false });
-        toast.error('Failed to fetch snippet source', {
-          description: response.payload.error,
-        });
-      } else {
-        set({ moduleSnippetSourceLoading: false });
-      }
-    } catch (error) {
+    if (result.ok) {
+      const { cachedSnippetVersions } = get();
+      const newCached = new Set(cachedSnippetVersions);
+      newCached.add(`${name}:${version}`);
+      set({
+        moduleSnippetSource: (result.data as { code: string }).code,
+        moduleSnippetSourceLoading: false,
+        cachedSnippetVersions: newCached,
+      });
+    } else {
       set({ moduleSnippetSourceLoading: false });
       toast.error('Failed to fetch snippet source', {
-        description: error instanceof Error ? error.message : 'Unknown error',
+        description: result.error,
       });
     }
   },
@@ -1175,10 +1126,11 @@ export const createToolsSlice: StateCreator<
   },
 
   clearModuleSnippetsCache: async () => {
-    try {
-      await chrome.runtime.sendMessage({
-        type: 'CLEAR_MODULE_SNIPPETS_CACHE',
-      });
+    const result = await sendMessage({
+      type: 'CLEAR_MODULE_SNIPPETS_CACHE',
+    });
+    
+    if (result.ok) {
       set({
         moduleSnippets: [],
         moduleSnippetsCacheMeta: null,
@@ -1187,9 +1139,9 @@ export const createToolsSlice: StateCreator<
         cachedSnippetVersions: new Set<string>(),
       });
       toast.success('Module snippets cache cleared');
-    } catch (error) {
+    } else {
       toast.error('Failed to clear cache', {
-        description: error instanceof Error ? error.message : 'Unknown error',
+        description: result.error,
       });
     }
   },
@@ -1221,36 +1173,25 @@ export const createToolsSlice: StateCreator<
 
     set({ isFetchingLineage: true, lineageError: null });
 
-    try {
-      const response = await chrome.runtime.sendMessage({
-        type: 'FETCH_LINEAGE_VERSIONS',
-        payload: {
-          portalId: binding.portalId,
-          moduleType: tab.source.moduleType,
-          lineageId: tab.source.lineageId,
-        },
-      });
+    const result = await sendMessage({
+      type: 'FETCH_LINEAGE_VERSIONS',
+      payload: {
+        portalId: binding.portalId,
+        moduleType: tab.source.moduleType,
+        lineageId: tab.source.lineageId,
+      },
+    });
 
-      if (response?.type === 'LINEAGE_VERSIONS_FETCHED') {
-        const versions = response.payload.versions || [];
-        set({
-          lineageVersions: versions,
-          isFetchingLineage: false,
-        });
-        return versions.length;
-      } else if (response?.type === 'LINEAGE_ERROR') {
-        const error = response.payload.error || 'Failed to fetch lineage versions';
-        set({ lineageError: error, isFetchingLineage: false });
-        throw new Error(error);
-      } else {
-        const error = 'Unknown error occurred';
-        set({ lineageError: error, isFetchingLineage: false });
-        throw new Error(error);
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to fetch lineage versions';
-      set({ lineageError: errorMessage, isFetchingLineage: false });
-      throw error;
+    if (result.ok) {
+      const versions = (result.data as { versions?: LineageVersion[] }).versions || [];
+      set({
+        lineageVersions: versions,
+        isFetchingLineage: false,
+      });
+      return versions.length;
+    } else {
+      set({ lineageError: result.error, isFetchingLineage: false });
+      throw new Error(result.error);
     }
   },
 
@@ -1302,7 +1243,7 @@ export const createToolsSlice: StateCreator<
       const binding = ensurePortalBindingActive(tab, selectedPortalId, portals);
 
       // Service worker validates tab ID using portalManager.getValidTabIdForPortal()
-      const response = await chrome.runtime.sendMessage({
+      const result = await sendMessage({
         type: 'FETCH_MODULE_DETAILS',
         payload: {
           portalId: binding.portalId,
@@ -1311,8 +1252,9 @@ export const createToolsSlice: StateCreator<
         },
       });
 
-      if (response?.type === 'MODULE_DETAILS_FETCHED') {
-        const module = response.payload.module;
+      if (result.ok) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const module = (result.data as { module: any }).module;
         const schema = MODULE_TYPE_SCHEMAS[moduleType];
         const intervalField = schema.intervalField || 'collectInterval';
         const intervalValue =
@@ -1387,11 +1329,8 @@ export const createToolsSlice: StateCreator<
           moduleDetailsDraftByTabId: updatedDrafts,
           moduleDetailsLoading: false,
         });
-      } else if (response?.type === 'MODULE_DETAILS_ERROR') {
-        const error = response.payload.error || 'Failed to fetch module details';
-        set({ moduleDetailsError: error, moduleDetailsLoading: false });
       } else {
-        set({ moduleDetailsError: 'Unknown error occurred', moduleDetailsLoading: false });
+        set({ moduleDetailsError: result.error || 'Failed to fetch module details', moduleDetailsLoading: false });
       }
     } catch (error) {
       console.error('[loadModuleDetails] Error:', error);
@@ -1477,26 +1416,22 @@ export const createToolsSlice: StateCreator<
       const binding = ensurePortalBindingActive(tab, selectedPortalId, portals);
 
       // Service worker validates tab ID using portalManager.getValidTabIdForPortal()
-      const response = await chrome.runtime.sendMessage({
+      const result = await sendMessage({
         type: 'FETCH_ACCESS_GROUPS',
         payload: {
           portalId: binding.portalId,
         },
       });
 
-      if (response?.type === 'ACCESS_GROUPS_FETCHED') {
+      if (result.ok) {
+        const payload = result.data as { accessGroups?: Array<{ id: number; name: string }> };
         set({
-          accessGroups: response.payload.accessGroups || [],
-          isLoadingAccessGroups: false,
-        });
-      } else if (response?.type === 'ACCESS_GROUPS_ERROR') {
-        set({
-          moduleDetailsError: response.payload.error || 'Failed to fetch access groups',
+          accessGroups: payload.accessGroups || [],
           isLoadingAccessGroups: false,
         });
       } else {
         set({
-          moduleDetailsError: 'Unknown error occurred',
+          moduleDetailsError: result.error || 'Failed to fetch access groups',
           isLoadingAccessGroups: false,
         });
       }

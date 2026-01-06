@@ -138,6 +138,25 @@ export async function sendMessageOrThrow<T extends EditorToSWMessage>(
 }
 
 /**
+ * Sends a message and ignores any errors.
+ * Useful for "fire-and-forget" operations like cancel requests where
+ * we don't need to wait for or handle the response.
+ * 
+ * @param message - The message to send
+ * 
+ * @example
+ * ```typescript
+ * // Cancel a previous operation (don't care about result)
+ * sendMessageIgnoreError({ type: 'CANCEL_MODULE_SEARCH', payload: { searchId } });
+ * ```
+ */
+export function sendMessageIgnoreError<T extends EditorToSWMessage>(message: T): void {
+  chrome.runtime.sendMessage(message).catch(() => {
+    // Intentionally ignored - fire and forget
+  });
+}
+
+/**
  * Type guard to check if a response is an error response.
  */
 export function isErrorResponse(response: unknown): response is ErrorResponse {

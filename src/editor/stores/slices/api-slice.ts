@@ -23,6 +23,7 @@ import type {
 } from '@/shared/types';
 import { buildApiVariableResolver } from '../../utils/api-variables';
 import { appendItemsWithLimit } from '../../utils/api-pagination';
+import { sendMessage } from '../../utils/chrome-messaging';
 
 // ============================================================================
 // Constants
@@ -225,7 +226,7 @@ export const createAPISlice: StateCreator<
     const startedAt = Date.now();
 
     const executeSingle = async (req: ApiRequestSpec): Promise<ExecuteApiResponse> => {
-      const response = await chrome.runtime.sendMessage({
+      const result = await sendMessage({
         type: 'EXECUTE_API_REQUEST',
         payload: {
           portalId: selectedPortalId,
@@ -238,13 +239,10 @@ export const createAPISlice: StateCreator<
         } satisfies ExecuteApiRequest,
       });
 
-      if (response?.type === 'API_RESPONSE') {
-        return response.payload as ExecuteApiResponse;
+      if (result.ok) {
+        return result.data as ExecuteApiResponse;
       }
-      if (response?.type === 'ERROR') {
-        throw new Error(response.payload?.message ?? 'API request failed.');
-      }
-      throw new Error('Unexpected response from API executor.');
+      throw new Error(result.error || 'API request failed.');
     };
 
     try {
