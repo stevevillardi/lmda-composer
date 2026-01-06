@@ -20,7 +20,7 @@ import type {
   Portal,
 } from '@/shared/types';
 import { getExtensionForLanguage, getLanguageFromFilename } from '../../utils/file-extensions';
-import { createScratchDocument, isFileDirty, getDocumentType } from '../../utils/document-helpers';
+import { createScratchDocument, isFileDirty, getDocumentType, convertToLocalDocument, updateDocumentAfterSave } from '../../utils/document-helpers';
 import { getDefaultScriptTemplate, DEFAULT_GROOVY_TEMPLATE, DEFAULT_POWERSHELL_TEMPLATE } from '../../config/script-templates';
 import { normalizeMode } from '../../utils/mode-utils';
 import * as documentStore from '../../utils/document-store';
@@ -776,25 +776,29 @@ export const createTabsSlice: StateCreator<
         const permission = await documentStore.queryFilePermission(handle);
         
         if (permission === 'granted') {
+          // Get current content at time of save (may have changed since tab was captured)
+          const currentTab = get().tabs.find(t => t.id === targetTabId);
+          const contentToSave = currentTab?.content ?? tab.content;
+          
           // Direct save to existing file
-          await documentStore.writeToHandle(handle, tab.content);
+          await documentStore.writeToHandle(handle, contentToSave);
           
           // Update lastAccessed timestamp for recent files
           await documentStore.saveFileHandle(targetTabId, handle, tab.displayName);
           
-          // Update originalContent to mark as clean
-          // Keep module source if tab is a cloned local file (isLocalFile: true)
-          // Otherwise convert module tabs to file tabs when saved locally
+          // Update tab state - mark as saved with the content that was actually written
           set({
-            tabs: tabs.map(t => 
+            tabs: get().tabs.map(t => 
               t.id === targetTabId 
                 ? { 
                     ...t, 
-                    originalContent: tab.content,
+                    content: contentToSave, // Ensure content matches what was saved
+                    originalContent: contentToSave, // Reset dirty state
                     // Preserve module binding for cloned files, convert to file otherwise
                     source: t.source?.type === 'module' && !t.isLocalFile 
                       ? { type: 'file' } 
                       : t.source,
+                    document: t.document ? updateDocumentAfterSave(t.document, contentToSave) : t.document,
                   }
                 : t
             ),
@@ -804,21 +808,28 @@ export const createTabsSlice: StateCreator<
           // Need to request permission
           const granted = await documentStore.requestFilePermission(handle);
           if (granted) {
-            await documentStore.writeToHandle(handle, tab.content);
+            // Get current content at time of save (may have changed since tab was captured)
+            const currentTab = get().tabs.find(t => t.id === targetTabId);
+            const contentToSave = currentTab?.content ?? tab.content;
+            
+            await documentStore.writeToHandle(handle, contentToSave);
             
             // Update lastAccessed timestamp for recent files
             await documentStore.saveFileHandle(targetTabId, handle, tab.displayName);
             
+            // Update tab state - mark as saved with the content that was actually written
             set({
-              tabs: tabs.map(t => 
+              tabs: get().tabs.map(t => 
                 t.id === targetTabId 
                   ? { 
                       ...t, 
-                      originalContent: tab.content,
+                      content: contentToSave, // Ensure content matches what was saved
+                      originalContent: contentToSave, // Reset dirty state
                       // Preserve module binding for cloned files, convert to file otherwise
                       source: t.source?.type === 'module' && !t.isLocalFile 
                         ? { type: 'file' } 
                         : t.source,
+                      document: t.document ? updateDocumentAfterSave(t.document, contentToSave) : t.document,
                     }
                   : t
               ),
@@ -870,23 +881,29 @@ export const createTabsSlice: StateCreator<
         ],
       });
       
-      // Write content
-      await documentStore.writeToHandle(handle, tab.content);
+      // Get current content at time of save (may have changed since tab was captured)
+      const currentTab = get().tabs.find(t => t.id === targetTabId);
+      const contentToSave = currentTab?.content ?? tab.content;
+      
+      // Write content to file
+      await documentStore.writeToHandle(handle, contentToSave);
       
       // Store new handle in IndexedDB
       await documentStore.saveFileHandle(targetTabId, handle, handle.name);
       
-      // Update tab state
+      // Update tab state - mark as saved with the content that was actually written
       set({
-        tabs: tabs.map(t => 
+        tabs: get().tabs.map(t => 
           t.id === targetTabId 
             ? { 
                 ...t, 
                 displayName: handle.name,
-                originalContent: tab.content,
+                content: contentToSave, // Ensure content matches what was saved
+                originalContent: contentToSave, // Reset dirty state
                 hasFileHandle: true,
                 isLocalFile: true,
                 source: { type: 'file' }, // Change from 'module' to 'file' when saved locally
+                document: convertToLocalDocument(targetTabId, contentToSave, handle.name),
               }
             : t
         ),
