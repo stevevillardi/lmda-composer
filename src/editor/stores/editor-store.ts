@@ -14,7 +14,6 @@ import type {
   LogicModuleInfo,
   FetchModulesResponse,
   FetchDevicesResponse,
-  UserPreferences,
   ExecutionHistoryEntry,
   DraftScript,
   DraftTabs,
@@ -40,13 +39,14 @@ import type {
   ModuleSnippetInfo,
   ModuleSnippetsCacheMeta,
 } from '@/shared/types';
+import { createUISlice, type UISlice, uiSliceInitialState } from './slices/ui-slice';
 import {
   isFileDirty as isFileDirtyHelper,
   hasPortalChanges as hasPortalChangesHelper,
   getDocumentType,
   createScratchDocument,
 } from '../utils/document-helpers';
-import { DEFAULT_PREFERENCES } from '@/shared/types';
+// NOTE: DEFAULT_PREFERENCES moved to ui-slice.ts
 import { parseOutput, type ParseResult } from '../utils/output-parser';
 import * as documentStore from '../utils/document-store';
 import { APPLIES_TO_FUNCTIONS } from '../data/applies-to-functions';
@@ -146,7 +146,7 @@ const findModuleDraftForTab = (
   );
 };
 
-interface EditorState {
+interface EditorState extends UISlice {
   // Portal/Collector selection
   portals: Portal[];
   selectedPortalId: string | null;
@@ -213,15 +213,8 @@ interface EditorState {
     mode: ScriptMode;
   } | null;
   
-  // UI state
-  outputTab: 'raw' | 'parsed' | 'validation' | 'graph';
-  commandPaletteOpen: boolean;
-  settingsDialogOpen: boolean;
-  executionHistoryOpen: boolean;
-  
-  // Right sidebar state
-  rightSidebarOpen: boolean;
-  rightSidebarTab: 'properties' | 'snippets' | 'history';
+  // NOTE: UI state (outputTab, commandPaletteOpen, settingsDialogOpen, executionHistoryOpen, 
+  // rightSidebarOpen, rightSidebarTab, preferences) now comes from UISlice
   
   // Device properties state
   deviceProperties: DeviceProperty[];
@@ -241,9 +234,6 @@ interface EditorState {
   // Cancel execution state
   currentExecutionId: string | null;
   cancelDialogOpen: boolean;
-  
-  // User preferences
-  preferences: UserPreferences;
   
   // Execution history
   executionHistory: ExecutionHistoryEntry[];
@@ -299,7 +289,7 @@ interface EditorState {
   setDatasourceId: (datasourceId: string) => void;
   setLanguage: (language: ScriptLanguage, force?: boolean) => void;
   setMode: (mode: ScriptMode) => void;
-  setOutputTab: (tab: 'raw' | 'parsed' | 'validation' | 'graph') => void;
+  // NOTE: setOutputTab now comes from UISlice
   setEditorInstance: (editor: editor.IStandaloneCodeEditor | null) => void;
   executeScript: () => Promise<void>;
   refreshPortals: () => Promise<void>;
@@ -340,15 +330,8 @@ interface EditorState {
   refreshModuleSearchIndex: () => Promise<void>;
   cancelModuleSearch: () => Promise<void>;
   
-  // UI state actions
-  setCommandPaletteOpen: (open: boolean) => void;
-  setSettingsDialogOpen: (open: boolean) => void;
-  setExecutionHistoryOpen: (open: boolean) => void;
-  
-  // Preferences actions
-  setPreferences: (preferences: Partial<UserPreferences>) => void;
-  loadPreferences: () => Promise<void>;
-  savePreferences: () => Promise<void>;
+  // NOTE: UI state actions (setCommandPaletteOpen, setSettingsDialogOpen, setExecutionHistoryOpen)
+  // and Preferences actions (setPreferences, loadPreferences, savePreferences) now come from UISlice
   
   // Execution history actions
   addToHistory: (entry: Omit<ExecutionHistoryEntry, 'id' | 'timestamp'>) => void;
@@ -378,9 +361,7 @@ interface EditorState {
   // File export action (uses download)
   exportToFile: () => void;
   
-  // Right sidebar actions
-  setRightSidebarOpen: (open: boolean) => void;
-  setRightSidebarTab: (tab: 'properties' | 'snippets' | 'history') => void;
+  // NOTE: Right sidebar actions (setRightSidebarOpen, setRightSidebarTab) now come from UISlice
   
   // Device properties actions
   fetchDeviceProperties: (deviceId: number) => Promise<void>;
@@ -419,7 +400,7 @@ interface EditorState {
   setActiveTabMode: (mode: ScriptMode) => void;
   setTabContextOverride: (tabId: string, override: EditorTab['contextOverride']) => void;
   openModuleScripts: (module: LogicModuleInfo, scripts: Array<{ type: 'ad' | 'collection'; content: string }>) => void;
-  toggleRightSidebar: () => void;
+  // NOTE: toggleRightSidebar now comes from UISlice
   
   // File operations (Phase 6 - File System Access API)
   openFileFromDisk: () => Promise<void>;
@@ -838,14 +819,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   selectedScriptSearchResult: null,
   selectedDatapointSearchResult: null,
   pendingModuleLoad: null,
-  outputTab: 'raw',
-  commandPaletteOpen: false,
-  settingsDialogOpen: false,
-  executionHistoryOpen: false,
   
-  // Right sidebar initial state
-  rightSidebarOpen: true,
-  rightSidebarTab: 'properties',
+  // UI slice initial state (spread from uiSliceInitialState)
+  ...uiSliceInitialState,
   
   // Device properties initial state
   deviceProperties: [],
@@ -866,7 +842,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   currentExecutionId: null,
   cancelDialogOpen: false,
   
-  preferences: DEFAULT_PREFERENCES,
+  // NOTE: preferences now comes from uiSliceInitialState spread above
   executionHistory: [],
   hasSavedDraft: false,
   
@@ -1246,9 +1222,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     });
   },
 
-  setOutputTab: (tab) => {
-    set({ outputTab: tab });
-  },
+  // NOTE: setOutputTab now comes from createUISlice spread below
 
   setEditorInstance: (editorInstance) => {
     set({ editorInstance });
@@ -2352,91 +2326,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     }
   },
 
-  // UI state actions
-  setCommandPaletteOpen: (open) => {
-    set({ commandPaletteOpen: open });
-  },
-
-  setSettingsDialogOpen: (open) => {
-    set({ settingsDialogOpen: open });
-  },
-
-  setExecutionHistoryOpen: (open) => {
-    set({ executionHistoryOpen: open });
-  },
-
-  // Preferences actions
-  setPreferences: (newPreferences) => {
-    set((state) => ({
-      preferences: { ...state.preferences, ...newPreferences },
-    }));
-    // Auto-save preferences
-    get().savePreferences();
-  },
-
-  loadPreferences: async () => {
-    try {
-      const result = await chrome.storage.local.get(STORAGE_KEYS.PREFERENCES);
-      const storedPrefs = result[STORAGE_KEYS.PREFERENCES] as Partial<UserPreferences> | undefined;
-      if (storedPrefs) {
-        const mergedPrefs = { ...DEFAULT_PREFERENCES, ...storedPrefs };
-        
-        // Check if editor is in initial state (using default template)
-        const { tabs, activeTabId } = get();
-        const activeTab = tabs.find(t => t.id === activeTabId);
-        if (activeTab?.kind === 'api') {
-          set({ preferences: mergedPrefs });
-          return;
-        }
-        const currentScript = activeTab?.content ?? '';
-        
-        const normalize = (s: string) => s.trim().replace(/\r\n/g, '\n');
-        const isDefaultGroovy = normalize(currentScript) === normalize(DEFAULT_GROOVY_TEMPLATE);
-        const isDefaultPowershell = normalize(currentScript) === normalize(DEFAULT_POWERSHELL_TEMPLATE);
-        const isInitialState = isDefaultGroovy || isDefaultPowershell;
-        
-        // Apply default language/mode from preferences if in initial state
-        if (isInitialState && activeTabId) {
-          const newLanguage = mergedPrefs.defaultLanguage;
-          const newMode = mergedPrefs.defaultMode;
-          const newScript = newLanguage === 'groovy' ? DEFAULT_GROOVY_TEMPLATE : DEFAULT_POWERSHELL_TEMPLATE;
-          const extension = getExtensionForLanguage(newLanguage);
-          
-          // Update the active tab with new language, mode, and content
-          set({ 
-            preferences: mergedPrefs,
-            tabs: tabs.map(t => 
-              t.id === activeTabId
-                ? { 
-                    ...t, 
-                    language: newLanguage, 
-                    mode: newMode, 
-                    content: newScript,
-                    displayName: t.displayName.replace(/\.(groovy|ps1)$/, extension),
-                  }
-                : t
-            ),
-          });
-        } else {
-          set({ preferences: mergedPrefs });
-        }
-      }
-    } catch (error) {
-      console.error('Failed to load preferences:', error);
-    }
-  },
-
-  savePreferences: async () => {
-    try {
-      const { preferences } = get();
-      await chrome.storage.local.set({ [STORAGE_KEYS.PREFERENCES]: preferences });
-    } catch (error) {
-      console.error('Failed to save preferences:', error);
-      toast.error('Failed to save settings', {
-        description: 'Your preferences could not be saved',
-      });
-    }
-  },
+  // UI state actions - spread from createUISlice
+  ...createUISlice(set, get, {} as any),
 
   // Execution history actions
   addToHistory: (entry) => {
@@ -3032,14 +2923,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     URL.revokeObjectURL(url);
   },
 
-  // Right sidebar actions
-  setRightSidebarOpen: (open) => {
-    set({ rightSidebarOpen: open });
-  },
-
-  setRightSidebarTab: (tab) => {
-    set({ rightSidebarTab: tab });
-  },
+  // NOTE: Right sidebar actions (setRightSidebarOpen, setRightSidebarTab) now come from createUISlice spread above
 
   // Device properties actions
   fetchDeviceProperties: async (deviceId) => {
@@ -3566,9 +3450,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     });
   },
 
-  toggleRightSidebar: () => {
-    set((state) => ({ rightSidebarOpen: !state.rightSidebarOpen }));
-  },
+  // NOTE: toggleRightSidebar now comes from createUISlice spread above
 
   // File operations (Phase 6 - File System Access API)
   openFileFromDisk: async () => {

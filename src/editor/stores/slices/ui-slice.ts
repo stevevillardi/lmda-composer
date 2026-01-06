@@ -2,9 +2,12 @@
  * UI slice - manages dialog states, sidebars, and user preferences.
  */
 
+import { toast } from 'sonner';
 import type { StateCreator } from 'zustand';
-import type { UserPreferences } from '@/shared/types';
+import type { UserPreferences, EditorTab, ScriptLanguage, ScriptMode } from '@/shared/types';
 import { DEFAULT_PREFERENCES } from '@/shared/types';
+import { DEFAULT_GROOVY_TEMPLATE, DEFAULT_POWERSHELL_TEMPLATE } from '../../config/script-templates';
+import { getExtensionForLanguage } from '../../utils/file-extensions';
 
 // ============================================================================
 // Types
@@ -18,11 +21,6 @@ export interface UISliceState {
   commandPaletteOpen: boolean;
   settingsDialogOpen: boolean;
   executionHistoryOpen: boolean;
-  createSnippetDialogOpen: boolean;
-  cancelDialogOpen: boolean;
-  debugCommandsDialogOpen: boolean;
-  moduleSnippetsDialogOpen: boolean;
-  appliesToTesterOpen: boolean;
   
   // Right sidebar state
   rightSidebarOpen: boolean;
@@ -43,15 +41,11 @@ export interface UISliceActions {
   setCommandPaletteOpen: (open: boolean) => void;
   setSettingsDialogOpen: (open: boolean) => void;
   setExecutionHistoryOpen: (open: boolean) => void;
-  setCreateSnippetDialogOpen: (open: boolean) => void;
-  setCancelDialogOpen: (open: boolean) => void;
-  setDebugCommandsDialogOpen: (open: boolean) => void;
-  setModuleSnippetsDialogOpen: (open: boolean) => void;
-  setAppliesToTesterOpen: (open: boolean) => void;
   
   // Right sidebar actions
   setRightSidebarOpen: (open: boolean) => void;
   setRightSidebarTab: (tab: 'properties' | 'snippets' | 'history') => void;
+  toggleRightSidebar: () => void;
   
   // Output tab action
   setOutputTab: (tab: 'raw' | 'parsed' | 'validation' | 'graph') => void;
@@ -68,6 +62,19 @@ export interface UISliceActions {
 export interface UISlice extends UISliceState, UISliceActions {}
 
 // ============================================================================
+// Dependencies - state from other slices that UI slice needs
+// ============================================================================
+
+/**
+ * Cross-slice dependencies for the UI slice.
+ * loadPreferences needs access to tabs to apply default language/mode.
+ */
+interface UISliceDependencies {
+  tabs: EditorTab[];
+  activeTabId: string | null;
+}
+
+// ============================================================================
 // Constants
 // ============================================================================
 
@@ -82,14 +89,9 @@ export const uiSliceInitialState: UISliceState = {
   commandPaletteOpen: false,
   settingsDialogOpen: false,
   executionHistoryOpen: false,
-  createSnippetDialogOpen: false,
-  cancelDialogOpen: false,
-  debugCommandsDialogOpen: false,
-  moduleSnippetsDialogOpen: false,
-  appliesToTesterOpen: false,
   
   // Right sidebar
-  rightSidebarOpen: false,
+  rightSidebarOpen: true,
   rightSidebarTab: 'properties',
   
   // Output
@@ -107,7 +109,7 @@ export const uiSliceInitialState: UISliceState = {
  * Creates the UI slice.
  */
 export const createUISlice: StateCreator<
-  UISlice,
+  UISlice & UISliceDependencies,
   [],
   [],
   UISlice
@@ -115,42 +117,91 @@ export const createUISlice: StateCreator<
   ...uiSliceInitialState,
 
   // Dialog actions
-  setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
-  setSettingsDialogOpen: (open) => set({ settingsDialogOpen: open }),
-  setExecutionHistoryOpen: (open) => set({ executionHistoryOpen: open }),
-  setCreateSnippetDialogOpen: (open) => set({ createSnippetDialogOpen: open }),
-  setCancelDialogOpen: (open) => set({ cancelDialogOpen: open }),
-  setDebugCommandsDialogOpen: (open) => set({ debugCommandsDialogOpen: open }),
-  setModuleSnippetsDialogOpen: (open) => set({ moduleSnippetsDialogOpen: open }),
-  setAppliesToTesterOpen: (open) => set({ appliesToTesterOpen: open }),
+  setCommandPaletteOpen: (open) => {
+    set({ commandPaletteOpen: open });
+  },
+
+  setSettingsDialogOpen: (open) => {
+    set({ settingsDialogOpen: open });
+  },
+
+  setExecutionHistoryOpen: (open) => {
+    set({ executionHistoryOpen: open });
+  },
 
   // Right sidebar actions
-  setRightSidebarOpen: (open) => set({ rightSidebarOpen: open }),
-  setRightSidebarTab: (tab) => set({ rightSidebarTab: tab }),
+  setRightSidebarOpen: (open) => {
+    set({ rightSidebarOpen: open });
+  },
+
+  setRightSidebarTab: (tab) => {
+    set({ rightSidebarTab: tab });
+  },
+
+  toggleRightSidebar: () => {
+    set((state) => ({ rightSidebarOpen: !state.rightSidebarOpen }));
+  },
 
   // Output tab action
-  setOutputTab: (tab) => set({ outputTab: tab }),
+  setOutputTab: (tab) => {
+    set({ outputTab: tab });
+  },
 
   // Preferences actions
-  setPreferences: (preferences) => {
-    const currentPrefs = get().preferences;
-    const updated = { ...currentPrefs, ...preferences };
-    set({ preferences: updated });
-    
-    // Auto-save preferences when changed
-    chrome.storage.local
-      .set({ [STORAGE_KEY_PREFERENCES]: updated })
-      .catch(console.error);
+  setPreferences: (newPreferences) => {
+    set((state) => ({
+      preferences: { ...state.preferences, ...newPreferences },
+    }));
+    // Auto-save preferences
+    get().savePreferences();
   },
 
   loadPreferences: async () => {
     try {
       const result = await chrome.storage.local.get(STORAGE_KEY_PREFERENCES);
       const storedPrefs = result[STORAGE_KEY_PREFERENCES] as Partial<UserPreferences> | undefined;
-      
       if (storedPrefs) {
-        // Merge with defaults to handle any new preference keys
-        set({ preferences: { ...DEFAULT_PREFERENCES, ...storedPrefs } });
+        const mergedPrefs = { ...DEFAULT_PREFERENCES, ...storedPrefs };
+        
+        // Check if editor is in initial state (using default template)
+        const { tabs, activeTabId } = get();
+        const activeTab = tabs.find(t => t.id === activeTabId);
+        if (activeTab?.kind === 'api') {
+          set({ preferences: mergedPrefs });
+          return;
+        }
+        const currentScript = activeTab?.content ?? '';
+        
+        const normalize = (s: string) => s.trim().replace(/\r\n/g, '\n');
+        const isDefaultGroovy = normalize(currentScript) === normalize(DEFAULT_GROOVY_TEMPLATE);
+        const isDefaultPowershell = normalize(currentScript) === normalize(DEFAULT_POWERSHELL_TEMPLATE);
+        const isInitialState = isDefaultGroovy || isDefaultPowershell;
+        
+        // Apply default language/mode from preferences if in initial state
+        if (isInitialState && activeTabId) {
+          const newLanguage: ScriptLanguage = mergedPrefs.defaultLanguage;
+          const newMode: ScriptMode = mergedPrefs.defaultMode;
+          const newScript = newLanguage === 'groovy' ? DEFAULT_GROOVY_TEMPLATE : DEFAULT_POWERSHELL_TEMPLATE;
+          const extension = getExtensionForLanguage(newLanguage);
+          
+          // Update the active tab with new language, mode, and content
+          set({ 
+            preferences: mergedPrefs,
+            tabs: tabs.map(t => 
+              t.id === activeTabId
+                ? { 
+                    ...t, 
+                    language: newLanguage, 
+                    mode: newMode, 
+                    content: newScript,
+                    displayName: t.displayName.replace(/\.(groovy|ps1)$/, extension),
+                  }
+                : t
+            ),
+          } as Partial<UISlice & UISliceDependencies>);
+        } else {
+          set({ preferences: mergedPrefs });
+        }
       }
     } catch (error) {
       console.error('Failed to load preferences:', error);
@@ -163,7 +214,9 @@ export const createUISlice: StateCreator<
       await chrome.storage.local.set({ [STORAGE_KEY_PREFERENCES]: preferences });
     } catch (error) {
       console.error('Failed to save preferences:', error);
+      toast.error('Failed to save settings', {
+        description: 'Your preferences could not be saved',
+      });
     }
   },
 });
-
