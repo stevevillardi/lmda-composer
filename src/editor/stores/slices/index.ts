@@ -24,7 +24,7 @@ export type { TabsSlice, TabsSliceState, TabsSliceActions } from './tabs-slice';
 export { createTabsSlice, tabsSliceInitialState } from './tabs-slice';
 
 // Execution slice
-export type { ExecutionSlice, ExecutionSliceState, ExecutionSliceActions } from './execution-slice';
+export type { ExecutionSlice, ExecutionSliceState, ExecutionSliceActions, ExecutionSliceDependencies } from './execution-slice';
 export { createExecutionSlice, executionSliceInitialState } from './execution-slice';
 
 // Module slice

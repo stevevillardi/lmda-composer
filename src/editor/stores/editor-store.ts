@@ -5,12 +5,10 @@ import type {
   Snippet,
   ScriptLanguage, 
   ScriptMode,
-  ExecutionResult,
-  ExecuteScriptRequest,
+  // NOTE: ExecutionResult, ExecuteScriptRequest, ExecutionHistoryEntry now come from ExecutionSlice
   LogicModuleType,
   LogicModuleInfo,
   FetchModulesResponse,
-  ExecutionHistoryEntry,
   DraftScript,
   DraftTabs,
   EditorTab,
@@ -38,13 +36,14 @@ import { createPortalSlice, type PortalSlice, portalSliceInitialState } from './
 import { createTabsSlice, type TabsSlice, tabsSliceInitialState } from './slices/tabs-slice';
 import { type ToolsSlice, toolsSliceInitialState } from './slices/tools-slice';
 import { type APISlice, apiSliceInitialState } from './slices/api-slice';
+import { createExecutionSlice, type ExecutionSlice, executionSliceInitialState } from './slices/execution-slice';
 import {
   isFileDirty as isFileDirtyHelper,
   hasPortalChanges as hasPortalChangesHelper,
   getDocumentType,
 } from '../utils/document-helpers';
 // NOTE: DEFAULT_PREFERENCES moved to ui-slice.ts
-import { parseOutput, type ParseResult } from '../utils/output-parser';
+// NOTE: parseOutput, ParseResult moved to execution-slice.ts
 import * as documentStore from '../utils/document-store';
 import { APPLIES_TO_FUNCTIONS } from '../data/applies-to-functions';
 import { DEFAULT_GROOVY_TEMPLATE, DEFAULT_POWERSHELL_TEMPLATE } from '../config/script-templates';
@@ -55,7 +54,7 @@ import { getPortalBindingStatus } from '../utils/portal-binding';
 import { getExtensionForLanguage, getLanguageFromFilename } from '../utils/file-extensions';
 import { normalizeMode } from '../utils/mode-utils';
 import { MODULE_TYPE_SCHEMAS, getSchemaFieldName } from '@/shared/module-type-schemas';
-import type { editor } from 'monaco-editor';
+// NOTE: editor type from monaco-editor now used in ExecutionSlice
 
 const normalizeAccessGroupIds = (value: unknown): number[] => {
   if (Array.isArray(value)) {
@@ -143,7 +142,7 @@ const findModuleDraftForTab = (
   );
 };
 
-interface EditorState extends UISlice, PortalSlice, TabsSlice, ToolsSlice, APISlice {
+interface EditorState extends UISlice, PortalSlice, TabsSlice, ToolsSlice, APISlice, ExecutionSlice {
   // NOTE: Portal/Collector selection and Device context now come from PortalSlice
   // (portals, selectedPortalId, collectors, selectedCollectorId, devices, 
   //  isFetchingDevices, hostname, wildvalue, datasourceId)
@@ -166,15 +165,13 @@ interface EditorState extends UISlice, PortalSlice, TabsSlice, ToolsSlice, APISl
   // NOTE: API Explorer state (apiHistoryByPortal, apiEnvironmentsByPortal, isExecutingApi)
   // now comes from APISlice
   
-  // Execution state
-  isExecuting: boolean;
-  currentExecution: ExecutionResult | null;
-  parsedOutput: ParseResult | null;
-  editorInstance: editor.IStandaloneCodeEditor | null;
-  
-  // Execution context dialog state (for Collection/Batch Collection modes)
-  executionContextDialogOpen: boolean;
-  pendingExecution: Omit<ExecuteScriptRequest, 'wildvalue' | 'datasourceId'> | null;
+  // NOTE: Execution state (isExecuting, currentExecution, parsedOutput, editorInstance,
+  // executionContextDialogOpen, pendingExecution, currentExecutionId, cancelDialogOpen,
+  // executionHistory) and execution actions (setEditorInstance, executeScript, clearOutput,
+  // parseCurrentOutput, setExecutionContextDialogOpen, confirmExecutionContext, 
+  // cancelExecutionContextDialog, setCancelDialogOpen, cancelExecution, addToHistory,
+  // clearHistory, loadHistory, reloadFromHistory, reloadFromHistoryWithoutBinding)
+  // now come from ExecutionSlice
   
   // Module browser
   moduleBrowserOpen: boolean;
@@ -216,13 +213,6 @@ interface EditorState extends UISlice, PortalSlice, TabsSlice, ToolsSlice, APISl
   // NOTE: createSnippetDialogOpen, appliesToTesterOpen, debugCommandsDialogOpen,
   // moduleSnippetsDialogOpen now come from ToolsSlice
   
-  // Cancel execution state
-  currentExecutionId: string | null;
-  cancelDialogOpen: boolean;
-  
-  // Execution history
-  executionHistory: ExecutionHistoryEntry[];
-  
   // NOTE: hasSavedDraft, tabsNeedingPermission, isRestoringFileHandles now come from TabsSlice
   
   // Actions
@@ -232,17 +222,10 @@ interface EditorState extends UISlice, PortalSlice, TabsSlice, ToolsSlice, APISl
   setLanguage: (language: ScriptLanguage, force?: boolean) => void;
   setMode: (mode: ScriptMode) => void;
   // NOTE: setOutputTab now comes from UISlice
-  setEditorInstance: (editor: editor.IStandaloneCodeEditor | null) => void;
-  executeScript: () => Promise<void>;
-  clearOutput: () => void;
   
-  // Parsing actions
-  parseCurrentOutput: () => void;
-  
-  // Execution context dialog actions
-  setExecutionContextDialogOpen: (open: boolean) => void;
-  confirmExecutionContext: (wildvalue: string, datasourceId: string) => Promise<void>;
-  cancelExecutionContextDialog: () => void;
+  // NOTE: Execution actions (setEditorInstance, executeScript, clearOutput, parseCurrentOutput,
+  // setExecutionContextDialogOpen, confirmExecutionContext, cancelExecutionContextDialog)
+  // now come from ExecutionSlice
   
   // Module browser actions
   setModuleBrowserOpen: (open: boolean) => void;
@@ -272,12 +255,8 @@ interface EditorState extends UISlice, PortalSlice, TabsSlice, ToolsSlice, APISl
   // NOTE: UI state actions (setCommandPaletteOpen, setSettingsDialogOpen, setExecutionHistoryOpen)
   // and Preferences actions (setPreferences, loadPreferences, savePreferences) now come from UISlice
   
-  // Execution history actions
-  addToHistory: (entry: Omit<ExecutionHistoryEntry, 'id' | 'timestamp'>) => void;
-  clearHistory: () => void;
-  loadHistory: () => Promise<void>;
-  reloadFromHistory: (entry: ExecutionHistoryEntry) => void;
-  reloadFromHistoryWithoutBinding: (entry: ExecutionHistoryEntry) => void;
+  // NOTE: Execution history actions (addToHistory, clearHistory, loadHistory, reloadFromHistory,
+  // reloadFromHistoryWithoutBinding) now come from ExecutionSlice
 
   // NOTE: API Explorer actions (openApiExplorerTab, updateApiTabRequest, setApiTabResponse,
   // executeApiRequest, addApiHistoryEntry, clearApiHistory, loadApiHistory, setApiEnvironment,
@@ -314,9 +293,7 @@ interface EditorState extends UISlice, PortalSlice, TabsSlice, ToolsSlice, APISl
   deleteUserSnippet: (id: string) => void;
   loadUserSnippets: () => Promise<void>;
   
-  // Cancel execution actions
-  setCancelDialogOpen: (open: boolean) => void;
-  cancelExecution: () => Promise<void>;
+  // NOTE: Cancel execution actions (setCancelDialogOpen, cancelExecution) now come from ExecutionSlice
   
   // NOTE: Core tab management actions (getActiveTab, openTab, closeTab, closeOtherTabs, closeAllTabs,
   // setActiveTab, renameTab, updateTabContent, updateActiveTabContent, setActiveTabLanguage,
@@ -622,12 +599,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   // API slice initial state (spread from apiSliceInitialState)
   ...apiSliceInitialState,
   
-  isExecuting: false,
-  currentExecution: null,
-  parsedOutput: null,
-  editorInstance: null,
-  executionContextDialogOpen: false,
-  pendingExecution: null,
+  // Execution slice initial state (spread from executionSliceInitialState)
+  ...executionSliceInitialState,
+  
   moduleBrowserOpen: false,
   selectedModuleType: 'datasource',
   modulesCache: {
@@ -694,12 +668,10 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   // NOTE: createSnippetDialogOpen, appliesToTesterOpen, debugCommandsDialogOpen,
   // moduleSnippetsDialogOpen now come from toolsSliceInitialState
   
-  // Cancel execution initial state
-  currentExecutionId: null,
-  cancelDialogOpen: false,
-  
   // NOTE: preferences now comes from uiSliceInitialState spread above
-  executionHistory: [],
+  // NOTE: Execution state (isExecuting, currentExecution, parsedOutput, editorInstance,
+  // executionContextDialogOpen, pendingExecution, currentExecutionId, cancelDialogOpen,
+  // executionHistory) now come from executionSliceInitialState
   // NOTE: hasSavedDraft, tabsNeedingPermission, isRestoringFileHandles now come from tabsSliceInitialState
   
   // Module commit initial state
@@ -795,368 +767,12 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   // NOTE: setOutputTab now comes from createUISlice spread below
-
-  setEditorInstance: (editorInstance) => {
-    set({ editorInstance });
-  },
-
-  executeScript: async () => {
-    const state = get();
-    
-    // Get active tab data directly (getters don't work on state snapshots)
-    const activeTab = state.tabs.find(t => t.id === state.activeTabId);
-    if (!activeTab) {
-      set({
-        currentExecution: {
-          id: crypto.randomUUID(),
-          status: 'error',
-          rawOutput: '',
-          duration: 0,
-          startTime: Date.now(),
-          error: 'No active tab',
-        },
-        outputTab: 'raw',
-        parsedOutput: null,
-      });
-      return;
-    }
-
-    if (activeTab.kind === 'api') {
-      return;
-    }
-    
-    const script = activeTab.content;
-    const language = activeTab.language;
-    const mode = activeTab.mode;
-    const selectedCollector = state.collectors.find(c => c.id === state.selectedCollectorId);
-    const isWindowsCollector = selectedCollector?.arch?.toLowerCase().includes('win') ?? true;
-    
-    if (!state.selectedPortalId || !state.selectedCollectorId) {
-      set({
-        currentExecution: {
-          id: crypto.randomUUID(),
-          status: 'error',
-          rawOutput: '',
-          duration: 0,
-          startTime: Date.now(),
-          error: 'Please select a portal and collector',
-        },
-        outputTab: 'raw',
-        parsedOutput: null,
-      });
-      return;
-    }
-
-    let executionPortalId = state.selectedPortalId;
-    if (activeTab.source?.type === 'module') {
-      const binding = getPortalBindingStatus(activeTab, state.selectedPortalId, state.portals);
-      if (!binding.isActive || !binding.portalId) {
-        set({
-          currentExecution: {
-            id: crypto.randomUUID(),
-            status: 'error',
-            rawOutput: '',
-            duration: 0,
-            startTime: Date.now(),
-            error: binding.reason || 'The bound portal is not active for this tab.',
-          },
-          outputTab: 'raw',
-          parsedOutput: null,
-        });
-        return;
-      }
-      executionPortalId = binding.portalId;
-    }
-
-    if (language === 'powershell' && !isWindowsCollector) {
-      set({
-        currentExecution: {
-          id: crypto.randomUUID(),
-          status: 'error',
-          rawOutput: '',
-          duration: 0,
-          startTime: Date.now(),
-          error: 'PowerShell execution is only supported on Windows collectors. Select a Windows collector to run this script.',
-        },
-        outputTab: 'raw',
-        parsedOutput: null,
-      });
-      return;
-    }
-
-    // For Collection or Batch Collection mode with Groovy, show the execution context dialog
-    // This allows users to confirm/modify wildvalue or datasource ID before each run
-    // Skip for PowerShell since instanceProps/datasourceinstanceProps are not supported
-    if ((mode === 'collection' || mode === 'batchcollection') && language === 'groovy') {
-      // Look up device ID from hostname for server-side token substitution
-      const pendingDevice = state.hostname 
-        ? state.devices.find(d => d.name === state.hostname) 
-        : undefined;
-      
-      set({
-        executionContextDialogOpen: true,
-        pendingExecution: {
-          portalId: executionPortalId,
-          collectorId: state.selectedCollectorId,
-          script,
-          language,
-          mode,
-          hostname: state.hostname || undefined,
-          deviceId: pendingDevice?.id,
-        },
-      });
-      return;
-    }
-
-    // Generate execution ID for tracking/cancellation
-    const executionId = crypto.randomUUID();
-    
-    // Clear previous execution and switch to raw output tab
-    set({ 
-      isExecuting: true, 
-      currentExecution: null,
-      currentExecutionId: executionId,
-      parsedOutput: null,
-      outputTab: 'raw',
-    });
-
-    try {
-      // Look up device ID from hostname for server-side token substitution
-      const selectedDevice = state.hostname 
-        ? state.devices.find(d => d.name === state.hostname) 
-        : undefined;
-      
-      const response = await chrome.runtime.sendMessage({
-        type: 'EXECUTE_SCRIPT',
-        payload: {
-          portalId: executionPortalId,
-          collectorId: state.selectedCollectorId,
-          script,
-          language,
-          mode,
-          executionId,
-          hostname: state.hostname || undefined,
-          deviceId: selectedDevice?.id,
-          wildvalue: state.wildvalue || undefined,
-          datasourceId: state.datasourceId || undefined,
-        },
-      });
-
-      if (response?.type === 'EXECUTION_UPDATE') {
-        const execution = response.payload as ExecutionResult;
-        set({ currentExecution: execution, isExecuting: false });
-        
-        // Add to history
-        const selectedCollector = get().collectors.find(c => c.id === state.selectedCollectorId);
-        
-        // Build module source info if this is a module-bound tab
-        const moduleSource = activeTab.source?.type === 'module' && activeTab.source.moduleId && activeTab.source.moduleName && activeTab.source.moduleType && activeTab.source.scriptType && activeTab.source.portalId && activeTab.source.portalHostname
-          ? {
-              moduleId: activeTab.source.moduleId,
-              moduleName: activeTab.source.moduleName,
-              moduleType: activeTab.source.moduleType,
-              scriptType: activeTab.source.scriptType,
-              lineageId: activeTab.source.lineageId,
-              portalId: activeTab.source.portalId,
-              portalHostname: activeTab.source.portalHostname,
-            }
-          : undefined;
-        
-        get().addToHistory({
-          portal: executionPortalId,
-          collector: selectedCollector?.description || `Collector ${state.selectedCollectorId}`,
-          collectorId: state.selectedCollectorId,
-          hostname: state.hostname || undefined,
-          language,
-          mode,
-          script,
-          output: execution.rawOutput,
-          status: execution.status === 'complete' ? 'success' : 'error',
-          duration: execution.duration,
-          tabDisplayName: activeTab.displayName,
-          moduleSource,
-        });
-        
-        // Auto-parse output if not in freeform mode and execution succeeded
-        if (mode !== 'freeform' && execution.status === 'complete' && execution.rawOutput) {
-          get().parseCurrentOutput();
-        }
-      } else if (response?.type === 'ERROR') {
-        set({
-          currentExecution: {
-            id: crypto.randomUUID(),
-            status: 'error',
-            rawOutput: '',
-            duration: 0,
-            startTime: Date.now(),
-            error: response.payload?.message ?? 'Unknown error from service worker',
-          },
-          isExecuting: false,
-        });
-      } else {
-        // Unexpected response format
-        console.error('Unexpected response from EXECUTE_SCRIPT:', response);
-        set({
-          currentExecution: {
-            id: crypto.randomUUID(),
-            status: 'error',
-            rawOutput: '',
-            duration: 0,
-            startTime: Date.now(),
-            error: 'Unexpected response from execution service',
-          },
-          isExecuting: false,
-        });
-      }
-    } catch (error) {
-      set({
-        currentExecution: {
-          id: crypto.randomUUID(),
-          status: 'error',
-          rawOutput: '',
-          duration: 0,
-          startTime: Date.now(),
-          error: error instanceof Error ? error.message : 'Unknown error',
-        },
-        isExecuting: false,
-      });
-    }
-  },
+  
+  // NOTE: Execution actions (setEditorInstance, executeScript, clearOutput, parseCurrentOutput,
+  // setExecutionContextDialogOpen, confirmExecutionContext, cancelExecutionContextDialog) 
+  // now come from createExecutionSlice spread below
 
   // NOTE: refreshPortals, refreshCollectors, handlePortalDisconnected now come from createPortalSlice spread above
-
-  clearOutput: () => {
-    set({ currentExecution: null, parsedOutput: null });
-  },
-
-  // Parse the current execution output based on mode and module type
-  parseCurrentOutput: () => {
-    const { currentExecution, tabs, activeTabId } = get();
-    const activeTab = tabs.find(t => t.id === activeTabId);
-    const mode = activeTab?.mode ?? 'freeform';
-    
-    if (!currentExecution?.rawOutput || mode === 'freeform') {
-      set({ parsedOutput: null });
-      return;
-    }
-    
-    // Pass module type for specialized parsing within collection mode
-    const result = parseOutput(currentExecution.rawOutput, {
-      mode,
-      moduleType: activeTab?.source?.moduleType,
-      scriptType: activeTab?.source?.scriptType,
-    });
-    set({ parsedOutput: result });
-  },
-
-  // Execution context dialog actions
-  setExecutionContextDialogOpen: (open) => {
-    set({ executionContextDialogOpen: open });
-  },
-
-  confirmExecutionContext: async (wildvalue: string, datasourceId: string) => {
-    const { pendingExecution } = get();
-    if (!pendingExecution) return;
-
-    const executionId = crypto.randomUUID();
-
-    // Close dialog and store values
-    set({ 
-      executionContextDialogOpen: false, 
-      wildvalue: wildvalue || get().wildvalue,
-      datasourceId: datasourceId || get().datasourceId,
-      pendingExecution: null,
-    });
-
-    // Now execute with the context values
-    set({ 
-      isExecuting: true, 
-      currentExecution: null,
-      currentExecutionId: executionId,
-      parsedOutput: null,
-      outputTab: 'raw',
-    });
-
-    try {
-      const response = await chrome.runtime.sendMessage({
-        type: 'EXECUTE_SCRIPT',
-        payload: {
-          ...pendingExecution,
-          executionId,
-          wildvalue: wildvalue || undefined,
-          datasourceId: datasourceId || undefined,
-        },
-      });
-
-      if (response?.type === 'EXECUTION_UPDATE') {
-        const execution = response.payload as ExecutionResult;
-        set({ currentExecution: execution, isExecuting: false });
-        
-        // Add to history
-        const selectedCollector = get().collectors.find(c => c.id === pendingExecution.collectorId);
-        get().addToHistory({
-          portal: pendingExecution.portalId,
-          collector: selectedCollector?.description || `Collector ${pendingExecution.collectorId}`,
-          collectorId: pendingExecution.collectorId,
-          hostname: pendingExecution.hostname || undefined,
-          language: pendingExecution.language,
-          mode: pendingExecution.mode,
-          script: pendingExecution.script,
-          output: execution.rawOutput,
-          status: execution.status === 'complete' ? 'success' : 'error',
-          duration: execution.duration,
-        });
-        
-        // Auto-parse output
-        if (execution.status === 'complete' && execution.rawOutput) {
-          get().parseCurrentOutput();
-        }
-      } else if (response?.type === 'ERROR') {
-        set({
-          currentExecution: {
-            id: crypto.randomUUID(),
-            status: 'error',
-            rawOutput: '',
-            duration: 0,
-            startTime: Date.now(),
-            error: response.payload?.message ?? 'Unknown error from service worker',
-          },
-          isExecuting: false,
-        });
-      } else {
-        set({
-          currentExecution: {
-            id: crypto.randomUUID(),
-            status: 'error',
-            rawOutput: '',
-            duration: 0,
-            startTime: Date.now(),
-            error: 'Unexpected response from execution service',
-          },
-          isExecuting: false,
-        });
-      }
-    } catch (error) {
-      set({
-        currentExecution: {
-          id: crypto.randomUUID(),
-          status: 'error',
-          rawOutput: '',
-          duration: 0,
-          startTime: Date.now(),
-          error: error instanceof Error ? error.message : 'Unknown error',
-        },
-        isExecuting: false,
-      });
-    }
-  },
-
-  cancelExecutionContextDialog: () => {
-    set({ 
-      executionContextDialogOpen: false, 
-      pendingExecution: null,
-    });
-  },
 
   // Module browser actions
   setModuleBrowserOpen: (open) => {
@@ -1737,113 +1353,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   // UI state actions - spread from createUISlice
   ...createUISlice(set, get, {} as any),
 
-  // Execution history actions
-  addToHistory: (entry) => {
-    const { executionHistory, preferences } = get();
-    const newEntry: ExecutionHistoryEntry = {
-      ...entry,
-      id: crypto.randomUUID(),
-      timestamp: Date.now(),
-    };
-    
-    // Add to beginning, limit to max size
-    const updatedHistory = [newEntry, ...executionHistory].slice(0, preferences.maxHistorySize);
-    set({ executionHistory: updatedHistory });
-    
-    // Persist to storage
-    chrome.storage.local.set({ [STORAGE_KEYS.HISTORY]: updatedHistory }).catch(console.error);
-  },
-
-  clearHistory: () => {
-    set({ executionHistory: [] });
-    chrome.storage.local.remove(STORAGE_KEYS.HISTORY).catch(console.error);
-  },
-
-  loadHistory: async () => {
-    try {
-      const result = await chrome.storage.local.get(STORAGE_KEYS.HISTORY);
-      const storedHistory = result[STORAGE_KEYS.HISTORY] as ExecutionHistoryEntry[] | undefined;
-      if (storedHistory) {
-        set({ executionHistory: storedHistory });
-      }
-    } catch (error) {
-      console.error('Failed to load execution history:', error);
-    }
-  },
-
-  reloadFromHistory: (entry) => {
-    const extension = entry.language === 'groovy' ? 'groovy' : 'ps1';
-    const timestamp = new Date(entry.timestamp).toLocaleTimeString();
-    
-    // Use module name if module-bound, otherwise use tab display name or fallback to timestamp
-    const displayName = entry.moduleSource
-      ? `${entry.moduleSource.moduleName} (${entry.moduleSource.scriptType === 'ad' ? 'AD' : 'Collection'}).${extension}`
-      : entry.tabDisplayName || `History ${timestamp}.${extension}`;
-    
-    // Build source info: restore module binding if present, otherwise mark as history
-    const source: EditorTabSource = entry.moduleSource
-      ? {
-          type: 'module',
-          moduleId: entry.moduleSource.moduleId,
-          moduleName: entry.moduleSource.moduleName,
-          moduleType: entry.moduleSource.moduleType,
-          scriptType: entry.moduleSource.scriptType,
-          lineageId: entry.moduleSource.lineageId,
-          portalId: entry.moduleSource.portalId,
-          portalHostname: entry.moduleSource.portalHostname,
-        }
-      : { type: 'history' };
-    
-    const newTab: EditorTab = {
-      id: crypto.randomUUID(),
-      displayName,
-      content: entry.script,
-      language: entry.language,
-      mode: normalizeMode(entry.mode),
-      source,
-      contextOverride: entry.hostname ? {
-        hostname: entry.hostname,
-        collectorId: entry.collectorId,
-      } : undefined,
-    };
-    
-    const { tabs } = get();
-    set({
-      tabs: [...tabs, newTab],
-      activeTabId: newTab.id,
-      hostname: entry.hostname || '',
-      executionHistoryOpen: false,
-    });
-  },
-
-  reloadFromHistoryWithoutBinding: (entry) => {
-    const extension = entry.language === 'groovy' ? 'groovy' : 'ps1';
-    const timestamp = new Date(entry.timestamp).toLocaleTimeString();
-    
-    // Use tab display name or fallback to timestamp (ignore module binding)
-    const displayName = entry.tabDisplayName || `History ${timestamp}.${extension}`;
-    
-    const newTab: EditorTab = {
-      id: crypto.randomUUID(),
-      displayName,
-      content: entry.script,
-      language: entry.language,
-      mode: normalizeMode(entry.mode),
-      source: { type: 'history' }, // Always mark as history, no module binding
-      contextOverride: entry.hostname ? {
-        hostname: entry.hostname,
-        collectorId: entry.collectorId,
-      } : undefined,
-    };
-    
-    const { tabs } = get();
-    set({
-      tabs: [...tabs, newTab],
-      activeTabId: newTab.id,
-      hostname: entry.hostname || '',
-      executionHistoryOpen: false,
-    });
-  },
+  // Execution state and actions - spread from createExecutionSlice
+  ...createExecutionSlice(set, get, {} as any),
 
   // API Explorer actions
   openApiExplorerTab: () => {
@@ -2539,41 +2050,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     }
   },
 
-  // Cancel execution actions
-  setCancelDialogOpen: (open) => {
-    set({ cancelDialogOpen: open });
-  },
-
-  cancelExecution: async () => {
-    const { currentExecutionId } = get();
-    if (!currentExecutionId) return;
-
-    try {
-      const response = await chrome.runtime.sendMessage({
-        type: 'CANCEL_EXECUTION',
-        payload: { executionId: currentExecutionId },
-      });
-
-      if (response?.success) {
-        set({ 
-          isExecuting: false, 
-          cancelDialogOpen: false,
-          currentExecution: {
-            id: currentExecutionId,
-            status: 'cancelled',
-            rawOutput: '',
-            duration: 0,
-            startTime: Date.now(),
-            error: 'Execution cancelled by user',
-          },
-        });
-      }
-    } catch (error) {
-      console.error('Failed to cancel execution:', error);
-    }
-    
-    set({ cancelDialogOpen: false });
-  },
+  // NOTE: Cancel execution actions (setCancelDialogOpen, cancelExecution) 
+  // now come from createExecutionSlice spread above
 
   // NOTE: Core tab management actions (getActiveTab, openTab, closeTab, closeOtherTabs, closeAllTabs,
   // setActiveTab, renameTab, updateTabContent, updateActiveTabContent, setActiveTabLanguage,
