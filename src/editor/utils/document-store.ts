@@ -10,6 +10,7 @@
 import type { 
   DocumentType,
   RecentDocument,
+  DraftTabs,
 } from '@/shared/types';
 
 // ============================================================================
@@ -60,12 +61,16 @@ export interface StoredRecentDocument {
 // ============================================================================
 
 const DB_NAME = 'lm-ide-documents';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 const STORES = {
   FILE_HANDLES: 'file-handles',
   RECENT_DOCUMENTS: 'recent-documents',
+  TAB_DRAFTS: 'tab-drafts',
 } as const;
+
+// Key for the single draft entry in the tab-drafts store
+const DRAFTS_KEY = 'current-drafts';
 
 // Cleanup limits
 const MAX_FILE_HANDLES = 50;
@@ -113,6 +118,11 @@ function openDatabase(): Promise<IDBDatabase> {
         store.createIndex('dedupeKey', 'dedupeKey', { unique: true });
         store.createIndex('lastAccessed', 'lastAccessed', { unique: false });
         store.createIndex('type', 'type', { unique: false });
+      }
+      
+      // Create tab-drafts store (v2)
+      if (!db.objectStoreNames.contains(STORES.TAB_DRAFTS)) {
+        db.createObjectStore(STORES.TAB_DRAFTS, { keyPath: 'id' });
       }
     };
   });
@@ -492,6 +502,85 @@ async function cleanupRecentDocuments(): Promise<void> {
     
     request.onerror = () => reject(request.error);
   });
+}
+
+// ============================================================================
+// Tab Drafts Operations (Crash Recovery)
+// ============================================================================
+
+/**
+ * Stored tab drafts record (includes id field for IndexedDB keyPath).
+ */
+interface StoredDraftTabs {
+  id: string;
+  drafts: DraftTabs;
+}
+
+/**
+ * Save tab drafts to IndexedDB.
+ * Replaces any existing drafts with the new data.
+ */
+export async function saveTabDrafts(drafts: DraftTabs): Promise<void> {
+  const db = await openDatabase();
+  
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORES.TAB_DRAFTS, 'readwrite');
+    const store = transaction.objectStore(STORES.TAB_DRAFTS);
+    
+    const data: StoredDraftTabs = {
+      id: DRAFTS_KEY,
+      drafts,
+    };
+    
+    const request = store.put(data);
+    
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+}
+
+/**
+ * Load tab drafts from IndexedDB.
+ * Returns null if no drafts are stored.
+ */
+export async function loadTabDrafts(): Promise<DraftTabs | null> {
+  const db = await openDatabase();
+  
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORES.TAB_DRAFTS, 'readonly');
+    const store = transaction.objectStore(STORES.TAB_DRAFTS);
+    const request = store.get(DRAFTS_KEY);
+    
+    request.onsuccess = () => {
+      const result = request.result as StoredDraftTabs | undefined;
+      resolve(result?.drafts ?? null);
+    };
+    request.onerror = () => reject(request.error);
+  });
+}
+
+/**
+ * Clear tab drafts from IndexedDB.
+ */
+export async function clearTabDrafts(): Promise<void> {
+  const db = await openDatabase();
+  
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORES.TAB_DRAFTS, 'readwrite');
+    const store = transaction.objectStore(STORES.TAB_DRAFTS);
+    const request = store.delete(DRAFTS_KEY);
+    
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+}
+
+/**
+ * Check if there are saved drafts in IndexedDB.
+ */
+export async function hasTabDrafts(): Promise<boolean> {
+  const drafts = await loadTabDrafts();
+  return drafts !== null && drafts.tabs.length > 0;
 }
 
 // ============================================================================

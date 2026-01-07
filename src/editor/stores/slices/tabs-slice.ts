@@ -18,6 +18,7 @@ import type {
   DraftTabs,
   EditorTabSource,
   Portal,
+  SerializableModuleDetailsDraft,
 } from '@/shared/types';
 import { toast } from 'sonner';
 import { getExtensionForLanguage, getLanguageFromFilename } from '../../utils/file-extensions';
@@ -27,14 +28,16 @@ import { normalizeMode } from '../../utils/mode-utils';
 import * as documentStore from '../../utils/document-store';
 import { normalizeScript } from '../helpers/slice-helpers';
 import type { ParseResult } from '../../utils/output-parser';
+import type { ModuleDetailsDraft } from './tools-slice';
 
 // ============================================================================
 // Storage Keys
 // ============================================================================
 
-const STORAGE_KEYS = {
+// Legacy chrome.storage.local keys - used only for migration
+const LEGACY_STORAGE_KEYS = {
   DRAFT: 'lm-ide-draft',           // Legacy single-file draft
-  DRAFT_TABS: 'lm-ide-draft-tabs', // Multi-tab draft
+  DRAFT_TABS: 'lm-ide-draft-tabs', // Legacy multi-tab draft in chrome.storage
 } as const;
 
 // ============================================================================
@@ -199,6 +202,9 @@ export interface TabsSliceDependencies {
   
   // From module slice (for save options dialog)
   setSaveOptionsDialogOpen: (open: boolean, tabId?: string) => void;
+  
+  // From tools slice (for module details drafts persistence)
+  moduleDetailsDraftByTabId: Record<string, ModuleDetailsDraft>;
 }
 
 // ============================================================================
@@ -560,7 +566,7 @@ export const createTabsSlice: StateCreator<
 
   saveDraft: async () => {
     try {
-      const { tabs, activeTabId, hasSavedDraft } = get();
+      const { tabs, activeTabId, hasSavedDraft, moduleDetailsDraftByTabId } = get();
       
       // Check if all tabs are default templates (nothing to save)
       const hasApiTabs = tabs.some(tab => tab.kind === 'api');
@@ -572,23 +578,43 @@ export const createTabsSlice: StateCreator<
         return !isDefaultGroovy && !isDefaultPowershell;
       });
       
-      // Skip saving if all tabs are default templates
-      if (!hasNonDefaultContent && tabs.length <= 1) {
+      // Also check if there are any module details drafts with changes
+      const hasModuleDetailsDrafts = Object.keys(moduleDetailsDraftByTabId).length > 0;
+      
+      // Skip saving if all tabs are default templates and no module details
+      if (!hasNonDefaultContent && tabs.length <= 1 && !hasModuleDetailsDrafts) {
         // If there was a saved draft, clear it since we're back to default
         if (hasSavedDraft) {
-          await chrome.storage.local.remove(STORAGE_KEYS.DRAFT_TABS);
-          await chrome.storage.local.remove(STORAGE_KEYS.DRAFT);
+          await documentStore.clearTabDrafts();
           set({ hasSavedDraft: false });
         }
         return;
+      }
+      
+      // Serialize module details drafts (convert Set to Array)
+      const serializedModuleDetailsDrafts: Record<string, SerializableModuleDetailsDraft> = {};
+      for (const [tabId, draft] of Object.entries(moduleDetailsDraftByTabId)) {
+        serializedModuleDetailsDrafts[tabId] = {
+          original: draft.original as Record<string, unknown> | null,
+          draft: draft.draft as Record<string, unknown>,
+          dirtyFields: Array.from(draft.dirtyFields),
+          loadedAt: draft.loadedAt,
+          tabId: draft.tabId,
+          moduleId: draft.moduleId,
+          moduleType: draft.moduleType,
+          portalId: draft.portalId,
+          version: draft.version,
+        };
       }
       
       const draftTabs: DraftTabs = {
         tabs,
         activeTabId,
         lastModified: Date.now(),
+        moduleDetailsDrafts: serializedModuleDetailsDrafts,
       };
-      await chrome.storage.local.set({ [STORAGE_KEYS.DRAFT_TABS]: draftTabs });
+      
+      await documentStore.saveTabDrafts(draftTabs);
       set({ hasSavedDraft: true });
     } catch (error) {
       console.error('Failed to save draft:', error);
@@ -597,20 +623,44 @@ export const createTabsSlice: StateCreator<
 
   loadDraft: async () => {
     try {
-      // First try to load multi-tab draft
-      const tabsResult = await chrome.storage.local.get(STORAGE_KEYS.DRAFT_TABS);
-      if (tabsResult[STORAGE_KEYS.DRAFT_TABS]) {
-        const draftTabs = tabsResult[STORAGE_KEYS.DRAFT_TABS] as DraftTabs;
+      // First try to load from IndexedDB (new storage location)
+      const idbDrafts = await documentStore.loadTabDrafts();
+      if (idbDrafts) {
         set({ hasSavedDraft: true });
-        return draftTabs; // Return for dialog, don't auto-restore
+        return idbDrafts;
+      }
+      
+      // Migration: Check chrome.storage.local for legacy drafts
+      // First try multi-tab draft
+      const tabsResult = await chrome.storage.local.get(LEGACY_STORAGE_KEYS.DRAFT_TABS);
+      if (tabsResult[LEGACY_STORAGE_KEYS.DRAFT_TABS]) {
+        const draftTabs = tabsResult[LEGACY_STORAGE_KEYS.DRAFT_TABS] as DraftTabs;
+        
+        // Migrate to IndexedDB
+        await documentStore.saveTabDrafts(draftTabs);
+        
+        // Clear legacy storage
+        await chrome.storage.local.remove(LEGACY_STORAGE_KEYS.DRAFT_TABS);
+        await chrome.storage.local.remove(LEGACY_STORAGE_KEYS.DRAFT);
+        
+        console.log('[tabs-slice] Migrated multi-tab draft from chrome.storage.local to IndexedDB');
+        set({ hasSavedDraft: true });
+        return draftTabs;
       }
       
       // Fall back to legacy single-file draft
-      const result = await chrome.storage.local.get(STORAGE_KEYS.DRAFT);
-      if (result[STORAGE_KEYS.DRAFT]) {
+      const result = await chrome.storage.local.get(LEGACY_STORAGE_KEYS.DRAFT);
+      if (result[LEGACY_STORAGE_KEYS.DRAFT]) {
+        const legacyDraft = result[LEGACY_STORAGE_KEYS.DRAFT] as DraftScript;
+        
+        // Clear legacy storage (don't migrate single-file drafts, they're outdated)
+        await chrome.storage.local.remove(LEGACY_STORAGE_KEYS.DRAFT);
+        
+        console.log('[tabs-slice] Found legacy single-file draft');
         set({ hasSavedDraft: true });
-        return result[STORAGE_KEYS.DRAFT] as DraftScript;
+        return legacyDraft;
       }
+      
       return null;
     } catch (error) {
       console.error('Failed to load draft:', error);
@@ -620,8 +670,13 @@ export const createTabsSlice: StateCreator<
 
   clearDraft: async () => {
     try {
-      await chrome.storage.local.remove(STORAGE_KEYS.DRAFT);
-      await chrome.storage.local.remove(STORAGE_KEYS.DRAFT_TABS);
+      // Clear IndexedDB drafts
+      await documentStore.clearTabDrafts();
+      
+      // Also clear any legacy storage to ensure clean state
+      await chrome.storage.local.remove(LEGACY_STORAGE_KEYS.DRAFT);
+      await chrome.storage.local.remove(LEGACY_STORAGE_KEYS.DRAFT_TABS);
+      
       set({ hasSavedDraft: false });
     } catch (error) {
       console.error('Failed to clear draft:', error);
@@ -656,10 +711,30 @@ export const createTabsSlice: StateCreator<
       mode: normalizeMode(tab.mode),
     }));
     
+    // Restore module details drafts if present (convert Array back to Set)
+    const restoredModuleDetailsDrafts: Record<string, ModuleDetailsDraft> = {};
+    
+    if (draftTabs.moduleDetailsDrafts) {
+      for (const [tabId, serialized] of Object.entries(draftTabs.moduleDetailsDrafts)) {
+        restoredModuleDetailsDrafts[tabId] = {
+          original: serialized.original,
+          draft: serialized.draft,
+          dirtyFields: new Set(serialized.dirtyFields),
+          loadedAt: serialized.loadedAt,
+          tabId: serialized.tabId,
+          moduleId: serialized.moduleId,
+          moduleType: serialized.moduleType,
+          portalId: serialized.portalId,
+          version: serialized.version,
+        } as ModuleDetailsDraft;
+      }
+    }
+    
     set({
       tabs: normalizedTabs,
       activeTabId: draftTabs.activeTabId,
       hasSavedDraft: true, // Mark as having saved draft so auto-save will update it
+      moduleDetailsDraftByTabId: restoredModuleDetailsDrafts,
     });
     // Don't call clearDraft here - let the auto-save overwrite instead
   },

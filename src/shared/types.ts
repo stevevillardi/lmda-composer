@@ -284,10 +284,29 @@ export interface RecentDocument {
 }
 
 // Multi-tab Draft Auto-save
+
+/**
+ * Serializable version of ModuleDetailsDraft for storage in IndexedDB.
+ * Uses array instead of Set for dirtyFields since Sets can't be serialized.
+ */
+export interface SerializableModuleDetailsDraft {
+  original: Record<string, unknown> | null;
+  draft: Record<string, unknown>;
+  dirtyFields: string[];  // Serialized from Set<string>
+  loadedAt: number;
+  tabId: string;
+  moduleId: number;
+  moduleType: LogicModuleType;
+  portalId?: string;
+  version: number;
+}
+
 export interface DraftTabs {
   tabs: EditorTab[];
   activeTabId: string | null;
   lastModified: number;
+  /** Module details drafts indexed by tab ID (serializable format) */
+  moduleDetailsDrafts?: Record<string, SerializableModuleDetailsDraft>;
 }
 
 // API Explorer
