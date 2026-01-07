@@ -25,7 +25,7 @@ import type {
 } from '@/shared/types';
 import type { ModuleDetailsDraft } from './tools-slice';
 import { toast } from 'sonner';
-import { hasPortalChanges, updateDocumentAfterPush, getOriginalContent } from '../../utils/document-helpers';
+import { hasPortalChanges, updateDocumentAfterPush, updateDocumentAfterPull, getOriginalContent, createPortalDocument } from '../../utils/document-helpers';
 import { getPortalBindingStatus } from '../../utils/portal-binding';
 import { MODULE_TYPE_SCHEMAS, getSchemaFieldName } from '@/shared/module-type-schemas';
 import { 
@@ -490,7 +490,6 @@ export const createModuleSlice: StateCreator<
       content: script,
       language,
       mode,
-      originalContent: script, // Store original content for dirty detection
       source: selectedModule ? {
         type: 'module',
         moduleId: selectedModule.id,
@@ -501,6 +500,16 @@ export const createModuleSlice: StateCreator<
         portalId: selectedPortalId || undefined,
         portalHostname: portal?.hostname,
       } : undefined,
+      document: selectedModule && selectedPortalId && portal ? createPortalDocument(
+        selectedPortalId,
+        portal.hostname,
+        selectedModule.id,
+        selectedModule.moduleType,
+        selectedModule.name,
+        scriptType,
+        script,
+        selectedModule.lineageId
+      ) : undefined,
     };
     
     const { tabs } = get();
@@ -534,7 +543,6 @@ export const createModuleSlice: StateCreator<
       content: pendingModuleLoad.script,
       language: pendingModuleLoad.language,
       mode: pendingModuleLoad.mode,
-      originalContent: pendingModuleLoad.script, // Store original content for dirty detection
       source: selectedModule ? {
         type: 'module',
         moduleId: selectedModule.id,
@@ -545,6 +553,16 @@ export const createModuleSlice: StateCreator<
         portalId: selectedPortalId || undefined,
         portalHostname: portal?.hostname,
       } : undefined,
+      document: selectedModule && selectedPortalId && portal ? createPortalDocument(
+        selectedPortalId,
+        portal.hostname,
+        selectedModule.id,
+        selectedModule.moduleType,
+        selectedModule.name,
+        scriptType,
+        pendingModuleLoad.script,
+        selectedModule.lineageId
+      ) : undefined,
     };
     
     const { tabs } = get();
@@ -909,7 +927,6 @@ export const createModuleSlice: StateCreator<
         content: script.content,
         language,
         mode,
-        originalContent: script.content, // For dirty detection
         source: {
           type: 'module',
           moduleId: module.id,
@@ -920,6 +937,16 @@ export const createModuleSlice: StateCreator<
           portalId: selectedPortalId || undefined,
           portalHostname: portal?.hostname,
         },
+        document: selectedPortalId && portal ? createPortalDocument(
+          selectedPortalId,
+          portal.hostname,
+          module.id,
+          module.moduleType,
+          module.name,
+          script.type,
+          script.content,
+          module.lineageId
+        ) : undefined,
       };
       
       newTabs.push(newTab);
@@ -1048,12 +1075,12 @@ export const createModuleSlice: StateCreator<
           } : { hasConflict: false },
         });
         
-        // If there's a conflict, update the originalContent to the current server state
+        // If there's a conflict, update the document baseline to the current server state
         if (hasConflict && currentScript !== origContent) {
           set({
             tabs: tabs.map(t =>
               t.id === tabId
-                ? { ...t, originalContent: currentScript }
+                ? { ...t, document: t.document ? updateDocumentAfterPush(t.document, currentScript) : t.document }
                 : t
             ),
           } as Partial<ModuleSlice & ModuleSliceDependencies>);
@@ -1169,12 +1196,11 @@ export const createModuleSlice: StateCreator<
       });
       
       if (result.ok) {
-        // Update both originalContent and document.portal.lastKnownContent to reflect the committed state
+        // Update document.portal.lastKnownContent to reflect the committed state
         const updatedTabs = tabs.map(t => 
           t.id === tabId 
             ? { 
                 ...t, 
-                originalContent: t.content,
                 document: t.document ? updateDocumentAfterPush(t.document, t.content) : t.document,
               }
             : t
@@ -1338,13 +1364,13 @@ export const createModuleSlice: StateCreator<
           return { success: false, error: 'Could not extract script from module' };
         }
         
-        // Update the tab content
+        // Update the tab content and document state
         const updatedTabs = tabs.map(t => 
           t.id === tabId 
             ? { 
                 ...t, 
                 content: scriptContent!,
-                originalContent: scriptContent!,
+                document: t.document ? updateDocumentAfterPull(t.document, scriptContent!) : t.document,
               }
             : t
         );

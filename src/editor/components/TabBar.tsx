@@ -169,7 +169,7 @@ function TabItem({
       <div
         className={cn(
           "flex items-center gap-1.5 px-3 py-1.5 text-sm border-r border-border",
-          "min-w-[120px] flex-shrink-0",
+          "min-w-[120px] shrink-0",
           "bg-background text-foreground border-b-2 border-b-primary"
         )}
       >
@@ -212,7 +212,7 @@ function TabItem({
                   tabIndex={isActive ? 0 : -1}
                   className={cn(
                     "group flex items-center gap-1.5 px-3 py-1.5 text-sm border-r border-border",
-                    "min-w-[120px] flex-shrink-0",
+                    "min-w-[120px] shrink-0",
                     "transition-colors duration-100",
                     "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1",
                     isActive 
@@ -233,7 +233,7 @@ function TabItem({
                   <span className="min-w-0 flex-1 text-left flex items-center gap-1.5 overflow-hidden">
                     <span className="truncate">{tab.displayName}</span>
                     {hasAssociatedFileHandle(tab) && (
-                      <span className="text-[10px] text-muted-foreground ml-1 opacity-70 flex-shrink-0">(local)</span>
+                      <span className="text-[10px] text-muted-foreground ml-1 opacity-70 shrink-0">(local)</span>
                     )}
                   </span>
                   
@@ -251,14 +251,14 @@ function TabItem({
                   )}
                   
                   {/* Dirty indicators and close button container - fixed width to prevent layout shift */}
-                  <span className="flex items-center gap-0.5 min-w-[20px] flex-shrink-0 justify-end">
+                  <span className="flex items-center gap-0.5 min-w-[20px] shrink-0 justify-end">
                     {/* Portal changes indicator (blue cloud) - hidden when tab is hovered to show X */}
                     {portalChanges && (
                       <Tooltip>
                         <TooltipTrigger
                           render={
                             <Cloud className={cn(
-                              "size-3 flex-shrink-0 transition-opacity duration-100",
+                              "size-3 shrink-0 transition-opacity duration-100",
                               isActive ? "text-blue-400" : "text-blue-400/70",
                               isTabHovered && "opacity-0 pointer-events-none"
                             )} />
@@ -276,7 +276,7 @@ function TabItem({
                         <TooltipTrigger
                           render={
                             <Circle className={cn(
-                              "size-2.5 fill-current flex-shrink-0 transition-opacity duration-100",
+                              "size-2.5 fill-current shrink-0 transition-opacity duration-100",
                               isActive ? "text-amber-400" : "text-muted-foreground",
                               isTabHovered && "opacity-0 pointer-events-none"
                             )} />
@@ -291,7 +291,7 @@ function TabItem({
                     {/* Close button - shows on tab hover or when active */}
                     <span
                       role="button"
-                      className="flex items-center justify-center size-4 rounded hover:bg-destructive/20 focus:outline-none focus:ring-2 focus:ring-destructive focus:ring-offset-1 flex-shrink-0"
+                      className="flex items-center justify-center size-4 rounded hover:bg-destructive/20 focus:outline-none focus:ring-2 focus:ring-destructive focus:ring-offset-1 shrink-0"
                       onClick={(e) => {
                         e.stopPropagation();
                         onClose();
@@ -645,10 +645,10 @@ export function TabBar() {
               <AlertDialogMedia className="bg-amber-500/10">
                 <AlertTriangle className="size-8 text-amber-500" />
               </AlertDialogMedia>
-              <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
+              <AlertDialogTitle>Unpushed Portal Changes</AlertDialogTitle>
               <AlertDialogDescription>
                 <span className="block">
-                  The file <strong>{pendingTab.displayName}</strong> has unsaved changes.
+                  The file <strong>{pendingTab.displayName}</strong> has unpushed portal changes.
                 </span>
                 <span className="block text-sm text-muted-foreground">
                   What would you like to do before closing?
@@ -676,7 +676,7 @@ export function TabBar() {
                   className="gap-2"
                 >
                   <Upload className="size-4" />
-                  Preview Commit
+                  Preview Push to Portal
                 </AlertDialogAction>
               )}
               {isModuleTab && !canCommit && (

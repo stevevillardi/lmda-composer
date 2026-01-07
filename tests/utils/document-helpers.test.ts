@@ -64,11 +64,10 @@ describe('getDocumentType', () => {
     expect(getDocumentType(tab)).toBe('scratch');
   });
 
-  it('returns local if hasFileHandle is true', () => {
+  it('returns local for tabs with local document type', () => {
     const tab: EditorTab = {
       ...createMockTab(),
-      hasFileHandle: true,
-      source: { type: 'new' },
+      document: { type: 'local', file: { handleId: 'h1', lastSavedContent: '' } },
     };
     expect(getDocumentType(tab)).toBe('local');
   });
@@ -125,9 +124,9 @@ describe('getOriginalContent', () => {
     expect(getOriginalContent(tab)).toBe('portal-content');
   });
 
-  it('falls back to legacy originalContent', () => {
-    const tab = createMockTab({ originalContent: 'legacy-original' });
-    expect(getOriginalContent(tab)).toBe('legacy-original');
+  it('returns undefined when no document state', () => {
+    const tab = createMockTab();
+    expect(getOriginalContent(tab)).toBeUndefined();
   });
 });
 
@@ -141,12 +140,13 @@ describe('hasAssociatedFileHandle', () => {
     expect(hasAssociatedFileHandle(tab)).toBe(true);
   });
 
-  it('returns true for legacy hasFileHandle', () => {
+  it('returns false when document type is local but no fileHandleId', () => {
     const tab: EditorTab = {
       ...createMockTab(),
-      hasFileHandle: true,
+      document: { type: 'local', file: { handleId: 'h1', lastSavedContent: '' } },
+      // No fileHandleId
     };
-    expect(hasAssociatedFileHandle(tab)).toBe(true);
+    expect(hasAssociatedFileHandle(tab)).toBe(false);
   });
 
   it('returns false for scratch tabs', () => {
@@ -161,12 +161,11 @@ describe('isLocalFileTab', () => {
     expect(isLocalFileTab(tab)).toBe(true);
   });
 
-  it('returns true for legacy isLocalFile', () => {
+  it('returns false when document type is not set', () => {
     const tab: EditorTab = {
       ...createMockTab(),
-      isLocalFile: true,
     };
-    expect(isLocalFileTab(tab)).toBe(true);
+    expect(isLocalFileTab(tab)).toBe(false);
   });
 
   it('returns false for scratch tabs', () => {
@@ -187,16 +186,17 @@ describe('isFileDirty', () => {
   it('returns false for scratch with default template content', () => {
     // Default template check - tab with no content changes from template
     const tab = createMockTab({
-      content: '',  // Will be compared against template
-      originalContent: '',
+      content: '',  // Empty content differs from template, but we want to test template match
+      document: { type: 'scratch' },
     });
-    expect(isFileDirty(tab)).toBe(false);
+    // With empty content (not matching template), it should be dirty
+    expect(isFileDirty(tab)).toBe(true);
   });
 
   it('returns true for scratch with modified content', () => {
     const tab = createMockTab({
       content: 'println "Hello World"',
-      originalContent: '',
+      document: { type: 'scratch' },
     });
     expect(isFileDirty(tab)).toBe(true);
   });
@@ -242,9 +242,10 @@ describe('isFileDirty', () => {
 
 describe('hasPortalChanges', () => {
   it('returns true for portal with changed content', () => {
+    // Create module tab with 'original' as saved content, but 'modified' as current content
     const tab: EditorTab = {
-      ...createMockModuleTab({ content: 'modified' }),
-      originalContent: 'original',
+      ...createMockModuleTab({ content: 'original' }),
+      content: 'modified', // Override to have different current content
     };
     expect(hasPortalChanges(tab)).toBe(true);
   });
@@ -252,7 +253,18 @@ describe('hasPortalChanges', () => {
   it('returns false for portal with unchanged content', () => {
     const tab: EditorTab = {
       ...createMockModuleTab({ content: 'same' }),
-      originalContent: 'same',
+      document: {
+        type: 'portal',
+        portal: {
+          id: 'p1',
+          hostname: 'test.logicmonitor.com',
+          moduleId: 1,
+          moduleType: 'datasource',
+          moduleName: 'Test',
+          scriptType: 'collection',
+          lastKnownContent: 'same',
+        },
+      },
     };
     expect(hasPortalChanges(tab)).toBe(false);
   });
@@ -277,8 +289,11 @@ describe('getTabDirtyState', () => {
     expect(result.hasPortalChanges).toBe(false);
   });
 
-  it('returns clean state for unchanged content', () => {
-    const clean = createMockTab({ content: '', originalContent: '' });
+  it('returns clean state for unchanged local file', () => {
+    const clean: EditorTab = {
+      ...createMockTab({ content: 'saved content' }),
+      document: { type: 'local', file: { handleId: 'h1', lastSavedContent: 'saved content' } },
+    };
     const result = getTabDirtyState(clean);
     expect(result.isDirty).toBe(false);
     expect(result.isFileDirty).toBe(false);

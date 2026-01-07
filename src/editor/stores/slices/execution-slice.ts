@@ -22,6 +22,7 @@ import type { editor } from 'monaco-editor';
 import { parseOutput } from '../../utils/output-parser';
 import { getPortalBindingStatus } from '../../utils/portal-binding';
 import { normalizeMode } from '../../utils/mode-utils';
+import { createHistoryDocument } from '../../utils/document-helpers';
 import { sendMessage } from '../../utils/chrome-messaging';
 
 // ============================================================================
@@ -580,6 +581,7 @@ export const createExecutionSlice: StateCreator<
         hostname: entry.hostname,
         collectorId: entry.collectorId,
       } : undefined,
+      document: createHistoryDocument(),
     };
     
     // Use openTab from TabsSlice for consistency
@@ -610,6 +612,7 @@ export const createExecutionSlice: StateCreator<
         hostname: entry.hostname,
         collectorId: entry.collectorId,
       } : undefined,
+      document: createHistoryDocument(),
     };
     
     // Use openTab from TabsSlice for consistency

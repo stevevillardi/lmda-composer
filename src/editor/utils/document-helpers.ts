@@ -24,12 +24,13 @@ import { normalizeScript } from '../stores/helpers/slice-helpers';
  * Handles both new DocumentState and legacy fields for backwards compatibility.
  */
 export function getDocumentType(tab: EditorTab): DocumentType {
-  // Use new unified document state if available
+  // Document state is now required - use it directly
   if (tab.document?.type) {
     return tab.document.type;
   }
   
-  // Fallback to legacy detection for backwards compatibility
+  // Fallback for tabs created before document field was required
+  // This should only happen during migration
   if (tab.kind === 'api') {
     return 'api';
   }
@@ -42,16 +43,8 @@ export function getDocumentType(tab: EditorTab): DocumentType {
     return 'portal';
   }
   
-  if (tab.source?.type === 'file' || tab.isLocalFile) {
+  if (tab.source?.type === 'file') {
     return 'local';
-  }
-  
-  if (tab.source?.type === 'new' || !tab.source) {
-    // Check if it has been saved (has file handle)
-    if (tab.hasFileHandle) {
-      return 'local';
-    }
-    return 'scratch';
   }
   
   return 'scratch';
@@ -79,55 +72,29 @@ export function supportsPortal(type: DocumentType): boolean {
 
 /**
  * Get the original/saved content for comparison.
- * Works with both legacy originalContent and new DocumentState model.
  */
 export function getOriginalContent(tab: EditorTab): string | undefined {
-  // New DocumentState model
   if (tab.document?.file?.lastSavedContent !== undefined) {
     return tab.document.file.lastSavedContent;
   }
   if (tab.document?.portal?.lastKnownContent !== undefined) {
     return tab.document.portal.lastKnownContent;
   }
-  // Legacy field
-  return tab.originalContent;
+  return undefined;
 }
 
 /**
  * Check if the tab has an associated file handle (saved local file).
- * Works with both legacy hasFileHandle and new DocumentState model.
  */
 export function hasAssociatedFileHandle(tab: EditorTab): boolean {
-  // New DocumentState model - if document type is 'local' and has a fileHandleId
-  if (tab.document?.type === 'local' && tab.fileHandleId) {
-    return true;
-  }
-  // Legacy field
-  if (tab.hasFileHandle) {
-    return true;
-  }
-  // Check for fileHandleId presence
-  return !!tab.fileHandleId;
+  return tab.document?.type === 'local' && !!tab.fileHandleId;
 }
 
 /**
  * Check if the tab is a local file (as opposed to scratch or portal).
- * Works with both legacy isLocalFile and new DocumentState model.
  */
 export function isLocalFileTab(tab: EditorTab): boolean {
-  // New DocumentState model
-  if (tab.document?.type === 'local') {
-    return true;
-  }
-  // Legacy field
-  if (tab.isLocalFile) {
-    return true;
-  }
-  // Derive from source type and file handle
-  if (tab.source?.type === 'file' || (tab.hasFileHandle && tab.source?.type !== 'module')) {
-    return true;
-  }
-  return false;
+  return tab.document?.type === 'local';
 }
 
 // ============================================================================
@@ -160,25 +127,13 @@ export function isFileDirty(tab: EditorTab): boolean {
       const normalizedDefault = normalizeScript(defaultTemplate);
       
       // Not dirty if content matches the default template for this language
-      if (normalizedContent === normalizedDefault) {
-        return false;
-      }
-      // Also check against originalContent if set (for restored drafts)
-      if (tab.originalContent !== undefined) {
-        return normalizedContent !== normalizeScript(tab.originalContent);
-      }
-      // Content differs from default - it's dirty
-      return true;
+      return normalizedContent !== normalizedDefault;
     }
       
     case 'local': {
-      // Check against new document state first
+      // Compare against saved content in document state
       if (tab.document?.file?.lastSavedContent !== undefined) {
         return tab.content !== tab.document.file.lastSavedContent;
-      }
-      // Fallback to legacy originalContent
-      if (tab.originalContent !== undefined) {
-        return tab.content !== tab.originalContent;
       }
       // If no reference content, consider dirty
       return true;
@@ -212,14 +167,9 @@ export function hasPortalChanges(tab: EditorTab): boolean {
   
   switch (type) {
     case 'portal': {
-      // Check against new document state first
+      // Compare against last known content from portal
       if (tab.document?.portal?.lastKnownContent !== undefined) {
         return tab.content !== tab.document.portal.lastKnownContent;
-      }
-      // For portal type without reference, compare to originalContent
-      // (which was the content when imported from portal)
-      if (tab.originalContent !== undefined) {
-        return tab.content !== tab.originalContent;
       }
       // If no reference content, consider dirty if there's actual content
       return tab.content.trim().length > 0;

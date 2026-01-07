@@ -54,7 +54,6 @@ interface CreateMockTabOptions {
   id?: string;
   displayName?: string;
   content?: string;
-  originalContent?: string;
   language?: ScriptLanguage;
   mode?: ScriptMode;
   source?: EditorTabSource;
@@ -67,20 +66,32 @@ let tabCounter = 0;
 /**
  * Create a mock EditorTab with sensible defaults.
  * All properties can be overridden.
+ * Document type is inferred from kind/source if not explicitly provided.
  */
 export function createMockTab(options: CreateMockTabOptions = {}): EditorTab {
   const id = options.id ?? `tab-${++tabCounter}`;
+  
+  // Infer document type from kind/source if not provided
+  let document = options.document;
+  if (!document) {
+    if (options.kind === 'api') {
+      document = { type: 'api' };
+    } else if (options.source?.type === 'history') {
+      document = { type: 'history' };
+    } else {
+      document = { type: 'scratch' };
+    }
+  }
   
   return {
     id,
     displayName: options.displayName ?? 'Untitled.groovy',
     content: options.content ?? '',
-    originalContent: options.originalContent ?? options.content ?? '',
     language: options.language ?? 'groovy',
     mode: options.mode ?? 'freeform',
     kind: options.kind ?? 'script',
     source: options.source,
-    document: options.document,
+    document,
   };
 }
 
@@ -103,6 +114,8 @@ export function createMockModuleTab(overrides: Partial<CreateMockTabOptions & {
     ...tabOptions
   } = overrides;
 
+  const content = tabOptions.content ?? '';
+
   return createMockTab({
     displayName: `TestModule/${scriptType}.groovy`,
     mode: scriptType === 'ad' ? 'ad' : 'collection',
@@ -114,6 +127,19 @@ export function createMockModuleTab(overrides: Partial<CreateMockTabOptions & {
       portalId,
       portalHostname,
     },
+    document: {
+      type: 'portal',
+      portal: {
+        id: portalId,
+        hostname: portalHostname,
+        moduleId,
+        moduleType,
+        moduleName: 'TestModule',
+        scriptType,
+        lastKnownContent: content,
+      },
+    },
+    content,
     ...tabOptions,
   });
 }
@@ -137,8 +163,6 @@ export function createMockFileTab(overrides: Partial<CreateMockTabOptions & {
         fileName,
       },
     },
-    hasFileHandle: true,
-    isLocalFile: true,
     ...tabOptions,
   });
 }

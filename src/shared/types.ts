@@ -180,7 +180,7 @@ export interface EditorTab {
   contextOverride?: EditorTabContextOverride;
   api?: ApiTabState;
   
-  /** Unified document state - replaces scattered flags */
+  /** Unified document state - determines document type and stores saved content */
   document?: DocumentState;
   
   /** 
@@ -189,15 +189,6 @@ export interface EditorTab {
    * old file remains in recent files while the tab gets a new handle for the new file.
    */
   fileHandleId?: string;
-  
-  // === DEPRECATED: These fields are being replaced by DocumentState ===
-  // Kept for backwards compatibility during migration
-  /** @deprecated Use document.file.lastSavedContent instead */
-  originalContent?: string;
-  /** @deprecated Use document.type !== 'scratch' && document.file instead */
-  hasFileHandle?: boolean;
-  /** @deprecated Use document.type === 'local' instead */
-  isLocalFile?: boolean;
 }
 
 // ============================================================================

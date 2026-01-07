@@ -21,7 +21,7 @@ import type {
 } from '@/shared/types';
 import { toast } from 'sonner';
 import { getExtensionForLanguage, getLanguageFromFilename } from '../../utils/file-extensions';
-import { createScratchDocument, isFileDirty, getDocumentType, convertToLocalDocument, updateDocumentAfterSave, hasAssociatedFileHandle, getOriginalContent } from '../../utils/document-helpers';
+import { createScratchDocument, createLocalDocument, isFileDirty, getDocumentType, convertToLocalDocument, updateDocumentAfterSave, hasAssociatedFileHandle, getOriginalContent } from '../../utils/document-helpers';
 import { getDefaultScriptTemplate, DEFAULT_GROOVY_TEMPLATE, DEFAULT_POWERSHELL_TEMPLATE } from '../../config/script-templates';
 import { normalizeMode } from '../../utils/mode-utils';
 import * as documentStore from '../../utils/document-store';
@@ -252,12 +252,8 @@ export const createTabsSlice: StateCreator<
       source: tabData.source,
       contextOverride: tabData.contextOverride,
       api: tabData.api,
-      // Unified document state - default to scratch if not provided
+      fileHandleId: tabData.fileHandleId,
       document: tabData.document ?? createScratchDocument(),
-      // Legacy fields for backwards compatibility
-      originalContent: tabData.originalContent,
-      hasFileHandle: tabData.hasFileHandle,
-      isLocalFile: tabData.isLocalFile,
     };
     
     const { tabs, activeTabId, setActiveWorkspace } = get();
@@ -518,9 +514,7 @@ export const createTabsSlice: StateCreator<
               language, 
               content: newContent, 
               displayName: newDisplayName,
-              // Clear both hasFileHandle and fileHandleId when disconnecting
-              // The old file handle remains in IndexedDB for recent files access
-              hasFileHandle: shouldClearFileHandle ? false : t.hasFileHandle,
+              // Clear fileHandleId when disconnecting (old handle remains in IndexedDB for recent files)
               fileHandleId: shouldClearFileHandle ? undefined : t.fileHandleId,
               // Also update document state when clearing file handle
               document: shouldClearFileHandle ? createScratchDocument() : t.document,
@@ -643,6 +637,7 @@ export const createTabsSlice: StateCreator<
       content: draft.script,
       language: draft.language,
       mode: normalizeMode(draft.mode),
+      document: createScratchDocument(),
     };
     
     set({
@@ -724,10 +719,8 @@ export const createTabsSlice: StateCreator<
             content,
             language: isGroovy ? 'groovy' : 'powershell',
             mode: 'freeform',
-            originalContent: content,
-            hasFileHandle: false,
-            isLocalFile: true,
             source: { type: 'file' },
+            document: createScratchDocument(), // No persistent file handle via input element
           };
           
           set({
@@ -778,11 +771,9 @@ export const createTabsSlice: StateCreator<
         content,
         language: isGroovy ? 'groovy' : 'powershell',
         mode,
-        originalContent: content,
-        hasFileHandle: true,
         fileHandleId,
-        isLocalFile: true,
         source,
+        document: createLocalDocument(fileHandleId, content, fileName),
       };
       
       set({
@@ -843,13 +834,12 @@ export const createTabsSlice: StateCreator<
         // Update lastAccessed timestamp (use fileHandleId for storage)
         await documentStore.saveFileHandle(tab.fileHandleId, handle, currentTab.displayName);
         
-        // Update tab state - sync both originalContent and document state
+        // Update document state after save
         set({
           tabs: get().tabs.map(t => 
             t.id === targetTabId 
               ? { 
                   ...t, 
-                  originalContent: contentToSave,
                   document: t.document 
                     ? updateDocumentAfterSave(t.document, contentToSave) 
                     : convertToLocalDocument(targetTabId, contentToSave, t.displayName),
@@ -877,7 +867,6 @@ export const createTabsSlice: StateCreator<
               t.id === targetTabId 
                 ? { 
                     ...t, 
-                    originalContent: contentToSave,
                     document: t.document 
                       ? updateDocumentAfterSave(t.document, contentToSave) 
                       : convertToLocalDocument(targetTabId, contentToSave, t.displayName),
@@ -948,17 +937,14 @@ export const createTabsSlice: StateCreator<
       // Store new handle in IndexedDB with the new ID
       await documentStore.saveFileHandle(newFileHandleId, handle, handle.name);
       
-      // Update tab state - sync both originalContent and document state
+      // Update tab state with new document
       set({
         tabs: get().tabs.map(t => 
           t.id === targetTabId 
             ? { 
                 ...t, 
                 displayName: handle.name,
-                originalContent: contentToSave,
-                hasFileHandle: true,
                 fileHandleId: newFileHandleId,
-                isLocalFile: true,
                 source: { type: 'file' },
                 document: convertToLocalDocument(newFileHandleId, contentToSave, handle.name),
               }
@@ -1020,11 +1006,11 @@ export const createTabsSlice: StateCreator<
             state: 'prompt',
           });
         } else if (permission === 'denied') {
-          // Update tab to reflect no handle access
+          // Update tab to reflect no handle access - convert to scratch document
           set({
             tabs: get().tabs.map(t => 
               t.id === tabId 
-                ? { ...t, hasFileHandle: false }
+                ? { ...t, fileHandleId: undefined, document: createScratchDocument() }
                 : t
             ),
           });
@@ -1060,39 +1046,22 @@ export const createTabsSlice: StateCreator<
             const tab = tabs.find(t => t.id === status.tabId);
             
             if (tab && getOriginalContent(tab) !== newContent) {
-              // File was modified externally - update originalContent
+              // File was modified externally - update baseline content
               // Keep user's current edits, but update the baseline
               set({
                 tabs: get().tabs.map(t => 
                   t.id === status.tabId 
                     ? { 
                         ...t, 
-                        originalContent: newContent, 
-                        hasFileHandle: true,
                         document: t.document ? updateDocumentAfterSave(t.document, newContent) : t.document,
                       }
                     : t
                 ),
               });
-            } else {
-              // Just mark as having handle
-              set({
-                tabs: get().tabs.map(t => 
-                  t.id === status.tabId 
-                    ? { ...t, hasFileHandle: true }
-                    : t
-                ),
-              });
             }
+            // If content hasn't changed, document state is already correct
           } catch {
-            // File might have been deleted - just mark handle as available
-            set({
-              tabs: get().tabs.map(t => 
-                t.id === status.tabId 
-                  ? { ...t, hasFileHandle: true }
-                  : t
-              ),
-            });
+            // File might have been deleted - no action needed, document state is still valid
           }
         } else {
           stillNeedsPermission.push(status);
@@ -1206,10 +1175,8 @@ export const createTabsSlice: StateCreator<
         content,
         language,
         mode: 'freeform',
-        originalContent: content,
-        hasFileHandle: true,
         fileHandleId,
-        isLocalFile: true,
+        document: createLocalDocument(fileHandleId, content, fileName),
       };
 
       set({
@@ -1241,8 +1208,7 @@ export const createTabsSlice: StateCreator<
       content: tab.content,
       language: tab.language,
       mode: tab.mode,
-      originalContent: tab.content,
-      isLocalFile: true,
+      document: createScratchDocument(),
     };
 
     set({

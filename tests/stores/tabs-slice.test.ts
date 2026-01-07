@@ -96,7 +96,18 @@ describe('tabs-slice', () => {
           moduleId: 123,
           moduleType: 'datasource',
         },
-        originalContent: 'original',
+        document: {
+          type: 'portal',
+          portal: {
+            id: 'p1',
+            hostname: 'test.logicmonitor.com',
+            moduleId: 123,
+            moduleType: 'datasource',
+            moduleName: 'Module',
+            scriptType: 'collection',
+            lastKnownContent: 'original',
+          },
+        },
       });
 
       const state = getStoreState();
@@ -107,7 +118,7 @@ describe('tabs-slice', () => {
       expect(tab?.language).toBe('powershell');
       expect(tab?.mode).toBe('collection');
       expect(tab?.source?.type).toBe('module');
-      expect(tab?.originalContent).toBe('original');
+      expect(tab?.document?.portal?.lastKnownContent).toBe('original');
     });
   });
 
@@ -423,7 +434,7 @@ describe('tabs-slice', () => {
         content: 'original content',
         language: 'groovy',
         mode: 'freeform',
-        originalContent: 'original content',
+        document: { type: 'local', file: { handleId: 'h1', lastSavedContent: 'original content' } },
       });
 
       // Initially not dirty
