@@ -54,6 +54,7 @@ const ApiRightSidebarLazy = lazy(() => import('./components/api/ApiRightSidebar'
 const ApiWelcomeScreenLazy = lazy(() => import('./components/api/ApiWelcomeScreen').then((mod) => ({ default: mod.ApiWelcomeScreen })));
 const AppliesToTesterLazy = lazy(() => import('./components/AppliesToTester').then((mod) => ({ default: mod.AppliesToTester })));
 const PushToPortalDialogLazy = lazy(() => import('./components/PushToPortalDialog').then((mod) => ({ default: mod.PushToPortalDialog })));
+const PullFromPortalDialogLazy = lazy(() => import('./components/PullFromPortalDialog').then((mod) => ({ default: mod.PullFromPortalDialog })));
 const ModuleLineageDialogLazy = lazy(() => import('./components/ModuleLineageDialog').then((mod) => ({ default: mod.ModuleLineageDialog })));
 const SaveOptionsDialogLazy = lazy(() => import('./components/SaveOptionsDialog').then((mod) => ({ default: mod.SaveOptionsDialog })));
 
@@ -127,9 +128,9 @@ function buildModuleScriptsFromResponse(
     scriptType = normalizeModuleScriptType(collectorAttribute?.scriptType || (module.scriptType as string | undefined));
 
     if (moduleType !== 'topologysource') {
-      const adMethod = (module.autoDiscoveryConfig as { method?: { groovyScript?: string; linuxScript?: string; winScript?: string } } | undefined)?.method;
+      const adMethod = (module.autoDiscoveryConfig as { method?: { groovyScript?: string } } | undefined)?.method;
       if (adMethod) {
-        adScript = adMethod.groovyScript || adMethod.linuxScript || adMethod.winScript || '';
+        adScript = adMethod.groovyScript || '';
         hasAutoDiscovery = !!adScript.trim();
       }
     }
@@ -178,6 +179,8 @@ export function App() {
     isCommittingModule,
     moduleCommitConflict,
     switchToPortalWithContext,
+    // Pull dialog
+    pullLatestDialogOpen,
     // Save options dialog
     saveOptionsDialogOpen,
     saveOptionsDialogTabId,
@@ -502,6 +505,16 @@ export function App() {
       {activeTab && activeTab.source?.type === 'module' && (
         <Suspense fallback={null}>
           <ModuleLineageDialogLazy activeTab={activeTab} />
+        </Suspense>
+      )}
+      {/* Pull From Portal Dialog */}
+      {activeTab && activeTab.source?.type === 'module' && pullLatestDialogOpen && (
+        <Suspense fallback={null}>
+          <PullFromPortalDialogLazy
+            tabId={activeTab.id}
+            moduleName={activeTab.source.moduleName || activeTab.displayName}
+            moduleType={activeTab.source.moduleType || 'datasource'}
+          />
         </Suspense>
       )}
       <ModuleDetailsDialog />

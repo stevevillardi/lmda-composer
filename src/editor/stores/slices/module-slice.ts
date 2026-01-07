@@ -22,10 +22,11 @@ import type {
   EditorTab,
   Portal,
   FetchModulesResponse,
+  ModuleDirectoryConfig,
 } from '@/shared/types';
 import type { ModuleDetailsDraft } from './tools-slice';
 import { toast } from 'sonner';
-import { hasPortalChanges, updateDocumentAfterPush, updateDocumentAfterPull, getOriginalContent, createPortalDocument } from '../../utils/document-helpers';
+import { hasPortalChanges, updateDocumentAfterPush, updateDocumentAfterPull, getOriginalContent, createPortalDocument, extractScriptFromModule, detectScriptLanguage, normalizeScriptContent } from '../../utils/document-helpers';
 import { getPortalBindingStatus } from '../../utils/portal-binding';
 import { MODULE_TYPE_SCHEMAS, getSchemaFieldName } from '@/shared/module-type-schemas';
 import { 
@@ -114,6 +115,16 @@ export interface ModuleSliceState {
   // Pull latest from portal
   pullLatestDialogOpen: boolean;
   isPullingLatest: boolean;
+  isFetchingForPull: boolean;
+  scriptsForPull: Array<{
+    scriptType: 'collection' | 'ad';
+    fileName: string;
+    language: ScriptLanguage;
+    localContent: string;
+    portalContent: string;
+    hasChanges: boolean;
+  }> | null;
+  selectedScriptsForPull: Set<'collection' | 'ad'>;
 }
 
 /**
@@ -160,7 +171,9 @@ export interface ModuleSliceActions {
   
   // Pull latest from portal actions
   setPullLatestDialogOpen: (open: boolean) => void;
-  pullLatestFromPortal: (tabId: string) => Promise<{ success: boolean; error?: string }>;
+  fetchModuleForPull: (tabId: string) => Promise<void>;
+  pullLatestFromPortal: (tabId: string, selectedScripts?: Set<'collection' | 'ad'>) => Promise<{ success: boolean; error?: string }>;
+  toggleScriptForPull: (scriptType: 'collection' | 'ad') => void;
   canPullLatest: (tabId: string) => boolean;
 }
 
@@ -313,6 +326,9 @@ export const moduleSliceInitialState: ModuleSliceState = {
   // Pull latest
   pullLatestDialogOpen: false,
   isPullingLatest: false,
+  isFetchingForPull: false,
+  scriptsForPull: null,
+  selectedScriptsForPull: new Set(),
 };
 
 // ============================================================================
@@ -934,15 +950,15 @@ export const createModuleSlice: StateCreator<
 
   openModuleScripts: (module, scripts) => {
     const { tabs, selectedPortalId, portals } = get();
-    const extension = module.scriptType === 'powerShell' ? 'ps1' : 'groovy';
     const language: ScriptLanguage = module.scriptType === 'powerShell' ? 'powershell' : 'groovy';
     const portal = portals.find((entry) => entry.id === selectedPortalId);
     
     const newTabs: EditorTab[] = [];
     
     for (const script of scripts) {
+      // Standardize naming: "ModuleName (AD)" or "ModuleName (Collection)" - no extension
       const modeLabel = script.type === 'ad' ? 'AD' : 'Collection';
-      const displayName = `${module.name} (${modeLabel}).${extension}`;
+      const displayName = `${module.name} (${modeLabel})`;
       
       // Determine proper mode based on script type
       const mode: ScriptMode = script.type === 'ad' ? 'ad' : 'collection';
@@ -1025,14 +1041,46 @@ export const createModuleSlice: StateCreator<
     const binding = getPortalBindingStatus(tab, selectedPortalId, portals);
     if (!binding.isActive) return false;
     
-    // Use unified helper to check for portal changes
-    const hasScriptChanges = hasPortalChanges(tab);
+    // Get module identifier to find all related tabs
+    const moduleId = tab.source.moduleId;
+    const portalId = tab.source.portalId;
     
-    // Check for module details changes
-    const moduleDetailsDraft = moduleDetailsDraftByTabId[tabId];
-    const hasModuleDetailsChanges = moduleDetailsDraft && moduleDetailsDraft.dirtyFields.size > 0;
+    // Find all tabs for the same module (collection and AD scripts)
+    const relatedTabs = tabs.filter(t => 
+      t.source?.type === 'module' &&
+      t.source.moduleId === moduleId &&
+      t.source.portalId === portalId
+    );
     
-    // Can commit (push to portal) if either scripts or module details have changes
+    // Check if this is a directory-saved module
+    const isDirectorySaved = !!tab.directoryHandleId || relatedTabs.some(t => !!t.directoryHandleId);
+    
+    console.log('[ModuleDir] canCommitModule: Checking module', {
+      tabId,
+      moduleId,
+      relatedTabCount: relatedTabs.length,
+      isDirectorySaved,
+    });
+    
+    // For directory-saved modules, check ALL related tabs (scripts are loaded from disk)
+    // For non-directory modules, only check the ACTIVE tab (push only works for active tab)
+    const hasScriptChanges = isDirectorySaved
+      ? relatedTabs.some(t => hasPortalChanges(t))
+      : hasPortalChanges(tab);
+    
+    // Check for module details changes (always check all related tabs since details are shared)
+    const hasModuleDetailsChanges = relatedTabs.some(t => {
+      const draft = moduleDetailsDraftByTabId[t.id];
+      return draft && draft.dirtyFields.size > 0;
+    });
+    
+    console.log('[ModuleDir] canCommitModule: Result', {
+      hasScriptChanges,
+      hasModuleDetailsChanges,
+      canCommit: hasScriptChanges || hasModuleDetailsChanges,
+    });
+    
+    // Can commit (push to portal) if scripts or module details have changes
     return hasScriptChanges || hasModuleDetailsChanges;
   },
 
@@ -1067,31 +1115,26 @@ export const createModuleSlice: StateCreator<
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const module = result.data as any;
         
-        // Extract the current script from the module based on type and script type
-        let currentScript = '';
-        if (tab.source.scriptType === 'ad') {
-          currentScript = module.autoDiscoveryConfig?.method?.groovyScript || '';
-        } else {
-          // Collection script
-          if (
-            tab.source.moduleType === 'propertysource' ||
-            tab.source.moduleType === 'diagnosticsource' ||
-            tab.source.moduleType === 'eventsource'
-          ) {
-            currentScript = module.groovyScript || '';
-          } else if (tab.source.moduleType === 'logsource') {
-            currentScript = module.collectionAttribute?.script?.embeddedContent
-              || module.collectionAttribute?.groovyScript
-              || '';
-          } else {
-            // DataSource, ConfigSource, TopologySource
-            currentScript = module.collectorAttribute?.groovyScript || '';
-          }
-        }
+        // Extract the current script from the module using shared utility
+        const currentScript = extractScriptFromModule(module, tab.source.moduleType!, tab.source.scriptType || 'collection');
         
-        // Check for conflicts: compare fetched script with original content
+        // Check for conflicts: compare fetched script with original content (lastKnownContent)
+        // A conflict means the portal has changed since we last pulled
+        // Use normalization to handle line ending differences and trailing whitespace
         const origContent = getOriginalContent(tab) || '';
-        const hasConflict = origContent.trim() !== currentScript.trim();
+        const normalizedOrig = normalizeScriptContent(origContent);
+        const normalizedPortal = normalizeScriptContent(currentScript);
+        const hasConflict = normalizedOrig !== normalizedPortal;
+        
+        console.log('[ModuleDir] fetchModuleForCommit: Conflict check', {
+          origContentLen: origContent.length,
+          currentScriptLen: currentScript.length,
+          normalizedOrigLen: normalizedOrig.length,
+          normalizedPortalLen: normalizedPortal.length,
+          hasConflict,
+          origPreview: origContent.substring(450, 520),
+          portalPreview: currentScript.substring(450, 520),
+        });
         
         // Normalize scriptType - API may return different casings
         const rawScriptType = module.scriptType || module.collectorAttribute?.scriptType || 'embed';
@@ -1152,23 +1195,9 @@ export const createModuleSlice: StateCreator<
                     const collectionMeta = moduleConfig.scripts.collection;
                     const collectionContent = await documentStore.readFileFromDirectory(storedDir.handle, collectionMeta.fileName);
                     if (collectionContent !== null) {
-                      // Get portal collection script for comparison
-                      let portalCollectionScript = '';
-                      if (
-                        tab.source!.moduleType === 'propertysource' ||
-                        tab.source!.moduleType === 'diagnosticsource' ||
-                        tab.source!.moduleType === 'eventsource'
-                      ) {
-                        portalCollectionScript = module.groovyScript || '';
-                      } else if (tab.source!.moduleType === 'logsource') {
-                        portalCollectionScript = module.collectionAttribute?.script?.embeddedContent
-                          || module.collectionAttribute?.groovyScript
-                          || '';
-                      } else {
-                        portalCollectionScript = module.collectorAttribute?.groovyScript || '';
-                      }
-                      
-                      const diskHasChanges = collectionContent.trim() !== portalCollectionScript.trim();
+                      // Get portal collection script for comparison using shared utility
+                      const portalCollectionScript = extractScriptFromModule(module, tab.source!.moduleType!, 'collection');
+                      const diskHasChanges = normalizeScriptContent(collectionContent) !== normalizeScriptContent(portalCollectionScript);
                       directoryScripts.push({
                         scriptType: 'collection',
                         fileName: collectionMeta.fileName,
@@ -1190,8 +1219,9 @@ export const createModuleSlice: StateCreator<
                     const adMeta = moduleConfig.scripts.ad;
                     const adContent = await documentStore.readFileFromDirectory(storedDir.handle, adMeta.fileName);
                     if (adContent !== null) {
-                      const portalAdScript = module.autoDiscoveryConfig?.method?.groovyScript || '';
-                      const diskHasChanges = adContent.trim() !== portalAdScript.trim();
+                      // Get portal AD script for comparison using shared utility
+                      const portalAdScript = extractScriptFromModule(module, tab.source!.moduleType!, 'ad');
+                      const diskHasChanges = normalizeScriptContent(adContent) !== normalizeScriptContent(portalAdScript);
                       directoryScripts.push({
                         scriptType: 'ad',
                         fileName: adMeta.fileName,
@@ -1509,7 +1539,136 @@ export const createModuleSlice: StateCreator<
   // ==========================================================================
 
   setPullLatestDialogOpen: (open: boolean) => {
-    set({ pullLatestDialogOpen: open });
+    if (open) {
+      set({ pullLatestDialogOpen: open });
+    } else {
+      // Reset all pull state when closing
+      set({ 
+        pullLatestDialogOpen: open,
+        scriptsForPull: null,
+        selectedScriptsForPull: new Set(),
+      });
+    }
+  },
+
+  toggleScriptForPull: (scriptType: 'collection' | 'ad') => {
+    const { selectedScriptsForPull } = get();
+    const newSet = new Set(selectedScriptsForPull);
+    if (newSet.has(scriptType)) {
+      newSet.delete(scriptType);
+    } else {
+      newSet.add(scriptType);
+    }
+    set({ selectedScriptsForPull: newSet });
+  },
+
+  fetchModuleForPull: async (tabId: string) => {
+    const { tabs, portals } = get();
+    const tab = tabs.find(t => t.id === tabId);
+    
+    if (!tab || tab.source?.type !== 'module') {
+      throw new Error('Tab is not a module tab');
+    }
+    
+    const source = tab.source;
+    if (!source.moduleId || !source.moduleType || !source.portalId) {
+      throw new Error('Module source information is incomplete');
+    }
+    
+    const portal = portals.find(p => p.id === source.portalId);
+    if (!portal) {
+      throw new Error(`Portal ${source.portalHostname} not found`);
+    }
+    
+    set({ isFetchingForPull: true, scriptsForPull: null });
+    
+    try {
+      console.log('[ModuleDir] fetchModuleForPull: Fetching module from portal...');
+      
+      // Fetch latest module from portal
+      const result = await sendMessage({
+        type: 'FETCH_MODULE',
+        payload: {
+          portalId: source.portalId,
+          moduleType: source.moduleType,
+          moduleId: source.moduleId,
+        },
+      });
+      
+      if (!result.ok) {
+        throw new Error(result.error || 'Failed to fetch module');
+      }
+      
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const module = result.data as any;
+      
+      // Find all related tabs for this module
+      const relatedTabs = tabs.filter(t => 
+        t.source?.type === 'module' &&
+        t.source.moduleId === source.moduleId &&
+        t.source.portalId === source.portalId
+      );
+      
+      const scripts: ModuleSliceState['scriptsForPull'] = [];
+      
+      // Extract scripts using shared utility
+      const collectionContent = extractScriptFromModule(module, source.moduleType!, 'collection');
+      const collectionLanguage: ScriptLanguage = detectScriptLanguage(module);
+      const adContent = extractScriptFromModule(module, source.moduleType!, 'ad');
+      
+      // Find local content for collection script
+      const collectionTab = relatedTabs.find(t => t.source?.scriptType === 'collection');
+      if (collectionContent || collectionTab) {
+        const localContent = collectionTab?.content || '';
+        const hasChanges = localContent !== collectionContent;
+        scripts.push({
+          scriptType: 'collection',
+          fileName: `collection.${collectionLanguage === 'powershell' ? 'ps1' : 'groovy'}`,
+          language: collectionLanguage,
+          localContent,
+          portalContent: collectionContent,
+          hasChanges,
+        });
+      }
+      
+      // Find local content for AD script
+      const adTab = relatedTabs.find(t => t.source?.scriptType === 'ad');
+      if (adContent || adTab) {
+        const localContent = adTab?.content || '';
+        const hasChanges = localContent !== adContent;
+        scripts.push({
+          scriptType: 'ad',
+          fileName: 'ad.groovy',
+          language: 'groovy',
+          localContent,
+          portalContent: adContent,
+          hasChanges,
+        });
+      }
+      
+      // Pre-select scripts that have changes
+      const selectedScripts = new Set<'collection' | 'ad'>();
+      scripts.forEach(s => {
+        if (s.hasChanges) {
+          selectedScripts.add(s.scriptType);
+        }
+      });
+      
+      console.log('[ModuleDir] fetchModuleForPull: Prepared scripts for pull:', {
+        scriptCount: scripts.length,
+        selectedCount: selectedScripts.size,
+      });
+      
+      set({
+        isFetchingForPull: false,
+        scriptsForPull: scripts.length > 0 ? scripts : null,
+        selectedScriptsForPull: selectedScripts,
+      });
+    } catch (error) {
+      console.error('[ModuleDir] fetchModuleForPull: Error:', error);
+      set({ isFetchingForPull: false });
+      throw error;
+    }
   },
 
   canPullLatest: (tabId: string) => {
@@ -1530,8 +1689,8 @@ export const createModuleSlice: StateCreator<
     return portal.status === 'active';
   },
 
-  pullLatestFromPortal: async (tabId: string) => {
-    const { tabs, portals } = get();
+  pullLatestFromPortal: async (tabId: string, selectedScripts?: Set<'collection' | 'ad'>) => {
+    const { tabs, portals, scriptsForPull } = get();
     const tab = tabs.find(t => t.id === tabId);
     
     if (!tab || tab.source?.type !== 'module') {
@@ -1548,90 +1707,179 @@ export const createModuleSlice: StateCreator<
       return { success: false, error: `Portal ${source.portalHostname} not found` };
     }
     
+    // Use selected scripts from argument or dialog state
+    const scriptsToPull = selectedScripts || get().selectedScriptsForPull;
+    
+    if (scriptsToPull.size === 0) {
+      return { success: false, error: 'No scripts selected to pull' };
+    }
+    
+    console.log('[ModuleDir] pullLatestFromPortal: Starting...', {
+      tabId,
+      scriptsToPull: Array.from(scriptsToPull),
+    });
+    
     set({ isPullingLatest: true });
     
     try {
-      // Get current tab for CSRF token
-      const currentTabs = await chrome.tabs.query({ url: `https://${portal.hostname}/*` });
-      if (currentTabs.length === 0) {
-        set({ isPullingLatest: false });
-        return { success: false, error: 'No LogicMonitor tab found for this portal' };
-      }
-      const lmTab = currentTabs[0];
-      if (!lmTab.id) {
-        set({ isPullingLatest: false });
-        return { success: false, error: 'Invalid browser tab ID' };
-      }
+      // Find all related tabs for this module
+      const relatedTabs = tabs.filter(t => 
+        t.source?.type === 'module' &&
+        t.source.moduleId === source.moduleId &&
+        t.source.portalId === source.portalId
+      );
       
-      // Fetch latest module from portal
-      const result = await sendMessage({
-        type: 'FETCH_MODULE',
-        payload: {
-          portalId: source.portalId,
-          moduleType: source.moduleType,
-          moduleId: source.moduleId,
-        },
-      });
+      // Use already fetched scripts if available, otherwise fetch fresh
+      let scriptData = scriptsForPull;
       
-      if (result.ok) {
+      if (!scriptData) {
+        // Fetch fresh from portal
+        const result = await sendMessage({
+          type: 'FETCH_MODULE',
+          payload: {
+            portalId: source.portalId,
+            moduleType: source.moduleType,
+            moduleId: source.moduleId,
+          },
+        });
+        
+        if (!result.ok) {
+          set({ isPullingLatest: false });
+          return { success: false, error: result.error || 'Failed to fetch module' };
+        }
+        
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const module = result.data as any;
         
-        // Extract script content
-        let scriptContent: string | undefined;
-        const scriptType = source.scriptType || 'collection';
+        // Build script data from fresh fetch
+        scriptData = [];
         
-        if (scriptType === 'collection') {
-          // Collection script location varies by module type
-          if (source.moduleType === 'propertysource' || source.moduleType === 'diagnosticsource') {
-            scriptContent = module.groovyScript || module.linuxScript || module.windowsScript;
-          } else if (source.moduleType === 'eventsource') {
-            scriptContent = module.groovyScript || module.script;
-          } else if (source.moduleType === 'logsource') {
-            // LogSource has a unique script structure
-            scriptContent = module.collectionAttribute?.script?.embeddedContent ||
-                           module.collectionAttribute?.groovyScript ||
-                           module.collectorAttribute?.groovyScript;
-          } else {
-            // DataSource, ConfigSource, TopologySource and others
-            scriptContent = module.collectorAttribute?.groovyScript ||
-                           module.collectorAttribute?.linuxScript ||
-                           module.collectorAttribute?.windowsScript;
-          }
-        } else if (scriptType === 'ad') {
-          // Active Discovery script
-          scriptContent = module.autoDiscoveryConfig?.method?.groovyScript ||
-                         module.autoDiscoveryConfig?.method?.linuxScript ||
-                         module.autoDiscoveryConfig?.method?.winScript;
+        // Extract scripts using shared utility
+        const collectionContent = extractScriptFromModule(module, source.moduleType!, 'collection');
+        const collectionLanguage = detectScriptLanguage(module);
+        const adContent = extractScriptFromModule(module, source.moduleType!, 'ad');
+        
+        if (collectionContent) {
+          scriptData.push({
+            scriptType: 'collection' as const,
+            fileName: `collection.${collectionLanguage === 'powershell' ? 'ps1' : 'groovy'}`,
+            language: collectionLanguage,
+            localContent: '',
+            portalContent: collectionContent,
+            hasChanges: true,
+          });
         }
         
-        if (scriptContent === undefined) {
-          set({ isPullingLatest: false });
-          return { success: false, error: 'Could not extract script from module' };
+        if (adContent) {
+          scriptData.push({
+            scriptType: 'ad' as const,
+            fileName: 'ad.groovy',
+            language: 'groovy' as ScriptLanguage,
+            localContent: '',
+            portalContent: adContent,
+            hasChanges: true,
+          });
         }
-        
-        // Update the tab content and document state
-        const updatedTabs = tabs.map(t => 
-          t.id === tabId 
-            ? { 
-                ...t, 
-                content: scriptContent!,
-                document: t.document ? updateDocumentAfterPull(t.document, scriptContent!) : t.document,
-              }
-            : t
-        );
-        
-        set({ tabs: updatedTabs, isPullingLatest: false } as Partial<ModuleSlice & ModuleSliceDependencies>);
-        
-        toast.success('Pulled latest from portal', {
-          description: `Updated ${source.moduleName || 'module'} ${scriptType === 'ad' ? 'AD' : 'collection'} script`,
-        });
-        
-        return { success: true };
-      } else {
-        set({ isPullingLatest: false });
-        return { success: false, error: result.error || 'Failed to fetch module' };
       }
+      
+      // Update tabs with pulled content
+      let updatedTabs = [...tabs];
+      let pulledCount = 0;
+      
+      for (const scriptType of scriptsToPull) {
+        const script = scriptData?.find(s => s.scriptType === scriptType);
+        if (!script) continue;
+        
+        const relatedTab = relatedTabs.find(t => t.source?.scriptType === scriptType);
+        if (relatedTab) {
+          updatedTabs = updatedTabs.map(t => 
+            t.id === relatedTab.id 
+              ? { 
+                  ...t, 
+                  content: script.portalContent,
+                  document: t.document ? updateDocumentAfterPull(t.document, script.portalContent) : t.document,
+                }
+              : t
+          );
+          pulledCount++;
+        }
+      }
+      
+      // Handle directory-saved modules - update files on disk
+      const directoryHandleId = tab.directoryHandleId || relatedTabs.find(t => t.directoryHandleId)?.directoryHandleId;
+      if (directoryHandleId) {
+        try {
+          console.log('[ModuleDir] pullLatestFromPortal: Updating directory files...');
+          const storedDir = await documentStore.getDirectoryHandleRecord(directoryHandleId);
+          
+          if (storedDir) {
+            const writePermission = await documentStore.requestDirectoryPermission(storedDir.handle, 'readwrite');
+            
+            if (writePermission) {
+              // Read current module.json
+              const configJson = await documentStore.readFileFromDirectory(storedDir.handle, 'module.json');
+              if (configJson) {
+                const config = JSON.parse(configJson) as ModuleDirectoryConfig;
+                
+                for (const scriptType of scriptsToPull) {
+                  const script = scriptData?.find(s => s.scriptType === scriptType);
+                  if (!script) continue;
+                  
+                  let scriptConfig = config.scripts[scriptType];
+                  
+                  // If script doesn't exist in config, create a new entry
+                  if (!scriptConfig) {
+                    console.log('[ModuleDir] pullLatestFromPortal: Creating new script entry for', scriptType);
+                    // Determine filename based on language
+                    const ext = script.language === 'powershell' ? 'ps1' : 'groovy';
+                    const fileName = `${scriptType}.${ext}`;
+                    
+                    scriptConfig = {
+                      fileName,
+                      language: script.language,
+                      mode: scriptType === 'ad' ? 'ad' : 'collection',
+                      portalChecksum: '',
+                      diskChecksum: '',
+                    };
+                    config.scripts[scriptType] = scriptConfig;
+                  }
+                  
+                  // Write updated script to disk
+                  await documentStore.writeFileToDirectory(storedDir.handle, scriptConfig.fileName, script.portalContent);
+                  
+                  // Update checksums in config
+                  const newChecksum = await documentStore.computeChecksum(script.portalContent);
+                  scriptConfig.portalChecksum = newChecksum;
+                  scriptConfig.diskChecksum = newChecksum;
+                  
+                  console.log('[ModuleDir] pullLatestFromPortal: Updated script file:', scriptConfig.fileName);
+                }
+                
+                // Save updated module.json
+                await documentStore.writeFileToDirectory(storedDir.handle, 'module.json', JSON.stringify(config, null, 2));
+                console.log('[ModuleDir] pullLatestFromPortal: Directory files updated');
+              }
+            }
+          }
+        } catch (dirError) {
+          console.error('[ModuleDir] pullLatestFromPortal: Error updating directory:', dirError);
+          // Continue - tab content was updated even if directory update failed
+        }
+      }
+      
+      set({ 
+        tabs: updatedTabs, 
+        isPullingLatest: false,
+        pullLatestDialogOpen: false,
+        scriptsForPull: null,
+        selectedScriptsForPull: new Set(),
+      } as Partial<ModuleSlice & ModuleSliceDependencies>);
+      
+      toast.success('Pulled latest from portal', {
+        description: `Updated ${pulledCount} script${pulledCount !== 1 ? 's' : ''} from ${source.moduleName || 'module'}`,
+      });
+      
+      return { success: true };
     } catch (error) {
       console.error('[pullLatestFromPortal] Error:', error);
       set({ isPullingLatest: false });

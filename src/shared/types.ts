@@ -574,16 +574,12 @@ export interface CollectorAttribute {
   name: string;
   groovyScript: string;
   scriptType: ScriptType;
-  linuxScript: string;
-  windowsScript: string;
 }
 
 export interface ADMethod {
   name: string;
   type: string;
   groovyScript: string | null;
-  linuxScript: string | null;
-  winScript: string | null;
 }
 
 export interface AutoDiscoveryConfig {

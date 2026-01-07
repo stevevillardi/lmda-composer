@@ -31,6 +31,8 @@ import {
   normalizeAccessGroupIds,
 } from '../helpers/slice-helpers';
 import { sendMessage } from '../../utils/chrome-messaging';
+import * as documentStore from '../../utils/document-store';
+import type { ModuleDirectoryConfig } from '@/shared/types';
 
 // ============================================================================
 // Storage Keys
@@ -142,10 +144,7 @@ interface AutoDiscoveryConfig {
   method?: {
     name?: string;
     type?: string;
-    winScript?: string | null;
-    winCmdline?: string | null;
-    linuxCmdline?: string | null;
-    linuxScript?: string | null;
+
     groovyScript?: string | null;
   };
   filters?: Array<{
@@ -360,6 +359,7 @@ export interface ToolsSliceActions {
   loadModuleDetails: (tabId: string) => Promise<void>;
   updateModuleDetailsField: (tabId: string, field: string, value: unknown) => Promise<void>;
   resetModuleDetailsDraft: (tabId: string) => void;
+  persistModuleDetailsToDirectory: (tabId: string) => Promise<boolean>;
   fetchAccessGroups: (tabId: string) => Promise<void>;
 }
 
@@ -1400,6 +1400,88 @@ export const createToolsSlice: StateCreator<
     });
 
     set({ moduleDetailsDraftByTabId: updatedDrafts });
+  },
+
+  persistModuleDetailsToDirectory: async (tabId: string) => {
+    const { tabs, moduleDetailsDraftByTabId } = get();
+    const tab = tabs.find(t => t.id === tabId);
+    
+    if (!tab) {
+      return false;
+    }
+    
+    // Only persist if tab has a directory handle
+    if (!tab.directoryHandleId) {
+      return false;
+    }
+    
+    const draft = moduleDetailsDraftByTabId[tabId];
+    if (!draft || draft.dirtyFields.size === 0) {
+      return false;
+    }
+    
+    try {
+      // Get directory handle from IndexedDB
+      const record = await documentStore.getDirectoryHandleRecord(tab.directoryHandleId);
+      if (!record) {
+        return false;
+      }
+      
+      const dirHandle = record.handle;
+      
+      // Request permission
+      let permission = await documentStore.queryDirectoryPermission(dirHandle);
+      if (permission !== 'granted') {
+        permission = (await documentStore.requestDirectoryPermission(dirHandle)) ? 'granted' : 'denied';
+      }
+      
+      if (permission !== 'granted') {
+        toast.error('Permission denied', { description: 'Could not write to module directory.' });
+        return false;
+      }
+      
+      // Read existing module.json
+      const configJson = await documentStore.readFileFromDirectory(dirHandle, 'module.json');
+      if (!configJson) {
+        return false;
+      }
+      
+      let config: ModuleDirectoryConfig;
+      try {
+        config = JSON.parse(configJson) as ModuleDirectoryConfig;
+      } catch {
+        return false;
+      }
+      
+      // Update module details with draft values
+      const existingValues = config.moduleDetails?.values || {};
+      const updatedValues = { ...existingValues };
+      
+      // Only update the fields that were changed
+      for (const field of draft.dirtyFields) {
+        updatedValues[field] = draft.draft[field as keyof typeof draft.draft];
+      }
+      
+      config.moduleDetails = {
+        portalVersion: draft.version,
+        lastPulledAt: config.moduleDetails?.lastPulledAt || new Date().toISOString(),
+        values: updatedValues,
+      };
+      
+      // Write updated module.json
+      await documentStore.writeFileToDirectory(
+        dirHandle,
+        'module.json',
+        JSON.stringify(config, null, 2)
+      );
+      
+      toast.success('Module details saved', { description: 'Changes persisted to module directory.' });
+      return true;
+    } catch (error) {
+      console.error('persistModuleDetailsToDirectory error:', error);
+      toast.error('Failed to save', { description: 'Could not persist module details to directory.' });
+      return false;
+    }
   },
 
   fetchAccessGroups: async (tabId: string) => {

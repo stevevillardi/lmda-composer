@@ -165,24 +165,80 @@ export function isFileDirty(tab: EditorTab): boolean {
 export function hasPortalChanges(tab: EditorTab): boolean {
   const type = getDocumentType(tab);
   
+  console.log('[ModuleDir] hasPortalChanges: Checking...', {
+    tabId: tab.id,
+    displayName: tab.displayName,
+    documentType: type,
+    hasPortalBinding: !!tab.document?.portal,
+    contentLength: tab.content?.length,
+    lastKnownContentLength: tab.document?.portal?.lastKnownContent?.length,
+  });
+  
+  // For 'local' documents that have a portal binding (directory-saved modules),
+  // we still need to check for portal changes
+  if (type === 'local' && tab.document?.portal?.lastKnownContent !== undefined) {
+    const content = tab.content;
+    const lastKnown = tab.document.portal.lastKnownContent;
+    const hasChanges = content !== lastKnown;
+    
+    // Debug: find where the difference is
+    if (hasChanges) {
+      const contentLen = content?.length ?? 0;
+      const lastKnownLen = lastKnown?.length ?? 0;
+      let diffIndex = -1;
+      const minLen = Math.min(contentLen, lastKnownLen);
+      for (let i = 0; i < minLen; i++) {
+        if (content[i] !== lastKnown[i]) {
+          diffIndex = i;
+          break;
+        }
+      }
+      if (diffIndex === -1 && contentLen !== lastKnownLen) {
+        diffIndex = minLen; // Difference is at the end (length difference)
+      }
+      
+      console.log('[ModuleDir] hasPortalChanges: DIFFERENCE FOUND:', {
+        hasChanges,
+        contentLen,
+        lastKnownLen,
+        diffIndex,
+        contentAroundDiff: diffIndex >= 0 ? content?.substring(Math.max(0, diffIndex - 20), diffIndex + 20) : null,
+        lastKnownAroundDiff: diffIndex >= 0 ? lastKnown?.substring(Math.max(0, diffIndex - 20), diffIndex + 20) : null,
+        contentCharAtDiff: diffIndex >= 0 ? content?.charCodeAt(diffIndex) : null,
+        lastKnownCharAtDiff: diffIndex >= 0 ? lastKnown?.charCodeAt(diffIndex) : null,
+        contentEnding: content?.substring(contentLen - 30),
+        lastKnownEnding: lastKnown?.substring(lastKnownLen - 30),
+      });
+    } else {
+      console.log('[ModuleDir] hasPortalChanges: Local with portal binding - NO CHANGES');
+    }
+    return hasChanges;
+  }
+  
   switch (type) {
     case 'portal': {
       // Compare against last known content from portal
       if (tab.document?.portal?.lastKnownContent !== undefined) {
-        return tab.content !== tab.document.portal.lastKnownContent;
+        const hasChanges = tab.content !== tab.document.portal.lastKnownContent;
+        console.log('[ModuleDir] hasPortalChanges: Portal type result:', hasChanges);
+        return hasChanges;
       }
       // If no reference content, consider dirty if there's actual content
-      return tab.content.trim().length > 0;
+      const hasChanges = tab.content.trim().length > 0;
+      console.log('[ModuleDir] hasPortalChanges: Portal type (no lastKnown) result:', hasChanges);
+      return hasChanges;
     }
     
     case 'scratch':
     case 'local':
     case 'history':
     case 'api':
-      // These types don't have portal bindings
+      // These types don't have portal bindings (local without portal was handled above)
+      console.log('[ModuleDir] hasPortalChanges: No portal binding, returning false');
       return false;
       
     default:
+      console.log('[ModuleDir] hasPortalChanges: Unknown type, returning false');
       return false;
   }
 }
@@ -490,5 +546,78 @@ export function convertToLocalDocument(
   fileName: string
 ): DocumentState {
   return createLocalDocument(handleId, content, fileName);
+}
+
+
+// ============================================================================
+// Module Script Extraction Utilities
+// ============================================================================
+
+/**
+ * Extracts script content from a fetched LogicMonitor module based on script type and module type.
+ * Centralizes the logic for finding scripts in different module structures.
+ * 
+ * This function handles the complexity of where scripts are stored in different module types:
+ * - PropertySource/DiagnosticSource: Top-level groovyScript
+ * - EventSource: Top-level groovyScript or script field
+ * - LogSource: Nested in collectionAttribute
+ * - DataSource/ConfigSource/TopologySource: Nested in collectorAttribute.groovyScript
+ * - AD scripts: Always in autoDiscoveryConfig.method.groovyScript
+ * 
+ * @param module - The raw module object from the LogicMonitor API
+ * @param moduleType - The type of the module (datasource, propertysource, etc.)
+ * @param scriptType - Whether to extract 'collection' or 'ad' script
+ * @returns The script content, or empty string if not found
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function extractScriptFromModule(
+  module: any, 
+  moduleType: LogicModuleType, 
+  scriptType: 'collection' | 'ad'
+): string {
+  if (scriptType === 'ad') {
+    // AD script - always uses groovyScript for scripted modules
+    return module.autoDiscoveryConfig?.method?.groovyScript || '';
+  }
+  
+  // Collection script - location varies by module type
+  if (moduleType === 'propertysource' || moduleType === 'diagnosticsource') {
+    return module.groovyScript || '';
+  } else if (moduleType === 'eventsource') {
+    return module.groovyScript || module.script || '';
+  } else if (moduleType === 'logsource') {
+    return module.collectionAttribute?.script?.embeddedContent ||
+           module.collectionAttribute?.groovyScript ||
+           module.collectorAttribute?.groovyScript || '';
+  } else {
+    // DataSource, ConfigSource, TopologySource
+    return module.collectorAttribute?.groovyScript || '';
+  }
+}
+
+/**
+ * Detects the script language from a LogicMonitor module.
+ * 
+ * @param module - The raw module object from the LogicMonitor API
+ * @returns 'powershell' or 'groovy' based on the module's scriptType
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function detectScriptLanguage(module: any): 'powershell' | 'groovy' {
+  const scriptType = module.scriptType || module.collectorAttribute?.scriptType || 'embed';
+  return scriptType.toLowerCase() === 'powershell' ? 'powershell' : 'groovy';
+}
+
+/**
+ * Normalizes script content for comparison.
+ * Handles line ending differences and trailing whitespace that can cause false mismatches.
+ * 
+ * @param content - The script content to normalize
+ * @returns Normalized content with consistent line endings and trimmed whitespace
+ */
+export function normalizeScriptContent(content: string): string {
+  return content
+    .replace(/\r\n/g, '\n')  // Normalize CRLF to LF
+    .replace(/\r/g, '\n')     // Normalize CR to LF
+    .trim();                  // Remove leading/trailing whitespace
 }
 

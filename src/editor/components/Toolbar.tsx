@@ -83,7 +83,7 @@ export function Toolbar() {
     setModuleDetailsDialogOpen,
     // Pull latest
     canPullLatest,
-    pullLatestFromPortal,
+    setPullLatestDialogOpen,
     isPullingLatest,
   } = useEditorStore();
 
@@ -475,14 +475,9 @@ export function Toolbar() {
                 <Button
                   variant="toolbar-outline"
                   size="toolbar"
-                  onClick={async () => {
+                  onClick={() => {
                     if (!activeTabId) return;
-                    const result = await pullLatestFromPortal(activeTabId);
-                    if (!result.success) {
-                      toast.error('Failed to pull latest', {
-                        description: result.error,
-                      });
-                    }
+                    setPullLatestDialogOpen(true);
                   }}
                   disabled={isPullingLatest}
                   aria-label="Pull latest from portal"

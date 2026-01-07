@@ -23,11 +23,12 @@ import type {
 } from '@/shared/types';
 import { toast } from 'sonner';
 import { getExtensionForLanguage, getLanguageFromFilename } from '../../utils/file-extensions';
-import { createScratchDocument, createLocalDocument, isFileDirty, getDocumentType, convertToLocalDocument, updateDocumentAfterSave, hasAssociatedFileHandle, getOriginalContent } from '../../utils/document-helpers';
+import { createScratchDocument, createLocalDocument, isFileDirty, getDocumentType, convertToLocalDocument, updateDocumentAfterSave, hasAssociatedFileHandle, getOriginalContent, extractScriptFromModule, detectScriptLanguage } from '../../utils/document-helpers';
 import { getDefaultScriptTemplate, DEFAULT_GROOVY_TEMPLATE, DEFAULT_POWERSHELL_TEMPLATE } from '../../config/script-templates';
 import { normalizeMode } from '../../utils/mode-utils';
 import * as documentStore from '../../utils/document-store';
 import { normalizeScript } from '../helpers/slice-helpers';
+import { sendMessage } from '../../utils/chrome-messaging';
 import type { ParseResult } from '../../utils/output-parser';
 import type { ModuleDetailsDraft } from './tools-slice';
 
@@ -193,6 +194,7 @@ export interface TabsSliceActions {
   // Module directory operations
   saveModuleDirectory: (tabId?: string) => Promise<boolean>;
   openModuleDirectory: (directoryId: string, scriptsToOpen?: Array<'collection' | 'ad'>) => Promise<boolean>;
+  openModuleFolderFromDisk: () => Promise<boolean>;
   showOpenModuleDirectoryDialog: (directoryId: string) => void;
   setOpenModuleDirectoryDialogOpen: (open: boolean) => void;
 }
@@ -887,6 +889,7 @@ export const createTabsSlice: StateCreator<
 
 
   saveFile: async (tabId?: string) => {
+    console.log('[ModuleDir] saveFile: Starting...');
     const { activeTabId, setSaveOptionsDialogOpen } = get();
     const targetTabId = tabId ?? activeTabId;
     if (!targetTabId) {
@@ -897,41 +900,35 @@ export const createTabsSlice: StateCreator<
     // Get fresh tab state
     const tab = get().tabs.find(t => t.id === targetTabId);
     if (!tab) {
-      console.log('[ModuleDir] saveFile: Tab not found:', targetTabId);
+      console.log('[ModuleDir] saveFile: Tab not found');
       return false;
     }
 
-    console.log('[ModuleDir] saveFile called:', {
+    console.log('[ModuleDir] saveFile: Tab info:', {
       tabId: targetTabId,
       displayName: tab.displayName,
       directoryHandleId: tab.directoryHandleId,
-      fileHandleId: tab.fileHandleId,
       documentType: tab.document?.type,
+      hasPortalBinding: !!tab.document?.portal,
       sourceType: tab.source?.type,
-      scriptType: tab.source?.scriptType,
     });
 
     // Directory-based saves (module directories) - check this FIRST
     // This ensures directory-saved modules save directly to disk without prompting
     if (tab.directoryHandleId && tab.source?.scriptType) {
-      console.log('[ModuleDir] saveFile: Directory-based save detected, directoryHandleId:', tab.directoryHandleId);
       try {
         const storedDir = await documentStore.getDirectoryHandleRecord(tab.directoryHandleId);
         if (!storedDir) {
-          console.log('[ModuleDir] saveFile: Directory handle not found in IndexedDB');
           toast.error('Directory handle not found', { description: 'The saved module directory could not be found.' });
           return false;
         }
-        console.log('[ModuleDir] saveFile: Found directory handle:', storedDir.directoryName);
 
         // Request permission
         const handleWithPermission = storedDir.handle as unknown as { 
           requestPermission(options?: { mode?: string }): Promise<PermissionState>;
         };
         const permissionStatus = await handleWithPermission.requestPermission({ mode: 'readwrite' });
-        console.log('[ModuleDir] saveFile: Permission status:', permissionStatus);
         if (permissionStatus !== 'granted') {
-          console.log('[ModuleDir] saveFile: Permission denied');
           toast.error('Permission denied', { description: 'Cannot write to the module directory.' });
           return false;
         }
@@ -939,7 +936,6 @@ export const createTabsSlice: StateCreator<
         // Determine filename based on script type and language
         const extension = tab.language === 'powershell' ? '.ps1' : '.groovy';
         const fileName = tab.source.scriptType === 'ad' ? `ad${extension}` : `collection${extension}`;
-        console.log('[ModuleDir] saveFile: Writing to file:', fileName);
 
         // Get fresh content
         const currentTab = get().tabs.find(t => t.id === targetTabId);
@@ -948,7 +944,6 @@ export const createTabsSlice: StateCreator<
 
         // Write script to directory
         await documentStore.writeFileToDirectory(storedDir.handle, fileName, contentToSave);
-        console.log('[ModuleDir] saveFile: Script written successfully');
 
         // Update module.json with new disk checksum
         const moduleJsonContent = await documentStore.readFileFromDirectory(storedDir.handle, 'module.json');
@@ -979,7 +974,6 @@ export const createTabsSlice: StateCreator<
           ),
         });
 
-        console.log('[ModuleDir] saveFile: Directory save completed successfully');
         toast.success('File saved');
         return true;
       } catch (error) {
@@ -993,9 +987,7 @@ export const createTabsSlice: StateCreator<
 
     // Portal documents (not already saved to a directory) use the save options dialog
     const docType = getDocumentType(tab);
-    console.log('[ModuleDir] saveFile: Document type:', docType);
     if (docType === 'portal') {
-      console.log('[ModuleDir] saveFile: Opening save options dialog for portal document');
       setSaveOptionsDialogOpen(true, targetTabId);
       return false;
     }
@@ -1087,12 +1079,36 @@ export const createTabsSlice: StateCreator<
   },
 
   saveFileAs: async (tabId?: string) => {
-    const { tabs, activeTabId } = get();
+    console.log('[ModuleDir] saveFileAs: Starting...');
+    const { tabs, activeTabId, setSaveOptionsDialogOpen } = get();
     const targetTabId = tabId ?? activeTabId;
-    if (!targetTabId) return false;
+    if (!targetTabId) {
+      console.log('[ModuleDir] saveFileAs: No target tab ID');
+      return false;
+    }
     
     const tab = tabs.find(t => t.id === targetTabId);
-    if (!tab) return false;
+    if (!tab) {
+      console.log('[ModuleDir] saveFileAs: Tab not found');
+      return false;
+    }
+
+    console.log('[ModuleDir] saveFileAs: Tab info:', {
+      tabId: targetTabId,
+      displayName: tab.displayName,
+      directoryHandleId: tab.directoryHandleId,
+      documentType: tab.document?.type,
+      hasPortalBinding: !!tab.document?.portal,
+      sourceType: tab.source?.type,
+    });
+
+    // For portal-bound modules (including directory-saved ones), show save options dialog
+    const docType = getDocumentType(tab);
+    if (docType === 'portal' || (docType === 'local' && tab.document?.portal)) {
+      console.log('[ModuleDir] saveFileAs: Portal-bound module, showing save options dialog');
+      setSaveOptionsDialogOpen(true, targetTabId);
+      return false;
+    }
 
     // Check if File System Access API is supported
     if (!documentStore.isFileSystemAccessSupported()) {
@@ -1425,32 +1441,32 @@ export const createTabsSlice: StateCreator<
 
     const { moduleId, moduleName, moduleType, portalId, portalHostname, lineageId } = tab.source;
     if (!moduleId || !moduleName || !moduleType || !portalId || !portalHostname) {
-      console.log('[ModuleDir] saveModuleDirectory: Missing module binding info');
       toast.error('Cannot save', { description: 'Missing module binding information.' });
       return false;
     }
     
-    console.log('[ModuleDir] saveModuleDirectory: Module binding:', { moduleId, moduleName, moduleType, portalHostname });
 
     try {
-      // Show directory picker - user can name/create the folder
-      console.log('[ModuleDir] saveModuleDirectory: Showing directory picker...');
+      // Show directory picker - user selects parent folder
       // TypeScript doesn't have full types for showDirectoryPicker options
-      const dirHandle = await (window as unknown as { 
+      const parentDirHandle = await (window as unknown as { 
         showDirectoryPicker(options?: { mode?: string; startIn?: string }): Promise<FileSystemDirectoryHandle> 
       }).showDirectoryPicker({
         mode: 'readwrite',
         startIn: 'documents',
       });
-      console.log('[ModuleDir] saveModuleDirectory: Directory selected:', dirHandle.name);
 
-      // Find all tabs for this module (collection and AD)
+      // Create module subfolder inside the parent directory
+      // Sanitize module name for filesystem (replace invalid chars with underscores)
+      const sanitizedModuleName = moduleName.replace(/[/\\?%*:|"<>]/g, '_');
+      const dirHandle = await parentDirHandle.getDirectoryHandle(sanitizedModuleName, { create: true });
+
+      // Find all open tabs for this module (collection and AD)
       const moduleTabs = tabs.filter(t => 
         t.source?.type === 'module' && 
         t.source.moduleId === moduleId && 
         t.source.portalId === portalId
       );
-      console.log('[ModuleDir] saveModuleDirectory: Found module tabs:', moduleTabs.length, moduleTabs.map(t => t.source?.scriptType));
 
       // Determine script file extension based on language
       const getScriptFileName = (type: 'collection' | 'ad', language: ScriptLanguage) => {
@@ -1461,26 +1477,84 @@ export const createTabsSlice: StateCreator<
       // Build scripts config and write files
       const scriptsConfig: ModuleDirectoryConfig['scripts'] = {};
       
-      for (const moduleTab of moduleTabs) {
-        if (!moduleTab.source?.scriptType) continue;
+      // For initial save, fetch ALL scripts from portal (not just open tabs)
+      // This ensures the directory is complete even if only one script tab is open
+      console.log('[ModuleDir] saveModuleDirectory: Fetching module from portal to ensure complete save...');
+      
+      // Fetch the full module from portal to get all scripts
+      const fetchResult = await sendMessage({
+        type: 'FETCH_MODULE',
+        payload: {
+          portalId,
+          moduleType,
+          moduleId,
+        },
+      });
+
+      if (!fetchResult.ok) {
+        console.error('[ModuleDir] saveModuleDirectory: Failed to fetch module from portal:', fetchResult.error);
+        toast.error('Failed to save', { description: 'Could not fetch module from portal to complete the save.' });
+        return false;
+      }
+
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const portalModule = fetchResult.data as any;
+      
+      // Extract scripts from portal using shared utilities
+      const portalCollectionScript = extractScriptFromModule(portalModule, moduleType, 'collection');
+      const collectionLanguage: ScriptLanguage = detectScriptLanguage(portalModule);
+      const portalAdScript = extractScriptFromModule(portalModule, moduleType, 'ad');
+      const hasAdScript = portalAdScript.trim().length > 0;
+      
+      // Find open tabs for each script type
+      const collectionTab = moduleTabs.find(t => t.source?.scriptType === 'collection');
+      const adTab = moduleTabs.find(t => t.source?.scriptType === 'ad');
+      
+      // Save collection script
+      // Use open tab content if available, otherwise use portal content
+      const collectionContent = collectionTab?.content ?? portalCollectionScript;
+      const collectionLang = collectionTab?.language ?? collectionLanguage;
+      const collectionMode = collectionTab?.mode ?? 'collection';
+      
+      if (collectionContent.trim().length > 0 || portalCollectionScript.trim().length > 0) {
+        const fileName = getScriptFileName('collection', collectionLang);
+        const portalChecksum = await documentStore.computeChecksum(portalCollectionScript);
+        const diskChecksum = await documentStore.computeChecksum(collectionContent);
         
-        const sType = moduleTab.source.scriptType;
-        const fileName = getScriptFileName(sType, moduleTab.language);
-        const portalChecksum = await documentStore.computeChecksum(
-          moduleTab.document?.portal?.lastKnownContent ?? moduleTab.content
-        );
-        const diskChecksum = await documentStore.computeChecksum(moduleTab.content);
+        await documentStore.writeFileToDirectory(dirHandle, fileName, collectionContent);
         
-        // Write script file
-        await documentStore.writeFileToDirectory(dirHandle, fileName, moduleTab.content);
-        
-        scriptsConfig[sType] = {
+        scriptsConfig.collection = {
           fileName,
-          language: moduleTab.language,
-          mode: moduleTab.mode,
+          language: collectionLang,
+          mode: collectionMode,
           portalChecksum,
           diskChecksum,
         };
+        
+        console.log('[ModuleDir] saveModuleDirectory: Saved collection script:', fileName);
+      }
+      
+      // Save AD script if it exists in portal
+      if (hasAdScript) {
+        // Use open tab content if available, otherwise use portal content
+        const adContent = adTab?.content ?? portalAdScript;
+        const adLang = adTab?.language ?? 'groovy';
+        const adMode = adTab?.mode ?? 'ad';
+        const fileName = getScriptFileName('ad', adLang);
+        const portalChecksum = await documentStore.computeChecksum(portalAdScript);
+        const diskChecksum = await documentStore.computeChecksum(adContent);
+        
+        await documentStore.writeFileToDirectory(dirHandle, fileName, adContent);
+        
+        scriptsConfig.ad = {
+          fileName,
+          language: adLang,
+          mode: adMode,
+          portalChecksum,
+          diskChecksum,
+        };
+        
+        console.log('[ModuleDir] saveModuleDirectory: Saved AD script:', fileName);
       }
 
       // Get module details draft if available
@@ -1507,10 +1581,6 @@ export const createTabsSlice: StateCreator<
       };
 
       // Write module.json
-      console.log('[ModuleDir] saveModuleDirectory: Writing module.json with config:', {
-        scriptsKeys: Object.keys(scriptsConfig),
-        hasModuleDetails: !!config.moduleDetails,
-      });
       await documentStore.writeFileToDirectory(
         dirHandle, 
         'module.json', 
@@ -1519,7 +1589,6 @@ export const createTabsSlice: StateCreator<
 
       // Save directory handle to IndexedDB
       const directoryHandleId = crypto.randomUUID();
-      console.log('[ModuleDir] saveModuleDirectory: Saving directory handle to IndexedDB:', directoryHandleId);
       await documentStore.saveDirectoryHandle(directoryHandleId, dirHandle, {
         directoryName: dirHandle.name,
         moduleName,
@@ -1528,14 +1597,12 @@ export const createTabsSlice: StateCreator<
       });
 
       // Update all module tabs with directory handle reference
-      console.log('[ModuleDir] saveModuleDirectory: Updating tabs with directoryHandleId and document.type = local');
       const updatedTabs = tabs.map(t => {
         if (t.source?.type === 'module' && 
             t.source.moduleId === moduleId && 
             t.source.portalId === portalId) {
           // Update document state to reflect saved to directory
           const scriptConfig = scriptsConfig[t.source.scriptType || 'collection'];
-          console.log('[ModuleDir] saveModuleDirectory: Updating tab:', t.id, 'scriptType:', t.source?.scriptType, 'new document.type: local');
           return {
             ...t,
             directoryHandleId,
@@ -1557,7 +1624,6 @@ export const createTabsSlice: StateCreator<
       });
 
       set({ tabs: updatedTabs });
-      console.log('[ModuleDir] saveModuleDirectory: Tabs updated. Complete!');
 
       toast.success('Module saved', {
         description: `Saved to "${dirHandle.name}" with ${Object.keys(scriptsConfig).length} script(s).`,
@@ -1567,7 +1633,6 @@ export const createTabsSlice: StateCreator<
     } catch (error) {
       if (error instanceof DOMException && error.name === 'AbortError') {
         // User cancelled the picker
-        console.log('[ModuleDir] saveModuleDirectory: User cancelled directory picker');
         return false;
       }
       console.error('[ModuleDir] saveModuleDirectory: Failed:', error);
@@ -1590,6 +1655,82 @@ export const createTabsSlice: StateCreator<
       openModuleDirectoryDialogOpen: open,
       openModuleDirectoryDialogId: open ? get().openModuleDirectoryDialogId : null,
     });
+  },
+
+  openModuleFolderFromDisk: async () => {
+    console.log('[ModuleDir] openModuleFolderFromDisk: Starting...');
+    
+    // Check if directory picker is supported
+    if (!documentStore.isDirectoryPickerSupported()) {
+      toast.error('Not supported', {
+        description: 'Your browser does not support the directory picker.',
+      });
+      return false;
+    }
+
+    try {
+      // Show directory picker
+      const dirHandle = await (window as unknown as { 
+        showDirectoryPicker(options?: { mode?: string }): Promise<FileSystemDirectoryHandle> 
+      }).showDirectoryPicker({
+        mode: 'readwrite',
+      });
+
+      console.log('[ModuleDir] openModuleFolderFromDisk: Selected directory:', dirHandle.name);
+
+      // Check if module.json exists in this directory
+      const configJson = await documentStore.readFileFromDirectory(dirHandle, 'module.json');
+      if (!configJson) {
+        toast.error('Not a module directory', {
+          description: 'The selected folder does not contain a module.json file. Please select a folder that was created using "Save to Module Directory".',
+        });
+        return false;
+      }
+
+      // Validate the config
+      let config: import('@/shared/types').ModuleDirectoryConfig;
+      try {
+        config = JSON.parse(configJson);
+        if (!config.portalBinding?.moduleName || !config.portalBinding?.moduleType) {
+          throw new Error('Invalid config');
+        }
+      } catch {
+        toast.error('Invalid module directory', {
+          description: 'The module.json file is corrupted or invalid.',
+        });
+        return false;
+      }
+
+      console.log('[ModuleDir] openModuleFolderFromDisk: Valid module config found:', config.portalBinding.moduleName);
+
+      // Save the directory handle to IndexedDB so it becomes a "recent" directory
+      const directoryId = documentStore.generateId();
+      await documentStore.saveDirectoryHandle(directoryId, dirHandle, {
+        directoryName: dirHandle.name,
+        moduleName: config.portalBinding.moduleName,
+        moduleType: config.portalBinding.moduleType,
+        portalHostname: config.portalBinding.portalHostname,
+      });
+
+      console.log('[ModuleDir] openModuleFolderFromDisk: Saved directory handle with ID:', directoryId);
+
+      // Refresh recent files to include this directory
+      await get().loadRecentFiles();
+
+      // Show the open dialog so user can select which scripts to open
+      get().showOpenModuleDirectoryDialog(directoryId);
+
+      return true;
+    } catch (error) {
+      // User cancelled or error occurred
+      if ((error as Error).name !== 'AbortError') {
+        console.error('[ModuleDir] openModuleFolderFromDisk: Error:', error);
+        toast.error('Failed to open module folder', {
+          description: error instanceof Error ? error.message : 'Unknown error occurred',
+        });
+      }
+      return false;
+    }
   },
 
   openModuleDirectory: async (directoryId: string, scriptsToOpen?: Array<'collection' | 'ad'>) => {
@@ -1639,14 +1780,7 @@ export const createTabsSlice: StateCreator<
       let config: ModuleDirectoryConfig;
       try {
         config = JSON.parse(configJson) as ModuleDirectoryConfig;
-        console.log('[ModuleDir] openModuleDirectory: Parsed module.json:', {
-          moduleName: config.portalBinding.moduleName,
-          moduleType: config.portalBinding.moduleType,
-          portalHostname: config.portalBinding.portalHostname,
-          scriptsKeys: Object.keys(config.scripts),
-        });
       } catch {
-        console.log('[ModuleDir] openModuleDirectory: Failed to parse module.json');
         toast.error('Invalid module.json', {
           description: 'The module.json file is corrupted or invalid.',
         });
@@ -1656,50 +1790,98 @@ export const createTabsSlice: StateCreator<
       // Determine which scripts to open
       const availableScripts = Object.keys(config.scripts) as Array<'collection' | 'ad'>;
       const toOpen = scriptsToOpen ?? availableScripts;
-      console.log('[ModuleDir] openModuleDirectory: Scripts to open:', toOpen);
 
       if (toOpen.length === 0) {
-        console.log('[ModuleDir] openModuleDirectory: No scripts selected');
         toast.info('No scripts selected', {
           description: 'Select at least one script to open.',
         });
         return false;
       }
 
+      // Hybrid Portal Sync: Check if current portal matches the stored portal
+      const { selectedPortalId, tabs } = get();
+      const portalScriptContent: Record<'collection' | 'ad', string | null> = {
+        collection: null,
+        ad: null,
+      };
+      let portalSyncSucceeded = false;
+      let configNeedsUpdate = false;
+
+      if (selectedPortalId && selectedPortalId === config.portalBinding.portalId) {
+        try {
+          const result = await sendMessage({
+            type: 'FETCH_MODULE',
+            payload: {
+              portalId: config.portalBinding.portalId,
+              moduleType: config.portalBinding.moduleType,
+              moduleId: config.portalBinding.moduleId,
+            },
+          });
+
+          if (result.ok) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const module = result.data as any;
+
+            // Extract scripts from fetched module
+            for (const scriptType of availableScripts) {
+              const portalContent = extractScriptFromModule(
+                module, 
+                config.portalBinding.moduleType, 
+                scriptType
+              );
+              portalScriptContent[scriptType] = portalContent;
+
+              // Update portal checksum if it changed
+              const newChecksum = await documentStore.computeChecksum(portalContent);
+              const oldChecksum = config.scripts[scriptType]?.portalChecksum;
+
+              if (oldChecksum !== newChecksum && config.scripts[scriptType]) {
+                config.scripts[scriptType].portalChecksum = newChecksum;
+                configNeedsUpdate = true;
+              }
+            }
+
+            portalSyncSucceeded = true;
+
+            // Write updated config back if checksums changed
+            if (configNeedsUpdate) {
+              await documentStore.writeFileToDirectory(
+                dirHandle,
+                'module.json',
+                JSON.stringify(config, null, 2)
+              );
+            }
+          }
+        } catch {
+          // Portal sync failed, use stored checksums as fallback
+        }
+      }
+
       // Read and open each selected script
-      const { tabs } = get();
       const newTabs: EditorTab[] = [];
 
       for (const scriptType of toOpen) {
         const scriptConfig = config.scripts[scriptType];
         if (!scriptConfig) {
-          console.log('[ModuleDir] openModuleDirectory: Script config not found for:', scriptType);
           continue;
         }
 
-        console.log('[ModuleDir] openModuleDirectory: Reading script file:', scriptConfig.fileName);
         const content = await documentStore.readFileFromDirectory(dirHandle, scriptConfig.fileName);
         if (content === null) {
-          console.log('[ModuleDir] openModuleDirectory: Script file not found on disk:', scriptConfig.fileName);
           toast.warning(`Script not found: ${scriptConfig.fileName}`, {
             description: 'You may need to re-export this script from the portal.',
           });
           continue;
         }
-        console.log('[ModuleDir] openModuleDirectory: Read script, length:', content.length);
 
         const newTabId = crypto.randomUUID();
-        console.log('[ModuleDir] openModuleDirectory: Creating tab:', {
-          tabId: newTabId,
-          scriptType,
-          documentType: 'local',
-          directoryHandleId: directoryId,
-        });
 
+        // Standardize naming: "ModuleName (AD)" or "ModuleName (Collection)"
+        const modeLabel = scriptType === 'ad' ? 'AD' : 'Collection';
         const newTab: EditorTab = {
           id: newTabId,
           kind: 'script',
-          displayName: `${config.portalBinding.moduleName} (${scriptType})`,
+          displayName: `${config.portalBinding.moduleName} (${modeLabel})`,
           content,
           language: scriptConfig.language,
           mode: scriptConfig.mode,
@@ -1730,9 +1912,11 @@ export const createTabsSlice: StateCreator<
               moduleName: config.portalBinding.moduleName,
               scriptType,
               lineageId: config.portalBinding.lineageId,
-              // Compute last known content from portal checksum comparison
-              // For now, we use the disk content as the baseline
-              lastKnownContent: content,
+              // Hybrid sync: Use portal content if we successfully fetched it,
+              // otherwise fall back to disk content as best-effort baseline
+              lastKnownContent: portalSyncSucceeded && portalScriptContent[scriptType] !== null
+                ? portalScriptContent[scriptType]!
+                : content,
               lastPulledAt: config.moduleDetails?.lastPulledAt 
                 ? new Date(config.moduleDetails.lastPulledAt).getTime() 
                 : undefined,
@@ -1740,11 +1924,21 @@ export const createTabsSlice: StateCreator<
           },
         };
 
+        console.log('[ModuleDir] openModuleDirectory: Created tab:', {
+          tabId: newTabId,
+          scriptType,
+          documentType: newTab.document?.type,
+          hasPortalBinding: !!newTab.document?.portal,
+          contentLength: content.length,
+          lastKnownContentLength: newTab.document?.portal?.lastKnownContent?.length,
+          portalSyncSucceeded,
+          contentDiffersFromPortal: newTab.document?.portal?.lastKnownContent !== content,
+        });
+
         newTabs.push(newTab);
       }
 
       if (newTabs.length === 0) {
-        console.log('[ModuleDir] openModuleDirectory: No tabs created - all scripts missing');
         toast.error('No scripts could be opened', {
           description: 'All selected scripts are missing from the directory.',
         });
@@ -1755,7 +1949,6 @@ export const createTabsSlice: StateCreator<
       await documentStore.touchDirectoryHandle(directoryId);
 
       // Add tabs and activate the first one
-      console.log('[ModuleDir] openModuleDirectory: Adding', newTabs.length, 'tabs to store');
       set({
         tabs: [...tabs, ...newTabs],
         activeTabId: newTabs[0].id,
@@ -1763,7 +1956,6 @@ export const createTabsSlice: StateCreator<
         openModuleDirectoryDialogId: null,
       });
 
-      console.log('[ModuleDir] openModuleDirectory: Complete! Opened tabs:', newTabs.map(t => ({ id: t.id, scriptType: t.source?.scriptType, docType: t.document?.type })));
       toast.success('Module opened', {
         description: `Opened ${newTabs.length} script(s) from "${record.directoryName}".`,
       });

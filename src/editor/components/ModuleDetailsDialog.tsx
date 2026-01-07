@@ -37,6 +37,7 @@ export function ModuleDetailsDialog() {
     loadModuleDetails,
     fetchAccessGroups,
     resetModuleDetailsDraft,
+    persistModuleDetailsToDirectory,
   } = useEditorStore();
 
   const activeTab = tabs.find(t => t.id === activeTabId);
@@ -188,9 +189,12 @@ export function ModuleDetailsDialog() {
     setModuleDetailsDialogOpen(false);
   };
 
-  const handleSave = () => {
-    // Save is handled by the commit flow
-    // This dialog just edits the draft, commit happens via the commit button
+  const handleSave = async () => {
+    // If this tab has a directory handle, persist the module details to module.json
+    if (activeTab?.directoryHandleId && activeTabId) {
+      await persistModuleDetailsToDirectory(activeTabId);
+    }
+    // Close the dialog - changes remain in draft for the commit flow
     setModuleDetailsDialogOpen(false);
   };
 

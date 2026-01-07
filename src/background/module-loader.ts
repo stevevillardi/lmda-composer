@@ -129,8 +129,6 @@ interface APIModule {
   autoDiscoveryConfig?: {
     method?: {
       groovyScript?: string;
-      linuxScript?: string;
-      winScript?: string;
     };
   };
   // DataSource, ConfigSource, TopologySource use collectorAttribute
@@ -285,7 +283,7 @@ function fetchModulesFromAPI(
               // Only mark as AD if there's actually an AD script defined
               if (m.enableAutoDiscovery && m.autoDiscoveryConfig?.method) {
                 const method = m.autoDiscoveryConfig.method;
-                adScript = method.groovyScript || method.linuxScript || method.winScript || '';
+                adScript = method.groovyScript || '';
                 // Only set hasAutoDiscovery if there's actual script content
                 hasAutoDiscovery = !!adScript?.trim();
               }

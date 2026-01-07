@@ -41,6 +41,7 @@ export function OpenModuleDirectoryDialog() {
     setOpenModuleDirectoryDialogOpen,
     openModuleDirectory,
     selectedPortalId,
+    loadRecentFiles,
   } = useEditorStore();
 
   const [isLoading, setIsLoading] = useState(false);
@@ -52,6 +53,17 @@ export function OpenModuleDirectoryDialog() {
   const [selectedScripts, setSelectedScripts] = useState<Set<'collection' | 'ad'>>(new Set());
   const [scriptStatuses, setScriptStatuses] = useState<Record<string, ScriptStatus>>({});
   const [error, setError] = useState<string | null>(null);
+
+  // Helper to clean up a deleted/invalid directory and close dialog
+  const cleanupAndClose = async (directoryId: string, reason: string) => {
+    console.log('[ModuleDir] OpenModuleDirectoryDialog: Cleaning up invalid directory:', directoryId, reason);
+    await documentStore.deleteDirectoryHandle(directoryId);
+    await loadRecentFiles();
+    setOpenModuleDirectoryDialogOpen(false);
+    toast.error('Module directory removed', {
+      description: reason,
+    });
+  };
 
   // Load directory config when dialog opens
   useEffect(() => {
@@ -65,19 +77,17 @@ export function OpenModuleDirectoryDialog() {
     }
 
     const loadConfig = async () => {
-      console.log('[ModuleDir] OpenModuleDirectoryDialog: Loading config for:', openModuleDirectoryDialogId);
       setIsLoading(true);
       setError(null);
       
       try {
         const record = await documentStore.getDirectoryHandleRecord(openModuleDirectoryDialogId);
         if (!record) {
-          console.log('[ModuleDir] OpenModuleDirectoryDialog: Directory not found in storage');
-          setError('Directory not found in storage.');
+          // Directory handle not found in IndexedDB - clean up and close
+          await cleanupAndClose(openModuleDirectoryDialogId, 'The saved module directory could not be found.');
           setIsLoading(false);
           return;
         }
-        console.log('[ModuleDir] OpenModuleDirectoryDialog: Found directory:', record.directoryName);
 
         setDirectoryName(record.directoryName);
         setDirectoryHandle(record.handle);
@@ -95,18 +105,25 @@ export function OpenModuleDirectoryDialog() {
         }
 
         // Read module.json
-        const configJson = await documentStore.readFileFromDirectory(record.handle, 'module.json');
+        let configJson: string | null = null;
+        try {
+          configJson = await documentStore.readFileFromDirectory(record.handle, 'module.json');
+        } catch (readError) {
+          // Directory may have been deleted - the handle exists but the folder is gone
+          console.error('[ModuleDir] OpenModuleDirectoryDialog: Error reading directory:', readError);
+          await cleanupAndClose(openModuleDirectoryDialogId, 'The module directory was deleted or moved.');
+          setIsLoading(false);
+          return;
+        }
+        
         if (!configJson) {
-          setError('Could not find module.json in this directory.');
+          // module.json doesn't exist - directory is invalid, clean up
+          await cleanupAndClose(openModuleDirectoryDialogId, 'This folder does not contain a valid module.json file.');
           setIsLoading(false);
           return;
         }
 
         const parsedConfig = JSON.parse(configJson) as ModuleDirectoryConfig;
-        console.log('[ModuleDir] OpenModuleDirectoryDialog: Parsed config:', {
-          moduleName: parsedConfig.portalBinding.moduleName,
-          scripts: Object.keys(parsedConfig.scripts),
-        });
         setConfig(parsedConfig);
         
         // Check actual file existence and status for each script
@@ -134,12 +151,10 @@ export function OpenModuleDirectoryDialog() {
           statuses[scriptType] = { exists, modified, canReExport };
         }
         
-        console.log('[ModuleDir] OpenModuleDirectoryDialog: Script statuses:', statuses);
         setScriptStatuses(statuses);
         
         // Pre-select only scripts that exist
         const existingScripts = availableScripts.filter(s => statuses[s]?.exists);
-        console.log('[ModuleDir] OpenModuleDirectoryDialog: Pre-selected scripts:', existingScripts);
         setSelectedScripts(new Set(existingScripts));
       } catch (err) {
         console.error('[ModuleDir] OpenModuleDirectoryDialog: Failed to load config:', err);
@@ -171,26 +186,21 @@ export function OpenModuleDirectoryDialog() {
   const handleOpen = async () => {
     if (!openModuleDirectoryDialogId || selectedScripts.size === 0) return;
     
-    console.log('[ModuleDir] OpenModuleDirectoryDialog: Opening with scripts:', Array.from(selectedScripts));
     setIsOpening(true);
     try {
       await openModuleDirectory(openModuleDirectoryDialogId, Array.from(selectedScripts));
-      console.log('[ModuleDir] OpenModuleDirectoryDialog: Open complete');
     } finally {
       setIsOpening(false);
     }
   };
 
   const handleReExport = async (scriptType: 'collection' | 'ad') => {
-    console.log('[ModuleDir] handleReExport: Starting for scriptType:', scriptType);
     if (!config || !directoryHandle || !selectedPortalId) {
-      console.log('[ModuleDir] handleReExport: Missing requirements', { config: !!config, directoryHandle: !!directoryHandle, selectedPortalId });
       return;
     }
     
     const { portalBinding } = config;
     if (portalBinding.portalId !== selectedPortalId) {
-      console.log('[ModuleDir] handleReExport: Portal mismatch', { expected: portalBinding.portalId, current: selectedPortalId });
       toast.error('Portal mismatch', {
         description: `Switch to portal "${portalBinding.portalHostname}" to re-export this script.`,
       });
@@ -201,7 +211,6 @@ export function OpenModuleDirectoryDialog() {
     
     try {
       // Fetch the module from portal
-      console.log('[ModuleDir] handleReExport: Fetching module from portal...');
       const { sendMessage } = await import('../utils/chrome-messaging');
       const result = await sendMessage({
         type: 'FETCH_MODULE',
@@ -294,7 +303,6 @@ export function OpenModuleDirectoryDialog() {
       }
 
       // Update script status
-      console.log('[ModuleDir] handleReExport: Updating script status to exists=true');
       setScriptStatuses(prev => ({
         ...prev,
         [scriptType]: { exists: true, modified: false, canReExport: true },
@@ -303,7 +311,6 @@ export function OpenModuleDirectoryDialog() {
       // Auto-select the re-exported script
       setSelectedScripts(prev => new Set([...prev, scriptType]));
 
-      console.log('[ModuleDir] handleReExport: Complete!');
       toast.success('Script re-exported', {
         description: `${fileName} has been restored from the portal.`,
       });
@@ -417,7 +424,7 @@ export function OpenModuleDirectoryDialog() {
                             <FileCode className="size-4 text-muted-foreground" />
                             <div className="flex-1">
                               <div className="text-sm font-medium capitalize flex items-center gap-2">
-                                {scriptType}
+                                {scriptType === 'collection' ? 'Collection' : 'Active Discovery'}
                                 {isMissing && (
                                   <Badge variant="outline" className="text-xs text-amber-600 border-amber-600/50">
                                     <AlertTriangle className="size-3 mr-1" />

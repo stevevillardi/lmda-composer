@@ -204,6 +204,7 @@ export function WelcomeScreenV2() {
     loadRecentFiles,
     openRecentFile,
     showOpenModuleDirectoryDialog,
+    openModuleFolderFromDisk,
     createNewFile,
     openFileFromDisk,
     setActiveWorkspace,
@@ -221,7 +222,7 @@ export function WelcomeScreenV2() {
 
   return (
     <div className="h-full flex flex-col bg-background overflow-auto" tabIndex={-1}>
-      <div className="flex-1 flex items-center justify-center p-6">
+      <div className="flex-1 flex items-center justify-center p-4">
         <div className="w-full max-w-5xl space-y-6">
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-3">
@@ -257,6 +258,12 @@ export function WelcomeScreenV2() {
                     title="Open File"
                     description="Open a script from your computer"
                     onClick={openFileFromDisk}
+                  />
+                  <ActionRow
+                    icon={<Folder className="size-4" />}
+                    title="Open Module Folder"
+                    description="Open a saved module directory from disk"
+                    onClick={() => void openModuleFolderFromDisk()}
                   />
                   <ActionRow
                     icon={<Braces className="size-4" />}

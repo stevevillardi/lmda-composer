@@ -2,6 +2,7 @@ import {
   Download,
   FileInput,
   FilePlus,
+  Folder,
   Save,
   Settings,
   CommandIcon,
@@ -53,6 +54,7 @@ export function ActionsDropdown() {
     toggleRightSidebar,
     createNewFile,
     openFileFromDisk,
+    openModuleFolderFromDisk,
     saveFile,
     saveFileAs,
     exportToFile,
@@ -184,6 +186,12 @@ export function ActionsDropdown() {
                 <Kbd className="ml-auto">⌘O</Kbd>
               </DropdownMenuItem>
 
+              <DropdownMenuItem onClick={() => {
+                void openModuleFolderFromDisk();
+              }}>
+                <Folder className="size-4 mr-2" />
+                <span className="flex-1">Open Module Folder...</span>
+              </DropdownMenuItem>
 
               <DropdownMenuItem 
                 onClick={() => void saveFile()}

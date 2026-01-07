@@ -1,5 +1,5 @@
 import { useRef, useEffect, useState, useCallback, KeyboardEvent } from 'react';
-import { X, Plus, Pencil, Circle, Save, Upload, Trash2, AlertTriangle, Braces, Link2, Cloud } from 'lucide-react';
+import { X, Plus, Circle, Save, Upload, Trash2, AlertTriangle, Braces, Link2, Cloud, Folder } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEditorStore } from '../stores/editor-store';
 import { Button } from '@/components/ui/button';
@@ -65,45 +65,31 @@ function LanguageIcon({ language }: { language: EditorTab['language'] }) {
 interface TabItemProps {
   tab: EditorTab;
   isActive: boolean;
-  isRenaming: boolean;
   /** Has unsaved local file changes (amber indicator) */
   isFileDirty: boolean;
   /** Has unpushed portal changes (blue indicator) */
   hasPortalChanges: boolean;
-  canRename: boolean;
   selectedPortalId: string | null;
   portals: Portal[];
   onActivate: () => void;
   onClose: () => void;
   onCloseOthers: () => void;
   onCloseAll: () => void;
-  onStartRename: () => void;
-  onRename: (newName: string) => void;
-  onCancelRename: () => void;
 }
 
 function TabItem({ 
   tab, 
   isActive, 
-  isRenaming,
   isFileDirty: fileDirty,
   hasPortalChanges: portalChanges,
-  canRename,
   selectedPortalId,
   portals,
   onActivate, 
   onClose, 
   onCloseOthers, 
   onCloseAll,
-  onStartRename,
-  onRename,
-  onCancelRename,
 }: TabItemProps) {
-  // Combined dirty state for close confirmation
-  const isDirty = fileDirty || portalChanges;
   const tabRef = useRef<HTMLButtonElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [renameValue, setRenameValue] = useState(tab.displayName);
   const [isTabHovered, setIsTabHovered] = useState(false);
   
   // Scroll active tab into view
@@ -112,40 +98,6 @@ function TabItem({
       tabRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
     }
   }, [isActive]);
-
-  // Focus input when renaming starts
-  useEffect(() => {
-    if (isRenaming && inputRef.current) {
-      setRenameValue(tab.displayName);
-      inputRef.current.focus();
-      // Select the name part without extension
-      const dotIndex = tab.displayName.lastIndexOf('.');
-      if (dotIndex > 0) {
-        inputRef.current.setSelectionRange(0, dotIndex);
-      } else {
-        inputRef.current.select();
-      }
-    }
-  }, [isRenaming, tab.displayName]);
-
-  const handleRenameSubmit = useCallback(() => {
-    const trimmed = renameValue.trim();
-    if (trimmed && trimmed !== tab.displayName) {
-      onRename(trimmed);
-    } else {
-      onCancelRename();
-    }
-  }, [renameValue, tab.displayName, onRename, onCancelRename]);
-
-  const handleRenameKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-      handleRenameSubmit();
-    } else if (e.key === 'Escape') {
-      e.preventDefault();
-      onCancelRename();
-    }
-  }, [handleRenameSubmit, onCancelRename]);
 
   const portalBinding = tab.source?.type === 'module'
     ? getPortalBindingStatus(tab, selectedPortalId, portals)
@@ -163,36 +115,6 @@ function TabItem({
     ? `${tab.source.moduleName}/${tab.displayName.split('/').pop()}`
     : tab.displayName;
 
-  // If renaming, show input instead of context menu trigger
-  if (isRenaming) {
-    return (
-      <div
-        className={cn(
-          "flex items-center gap-1.5 px-3 py-1.5 text-sm border-r border-border",
-          "min-w-[120px] shrink-0",
-          "bg-background text-foreground border-b-2 border-b-primary"
-        )}
-      >
-        {tab.kind === 'api' ? (
-          <ApiBadge />
-        ) : isModuleBound && ModuleIcon ? (
-          <ModuleIcon className="size-4 shrink-0" />
-        ) : (
-          <LanguageIcon language={tab.language} />
-        )}
-        <input
-          ref={inputRef}
-          type="text"
-          value={renameValue}
-          onChange={(e) => setRenameValue(e.target.value)}
-          onBlur={handleRenameSubmit}
-          onKeyDown={handleRenameKeyDown}
-          className="flex-1 min-w-0 bg-transparent border-none outline-none text-sm"
-        />
-      </div>
-    );
-  }
-  
   return (
     <Tooltip>
       <ContextMenu>
@@ -203,7 +125,6 @@ function TabItem({
                 <button
                   ref={tabRef}
                   onClick={onActivate}
-                  onDoubleClick={canRename ? onStartRename : undefined}
                   onMouseEnter={() => setIsTabHovered(true)}
                   onMouseLeave={() => setIsTabHovered(false)}
                   role="tab"
@@ -250,17 +171,16 @@ function TabItem({
                     </span>
                   )}
                   
-                  {/* Dirty indicators and close button container - fixed width to prevent layout shift */}
-                  <span className="flex items-center gap-0.5 min-w-[20px] shrink-0 justify-end">
-                    {/* Portal changes indicator (blue cloud) - hidden when tab is hovered to show X */}
+                  {/* Dirty indicators and close button container */}
+                  <span className="flex items-center gap-0.5 shrink-0">
+                    {/* Portal changes indicator (blue cloud) */}
                     {portalChanges && (
                       <Tooltip>
                         <TooltipTrigger
                           render={
                             <Cloud className={cn(
-                              "size-3 shrink-0 transition-opacity duration-100",
-                              isActive ? "text-blue-400" : "text-blue-400/70",
-                              isTabHovered && "opacity-0 pointer-events-none"
+                              "size-3 shrink-0",
+                              isActive ? "text-blue-400" : "text-blue-400/70"
                             )} />
                           }
                         />
@@ -270,15 +190,14 @@ function TabItem({
                       </Tooltip>
                     )}
                     
-                    {/* File dirty indicator (amber dot) - hidden when tab is hovered to show X */}
+                    {/* File dirty indicator (amber dot) */}
                     {fileDirty && (
                       <Tooltip>
                         <TooltipTrigger
                           render={
                             <Circle className={cn(
-                              "size-2.5 fill-current shrink-0 transition-opacity duration-100",
-                              isActive ? "text-amber-400" : "text-muted-foreground",
-                              isTabHovered && "opacity-0 pointer-events-none"
+                              "size-2.5 fill-current shrink-0",
+                              isActive ? "text-amber-400" : "text-muted-foreground"
                             )} />
                           }
                         />
@@ -301,11 +220,7 @@ function TabItem({
                     >
                       <X className={cn(
                         "size-3 hover:text-destructive transition-opacity duration-100",
-                        isDirty && !isTabHovered
-                          ? "opacity-0" // Hide X when showing dirty indicators (tab not hovered)
-                          : isTabHovered || isActive
-                            ? "opacity-100" // Show X when tab is hovered or active
-                            : "opacity-0" // Hide X otherwise
+                        isTabHovered || isActive ? "opacity-100" : "opacity-0"
                       )} />
                     </span>
                   </span>
@@ -315,15 +230,6 @@ function TabItem({
           }
         />
         <ContextMenuContent>
-          <ContextMenuItem 
-            onClick={onStartRename}
-            disabled={!canRename}
-            title={!canRename ? "Cannot rename local files (name matches filesystem)" : undefined}
-          >
-            <Pencil className="size-4 mr-2" />
-            Rename
-          </ContextMenuItem>
-          <ContextMenuSeparator />
           <ContextMenuItem onClick={onClose}>
             Close
           </ContextMenuItem>
@@ -362,8 +268,28 @@ function TabItem({
             ? 'API request tab'
             : hasAssociatedFileHandle(tab) 
               ? 'Local file • Saved to disk' 
-              : 'Double-click to rename'}
+              : tab.directoryHandleId
+                ? 'Module directory • Saved to disk'
+                : isPortalBound
+                  ? 'Portal module • Not saved locally'
+                  : 'New file'}
         </div>
+        {(portalChanges || fileDirty) && (
+          <div className="flex items-center gap-2 text-[10px] mt-1 pt-1 border-t border-border/50">
+            {portalChanges && (
+              <span className="flex items-center gap-1 text-blue-400">
+                <Cloud className="size-2.5" />
+                Unpushed changes
+              </span>
+            )}
+            {fileDirty && (
+              <span className="flex items-center gap-1 text-amber-400">
+                <Circle className="size-2 fill-current" />
+                Unsaved changes
+              </span>
+            )}
+          </div>
+        )}
       </TooltipContent>
     </Tooltip>
   );
@@ -382,18 +308,16 @@ export function TabBar() {
     closeAllTabs,
     openTab,
     openApiExplorerTab,
-    renameTab,
     preferences,
     saveFile,
     saveFileAs,
+    saveModuleDirectory,
     canCommitModule,
     fetchModuleForCommit,
     setModuleCommitConfirmationOpen,
     moduleCommitConfirmationOpen,
   } = useEditorStore();
   
-  // Track which tab is being renamed
-  const [renamingTabId, setRenamingTabId] = useState<string | null>(null);
   // Track pending tab close with confirmation
   const [pendingCloseTabId, setPendingCloseTabId] = useState<string | null>(null);
   // Track tab to close after successful commit
@@ -538,11 +462,45 @@ export function TabBar() {
     }
   }, [moduleCommitConfirmationOpen, tabToCloseAfterCommit, tabs, closeTab]);
 
-  // Get pending tab info
+  // Get pending tab info for close confirmation
   const pendingTab = pendingCloseTabId ? tabs.find(t => t.id === pendingCloseTabId) : null;
   const isModuleTab = pendingTab?.source?.type === 'module';
   const isLocalFile = pendingTab ? hasAssociatedFileHandle(pendingTab) : false;
+  const isDirectorySaved = !!pendingTab?.directoryHandleId;
+  const pendingHasFileDirty = pendingTab ? isFileDirty(pendingTab) : false;
+  const pendingHasPortalChanges = pendingTab ? hasPortalChanges(pendingTab) : false;
   const canCommit = pendingCloseTabId && canCommitModule(pendingCloseTabId);
+  
+  // Determine dialog scenario
+  type CloseScenario = 'directory-saved' | 'portal-module' | 'local-file' | 'scratch';
+  const getCloseScenario = (): CloseScenario => {
+    if (!pendingTab) return 'scratch';
+    if (isDirectorySaved) return 'directory-saved';
+    if (isModuleTab) return 'portal-module';
+    if (isLocalFile) return 'local-file';
+    return 'scratch';
+  };
+  const closeScenario = getCloseScenario();
+
+  // Handle save to module directory for close dialog
+  const handleSaveToDirectoryAndClose = async () => {
+    if (!pendingCloseTabId) return;
+    // For already directory-saved tabs, just save
+    if (isDirectorySaved) {
+      const saved = await saveFile(pendingCloseTabId);
+      if (saved) {
+        closeTab(pendingCloseTabId);
+      }
+    } else {
+      // For portal modules not yet saved, save as module directory
+      const saved = await saveModuleDirectory(pendingCloseTabId);
+      if (saved) {
+        closeTab(pendingCloseTabId);
+      }
+    }
+    setPendingCloseTabId(null);
+  };
+  
   // Create a new untitled tab
   const handleNewTab = () => {
     if (isApiActive) {
@@ -584,22 +542,14 @@ export function TabBar() {
             key={tab.id}
             tab={tab}
             isActive={tab.id === activeTabId}
-            isRenaming={renamingTabId === tab.id}
             isFileDirty={isFileDirty(tab)}
             hasPortalChanges={hasPortalChanges(tab)}
-            canRename={!hasAssociatedFileHandle(tab)}
             selectedPortalId={selectedPortalId}
             portals={portals}
             onActivate={() => setActiveTab(tab.id)}
             onClose={() => handleTabClose(tab.id)}
             onCloseOthers={() => closeOtherTabs(tab.id)}
             onCloseAll={closeAllTabs}
-            onStartRename={() => setRenamingTabId(tab.id)}
-            onRename={(newName) => {
-              renameTab(tab.id, newName);
-              setRenamingTabId(null);
-            }}
-            onCancelRename={() => setRenamingTabId(null)}
           />
         ))}
       </div>
@@ -640,17 +590,33 @@ export function TabBar() {
       {/* Close Confirmation Dialog */}
       {pendingTab && (
         <AlertDialog open={pendingCloseTabId !== null} onOpenChange={(open) => !open && handleCancelClose()}>
-          <AlertDialogContent>
+          <AlertDialogContent className="max-w-xl!">
             <AlertDialogHeader>
               <AlertDialogMedia className="bg-amber-500/10">
                 <AlertTriangle className="size-8 text-amber-500" />
               </AlertDialogMedia>
-              <AlertDialogTitle>Unpushed Portal Changes</AlertDialogTitle>
+              <AlertDialogTitle>
+                {closeScenario === 'directory-saved' && 'Unsaved Changes'}
+                {closeScenario === 'portal-module' && 'Unpushed Portal Changes'}
+                {closeScenario === 'local-file' && 'Unsaved Changes'}
+                {closeScenario === 'scratch' && 'Unsaved File'}
+              </AlertDialogTitle>
               <AlertDialogDescription>
                 <span className="block">
-                  The file <strong>{pendingTab.displayName}</strong> has unpushed portal changes.
+                  <strong>{pendingTab.displayName}</strong>
+                  {closeScenario === 'directory-saved' && (
+                    <>
+                      {pendingHasFileDirty && ' has unsaved changes to disk'}
+                      {pendingHasFileDirty && pendingHasPortalChanges && ' and'}
+                      {pendingHasPortalChanges && ' has unpushed changes to the portal'}
+                      .
+                    </>
+                  )}
+                  {closeScenario === 'portal-module' && ' has unpushed portal changes.'}
+                  {closeScenario === 'local-file' && ' has unsaved changes.'}
+                  {closeScenario === 'scratch' && ' has not been saved.'}
                 </span>
-                <span className="block text-sm text-muted-foreground">
+                <span className="block text-sm text-muted-foreground mt-1">
                   What would you like to do before closing?
                 </span>
               </AlertDialogDescription>
@@ -659,7 +625,59 @@ export function TabBar() {
               <AlertDialogCancel onClick={handleCancelClose}>
                 Cancel
               </AlertDialogCancel>
-              {isLocalFile && (
+              
+              {/* Scenario: Directory-saved module */}
+              {closeScenario === 'directory-saved' && (
+                <>
+                  {pendingHasFileDirty && (
+                    <AlertDialogAction
+                      onClick={handleSaveToDirectoryAndClose}
+                      variant="commit"
+                      className="gap-2"
+                    >
+                      <Folder className="size-4" />
+                      Save to Directory
+                    </AlertDialogAction>
+                  )}
+                  {pendingHasPortalChanges && canCommit && (
+                    <AlertDialogAction
+                      onClick={handlePreviewCommit}
+                      variant="commit"
+                      className="gap-2"
+                    >
+                      <Upload className="size-4" />
+                      Push to Portal
+                    </AlertDialogAction>
+                  )}
+                </>
+              )}
+              
+              {/* Scenario: Portal module (not locally saved) */}
+              {closeScenario === 'portal-module' && (
+                <>
+                  {canCommit && (
+                    <AlertDialogAction
+                      onClick={handlePreviewCommit}
+                      variant="commit"
+                      className="gap-2"
+                    >
+                      <Upload className="size-4" />
+                      Push to Portal
+                    </AlertDialogAction>
+                  )}
+                  <AlertDialogAction
+                    onClick={handleSaveToDirectoryAndClose}
+                    variant="outline"
+                    className="gap-2"
+                  >
+                    <Folder className="size-4" />
+                    Save Module Directory
+                  </AlertDialogAction>
+                </>
+              )}
+              
+              {/* Scenario: Local file */}
+              {closeScenario === 'local-file' && (
                 <AlertDialogAction
                   onClick={handleSaveAndClose}
                   variant="commit"
@@ -669,36 +687,19 @@ export function TabBar() {
                   Save & Close
                 </AlertDialogAction>
               )}
-              {isModuleTab && canCommit && (
-                <AlertDialogAction
-                  onClick={handlePreviewCommit}
-                  variant="commit"
-                  className="gap-2"
-                >
-                  <Upload className="size-4" />
-                  Preview Push to Portal
-                </AlertDialogAction>
-              )}
-              {isModuleTab && !canCommit && (
+              
+              {/* Scenario: Scratch file */}
+              {closeScenario === 'scratch' && (
                 <AlertDialogAction
                   onClick={handleSaveAndClose}
                   variant="commit"
                   className="gap-2"
                 >
                   <Save className="size-4" />
-                  Save a Local Copy & Close
+                  Save As...
                 </AlertDialogAction>
               )}
-              {!isLocalFile && !isModuleTab && (
-                <AlertDialogAction
-                  onClick={handleSaveAndClose}
-                  variant="commit"
-                  className="gap-2"
-                >
-                  <Save className="size-4" />
-                  Save Locally
-                </AlertDialogAction>
-              )}
+              
               <AlertDialogAction
                 onClick={handleDiscardAndClose}
                 variant="destructive"

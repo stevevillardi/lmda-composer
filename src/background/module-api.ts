@@ -67,8 +67,6 @@ interface APIModule {
     method?: {
       name?: string;
       groovyScript?: string;
-      linuxScript?: string;
-      winScript?: string;
     };
     instanceAutoGroupMethod?: string; // none|netscaler|netscalerservicegroup|regex|esx|ilp
     instanceAutoGroupMethodParams?: string;
@@ -86,8 +84,6 @@ interface APIModule {
     name?: string;
     groovyScript?: string;
     scriptType?: string;
-    linuxScript?: string;
-    windowsScript?: string;
   };
   // LogSource uses collectionAttribute with nested script object
   collectionAttribute?: {
