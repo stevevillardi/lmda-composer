@@ -1,5 +1,5 @@
-import { Info, ChevronDown, ChevronRight, Play, Terminal, ListX } from 'lucide-react';
-import { SuccessIcon, ErrorIcon, WarningIcon, XCircleIcon, AlertTriangleIcon } from '../constants/icons';
+import { Info, ChevronDown, ChevronRight, Play, Terminal, ListX, XCircle, AlertTriangle } from 'lucide-react';
+import { SuccessIcon, ErrorIcon, WarningIcon } from '../constants/icons';
 import { useState, useMemo } from 'react';
 import { useEditorStore } from '../stores/editor-store';
 import {
@@ -556,8 +556,8 @@ function IssueDisplay({ issue }: IssueDisplayProps) {
     info: 'text-blue-500',
   };
   const icons = {
-    error: XCircleIcon,
-    warning: AlertTriangleIcon,
+    error: XCircle,
+    warning: AlertTriangle,
     info: Info,
   };
   const Icon = icons[issue.severity];

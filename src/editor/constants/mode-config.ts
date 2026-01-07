@@ -4,13 +4,7 @@
  * This provides a single source of truth for mode metadata including
  * labels, colors, and icons used across the application.
  */
-import { type LucideIcon } from 'lucide-react';
-import {
-  TerminalIcon,
-  TargetIcon,
-  ActivityIcon,
-  LayersIcon,
-} from './icons';
+import { type LucideIcon, Terminal, Target, Activity, Layers } from 'lucide-react';
 import type { ScriptMode } from '@/shared/types';
 
 interface ModeConfig {
@@ -33,27 +27,27 @@ interface ModeConfig {
 export const MODE_CONFIG: Record<ScriptMode, ModeConfig> = {
   freeform: {
     label: 'Freeform',
-    icon: TerminalIcon,
+    icon: Terminal,
     bgColor: 'bg-gray-500/20',
     textColor: 'text-gray-400',
   },
   ad: {
     label: 'Active Discovery',
     shortLabel: 'AD',
-    icon: TargetIcon,
+    icon: Target,
     bgColor: 'bg-purple-500/20',
     textColor: 'text-purple-400',
   },
   collection: {
     label: 'Collection',
-    icon: ActivityIcon,
+    icon: Activity,
     bgColor: 'bg-green-500/20',
     textColor: 'text-green-400',
   },
   batchcollection: {
     label: 'Batch Collection',
     shortLabel: 'Batch',
-    icon: LayersIcon,
+    icon: Layers,
     bgColor: 'bg-amber-500/20',
     textColor: 'text-amber-400',
   },

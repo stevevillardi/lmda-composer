@@ -21,7 +21,7 @@ import type {
 } from '@/shared/types';
 import { toast } from 'sonner';
 import { getExtensionForLanguage, getLanguageFromFilename } from '../../utils/file-extensions';
-import { createScratchDocument, isFileDirty, getDocumentType, convertToLocalDocument, updateDocumentAfterSave } from '../../utils/document-helpers';
+import { createScratchDocument, isFileDirty, getDocumentType, convertToLocalDocument, updateDocumentAfterSave, hasAssociatedFileHandle, getOriginalContent } from '../../utils/document-helpers';
 import { getDefaultScriptTemplate, DEFAULT_GROOVY_TEMPLATE, DEFAULT_POWERSHELL_TEMPLATE } from '../../config/script-templates';
 import { normalizeMode } from '../../utils/mode-utils';
 import * as documentStore from '../../utils/document-store';
@@ -252,8 +252,8 @@ export const createTabsSlice: StateCreator<
       source: tabData.source,
       contextOverride: tabData.contextOverride,
       api: tabData.api,
-      // Unified document state
-      document: tabData.document,
+      // Unified document state - default to scratch if not provided
+      document: tabData.document ?? createScratchDocument(),
       // Legacy fields for backwards compatibility
       originalContent: tabData.originalContent,
       hasFileHandle: tabData.hasFileHandle,
@@ -505,7 +505,7 @@ export const createTabsSlice: StateCreator<
       newDisplayName = `${baseName}.${language === 'groovy' ? 'groovy' : 'ps1'}`;
       
       // If this tab has a file handle, disconnect it since the extension no longer matches
-      if (activeTab.hasFileHandle) {
+      if (hasAssociatedFileHandle(activeTab)) {
         shouldClearFileHandle = true;
       }
     }
@@ -522,6 +522,8 @@ export const createTabsSlice: StateCreator<
               // The old file handle remains in IndexedDB for recent files access
               hasFileHandle: shouldClearFileHandle ? false : t.hasFileHandle,
               fileHandleId: shouldClearFileHandle ? undefined : t.fileHandleId,
+              // Also update document state when clearing file handle
+              document: shouldClearFileHandle ? createScratchDocument() : t.document,
             }
           : t
       ),
@@ -813,7 +815,7 @@ export const createTabsSlice: StateCreator<
     }
 
     // If no file handle, redirect to Save As (handles language change disconnect)
-    if (!tab.hasFileHandle || !tab.fileHandleId) {
+    if (!hasAssociatedFileHandle(tab) || !tab.fileHandleId) {
       return await get().saveFileAs(targetTabId);
     }
 
@@ -1057,13 +1059,18 @@ export const createTabsSlice: StateCreator<
             const newContent = await documentStore.readFromHandle(handle);
             const tab = tabs.find(t => t.id === status.tabId);
             
-            if (tab && tab.originalContent !== newContent) {
+            if (tab && getOriginalContent(tab) !== newContent) {
               // File was modified externally - update originalContent
               // Keep user's current edits, but update the baseline
               set({
                 tabs: get().tabs.map(t => 
                   t.id === status.tabId 
-                    ? { ...t, originalContent: newContent, hasFileHandle: true }
+                    ? { 
+                        ...t, 
+                        originalContent: newContent, 
+                        hasFileHandle: true,
+                        document: t.document ? updateDocumentAfterSave(t.document, newContent) : t.document,
+                      }
                     : t
                 ),
               });

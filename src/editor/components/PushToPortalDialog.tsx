@@ -35,9 +35,6 @@ interface PushToPortalDialogProps {
   isPushing?: boolean;
 }
 
-/** @deprecated Use PushToPortalDialogProps instead */
-export type ModuleCommitConfirmationDialogProps = PushToPortalDialogProps;
-
 const MODULE_TYPE_LABELS: Record<LogicModuleType, string> = {
   datasource: 'DataSource',
   configsource: 'ConfigSource',
@@ -728,6 +725,3 @@ export function PushToPortalDialog({
     </Dialog>
   );
 }
-
-/** @deprecated Use PushToPortalDialog instead */
-export const ModuleCommitConfirmationDialog = PushToPortalDialog;

@@ -1,5 +1,5 @@
-import { Info, FileText, Play, Terminal } from 'lucide-react';
-import { SuccessIcon, ErrorIcon, CheckCircle2Icon, XCircleIcon, AlertTriangleIcon } from '../constants/icons';
+import { Info, FileText, Play, Terminal, CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
+import { SuccessIcon, ErrorIcon } from '../constants/icons';
 import { useMemo } from 'react';
 import { useEditorStore } from '../stores/editor-store';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -124,19 +124,19 @@ function ValidationSummary({ result }: ValidationSummaryProps) {
         <SummaryCard
           title="Valid"
           value={summary.valid}
-          icon={CheckCircle2Icon}
+          icon={CheckCircle2}
           className={summary.valid > 0 ? 'bg-green-500/10 text-green-600' : 'bg-muted/30'}
         />
         <SummaryCard
           title="Errors"
           value={summary.errors}
-          icon={XCircleIcon}
+          icon={XCircle}
           className={summary.errors > 0 ? 'bg-red-500/10 text-red-500' : 'bg-muted/30'}
         />
         <SummaryCard
           title="Warnings"
           value={summary.warnings}
-          icon={AlertTriangleIcon}
+          icon={AlertTriangle}
           className={summary.warnings > 0 ? 'bg-yellow-500/10 text-yellow-500' : 'bg-muted/30'}
         />
       </div>
@@ -164,7 +164,7 @@ function ValidationSummary({ result }: ValidationSummaryProps) {
             <IssueSection
               title="Errors"
               issues={errors}
-              icon={XCircleIcon}
+              icon={XCircle}
               iconClass="text-red-500"
               badgeVariant="destructive"
             />
@@ -175,7 +175,7 @@ function ValidationSummary({ result }: ValidationSummaryProps) {
             <IssueSection
               title="Warnings"
               issues={warnings}
-              icon={AlertTriangleIcon}
+              icon={AlertTriangle}
               iconClass="text-yellow-500"
               badgeVariant="outline"
               badgeClass="text-yellow-500 border-yellow-500/30"

@@ -2,7 +2,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import { ModuleCommitConfirmationDialog } from '../src/editor/components/PushToPortalDialog';
+import { PushToPortalDialog } from '../src/editor/components/PushToPortalDialog';
 import { useEditorStore } from '../src/editor/stores/editor-store';
 import type { EditorTab } from '../src/shared/types';
 
@@ -12,7 +12,7 @@ vi.mock('../src/editor/components/DiffEditor', () => ({
 
 const initialState = useEditorStore.getState();
 
-describe('ModuleCommitConfirmationDialog', () => {
+describe('PushToPortalDialog', () => {
   beforeEach(() => {
     useEditorStore.setState(initialState, true);
 
@@ -54,7 +54,7 @@ describe('ModuleCommitConfirmationDialog', () => {
 
   it('shows empty state when only module details change', () => {
     render(
-      <ModuleCommitConfirmationDialog
+      <PushToPortalDialog
         open={true}
         onOpenChange={() => {}}
         onConfirm={async () => {}}
