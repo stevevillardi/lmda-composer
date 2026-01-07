@@ -15,6 +15,7 @@ import { BraveFileSystemWarning } from './components/BraveFileSystemWarning';
 import { DebugCommandsDialog } from './components/DebugCommandsDialog';
 import { ModuleDetailsDialog } from './components/ModuleDetailsDialog';
 import { ModuleSnippetsDialog } from './components/ModuleSnippetsDialog';
+import { OpenModuleDirectoryDialog } from './components/OpenModuleDirectoryDialog';
 import { useEditorStore } from './stores/editor-store';
 import { Button } from '@/components/ui/button';
 import {
@@ -182,6 +183,7 @@ export function App() {
     saveOptionsDialogTabId,
     setSaveOptionsDialogOpen,
     saveFileAs,
+    saveModuleDirectory,
   } = useEditorStore();
   
   // Get active tab for auto-save trigger and window title
@@ -503,6 +505,7 @@ export function App() {
         </Suspense>
       )}
       <ModuleDetailsDialog />
+      <OpenModuleDirectoryDialog />
       {/* Save Options Dialog (for portal documents) */}
       <Suspense fallback={null}>
         <SaveOptionsDialogLazy
@@ -512,6 +515,11 @@ export function App() {
           onSaveLocal={async () => {
             if (saveOptionsDialogTabId) {
               await saveFileAs(saveOptionsDialogTabId);
+            }
+          }}
+          onSaveModuleDirectory={async () => {
+            if (saveOptionsDialogTabId) {
+              await saveModuleDirectory(saveOptionsDialogTabId);
             }
           }}
         />

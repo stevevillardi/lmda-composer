@@ -10,6 +10,7 @@ import {
   FolderSearch,
   Terminal,
   Braces,
+  Folder,
 } from 'lucide-react';
 import { Kbd } from '@/components/ui/kbd';
 import { useEditorStore } from '../stores/editor-store';
@@ -83,6 +84,34 @@ function ActionRow({
   return button;
 }
 
+// Helper functions for time formatting
+function formatTimeAgo(timestamp: number) {
+  const seconds = Math.floor((Date.now() - timestamp) / 1000);
+  if (seconds < 60) return 'Just now';
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
+}
+
+function formatDate(timestamp: number) {
+  const date = new Date(timestamp);
+  return (
+    date.toLocaleDateString(undefined, {
+      month: 'short',
+      day: 'numeric',
+      year: date.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined,
+    }) +
+    ', ' +
+    date.toLocaleTimeString(undefined, {
+      hour: 'numeric',
+      minute: '2-digit',
+    })
+  );
+}
+
 interface RecentFileItemProps {
   fileName: string;
   lastAccessed: number;
@@ -94,33 +123,6 @@ function RecentFileItem({
   lastAccessed, 
   onClick,
 }: RecentFileItemProps) {
-  const formatTimeAgo = (timestamp: number) => {
-    const seconds = Math.floor((Date.now() - timestamp) / 1000);
-    if (seconds < 60) return 'Just now';
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes}m ago`;
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours}h ago`;
-    const days = Math.floor(hours / 24);
-    return `${days}d ago`;
-  };
-
-  const formatDate = (timestamp: number) => {
-    const date = new Date(timestamp);
-    return (
-      date.toLocaleDateString(undefined, {
-        month: 'short',
-        day: 'numeric',
-        year: date.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined,
-      }) +
-      ', ' +
-      date.toLocaleTimeString(undefined, {
-        hour: 'numeric',
-        minute: '2-digit',
-      })
-    );
-  };
-
   return (
     <button
       onClick={onClick}
@@ -147,13 +149,61 @@ function RecentFileItem({
   );
 }
 
+interface RecentDirectoryItemProps {
+  directoryName: string;
+  moduleName: string;
+  moduleType: string;
+  portalHostname: string;
+  lastAccessed: number;
+  onClick: () => void;
+}
+
+function RecentDirectoryItem({ 
+  directoryName, 
+  moduleName,
+  moduleType,
+  portalHostname,
+  lastAccessed, 
+  onClick,
+}: RecentDirectoryItemProps) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "flex items-center gap-3 w-full px-3.5 py-2.5 text-left",
+        "hover:bg-accent transition-colors group"
+      )}
+    >
+      <Folder className="size-4 text-primary/70 group-hover:text-primary shrink-0" />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="text-sm truncate text-foreground group-hover:text-primary">
+            {moduleName}
+          </span>
+          <span className="text-xs text-muted-foreground/60 bg-muted/50 px-1.5 py-0.5 rounded">
+            {moduleType}
+          </span>
+        </div>
+        <div className="text-xs text-muted-foreground truncate">
+          {directoryName} • {portalHostname}
+        </div>
+      </div>
+      <span className="text-xs text-muted-foreground shrink-0 ml-auto">
+        {formatTimeAgo(lastAccessed)}
+      </span>
+    </button>
+  );
+}
+
 export function WelcomeScreenV2() {
   const {
     selectedPortalId,
     recentFiles,
+    recentDirectories,
     isLoadingRecentFiles,
     loadRecentFiles,
     openRecentFile,
+    showOpenModuleDirectoryDialog,
     createNewFile,
     openFileFromDisk,
     setActiveWorkspace,
@@ -167,7 +217,7 @@ export function WelcomeScreenV2() {
     loadRecentFiles();
   }, [loadRecentFiles]);
 
-  const hasRecentFiles = recentFiles.length > 0;
+  const hasRecentFiles = recentFiles.length > 0 || recentDirectories.length > 0;
 
   return (
     <div className="h-full flex flex-col bg-background overflow-auto" tabIndex={-1}>
@@ -276,14 +326,46 @@ export function WelcomeScreenV2() {
                   </div>
                 ) : hasRecentFiles ? (
                   <div className="divide-y divide-border max-h-[360px] overflow-y-auto">
-                    {recentFiles.map((file) => (
-                      <RecentFileItem
-                        key={file.tabId}
-                        fileName={file.fileName}
-                        lastAccessed={file.lastAccessed}
-                        onClick={() => openRecentFile(file.tabId)}
-                      />
-                    ))}
+                    {/* Combine and sort files and directories by lastAccessed */}
+                    {[
+                      ...recentDirectories.map(dir => ({
+                        type: 'directory' as const,
+                        id: dir.id,
+                        displayName: dir.moduleName,
+                        directoryName: dir.directoryName,
+                        moduleType: dir.moduleType,
+                        portalHostname: dir.portalHostname,
+                        lastAccessed: dir.lastAccessed,
+                      })),
+                      ...recentFiles.map(file => ({
+                        type: 'file' as const,
+                        id: file.tabId,
+                        displayName: file.fileName,
+                        lastAccessed: file.lastAccessed,
+                      })),
+                    ]
+                      .sort((a, b) => b.lastAccessed - a.lastAccessed)
+                      .slice(0, 10)
+                      .map((item) => (
+                        item.type === 'directory' ? (
+                          <RecentDirectoryItem
+                            key={`dir-${item.id}`}
+                            directoryName={item.directoryName!}
+                            moduleName={item.displayName}
+                            moduleType={item.moduleType!}
+                            portalHostname={item.portalHostname!}
+                            lastAccessed={item.lastAccessed}
+                            onClick={() => showOpenModuleDirectoryDialog(item.id)}
+                          />
+                        ) : (
+                          <RecentFileItem
+                            key={`file-${item.id}`}
+                            fileName={item.displayName}
+                            lastAccessed={item.lastAccessed}
+                            onClick={() => openRecentFile(item.id)}
+                          />
+                        )
+                      ))}
                   </div>
                 ) : (
                   <Empty className="border-0 py-10">

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Upload, Loader2, AlertCircle, type LucideIcon, Info, FolderTree, Shield, Filter, Target, Database, Bell } from 'lucide-react';
+import { Upload, Loader2, AlertCircle, type LucideIcon, Info, FolderTree, Shield, Filter, Target, Database, Bell, FileCode, FolderSearch } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -68,7 +69,7 @@ export function PushToPortalDialog({
   const setCommitReason = setPushReason;
   const commitError = pushError;
   const setCommitError = setPushError;
-  const { preferences, activeTabId, moduleDetailsDraftByTabId, accessGroups } = useEditorStore();
+  const { preferences, activeTabId, moduleDetailsDraftByTabId, accessGroups, directoryScriptsForCommit, selectedScriptsForCommit, toggleScriptForCommit } = useEditorStore();
   
   // Get module details changes
   const moduleDetailsDraft = activeTabId ? moduleDetailsDraftByTabId[activeTabId] : null;
@@ -76,6 +77,11 @@ export function PushToPortalDialog({
   const hasScriptChanges = originalScript.trim() !== newScript.trim();
   const hasAdConfigPayload = scriptType === 'ad' && hasScriptChanges && !!moduleDetailsDraft?.draft?.autoDiscoveryConfig;
   const scriptTypeLabel = scriptType === 'ad' ? 'Active Discovery Script' : 'Collection Script';
+  
+  // Directory scripts support
+  const hasDirectoryScripts = directoryScriptsForCommit && directoryScriptsForCommit.length > 0;
+  const scriptsWithChanges = directoryScriptsForCommit?.filter(s => s.hasChanges) ?? [];
+  const hasSelectedScripts = selectedScriptsForCommit.size > 0;
   const normalizeAccessGroupIds = (value: unknown): number[] => {
     if (Array.isArray(value)) {
       return value
@@ -494,7 +500,7 @@ export function PushToPortalDialog({
   };
 
   const hasDetailsSection = hasModuleDetailsChanges || hasAdConfigPayload;
-  const hasChanges = hasScriptChanges || hasModuleDetailsChanges;
+  const hasChanges = hasScriptChanges || hasModuleDetailsChanges || hasSelectedScripts;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -550,11 +556,114 @@ export function PushToPortalDialog({
             </div>
           </div>
 
-          {/* Script comparison */}
-          {(hasScriptChanges || hasModuleDetailsChanges) && (
+          {/* Directory Scripts Selection - shown when pushing from a saved module directory */}
+          {hasDirectoryScripts && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <FolderSearch className="size-4 text-muted-foreground" />
+                <Label className="text-sm font-medium">Scripts to Push</Label>
+                <Badge variant="secondary" className="text-xs">
+                  {scriptsWithChanges.length} changed
+                </Badge>
+              </div>
+              <div className="border border-border rounded-md divide-y divide-border">
+                {directoryScriptsForCommit!.map((script) => (
+                  <label
+                    key={script.scriptType}
+                    className="flex items-center gap-3 p-3 hover:bg-muted/40 cursor-pointer transition-colors"
+                  >
+                    <Checkbox
+                      checked={selectedScriptsForCommit.has(script.scriptType)}
+                      onCheckedChange={() => toggleScriptForCommit(script.scriptType)}
+                      disabled={!script.hasChanges}
+                      aria-label={`Include ${script.scriptType === 'ad' ? 'Active Discovery' : 'Collection'} script`}
+                    />
+                    <div className="flex items-center gap-2 flex-1">
+                      <FileCode className="size-4 text-muted-foreground" />
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium">
+                          {script.scriptType === 'ad' ? 'Active Discovery Script' : 'Collection Script'}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          {script.fileName}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={script.language === 'powershell' ? 'default' : 'secondary'} className="text-xs">
+                        {script.language === 'powershell' ? 'PowerShell' : 'Groovy'}
+                      </Badge>
+                      {script.hasChanges ? (
+                        <Badge variant="outline" className="text-xs text-amber-600 border-amber-600/50">
+                          Modified
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-xs text-muted-foreground">
+                          No changes
+                        </Badge>
+                      )}
+                    </div>
+                  </label>
+                ))}
+              </div>
+              {!hasSelectedScripts && scriptsWithChanges.length > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Select at least one script to push, or push module details only.
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Script comparison - Directory mode shows selected scripts, single mode shows active tab */}
+          {(hasScriptChanges || hasModuleDetailsChanges || hasDirectoryScripts) && (
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Script Changes</Label>
-              {hasScriptChanges ? (
+              <Label className="text-sm font-medium">Script Preview</Label>
+              {hasDirectoryScripts ? (
+                // Directory mode - show diffs for selected scripts
+                selectedScriptsForCommit.size > 0 ? (
+                  <Tabs defaultValue={Array.from(selectedScriptsForCommit)[0]} className="flex flex-col gap-2">
+                    <TabsList variant="line" className="h-7">
+                      {directoryScriptsForCommit!
+                        .filter(s => selectedScriptsForCommit.has(s.scriptType))
+                        .map((script) => (
+                          <TabsTrigger key={script.scriptType} value={script.scriptType} className="h-6 text-xs px-2">
+                            {script.scriptType === 'ad' ? 'Active Discovery' : 'Collection'}
+                          </TabsTrigger>
+                        ))}
+                    </TabsList>
+                    {directoryScriptsForCommit!
+                      .filter(s => selectedScriptsForCommit.has(s.scriptType))
+                      .map((script) => (
+                        <TabsContent key={script.scriptType} value={script.scriptType}>
+                          <div className="border border-border rounded-md overflow-hidden">
+                            <div className="grid grid-cols-2 border-b border-border bg-muted/30">
+                              <div className="px-4 py-2 text-xs font-medium text-muted-foreground border-r border-border">
+                                Portal (Current)
+                              </div>
+                              <div className="px-4 py-2 text-xs font-medium text-muted-foreground">
+                                Local (Disk)
+                              </div>
+                            </div>
+                            <DiffEditor
+                              original={script.portalContent}
+                              modified={script.diskContent}
+                              language={script.language}
+                              height="350px"
+                              theme={monacoTheme}
+                              readOnly={true}
+                            />
+                          </div>
+                        </TabsContent>
+                      ))}
+                  </Tabs>
+                ) : (
+                  <div className="flex items-center gap-2 border border-dashed border-border rounded-md p-3 bg-muted/20 text-xs text-muted-foreground">
+                    <Info className="size-4" />
+                    No scripts selected. Select scripts above or push module details only.
+                  </div>
+                )
+              ) : hasScriptChanges ? (
+                // Single script mode - show active tab diff
                 originalScript !== undefined && newScript !== undefined ? (
                   <div className="border border-border rounded-md overflow-hidden">
                     <div className="grid grid-cols-2 border-b border-border bg-muted/30">

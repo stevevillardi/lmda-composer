@@ -189,6 +189,12 @@ export interface EditorTab {
    * old file remains in recent files while the tab gets a new handle for the new file.
    */
   fileHandleId?: string;
+  
+  /**
+   * ID used to look up the directory handle in IndexedDB.
+   * Present when this tab is part of a module saved to a local directory.
+   */
+  directoryHandleId?: string;
 }
 
 // ============================================================================
@@ -281,6 +287,70 @@ export interface RecentDocument {
   moduleName?: string;
   /** For portal types */
   scriptType?: 'collection' | 'ad';
+}
+
+// ============================================================================
+// Module Directory Configuration (module.json)
+// ============================================================================
+
+/**
+ * Script metadata stored in module.json
+ */
+export interface ModuleDirectoryScript {
+  /** File name on disk (e.g., "collection.groovy" or "ad.ps1") */
+  fileName: string;
+  /** Script language */
+  language: ScriptLanguage;
+  /** Script mode */
+  mode: ScriptMode;
+  /** SHA-256 checksum of portal content at last sync (for push detection) */
+  portalChecksum: string;
+  /** SHA-256 checksum of disk content at last sync (for external change detection) */
+  diskChecksum?: string;
+}
+
+/**
+ * Module directory configuration file (module.json)
+ * Stored at the root of the module directory.
+ */
+export interface ModuleDirectoryConfig {
+  /** Schema version for future compatibility */
+  version: 1;
+  
+  /** Portal binding information */
+  portalBinding: {
+    /** Portal ID (internal) */
+    portalId: string;
+    /** Portal hostname (e.g., "acme.logicmonitor.com") */
+    portalHostname: string;
+    /** Module ID in portal */
+    moduleId: number;
+    /** Module type (DataSource, ConfigSource, etc.) */
+    moduleType: LogicModuleType;
+    /** Technical module name */
+    moduleName: string;
+    /** Lineage ID for version history */
+    lineageId?: string;
+  };
+  
+  /** Script file mappings */
+  scripts: {
+    collection?: ModuleDirectoryScript;
+    ad?: ModuleDirectoryScript;
+  };
+  
+  /** Module details snapshot (for push operations) */
+  moduleDetails?: {
+    /** Portal version number at last sync */
+    portalVersion: number;
+    /** When last pulled from portal */
+    lastPulledAt: string;
+    /** Serialized module details values */
+    values: Record<string, unknown>;
+  };
+  
+  /** When this directory was last synced (push or pull) */
+  lastSyncedAt: string;
 }
 
 // Multi-tab Draft Auto-save

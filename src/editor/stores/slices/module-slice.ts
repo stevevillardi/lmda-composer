@@ -34,10 +34,29 @@ import {
   getModuleTabIds 
 } from '../helpers/slice-helpers';
 import { sendMessage, sendMessageIgnoreError } from '../../utils/chrome-messaging';
+import * as documentStore from '../../utils/document-store';
 
 // ============================================================================
 // Types
 // ============================================================================
+
+/**
+ * Script from a module directory ready for commit.
+ */
+export interface DirectoryScriptForCommit {
+  scriptType: 'collection' | 'ad';
+  fileName: string;
+  language: ScriptLanguage;
+  mode: ScriptMode;
+  /** Current content on disk */
+  diskContent: string;
+  /** Checksum of portal content at last sync (from module.json) */
+  portalChecksum: string;
+  /** Portal content (fetched for diff display) */
+  portalContent: string;
+  /** Whether this script has changes from portal baseline */
+  hasChanges: boolean;
+}
 
 /**
  * State managed by the module slice.
@@ -83,6 +102,10 @@ export interface ModuleSliceState {
   moduleCommitConfirmationOpen: boolean;
   loadedModuleForCommit: LogicModuleInfo | null;
   moduleCommitConflict: { hasConflict: boolean; message?: string; portalVersion?: number } | null;
+  /** Directory scripts to push (when opening from saved module directory) */
+  directoryScriptsForCommit: DirectoryScriptForCommit[] | null;
+  /** Selected script types to include in push */
+  selectedScriptsForCommit: Set<'collection' | 'ad'>;
   
   // Save options dialog (for portal documents)
   saveOptionsDialogOpen: boolean;
@@ -130,6 +153,7 @@ export interface ModuleSliceActions {
   commitModuleScript: (tabId: string, reason?: string) => Promise<void>;
   canCommitModule: (tabId: string) => boolean;
   setModuleCommitConfirmationOpen: (open: boolean) => void;
+  toggleScriptForCommit: (scriptType: 'collection' | 'ad') => void;
   
   // Save options dialog
   setSaveOptionsDialogOpen: (open: boolean, tabId?: string) => void;
@@ -278,6 +302,8 @@ export const moduleSliceInitialState: ModuleSliceState = {
   moduleCommitConfirmationOpen: false,
   loadedModuleForCommit: null,
   moduleCommitConflict: null,
+  directoryScriptsForCommit: null,
+  selectedScriptsForCommit: new Set(),
   
   // Save options dialog
   saveOptionsDialogOpen: false,
@@ -970,8 +996,25 @@ export const createModuleSlice: StateCreator<
   setModuleCommitConfirmationOpen: (open: boolean) => {
     set({ moduleCommitConfirmationOpen: open });
     if (!open) {
-      set({ loadedModuleForCommit: null, moduleCommitError: null, moduleCommitConflict: null });
+      set({ 
+        loadedModuleForCommit: null, 
+        moduleCommitError: null, 
+        moduleCommitConflict: null,
+        directoryScriptsForCommit: null,
+        selectedScriptsForCommit: new Set(),
+      });
     }
+  },
+
+  toggleScriptForCommit: (scriptType: 'collection' | 'ad') => {
+    const { selectedScriptsForCommit } = get();
+    const newSet = new Set(selectedScriptsForCommit);
+    if (newSet.has(scriptType)) {
+      newSet.delete(scriptType);
+    } else {
+      newSet.add(scriptType);
+    }
+    set({ selectedScriptsForCommit: newSet });
   },
 
   canCommitModule: (tabId: string) => {
@@ -1085,6 +1128,98 @@ export const createModuleSlice: StateCreator<
             ),
           } as Partial<ModuleSlice & ModuleSliceDependencies>);
         }
+        
+        // Check if this is a directory-saved module - if so, load all scripts from disk
+        if (tab.directoryHandleId) {
+          try {
+            const storedDir = await documentStore.getDirectoryHandleRecord(tab.directoryHandleId);
+            if (storedDir) {
+              // Request permission for the directory
+              const handleWithPermission = storedDir.handle as unknown as { 
+                requestPermission(options?: { mode?: string }): Promise<PermissionState>;
+              };
+              const permissionStatus = await handleWithPermission.requestPermission({ mode: 'read' });
+              if (permissionStatus === 'granted') {
+                // Read module.json to get script metadata
+                const moduleJsonContent = await documentStore.readFileFromDirectory(storedDir.handle, 'module.json');
+                if (moduleJsonContent) {
+                  const moduleConfig = JSON.parse(moduleJsonContent);
+                  const directoryScripts: DirectoryScriptForCommit[] = [];
+                  const selectedScripts = new Set<'collection' | 'ad'>();
+                  
+                  // Process collection script
+                  if (moduleConfig.scripts?.collection) {
+                    const collectionMeta = moduleConfig.scripts.collection;
+                    const collectionContent = await documentStore.readFileFromDirectory(storedDir.handle, collectionMeta.fileName);
+                    if (collectionContent !== null) {
+                      // Get portal collection script for comparison
+                      let portalCollectionScript = '';
+                      if (
+                        tab.source!.moduleType === 'propertysource' ||
+                        tab.source!.moduleType === 'diagnosticsource' ||
+                        tab.source!.moduleType === 'eventsource'
+                      ) {
+                        portalCollectionScript = module.groovyScript || '';
+                      } else if (tab.source!.moduleType === 'logsource') {
+                        portalCollectionScript = module.collectionAttribute?.script?.embeddedContent
+                          || module.collectionAttribute?.groovyScript
+                          || '';
+                      } else {
+                        portalCollectionScript = module.collectorAttribute?.groovyScript || '';
+                      }
+                      
+                      const diskHasChanges = collectionContent.trim() !== portalCollectionScript.trim();
+                      directoryScripts.push({
+                        scriptType: 'collection',
+                        fileName: collectionMeta.fileName,
+                        language: collectionMeta.language || 'groovy',
+                        mode: collectionMeta.mode || 'collection',
+                        diskContent: collectionContent,
+                        portalChecksum: collectionMeta.portalChecksum || '',
+                        portalContent: portalCollectionScript,
+                        hasChanges: diskHasChanges,
+                      });
+                      if (diskHasChanges) {
+                        selectedScripts.add('collection');
+                      }
+                    }
+                  }
+                  
+                  // Process AD script
+                  if (moduleConfig.scripts?.ad) {
+                    const adMeta = moduleConfig.scripts.ad;
+                    const adContent = await documentStore.readFileFromDirectory(storedDir.handle, adMeta.fileName);
+                    if (adContent !== null) {
+                      const portalAdScript = module.autoDiscoveryConfig?.method?.groovyScript || '';
+                      const diskHasChanges = adContent.trim() !== portalAdScript.trim();
+                      directoryScripts.push({
+                        scriptType: 'ad',
+                        fileName: adMeta.fileName,
+                        language: adMeta.language || 'groovy',
+                        mode: adMeta.mode || 'ad',
+                        diskContent: adContent,
+                        portalChecksum: adMeta.portalChecksum || '',
+                        portalContent: portalAdScript,
+                        hasChanges: diskHasChanges,
+                      });
+                      if (diskHasChanges) {
+                        selectedScripts.add('ad');
+                      }
+                    }
+                  }
+                  
+                  set({
+                    directoryScriptsForCommit: directoryScripts.length > 0 ? directoryScripts : null,
+                    selectedScriptsForCommit: selectedScripts,
+                  });
+                }
+              }
+            }
+          } catch (dirError) {
+            console.error('Failed to read directory scripts:', dirError);
+            // Continue without directory scripts - user can still push active tab
+          }
+        }
       } else {
         // Handle error response
         const errorMessage = result.error || 'Failed to fetch module';
@@ -1109,7 +1244,7 @@ export const createModuleSlice: StateCreator<
   },
 
   commitModuleScript: async (tabId: string, reason?: string) => {
-    const { tabs, selectedPortalId, portals, moduleDetailsDraftByTabId } = get();
+    const { tabs, selectedPortalId, portals, moduleDetailsDraftByTabId, directoryScriptsForCommit, selectedScriptsForCommit } = get();
     const tab = tabs.find(t => t.id === tabId);
     
     if (!tab) {
@@ -1129,18 +1264,53 @@ export const createModuleSlice: StateCreator<
       const moduleDetailsDraft = moduleDetailsDraftByTabId[tabId];
       const hasModuleDetailsChanges = moduleDetailsDraft && moduleDetailsDraft.dirtyFields.size > 0;
       
-      // Check if script has changes compared to portal
-      const hasScriptChanges = tab.content !== getOriginalContent(tab);
+      // Determine scripts to push based on whether we have directory scripts
+      const isDirectoryPush = directoryScriptsForCommit && directoryScriptsForCommit.length > 0 && selectedScriptsForCommit.size > 0;
       
-      if (!hasScriptChanges && !hasModuleDetailsChanges) {
+      // For directory push, get scripts from disk; otherwise use active tab
+      let collectionScript: string | undefined;
+      let adScript: string | undefined;
+      let pushingCollection = false;
+      let pushingAd = false;
+      
+      if (isDirectoryPush) {
+        // Push selected scripts from directory
+        for (const scriptInfo of directoryScriptsForCommit) {
+          if (selectedScriptsForCommit.has(scriptInfo.scriptType)) {
+            if (scriptInfo.scriptType === 'collection') {
+              collectionScript = scriptInfo.diskContent;
+              pushingCollection = true;
+            } else if (scriptInfo.scriptType === 'ad') {
+              adScript = scriptInfo.diskContent;
+              pushingAd = true;
+            }
+          }
+        }
+      } else {
+        // Standard push - use active tab content
+        const hasScriptChanges = tab.content !== getOriginalContent(tab);
+        if (hasScriptChanges) {
+          if (tab.source.scriptType === 'collection') {
+            collectionScript = tab.content;
+            pushingCollection = true;
+          } else if (tab.source.scriptType === 'ad') {
+            adScript = tab.content;
+            pushingAd = true;
+          }
+        }
+      }
+      
+      const hasAnyScriptChanges = pushingCollection || pushingAd;
+      
+      if (!hasAnyScriptChanges && !hasModuleDetailsChanges) {
         throw new Error('No changes to push');
       }
 
       // Build module details payload if there are changes
+      const schema = MODULE_TYPE_SCHEMAS[tab.source.moduleType];
       let moduleDetailsPayload: Record<string, unknown> | undefined;
 
       if (hasModuleDetailsChanges && moduleDetailsDraft) {
-        const schema = MODULE_TYPE_SCHEMAS[tab.source.moduleType];
         const payload: Record<string, unknown> = {};
         for (const field of moduleDetailsDraft.dirtyFields) {
           const draftValue = moduleDetailsDraft.draft[field as keyof typeof moduleDetailsDraft.draft];
@@ -1179,17 +1349,39 @@ export const createModuleSlice: StateCreator<
         }
         moduleDetailsPayload = payload;
       }
+      
+      // If pushing AD script, we must include full autoDiscoveryConfig
+      // The AD script is nested inside autoDiscoveryConfig.method.groovyScript
+      if (pushingAd && adScript !== undefined) {
+        const existingAdConfig = moduleDetailsPayload?.autoDiscoveryConfig as Record<string, unknown> | undefined 
+          || (moduleDetailsDraft?.draft?.autoDiscoveryConfig as Record<string, unknown> | undefined)
+          || {};
+        const existingMethod = (existingAdConfig.method || {}) as Record<string, unknown>;
+        
+        // Ensure we have autoDiscoveryConfig with the script in it
+        moduleDetailsPayload = moduleDetailsPayload || {};
+        moduleDetailsPayload.autoDiscoveryConfig = {
+          ...existingAdConfig,
+          method: {
+            ...existingMethod,
+            groovyScript: adScript,
+          },
+        };
+      }
 
       const trimmedReason = reason?.trim();
       const limitedReason = trimmedReason ? trimmedReason.slice(0, 4096) : undefined;
+      
+      // Push the changes - we'll push collection script via newScript if applicable
+      // AD script changes are included via autoDiscoveryConfig in moduleDetails
       const result = await sendMessage({
         type: 'COMMIT_MODULE_SCRIPT',
         payload: {
           portalId: binding.portalId,
           moduleType: tab.source.moduleType,
           moduleId: tab.source.moduleId,
-          scriptType: tab.source.scriptType,
-          newScript: hasScriptChanges ? tab.content : undefined,
+          scriptType: pushingCollection ? 'collection' : tab.source.scriptType,
+          newScript: pushingCollection ? collectionScript : undefined,
           moduleDetails: moduleDetailsPayload,
           reason: limitedReason,
         },
@@ -1197,14 +1389,27 @@ export const createModuleSlice: StateCreator<
       
       if (result.ok) {
         // Update document.portal.lastKnownContent to reflect the committed state
-        const updatedTabs = tabs.map(t => 
-          t.id === tabId 
-            ? { 
-                ...t, 
-                document: t.document ? updateDocumentAfterPush(t.document, t.content) : t.document,
-              }
-            : t
-        );
+        const updatedTabs = tabs.map(t => {
+          if (t.id === tabId) {
+            return { 
+              ...t, 
+              document: t.document ? updateDocumentAfterPush(t.document, t.content) : t.document,
+            };
+          }
+          // Also update other tabs from the same module/directory
+          if (t.directoryHandleId === tab.directoryHandleId && t.source?.moduleId === tab.source?.moduleId) {
+            // Update each tab's portal baseline if its script was pushed
+            const wasScriptPushed = (t.source?.scriptType === 'collection' && pushingCollection) ||
+                                    (t.source?.scriptType === 'ad' && pushingAd);
+            if (wasScriptPushed && t.document) {
+              return {
+                ...t,
+                document: updateDocumentAfterPush(t.document, t.content),
+              };
+            }
+          }
+          return t;
+        });
         
         // Clear module details draft if committed
         const updatedDrafts = { ...moduleDetailsDraftByTabId };
@@ -1221,15 +1426,56 @@ export const createModuleSlice: StateCreator<
           });
         }
         
+        // Update module.json if this was a directory push
+        if (isDirectoryPush && tab.directoryHandleId) {
+          try {
+            const storedDir = await documentStore.getDirectoryHandleRecord(tab.directoryHandleId);
+            if (storedDir) {
+              const handleWithPermission = storedDir.handle as unknown as { 
+                requestPermission(options?: { mode?: string }): Promise<PermissionState>;
+              };
+              const permissionStatus = await handleWithPermission.requestPermission({ mode: 'readwrite' });
+              if (permissionStatus === 'granted') {
+                // Read current module.json
+                const moduleJsonContent = await documentStore.readFileFromDirectory(storedDir.handle, 'module.json');
+                if (moduleJsonContent) {
+                  const moduleConfig = JSON.parse(moduleJsonContent);
+                  
+                  // Update checksums for pushed scripts
+                  if (pushingCollection && collectionScript !== undefined && moduleConfig.scripts?.collection) {
+                    moduleConfig.scripts.collection.portalChecksum = await documentStore.computeChecksum(collectionScript);
+                  }
+                  if (pushingAd && adScript !== undefined && moduleConfig.scripts?.ad) {
+                    moduleConfig.scripts.ad.portalChecksum = await documentStore.computeChecksum(adScript);
+                  }
+                  
+                  // Update lastSyncedAt
+                  moduleConfig.lastSyncedAt = new Date().toISOString();
+                  
+                  // Write updated module.json
+                  await documentStore.writeFileToDirectory(storedDir.handle, 'module.json', JSON.stringify(moduleConfig, null, 2));
+                }
+              }
+            }
+          } catch (updateError) {
+            console.error('Failed to update module.json after push:', updateError);
+            // Don't fail the push - just log the error
+          }
+        }
+        
         set({
           tabs: updatedTabs,
           moduleDetailsDraftByTabId: updatedDrafts,
           isCommittingModule: false,
           moduleCommitConfirmationOpen: false,
           loadedModuleForCommit: null,
+          directoryScriptsForCommit: null,
+          selectedScriptsForCommit: new Set(),
         } as Partial<ModuleSlice & ModuleSliceDependencies>);
         
-        toast.success('Changes pushed to portal successfully');
+        const scriptCount = (pushingCollection ? 1 : 0) + (pushingAd ? 1 : 0);
+        const detailsText = hasModuleDetailsChanges ? ' and module details' : '';
+        toast.success(`${scriptCount} script${scriptCount !== 1 ? 's' : ''}${detailsText} pushed to portal successfully`);
       } else {
         set({ 
           moduleCommitError: result.error || 'Failed to push changes to portal',

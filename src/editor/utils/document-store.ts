@@ -31,6 +31,26 @@ export interface StoredFileHandle {
   lastAccessed: number;
 }
 
+/**
+ * Stored directory handle record for module directories.
+ */
+export interface StoredDirectoryHandle {
+  /** Unique ID (used for referencing the directory) */
+  id: string;
+  /** The FileSystemDirectoryHandle object */
+  handle: FileSystemDirectoryHandle;
+  /** Directory name on disk */
+  directoryName: string;
+  /** Module name from module.json */
+  moduleName: string;
+  /** Portal hostname this module is bound to */
+  portalHostname: string;
+  /** Module type (DataSource, etc.) */
+  moduleType: string;
+  /** Last access timestamp */
+  lastAccessed: number;
+}
+
 
 /**
  * Stored recent document entry (persisted to IndexedDB).
@@ -61,10 +81,11 @@ export interface StoredRecentDocument {
 // ============================================================================
 
 const DB_NAME = 'lm-ide-documents';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 const STORES = {
   FILE_HANDLES: 'file-handles',
+  DIRECTORY_HANDLES: 'directory-handles',
   RECENT_DOCUMENTS: 'recent-documents',
   TAB_DRAFTS: 'tab-drafts',
 } as const;
@@ -74,6 +95,7 @@ const DRAFTS_KEY = 'current-drafts';
 
 // Cleanup limits
 const MAX_FILE_HANDLES = 50;
+const MAX_DIRECTORY_HANDLES = 30;
 const MAX_RECENT_DOCUMENTS = 30;
 const MAX_AGE_MS = 90 * 24 * 60 * 60 * 1000; // 90 days
 
@@ -109,6 +131,15 @@ function openDatabase(): Promise<IDBDatabase> {
       if (!db.objectStoreNames.contains(STORES.FILE_HANDLES)) {
         const store = db.createObjectStore(STORES.FILE_HANDLES, { keyPath: 'id' });
         store.createIndex('fileName', 'fileName', { unique: false });
+        store.createIndex('lastAccessed', 'lastAccessed', { unique: false });
+      }
+      
+      // Create directory-handles store (v3)
+      if (!db.objectStoreNames.contains(STORES.DIRECTORY_HANDLES)) {
+        const store = db.createObjectStore(STORES.DIRECTORY_HANDLES, { keyPath: 'id' });
+        store.createIndex('directoryName', 'directoryName', { unique: false });
+        store.createIndex('moduleName', 'moduleName', { unique: false });
+        store.createIndex('portalHostname', 'portalHostname', { unique: false });
         store.createIndex('lastAccessed', 'lastAccessed', { unique: false });
       }
       
@@ -331,6 +362,223 @@ async function cleanupOldFileHandles(allRecords: StoredFileHandle[]): Promise<vo
   }
 }
 
+
+// ============================================================================
+// Directory Handle Operations
+// ============================================================================
+
+/**
+ * Save a directory handle to IndexedDB.
+ */
+export async function saveDirectoryHandle(
+  id: string,
+  handle: FileSystemDirectoryHandle,
+  metadata: {
+    directoryName: string;
+    moduleName: string;
+    portalHostname: string;
+    moduleType: string;
+  }
+): Promise<void> {
+  const db = await openDatabase();
+  
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORES.DIRECTORY_HANDLES, 'readwrite');
+    const store = transaction.objectStore(STORES.DIRECTORY_HANDLES);
+    
+    const data: StoredDirectoryHandle = {
+      id,
+      handle,
+      directoryName: metadata.directoryName,
+      moduleName: metadata.moduleName,
+      portalHostname: metadata.portalHostname,
+      moduleType: metadata.moduleType,
+      lastAccessed: Date.now(),
+    };
+    
+    const request = store.put(data);
+    
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+}
+
+/**
+ * Get a directory handle from IndexedDB by ID.
+ */
+export async function getDirectoryHandle(id: string): Promise<FileSystemDirectoryHandle | undefined> {
+  const db = await openDatabase();
+  
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORES.DIRECTORY_HANDLES, 'readonly');
+    const store = transaction.objectStore(STORES.DIRECTORY_HANDLES);
+    const request = store.get(id);
+    
+    request.onsuccess = () => {
+      const result = request.result as StoredDirectoryHandle | undefined;
+      resolve(result?.handle);
+    };
+    request.onerror = () => reject(request.error);
+  });
+}
+
+/**
+ * Get the full stored directory handle record by ID.
+ */
+export async function getDirectoryHandleRecord(id: string): Promise<StoredDirectoryHandle | undefined> {
+  const db = await openDatabase();
+  
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORES.DIRECTORY_HANDLES, 'readonly');
+    const store = transaction.objectStore(STORES.DIRECTORY_HANDLES);
+    const request = store.get(id);
+    
+    request.onsuccess = () => {
+      resolve(request.result as StoredDirectoryHandle | undefined);
+    };
+    request.onerror = () => reject(request.error);
+  });
+}
+
+/**
+ * Delete a directory handle from IndexedDB.
+ */
+export async function deleteDirectoryHandle(id: string): Promise<void> {
+  const db = await openDatabase();
+  
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORES.DIRECTORY_HANDLES, 'readwrite');
+    const store = transaction.objectStore(STORES.DIRECTORY_HANDLES);
+    const request = store.delete(id);
+    
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+}
+
+/**
+ * Update the lastAccessed timestamp for a directory handle.
+ */
+export async function touchDirectoryHandle(id: string): Promise<void> {
+  const record = await getDirectoryHandleRecord(id);
+  if (record) {
+    await saveDirectoryHandle(id, record.handle, {
+      directoryName: record.directoryName,
+      moduleName: record.moduleName,
+      portalHostname: record.portalHostname,
+      moduleType: record.moduleType,
+    });
+  }
+}
+
+/**
+ * Get all stored directory handles as a Map keyed by ID.
+ */
+export async function getAllDirectoryHandles(): Promise<Map<string, StoredDirectoryHandle>> {
+  const db = await openDatabase();
+  
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORES.DIRECTORY_HANDLES, 'readonly');
+    const store = transaction.objectStore(STORES.DIRECTORY_HANDLES);
+    const request = store.getAll();
+    
+    request.onsuccess = () => {
+      const results = request.result as StoredDirectoryHandle[];
+      const map = new Map<string, StoredDirectoryHandle>();
+      for (const record of results) {
+        map.set(record.id, record);
+      }
+      resolve(map);
+    };
+    request.onerror = () => reject(request.error);
+  });
+}
+
+/**
+ * Recent directory info returned to UI (without the actual handle for safety).
+ */
+export interface RecentDirectoryInfo {
+  id: string;
+  directoryName: string;
+  moduleName: string;
+  portalHostname: string;
+  moduleType: string;
+  lastAccessed: number;
+}
+
+/**
+ * Get recent directory handles sorted by lastAccessed (most recent first).
+ * Returns metadata only; use getDirectoryHandle() to retrieve the actual handle.
+ */
+export async function getRecentDirectoryHandles(limit: number = 10): Promise<RecentDirectoryInfo[]> {
+  const db = await openDatabase();
+  
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction(STORES.DIRECTORY_HANDLES, 'readonly');
+    const store = transaction.objectStore(STORES.DIRECTORY_HANDLES);
+    const index = store.index('lastAccessed');
+    
+    // Open cursor in reverse order (newest first)
+    const request = index.openCursor(null, 'prev');
+    const results: RecentDirectoryInfo[] = [];
+    const allRecords: StoredDirectoryHandle[] = [];
+    
+    request.onsuccess = () => {
+      const cursor = request.result;
+      if (cursor) {
+        const record = cursor.value as StoredDirectoryHandle;
+        allRecords.push(record);
+        
+        if (results.length < limit) {
+          results.push({
+            id: record.id,
+            directoryName: record.directoryName,
+            moduleName: record.moduleName,
+            portalHostname: record.portalHostname,
+            moduleType: record.moduleType,
+            lastAccessed: record.lastAccessed,
+          });
+        }
+        cursor.continue();
+      } else {
+        // Done iterating - trigger cleanup of old records
+        cleanupOldDirectoryHandles(allRecords).catch(console.error);
+        resolve(results);
+      }
+    };
+    
+    request.onerror = () => reject(request.error);
+  });
+}
+
+/**
+ * Clean up old directory handles that exceed our limits.
+ */
+async function cleanupOldDirectoryHandles(allRecords: StoredDirectoryHandle[]): Promise<void> {
+  const now = Date.now();
+  const toDelete: string[] = [];
+  
+  allRecords.forEach((record, index) => {
+    // Delete if beyond max count
+    if (index >= MAX_DIRECTORY_HANDLES) {
+      toDelete.push(record.id);
+      return;
+    }
+    
+    // Delete if too old
+    const age = now - record.lastAccessed;
+    if (age > MAX_AGE_MS) {
+      toDelete.push(record.id);
+    }
+  });
+  
+  if (toDelete.length > 0) {
+    console.log(`[document-store] Removing ${toDelete.length} old directory handles`);
+    for (const id of toDelete) {
+      await deleteDirectoryHandle(id);
+    }
+  }
+}
 
 // ============================================================================
 // Recent Documents Operations
@@ -709,10 +957,10 @@ export async function readFromHandle(
  */
 export async function cleanupOldData(): Promise<void> {
   const now = Date.now();
+  const db = await openDatabase();
   
   // Clean up old file handles
-  const db = await openDatabase();
-  const allHandles = await new Promise<StoredFileHandle[]>((resolve, reject) => {
+  const allFileHandles = await new Promise<StoredFileHandle[]>((resolve, reject) => {
     const transaction = db.transaction(STORES.FILE_HANDLES, 'readonly');
     const store = transaction.objectStore(STORES.FILE_HANDLES);
     const index = store.index('lastAccessed');
@@ -733,16 +981,50 @@ export async function cleanupOldData(): Promise<void> {
     request.onerror = () => reject(request.error);
   });
   
-  const handlesToDelete: string[] = [];
-  allHandles.forEach((handle, index) => {
+  const fileHandlesToDelete: string[] = [];
+  allFileHandles.forEach((handle, index) => {
     if (index >= MAX_FILE_HANDLES || (now - handle.lastAccessed) > MAX_AGE_MS) {
-      handlesToDelete.push(handle.id);
+      fileHandlesToDelete.push(handle.id);
     }
   });
   
-  for (const id of handlesToDelete) {
+  for (const id of fileHandlesToDelete) {
     console.log(`[document-store] Removing old file handle: ${id}`);
     await deleteFileHandle(id);
+  }
+  
+  // Clean up old directory handles
+  const allDirHandles = await new Promise<StoredDirectoryHandle[]>((resolve, reject) => {
+    const transaction = db.transaction(STORES.DIRECTORY_HANDLES, 'readonly');
+    const store = transaction.objectStore(STORES.DIRECTORY_HANDLES);
+    const index = store.index('lastAccessed');
+    const request = index.openCursor(null, 'prev');
+    
+    const results: StoredDirectoryHandle[] = [];
+    
+    request.onsuccess = () => {
+      const cursor = request.result;
+      if (cursor) {
+        results.push(cursor.value as StoredDirectoryHandle);
+        cursor.continue();
+      } else {
+        resolve(results);
+      }
+    };
+    
+    request.onerror = () => reject(request.error);
+  });
+  
+  const dirHandlesToDelete: string[] = [];
+  allDirHandles.forEach((handle, index) => {
+    if (index >= MAX_DIRECTORY_HANDLES || (now - handle.lastAccessed) > MAX_AGE_MS) {
+      dirHandlesToDelete.push(handle.id);
+    }
+  });
+  
+  for (const id of dirHandlesToDelete) {
+    console.log(`[document-store] Removing old directory handle: ${id}`);
+    await deleteDirectoryHandle(id);
   }
   
   // Clean up old recent documents
@@ -792,5 +1074,88 @@ export function isDirectoryPickerSupported(): boolean {
  */
 export function generateId(): string {
   return crypto.randomUUID();
+}
+
+// ============================================================================
+// Module Directory Utilities
+// ============================================================================
+
+/**
+ * Compute SHA-256 checksum of content.
+ */
+export async function computeChecksum(content: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(content);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+/**
+ * Write a file to a directory handle.
+ */
+export async function writeFileToDirectory(
+  dirHandle: FileSystemDirectoryHandle,
+  fileName: string,
+  content: string
+): Promise<void> {
+  const fileHandle = await dirHandle.getFileHandle(fileName, { create: true });
+  const writable = await fileHandle.createWritable();
+  await writable.write(content);
+  await writable.close();
+}
+
+/**
+ * Read a file from a directory handle.
+ * Returns null if file doesn't exist.
+ */
+export async function readFileFromDirectory(
+  dirHandle: FileSystemDirectoryHandle,
+  fileName: string
+): Promise<string | null> {
+  try {
+    const fileHandle = await dirHandle.getFileHandle(fileName);
+    const file = await fileHandle.getFile();
+    return await file.text();
+  } catch (error) {
+    // File doesn't exist
+    if (error instanceof DOMException && error.name === 'NotFoundError') {
+      return null;
+    }
+    throw error;
+  }
+}
+
+/**
+ * Check if a file exists in a directory.
+ */
+export async function fileExistsInDirectory(
+  dirHandle: FileSystemDirectoryHandle,
+  fileName: string
+): Promise<boolean> {
+  try {
+    await dirHandle.getFileHandle(fileName);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * List all files in a directory.
+ */
+export async function listFilesInDirectory(
+  dirHandle: FileSystemDirectoryHandle
+): Promise<string[]> {
+  const files: string[] = [];
+  const handleWithEntries = dirHandle as unknown as { 
+    values(): AsyncIterableIterator<FileSystemHandle>;
+  };
+  for await (const entry of handleWithEntries.values()) {
+    if (entry.kind === 'file') {
+      files.push(entry.name);
+    }
+  }
+  return files;
 }
 
