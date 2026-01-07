@@ -165,9 +165,14 @@ export function ApiResponseViewer() {
     })();
     const bodyForSnippet = isEmptyJsonBody ? '' : resolvedBody;
     const url = buildUrl(selectedPortalId, resolvedPath, resolvedQueryParams);
+    
+    // Check if user provided these headers (case-insensitive)
+    const userHeaderKeys = Object.keys(resolvedHeaders).map(k => k.toLowerCase());
     const headers: Record<string, string> = {
-      'X-version': '3',
-      Authorization: 'Bearer <bearer-token>',
+      // Only set defaults if user hasn't provided them
+      ...(!userHeaderKeys.includes('x-version') && { 'X-version': '3' }),
+      ...(!userHeaderKeys.includes('authorization') && { Authorization: 'Bearer <bearer-token>' }),
+      // User-provided headers override defaults
       ...resolvedHeaders,
     };
     if (bodyForSnippet && bodyForSnippet.trim().length > 0) {

@@ -52,10 +52,13 @@ const openCommandPalette = () => {
 };
 
 const createNewFileOrApi = () => {
-  const { activeTabId, tabs, createNewFile, openApiExplorerTab } = getState();
+  const { activeTabId, tabs, activeWorkspace, createNewFile, openApiExplorerTab } = getState();
   const activeTab = activeTabId ? tabs.find(tab => tab.id === activeTabId) : null;
 
-  if (activeTab?.kind === 'api') {
+  // Use active tab kind if available, otherwise use workspace state
+  const isApiMode = activeTab ? activeTab.kind === 'api' : activeWorkspace === 'api';
+
+  if (isApiMode) {
     openApiExplorerTab();
   } else {
     createNewFile();
@@ -63,27 +66,32 @@ const createNewFileOrApi = () => {
 };
 
 const toggleView = () => {
-  const { activeTabId, tabs, setActiveTab, createNewFile, openApiExplorerTab } = getState();
+  const { activeTabId, tabs, activeWorkspace, setActiveTab, setActiveWorkspace } = getState();
   const activeTab = activeTabId ? tabs.find(tab => tab.id === activeTabId) : null;
   const getLastTabIdByKind = (kind: 'api' | 'script') =>
     [...tabs].reverse().find(tab => (tab.kind ?? 'script') === kind)?.id ?? null;
 
-  if (activeTab?.kind === 'api') {
+  // Determine current workspace from active tab or workspace state
+  const currentWorkspace = activeTab?.kind === 'api' ? 'api' : activeWorkspace;
+
+  if (currentWorkspace === 'api') {
+    // Switch to script workspace
+    setActiveWorkspace('script');
     const lastScript = getLastTabIdByKind('script');
     if (lastScript) {
       setActiveTab(lastScript);
-    } else {
-      createNewFile();
     }
+    // If no script tabs, shows WelcomeScreenV2
     return;
   }
 
+  // Switch to API workspace
+  setActiveWorkspace('api');
   const lastApi = getLastTabIdByKind('api');
   if (lastApi) {
     setActiveTab(lastApi);
-  } else {
-    openApiExplorerTab();
   }
+  // If no API tabs, shows ApiWelcomeScreen
 };
 
 export const copyOutputToClipboard = async () => {

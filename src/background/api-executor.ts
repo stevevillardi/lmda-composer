@@ -57,10 +57,15 @@ export class ApiExecutor {
       });
     }
 
+    // Normalize user headers to check for case-insensitive overrides
+    const userHeaderKeys = Object.keys(request.headerParams || {}).map(k => k.toLowerCase());
+    
     const headers: Record<string, string> = {
       'X-CSRF-Token': csrfToken,
       'X-Requested-With': 'XMLHttpRequest',
-      'X-version': '3',
+      // Only set default X-version if user hasn't provided one (case-insensitive check)
+      ...(!userHeaderKeys.includes('x-version') && { 'X-version': '3' }),
+      // User-provided headers override defaults
       ...request.headerParams,
     };
 

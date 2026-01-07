@@ -14,10 +14,10 @@ const buttonVariants = cva(
         ghost: "hover:bg-muted hover:text-foreground dark:hover:bg-muted/50 aria-expanded:bg-muted aria-expanded:text-foreground",
         destructive: "bg-destructive/10 hover:bg-destructive/20 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/20 text-destructive focus-visible:border-destructive/40 dark:hover:bg-destructive/30",
         link: "text-primary underline-offset-4 hover:underline",
-        // Semantic action variants
-        commit: "bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-60",
-        execute: "bg-green-600 hover:bg-green-500 text-white disabled:opacity-60",
-        warning: "bg-amber-600 hover:bg-amber-500 text-white disabled:opacity-60",
+        // Semantic action variants with improved light mode disabled states
+        commit: "bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-500 text-white disabled:opacity-100 disabled:bg-blue-300 disabled:text-blue-100 dark:disabled:bg-blue-900 dark:disabled:text-blue-500 disabled:cursor-not-allowed",
+        execute: "bg-green-600 hover:bg-green-700 dark:hover:bg-green-500 text-white disabled:opacity-100 disabled:bg-green-300 disabled:text-green-100 dark:disabled:bg-green-900 dark:disabled:text-green-500 disabled:cursor-not-allowed",
+        warning: "bg-amber-600 hover:bg-amber-700 dark:hover:bg-amber-500 text-white disabled:opacity-100 disabled:bg-amber-300 disabled:text-amber-100 dark:disabled:bg-amber-900 dark:disabled:text-amber-500 disabled:cursor-not-allowed",
         // Toolbar-specific variants
         "toolbar-outline": "border-border bg-background hover:bg-muted hover:text-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 text-xs font-medium shadow-xs",
         "toolbar-ghost": "hover:bg-muted hover:text-foreground dark:hover:bg-muted/50 text-xs font-medium",
@@ -31,9 +31,9 @@ const buttonVariants = cva(
         "icon-xs": "size-6 rounded-[min(var(--radius-md),8px)] in-data-[slot=button-group]:rounded-md [&_svg:not([class*='size-'])]:size-3",
         "icon-sm": "size-8 rounded-[min(var(--radius-md),10px)] in-data-[slot=button-group]:rounded-md",
         "icon-lg": "size-10",
-        // Toolbar-specific size (h-7 with gap-1.5 for consistent toolbar buttons)
-        toolbar: "h-7 gap-1.5 rounded-[min(var(--radius-md),8px)] px-3 text-xs [&_svg:not([class*='size-'])]:size-3.5",
-        "toolbar-icon": "size-7 rounded-[min(var(--radius-md),8px)] [&_svg:not([class*='size-'])]:size-3.5",
+        // Toolbar-specific size (h-8 with gap-1.5 for consistent toolbar buttons)
+        toolbar: "h-8 gap-1.5 rounded-[min(var(--radius-md),10px)] px-3 text-xs [&_svg:not([class*='size-'])]:size-4",
+        "toolbar-icon": "size-8 rounded-[min(var(--radius-md),10px)] [&_svg:not([class*='size-'])]:size-4",
       },
     },
     defaultVariants: {

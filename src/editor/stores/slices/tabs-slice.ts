@@ -189,9 +189,10 @@ export interface TabsSliceDependencies {
   selectedPortalId: string | null;
   portals: Portal[];
   
-  // From UI slice (for preferences and output tab)
+  // From UI slice (for preferences, output tab, and workspace)
   preferences: { defaultLanguage: ScriptLanguage; defaultMode: ScriptMode };
   outputTab: string;
+  setActiveWorkspace: (workspace: 'script' | 'api') => void;
   
   // From execution slice (for clearing parsed output when mode changes)
   parsedOutput: ParseResult | null;
@@ -240,9 +241,10 @@ export const createTabsSlice: StateCreator<
 
   openTab: (tabData, options) => {
     const id = tabData.id || crypto.randomUUID();
+    const tabKind = tabData.kind ?? 'script';
     const newTab: EditorTab = {
       id,
-      kind: tabData.kind ?? 'script',
+      kind: tabKind,
       displayName: tabData.displayName,
       content: tabData.content,
       language: tabData.language,
@@ -258,10 +260,17 @@ export const createTabsSlice: StateCreator<
       isLocalFile: tabData.isLocalFile,
     };
     
-    const { tabs, activeTabId } = get();
+    const { tabs, activeTabId, setActiveWorkspace } = get();
+    const shouldActivate = options?.activate !== false;
+    
+    // Set workspace based on tab kind if activating
+    if (shouldActivate) {
+      setActiveWorkspace(tabKind === 'api' ? 'api' : 'script');
+    }
+    
     set({
       tabs: [...tabs, newTab],
-      activeTabId: options?.activate === false ? activeTabId : id,
+      activeTabId: shouldActivate ? id : activeTabId,
     });
     
     return id;
@@ -332,8 +341,11 @@ export const createTabsSlice: StateCreator<
   },
 
   setActiveTab: (tabId) => {
-    const { tabs } = get();
-    if (tabs.some(t => t.id === tabId)) {
+    const { tabs, setActiveWorkspace } = get();
+    const tab = tabs.find(t => t.id === tabId);
+    if (tab) {
+      // Update workspace based on the tab kind
+      setActiveWorkspace(tab.kind === 'api' ? 'api' : 'script');
       set({ activeTabId: tabId });
     }
   },

@@ -31,9 +31,9 @@ import {
   DropdownMenuGroup,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Kbd } from '@/components/ui/kbd';
+import { DropdownMenuSectionHeader } from './shared';
 
 export function ActionsDropdown() {
   const {
@@ -42,6 +42,7 @@ export function ActionsDropdown() {
     selectedPortalId,
     portals,
     setActiveTab,
+    setActiveWorkspace,
     setModuleBrowserOpen,
     setModuleSearchOpen,
     setSettingsDialogOpen,
@@ -87,21 +88,21 @@ export function ActionsDropdown() {
   };
 
   const switchToScriptView = () => {
+    setActiveWorkspace('script');
     const lastScript = getLastTabIdByKind('script');
     if (lastScript) {
       setActiveTab(lastScript);
-    } else {
-      createNewFile();
     }
+    // If no script tabs exist, the workspace will show WelcomeScreenV2
   };
 
   const switchToApiView = () => {
+    setActiveWorkspace('api');
     const lastApi = getLastTabIdByKind('api');
     if (lastApi) {
       setActiveTab(lastApi);
-    } else {
-      openApiExplorerTab();
     }
+    // If no API tabs exist, the workspace will show ApiWelcomeScreen
   };
 
   return (
@@ -112,9 +113,8 @@ export function ActionsDropdown() {
             <DropdownMenuTrigger
               render={
                 <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 gap-1.5"
+                  variant="toolbar-outline"
+                  size="toolbar"
                 >
                   <CommandIcon className="size-4" />
                   <span className="hidden sm:inline text-xs">Actions</span>
@@ -128,13 +128,9 @@ export function ActionsDropdown() {
 
       <DropdownMenuContent align="end" className="w-72">
         <DropdownMenuGroup>
-          <div className="relative flex items-center gap-2 my-2">
-            <Separator className="flex-1" />
-            <span className="shrink-0 px-2 text-xs text-muted-foreground select-none">
-              {isApiActive ? 'API Actions' : 'File Actions'}
-            </span>
-            <Separator className="flex-1" />
-          </div>
+          <DropdownMenuSectionHeader>
+            {isApiActive ? 'API Actions' : 'File Actions'}
+          </DropdownMenuSectionHeader>
 
           {isApiActive ? (
             <>
@@ -230,12 +226,8 @@ export function ActionsDropdown() {
               <Tooltip>
                 <TooltipTrigger
                   render={
-                    <div className="relative flex items-center gap-2 my-2 cursor-help">
-                      <Separator className="flex-1" />
-                      <span className="shrink-0 px-2 text-xs text-muted-foreground select-none">
-                        Portal Actions
-                      </span>
-                      <Separator className="flex-1" />
+                    <div className="cursor-help">
+                      <DropdownMenuSectionHeader>Portal Actions</DropdownMenuSectionHeader>
                     </div>
                   }
                 />
@@ -244,13 +236,7 @@ export function ActionsDropdown() {
                 </TooltipContent>
               </Tooltip>
             ) : (
-              <div className="relative flex items-center gap-2 my-2">
-                <Separator className="flex-1" />
-                <span className="shrink-0 px-2 text-xs text-muted-foreground select-none">
-                  Portal Actions
-                </span>
-                <Separator className="flex-1" />
-              </div>
+              <DropdownMenuSectionHeader>Portal Actions</DropdownMenuSectionHeader>
             )}
 
             <DropdownMenuGroup>
@@ -327,7 +313,7 @@ export function ActionsDropdown() {
                         disabled={!selectedPortalId || !canCommit}
                       >
                         <Upload className="size-4 mr-2" />
-                        <span className="flex-1">Commit to Module</span>
+                        <span className="flex-1">Push to Portal</span>
                       </DropdownMenuItem>
                     }
                   />
@@ -346,13 +332,7 @@ export function ActionsDropdown() {
           </>
         )}
 
-        <div className="relative flex items-center gap-2 my-2">
-          <Separator className="flex-1" />
-          <span className="shrink-0 px-2 text-xs text-muted-foreground select-none">
-            Layout
-          </span>
-          <Separator className="flex-1" />
-        </div>
+        <DropdownMenuSectionHeader>Layout</DropdownMenuSectionHeader>
 
         <DropdownMenuGroup>
           <DropdownMenuItem 
@@ -367,13 +347,7 @@ export function ActionsDropdown() {
           </DropdownMenuItem>
         </DropdownMenuGroup>
 
-        <div className="relative flex items-center gap-2 my-2">
-          <Separator className="flex-1" />
-          <span className="shrink-0 px-2 text-xs text-muted-foreground select-none">
-            Settings & Help
-          </span>
-          <Separator className="flex-1" />
-        </div>
+        <DropdownMenuSectionHeader>Settings & Help</DropdownMenuSectionHeader>
 
         <DropdownMenuGroup>
           <DropdownMenuItem onClick={() => {

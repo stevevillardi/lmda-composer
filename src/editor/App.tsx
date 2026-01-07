@@ -50,6 +50,7 @@ const EditorPanelLazy = lazy(() => import('./components/EditorPanel').then((mod)
 const LogicModuleSearchLazy = lazy(() => import('./components/LogicModuleSearch').then((mod) => ({ default: mod.LogicModuleSearch })));
 const ApiExplorerPanelLazy = lazy(() => import('./components/api/ApiExplorerPanel').then((mod) => ({ default: mod.ApiExplorerPanel })));
 const ApiRightSidebarLazy = lazy(() => import('./components/api/ApiRightSidebar').then((mod) => ({ default: mod.ApiRightSidebar })));
+const ApiWelcomeScreenLazy = lazy(() => import('./components/api/ApiWelcomeScreen').then((mod) => ({ default: mod.ApiWelcomeScreen })));
 const AppliesToTesterLazy = lazy(() => import('./components/AppliesToTester').then((mod) => ({ default: mod.AppliesToTester })));
 const PushToPortalDialogLazy = lazy(() => import('./components/PushToPortalDialog').then((mod) => ({ default: mod.PushToPortalDialog })));
 const ModuleLineageDialogLazy = lazy(() => import('./components/ModuleLineageDialog').then((mod) => ({ default: mod.ModuleLineageDialog })));
@@ -165,6 +166,7 @@ export function App() {
     selectedPortalId,
     openModuleScripts,
     rightSidebarOpen,
+    activeWorkspace,
     tabsNeedingPermission,
     restoreFileHandles,
     requestFilePermissions,
@@ -380,62 +382,82 @@ export function App() {
       )}
 
       {/* Main Content Area */}
-      {/* When no tabs are open, show WelcomeScreen full-height */}
-      {tabs.length === 0 ? (
-        <div className="flex-1 min-h-0">
-          <WelcomeScreenV2 />
-        </div>
-      ) : (
-        <div className="flex-1 min-h-0 flex flex-col">
-          <TabBar />
-
-          {/* Main workspace */}
-          <ResizablePanelGroup
-            key={rightSidebarOpen ? 'with-sidebar' : 'without-sidebar'}
-            direction="horizontal"
-            className="flex-1 min-h-0"
-          >
-            <ResizablePanel defaultSize={rightSidebarOpen ? PANEL_SIZES.MAIN_WITH_SIDEBAR : PANEL_SIZES.MAIN_FULL} minSize={PANEL_SIZES.MIN_MAIN}>
-              {activeTab?.kind === 'api' ? (
+      {/* Determine which view to show based on tabs and activeWorkspace */}
+      {(() => {
+        // Count tabs by kind
+        const apiTabCount = tabs.filter(t => t.kind === 'api').length;
+        const scriptTabCount = tabs.filter(t => (t.kind ?? 'script') === 'script').length;
+        
+        // Determine if we should show a welcome screen
+        const showApiWelcome = activeWorkspace === 'api' && apiTabCount === 0;
+        const showScriptWelcome = activeWorkspace === 'script' && scriptTabCount === 0 && tabs.length === 0;
+        
+        if (showApiWelcome || showScriptWelcome) {
+          return (
+            <div className="flex-1 min-h-0">
+              {activeWorkspace === 'api' ? (
                 <Suspense fallback={panelLoadingFallback}>
-                  <ApiExplorerPanelLazy />
+                  <ApiWelcomeScreenLazy />
                 </Suspense>
               ) : (
-                <ResizablePanelGroup direction="vertical" className="h-full">
-                  <ResizablePanel defaultSize={PANEL_SIZES.EDITOR} minSize={PANEL_SIZES.MIN}>
-                    <Suspense fallback={panelLoadingFallback}>
-                      <EditorPanelLazy />
-                    </Suspense>
-                  </ResizablePanel>
-
-                  <ResizableHandle withHandle />
-
-                  <ResizablePanel defaultSize={PANEL_SIZES.OUTPUT} minSize={PANEL_SIZES.MIN}>
-                    <div className="h-full border-t border-border">
-                      <OutputPanel />
-                    </div>
-                  </ResizablePanel>
-                </ResizablePanelGroup>
+                <WelcomeScreenV2 />
               )}
-            </ResizablePanel>
+            </div>
+          );
+        }
+        
+        return (
+          <div className="flex-1 min-h-0 flex flex-col">
+            <TabBar />
 
-            {rightSidebarOpen && (
-              <>
-                <ResizableHandle withVerticalHandle />
-                <ResizablePanel defaultSize={PANEL_SIZES.SIDEBAR} minSize={PANEL_SIZES.SIDEBAR} maxSize={PANEL_SIZES.SIDEBAR_MAX}>
-                  {activeTab?.kind === 'api' ? (
-                    <Suspense fallback={panelLoadingFallback}>
-                      <ApiRightSidebarLazy />
-                    </Suspense>
-                  ) : (
-                    <RightSidebar />
-                  )}
-                </ResizablePanel>
-              </>
-            )}
-          </ResizablePanelGroup>
-        </div>
-      )}
+            {/* Main workspace */}
+            <ResizablePanelGroup
+              key={rightSidebarOpen ? 'with-sidebar' : 'without-sidebar'}
+              direction="horizontal"
+              className="flex-1 min-h-0"
+            >
+              <ResizablePanel defaultSize={rightSidebarOpen ? PANEL_SIZES.MAIN_WITH_SIDEBAR : PANEL_SIZES.MAIN_FULL} minSize={PANEL_SIZES.MIN_MAIN}>
+                {activeTab?.kind === 'api' ? (
+                  <Suspense fallback={panelLoadingFallback}>
+                    <ApiExplorerPanelLazy />
+                  </Suspense>
+                ) : (
+                  <ResizablePanelGroup direction="vertical" className="h-full">
+                    <ResizablePanel defaultSize={PANEL_SIZES.EDITOR} minSize={PANEL_SIZES.MIN}>
+                      <Suspense fallback={panelLoadingFallback}>
+                        <EditorPanelLazy />
+                      </Suspense>
+                    </ResizablePanel>
+
+                    <ResizableHandle withHandle />
+
+                    <ResizablePanel defaultSize={PANEL_SIZES.OUTPUT} minSize={PANEL_SIZES.MIN}>
+                      <div className="h-full border-t border-border">
+                        <OutputPanel />
+                      </div>
+                    </ResizablePanel>
+                  </ResizablePanelGroup>
+                )}
+              </ResizablePanel>
+
+              {rightSidebarOpen && (
+                <>
+                  <ResizableHandle withVerticalHandle />
+                  <ResizablePanel defaultSize={PANEL_SIZES.SIDEBAR} minSize={PANEL_SIZES.SIDEBAR} maxSize={PANEL_SIZES.SIDEBAR_MAX}>
+                    {activeTab?.kind === 'api' ? (
+                      <Suspense fallback={panelLoadingFallback}>
+                        <ApiRightSidebarLazy />
+                      </Suspense>
+                    ) : (
+                      <RightSidebar />
+                    )}
+                  </ResizablePanel>
+                </>
+              )}
+            </ResizablePanelGroup>
+          </div>
+        );
+      })()}
 
       {/* Status Bar */}
       <StatusBar />

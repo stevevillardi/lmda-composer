@@ -26,7 +26,6 @@ import { cn } from '@/lib/utils';
 import type { EditorTab, Portal, LogicModuleType } from '@/shared/types';
 import { getDefaultScriptTemplate } from '../config/script-templates';
 import { getPortalBindingStatus } from '../utils/portal-binding';
-import { normalizeMode } from '../utils/mode-utils';
 import { isFileDirty, hasPortalChanges, hasAssociatedFileHandle } from '../utils/document-helpers';
 import {
   CollectionIcon,
@@ -36,6 +35,7 @@ import {
   PropertySourceIcon,
   LogSourceIcon,
 } from '../constants/icons';
+import { LanguageBadge, ApiBadge, ModeBadge } from './shared';
 
 /** Returns the appropriate module type icon component for a given LogicModuleType */
 function getModuleTypeIcon(moduleType: LogicModuleType) {
@@ -57,54 +57,9 @@ function getModuleTypeIcon(moduleType: LogicModuleType) {
   }
 }
 
-// Language icons (using simple text badges for now)
+// Re-export LanguageBadge with EditorTab type for backwards compatibility
 function LanguageIcon({ language }: { language: EditorTab['language'] }) {
-  return (
-    <span className={cn(
-      "text-[10px] font-mono font-medium px-1 py-0.5 rounded",
-      language === 'groovy' 
-        ? "bg-blue-500/20 text-blue-400" 
-        : "bg-cyan-500/20 text-cyan-400"
-    )}>
-      {language === 'groovy' ? 'GR' : 'PS'}
-    </span>
-  );
-}
-
-function ApiBadge() {
-  return (
-    <span className="text-[10px] font-medium px-1 py-0.5 rounded bg-emerald-500/20 text-emerald-400">
-      API
-    </span>
-  );
-}
-
-// Mode badge for execution mode indication
-function ModeBadge({ mode }: { mode: EditorTab['mode'] }) {
-  const normalizedMode = normalizeMode(mode);
-  
-  const modeColors: Record<string, string> = {
-    ad: 'bg-purple-500/20 text-purple-400',
-    collection: 'bg-green-500/20 text-green-400',
-    batchcollection: 'bg-amber-500/20 text-amber-400',
-    freeform: 'bg-gray-500/20 text-gray-400',
-  };
-  
-  const modeLabels: Record<string, string> = {
-    ad: 'Active Discovery',
-    collection: 'Collection',
-    batchcollection: 'Batch Collection',
-    freeform: 'Freeform',
-  };
-  
-  return (
-    <span className={cn(
-      "text-[10px] font-medium px-1 py-0.5 rounded",
-      modeColors[normalizedMode]
-    )}>
-      {modeLabels[normalizedMode]}
-    </span>
-  );
+  return <LanguageBadge language={language} />;
 }
 
 interface TabItemProps {
@@ -420,6 +375,7 @@ export function TabBar() {
     activeTabId,
     selectedPortalId,
     portals,
+    activeWorkspace,
     setActiveTab,
     closeTab,
     closeOtherTabs,
@@ -445,7 +401,8 @@ export function TabBar() {
   const tabListRef = useRef<HTMLDivElement>(null);
   
   const activeTab = activeTabId ? tabs.find(t => t.id === activeTabId) : null;
-  const isApiActive = activeTab?.kind === 'api';
+  // Use activeWorkspace state, or fall back to active tab kind if available
+  const isApiActive = activeTab ? activeTab.kind === 'api' : activeWorkspace === 'api';
   const activeView = isApiActive ? 'api' : 'script';
   const visibleTabs = tabs.filter(tab => (tab.kind ?? 'script') === activeView);
 

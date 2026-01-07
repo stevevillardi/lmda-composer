@@ -314,10 +314,10 @@ class ModuleSearchListenerManager {
       const msg = message as { type?: string; payload?: { searchId?: string } };
       if (msg.type === 'MODULE_SEARCH_PROGRESS' && msg.payload?.searchId === searchId) {
         onProgress(msg.payload);
-      }
+  }
       return false;
-    };
-    
+};
+
     chrome.runtime.onMessage.addListener(this.listener);
   }
 
@@ -414,49 +414,49 @@ export const createModuleSlice: StateCreator<
     set({ isFetchingModules: true });
 
     const result = await sendMessage({
-      type: 'FETCH_MODULES',
-      payload: {
-        portalId: selectedPortalId,
-        moduleType: type,
-        offset,
-        size: 1000,
-        search: search || undefined,
-      },
-    });
+        type: 'FETCH_MODULES',
+        payload: {
+          portalId: selectedPortalId,
+          moduleType: type,
+          offset,
+          size: 1000,
+          search: search || undefined,
+        },
+      });
 
     if (result.ok) {
       const fetchResponse = result.data as FetchModulesResponse;
-      set((state) => {
-        const existing = append ? state.modulesCache[type] : [];
-        const merged = new Map<number, LogicModuleInfo>();
-        for (const item of existing) merged.set(item.id, item);
-        for (const item of fetchResponse.items) merged.set(item.id, item);
+        set((state) => {
+          const existing = append ? state.modulesCache[type] : [];
+          const merged = new Map<number, LogicModuleInfo>();
+          for (const item of existing) merged.set(item.id, item);
+          for (const item of fetchResponse.items) merged.set(item.id, item);
 
-        const nextOffset = offset + fetchResponse.items.length;
+          const nextOffset = offset + fetchResponse.items.length;
 
-        return {
-          modulesCache: {
-            ...state.modulesCache,
-            [type]: Array.from(merged.values()),
-          },
-          modulesMeta: {
-            ...state.modulesMeta,
-            [type]: {
-              offset: nextOffset,
-              hasMore: fetchResponse.hasMore,
-              total: fetchResponse.total,
+          return {
+            modulesCache: {
+              ...state.modulesCache,
+              [type]: Array.from(merged.values()),
             },
-          },
-          modulesSearch: {
-            ...state.modulesSearch,
-            [type]: search,
-          },
-          isFetchingModules: false,
-        };
-      });
-    } else {
+            modulesMeta: {
+              ...state.modulesMeta,
+              [type]: {
+                offset: nextOffset,
+                hasMore: fetchResponse.hasMore,
+                total: fetchResponse.total,
+              },
+            },
+            modulesSearch: {
+              ...state.modulesSearch,
+              [type]: search,
+            },
+            isFetchingModules: false,
+          };
+        });
+      } else {
       console.error('Failed to fetch modules:', result.error);
-      toast.error('Failed to load modules', {
+        toast.error('Failed to load modules', {
         description: result.error || 'Unable to fetch modules from the portal',
       });
       set({ isFetchingModules: false });
@@ -868,19 +868,19 @@ export const createModuleSlice: StateCreator<
     if (!moduleSearchExecutionId) return;
 
     const result = await sendMessage({
-      type: 'CANCEL_MODULE_SEARCH',
-      payload: { searchId: moduleSearchExecutionId },
-    });
+        type: 'CANCEL_MODULE_SEARCH',
+        payload: { searchId: moduleSearchExecutionId },
+      });
     
     if (!result.ok) {
       console.error('Failed to cancel module search:', result.error);
     }
     
-    set({
-      isSearchingModules: false,
-      moduleSearchExecutionId: null,
-      moduleSearchProgress: null,
-    });
+      set({
+        isSearchingModules: false,
+        moduleSearchExecutionId: null,
+        moduleSearchProgress: null,
+      });
     searchListenerManager.cleanup();
   },
 

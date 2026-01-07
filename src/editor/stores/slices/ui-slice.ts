@@ -15,6 +15,11 @@ import { normalizeScript } from '../helpers/slice-helpers';
 // ============================================================================
 
 /**
+ * Workspace type - determines which view is active.
+ */
+export type WorkspaceType = 'script' | 'api';
+
+/**
  * State managed by the UI slice.
  */
 export interface UISliceState {
@@ -29,6 +34,9 @@ export interface UISliceState {
   
   // Output tab
   outputTab: 'raw' | 'parsed' | 'validation' | 'graph';
+  
+  // Active workspace view (script editor or API explorer)
+  activeWorkspace: WorkspaceType;
   
   // User preferences
   preferences: UserPreferences;
@@ -50,6 +58,9 @@ export interface UISliceActions {
   
   // Output tab action
   setOutputTab: (tab: 'raw' | 'parsed' | 'validation' | 'graph') => void;
+  
+  // Workspace action
+  setActiveWorkspace: (workspace: WorkspaceType) => void;
   
   // Preferences actions
   setPreferences: (preferences: Partial<UserPreferences>) => void;
@@ -97,6 +108,9 @@ export const uiSliceInitialState: UISliceState = {
   
   // Output
   outputTab: 'raw',
+  
+  // Workspace - defaults to script editor
+  activeWorkspace: 'script',
   
   // Preferences
   preferences: DEFAULT_PREFERENCES,
@@ -146,6 +160,11 @@ export const createUISlice: StateCreator<
   // Output tab action
   setOutputTab: (tab) => {
     set({ outputTab: tab });
+  },
+
+  // Workspace action
+  setActiveWorkspace: (workspace) => {
+    set({ activeWorkspace: workspace });
   },
 
   // Preferences actions

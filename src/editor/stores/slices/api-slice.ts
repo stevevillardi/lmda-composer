@@ -92,6 +92,7 @@ export interface APISliceDependencies {
   selectedPortalId: string | null;
   // From UISlice
   preferences: UserPreferences;
+  setActiveWorkspace: (workspace: 'script' | 'api') => void;
 }
 
 // ============================================================================
@@ -139,7 +140,7 @@ export const createAPISlice: StateCreator<
   ...apiSliceInitialState,
 
   openApiExplorerTab: () => {
-    const { tabs } = get();
+    const { tabs, setActiveWorkspace } = get();
     const newTab = createDefaultApiTab();
     const baseName = 'API Request';
     let displayName = baseName;
@@ -149,6 +150,8 @@ export const createAPISlice: StateCreator<
       counter += 1;
     }
     newTab.displayName = displayName;
+    // Switch to API workspace when opening an API tab
+    setActiveWorkspace('api');
     set({
       tabs: [...tabs, newTab],
       activeTabId: newTab.id,

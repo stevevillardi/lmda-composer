@@ -482,20 +482,20 @@ export const createToolsSlice: StateCreator<
     set({ isFetchingProperties: true, selectedDeviceId: deviceId });
 
     const result = await sendMessage({
-      type: 'GET_DEVICE_PROPERTIES',
-      payload: { portalId: selectedPortalId, deviceId },
-    });
+        type: 'GET_DEVICE_PROPERTIES',
+        payload: { portalId: selectedPortalId, deviceId },
+      });
 
-    const current = get();
-    if (current.selectedPortalId !== fetchingPortal || current.selectedDeviceId !== fetchingDevice) {
-      return;
-    }
+      const current = get();
+      if (current.selectedPortalId !== fetchingPortal || current.selectedDeviceId !== fetchingDevice) {
+        return;
+      }
 
     if (result.ok) {
       set({ deviceProperties: result.data as DeviceProperty[], isFetchingProperties: false });
-    } else {
+      } else {
       console.error('Failed to fetch device properties:', result.error);
-      toast.error('Failed to load properties', {
+        toast.error('Failed to load properties', {
         description: result.error || 'Unable to fetch device properties',
       });
       set({ deviceProperties: [], isFetchingProperties: false });
@@ -704,25 +704,25 @@ export const createToolsSlice: StateCreator<
     set({ isTestingAppliesTo: true, appliesToError: null, appliesToResults: [] });
     
     const result = await sendMessage({
-      type: 'TEST_APPLIES_TO',
-      payload: {
-        portalId: selectedPortalId,
-        currentAppliesTo: appliesToExpression,
-        testFrom: appliesToTestFrom,
-      },
-    });
-    
+        type: 'TEST_APPLIES_TO',
+        payload: {
+          portalId: selectedPortalId,
+          currentAppliesTo: appliesToExpression,
+          testFrom: appliesToTestFrom,
+        },
+      });
+      
     if (result.ok) {
       const payload = result.data as { currentMatches?: Array<{ type: string; id: number; name: string }>; warnMessage?: string };
-      set({ 
+        set({ 
         appliesToResults: payload.currentMatches || [],
         appliesToError: payload.warnMessage || null,
-        isTestingAppliesTo: false,
-      });
+          isTestingAppliesTo: false,
+        });
     } else {
-      set({ 
+        set({ 
         appliesToError: result.error || 'Failed to test AppliesTo',
-        appliesToResults: [],
+          appliesToResults: [],
         isTestingAppliesTo: false,
       });
     }
@@ -750,17 +750,17 @@ export const createToolsSlice: StateCreator<
     set({ isLoadingCustomFunctions: true, customFunctionError: null });
     
     const result = await sendMessage({
-      type: 'FETCH_CUSTOM_FUNCTIONS',
-      payload: { portalId: selectedPortalId },
-    });
-    
-    if (result.ok) {
-      set({ 
-        customFunctions: result.data as CustomAppliesToFunction[],
-        isLoadingCustomFunctions: false,
+        type: 'FETCH_CUSTOM_FUNCTIONS',
+        payload: { portalId: selectedPortalId },
       });
-    } else {
-      set({ 
+      
+    if (result.ok) {
+        set({ 
+        customFunctions: result.data as CustomAppliesToFunction[],
+          isLoadingCustomFunctions: false,
+        });
+      } else {
+        set({ 
         customFunctionError: result.error || 'Failed to fetch custom functions',
         isLoadingCustomFunctions: false,
       });
@@ -777,20 +777,20 @@ export const createToolsSlice: StateCreator<
     set({ isCreatingFunction: true, customFunctionError: null });
     
     const result = await sendMessage({
-      type: 'CREATE_CUSTOM_FUNCTION',
-      payload: { portalId: selectedPortalId, name, code, description },
-    });
-    
+        type: 'CREATE_CUSTOM_FUNCTION',
+        payload: { portalId: selectedPortalId, name, code, description },
+      });
+      
     if (result.ok) {
-      set({ 
+        set({ 
         customFunctions: [...get().customFunctions, result.data as CustomAppliesToFunction],
-        isCreatingFunction: false,
-      });
-    } else {
-      set({ 
+          isCreatingFunction: false,
+        });
+      } else {
+        set({ 
         customFunctionError: result.error,
-        isCreatingFunction: false,
-      });
+          isCreatingFunction: false,
+        });
       throw new Error(result.error);
     }
   },
@@ -805,22 +805,22 @@ export const createToolsSlice: StateCreator<
     set({ isUpdatingFunction: true, customFunctionError: null });
     
     const result = await sendMessage({
-      type: 'UPDATE_CUSTOM_FUNCTION',
-      payload: { portalId: selectedPortalId, functionId: id, name, code, description },
-    });
-    
+        type: 'UPDATE_CUSTOM_FUNCTION',
+        payload: { portalId: selectedPortalId, functionId: id, name, code, description },
+      });
+      
     if (result.ok) {
-      set({ 
-        customFunctions: get().customFunctions.map(f => 
+        set({ 
+          customFunctions: get().customFunctions.map(f => 
           f.id === id ? (result.data as CustomAppliesToFunction) : f
-        ),
-        isUpdatingFunction: false,
-      });
-    } else {
-      set({ 
+          ),
+          isUpdatingFunction: false,
+        });
+      } else {
+        set({ 
         customFunctionError: result.error,
-        isUpdatingFunction: false,
-      });
+          isUpdatingFunction: false,
+        });
       throw new Error(result.error);
     }
   },
@@ -835,20 +835,20 @@ export const createToolsSlice: StateCreator<
     set({ isDeletingFunction: true, customFunctionError: null });
     
     const result = await sendMessage({
-      type: 'DELETE_CUSTOM_FUNCTION',
-      payload: { portalId: selectedPortalId, functionId: id },
-    });
-    
+        type: 'DELETE_CUSTOM_FUNCTION',
+        payload: { portalId: selectedPortalId, functionId: id },
+      });
+      
     if (result.ok) {
-      set({ 
-        customFunctions: get().customFunctions.filter(f => f.id !== id),
-        isDeletingFunction: false,
-      });
-    } else {
-      set({ 
+        set({ 
+          customFunctions: get().customFunctions.filter(f => f.id !== id),
+          isDeletingFunction: false,
+        });
+      } else {
+        set({ 
         customFunctionError: result.error,
-        isDeletingFunction: false,
-      });
+          isDeletingFunction: false,
+        });
       throw new Error(result.error);
     }
   },
@@ -922,9 +922,9 @@ export const createToolsSlice: StateCreator<
     });
 
     const result = await sendMessage({
-      type: 'EXECUTE_DEBUG_COMMAND',
-      payload: { ...request, executionId },
-    });
+        type: 'EXECUTE_DEBUG_COMMAND',
+        payload: { ...request, executionId },
+      });
     
     if (!result.ok) {
       set({ isExecutingDebugCommand: false, debugCommandExecutionId: null });
@@ -942,9 +942,9 @@ export const createToolsSlice: StateCreator<
     }
 
     const result = await sendMessage({
-      type: 'CANCEL_DEBUG_COMMAND',
-      payload: { executionId: debugCommandExecutionId },
-    });
+        type: 'CANCEL_DEBUG_COMMAND',
+        payload: { executionId: debugCommandExecutionId },
+      });
     
     if (result.ok) {
       set({
@@ -975,16 +975,16 @@ export const createToolsSlice: StateCreator<
 
   loadModuleSnippetsFromCache: async () => {
     const result = await sendMessage({
-      type: 'GET_MODULE_SNIPPETS_CACHE',
-    });
+        type: 'GET_MODULE_SNIPPETS_CACHE',
+      });
     
     if (result.ok && result.data) {
       const payload = result.data as { snippets: ModuleSnippetInfo[]; meta: ModuleSnippetsCacheMeta; cachedSourceKeys?: string[] };
-      set({
+        set({
         moduleSnippets: payload.snippets,
         moduleSnippetsCacheMeta: payload.meta,
         cachedSnippetVersions: new Set(payload.cachedSourceKeys || []),
-      });
+        });
     } else if (!result.ok) {
       console.error('Failed to load module snippets from cache:', result.error);
     }
@@ -1003,21 +1003,21 @@ export const createToolsSlice: StateCreator<
     set({ moduleSnippetsLoading: true });
 
     const result = await sendMessage({
-      type: 'FETCH_MODULE_SNIPPETS',
-      payload: { portalId: selectedPortalId, collectorId: selectedCollectorId },
-    });
+        type: 'FETCH_MODULE_SNIPPETS',
+        payload: { portalId: selectedPortalId, collectorId: selectedCollectorId },
+      });
 
     if (result.ok) {
       const payload = result.data as { snippets: ModuleSnippetInfo[]; meta: ModuleSnippetsCacheMeta };
-      set({
+        set({
         moduleSnippets: payload.snippets,
         moduleSnippetsCacheMeta: payload.meta,
-        moduleSnippetsLoading: false,
-      });
-      toast.success('Module snippets loaded', {
+          moduleSnippetsLoading: false,
+        });
+        toast.success('Module snippets loaded', {
         description: `Found ${payload.snippets.length} module snippets.`,
-      });
-    } else {
+        });
+      } else {
       set({ moduleSnippetsLoading: false });
       toast.error('Failed to fetch module snippets', {
         description: result.error,
@@ -1044,20 +1044,20 @@ export const createToolsSlice: StateCreator<
     set({ moduleSnippetSourceLoading: true });
 
     const result = await sendMessage({
-      type: 'FETCH_MODULE_SNIPPET_SOURCE',
-      payload: { portalId: selectedPortalId, collectorId: selectedCollectorId, name, version },
-    });
+        type: 'FETCH_MODULE_SNIPPET_SOURCE',
+        payload: { portalId: selectedPortalId, collectorId: selectedCollectorId, name, version },
+      });
 
     if (result.ok) {
-      const { cachedSnippetVersions } = get();
-      const newCached = new Set(cachedSnippetVersions);
-      newCached.add(`${name}:${version}`);
-      set({
+        const { cachedSnippetVersions } = get();
+        const newCached = new Set(cachedSnippetVersions);
+        newCached.add(`${name}:${version}`);
+        set({
         moduleSnippetSource: (result.data as { code: string }).code,
-        moduleSnippetSourceLoading: false,
-        cachedSnippetVersions: newCached,
-      });
-    } else {
+          moduleSnippetSourceLoading: false,
+          cachedSnippetVersions: newCached,
+        });
+      } else {
       set({ moduleSnippetSourceLoading: false });
       toast.error('Failed to fetch snippet source', {
         description: result.error,
@@ -1127,8 +1127,8 @@ export const createToolsSlice: StateCreator<
 
   clearModuleSnippetsCache: async () => {
     const result = await sendMessage({
-      type: 'CLEAR_MODULE_SNIPPETS_CACHE',
-    });
+        type: 'CLEAR_MODULE_SNIPPETS_CACHE',
+      });
     
     if (result.ok) {
       set({
@@ -1174,22 +1174,22 @@ export const createToolsSlice: StateCreator<
     set({ isFetchingLineage: true, lineageError: null });
 
     const result = await sendMessage({
-      type: 'FETCH_LINEAGE_VERSIONS',
-      payload: {
-        portalId: binding.portalId,
-        moduleType: tab.source.moduleType,
-        lineageId: tab.source.lineageId,
-      },
-    });
+        type: 'FETCH_LINEAGE_VERSIONS',
+        payload: {
+          portalId: binding.portalId,
+          moduleType: tab.source.moduleType,
+          lineageId: tab.source.lineageId,
+        },
+      });
 
     if (result.ok) {
       const versions = (result.data as { versions?: LineageVersion[] }).versions || [];
-      set({
-        lineageVersions: versions,
-        isFetchingLineage: false,
-      });
-      return versions.length;
-    } else {
+        set({
+          lineageVersions: versions,
+          isFetchingLineage: false,
+        });
+        return versions.length;
+      } else {
       set({ lineageError: result.error, isFetchingLineage: false });
       throw new Error(result.error);
     }

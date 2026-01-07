@@ -1,24 +1,18 @@
 import { useMemo, useState } from 'react';
-import { 
-  Play, 
-  type LucideIcon,
-  Send,
-  Loader2,
-  StopCircle,
-  PanelRightClose,
-  PanelRightOpen,
-  Upload,
-  History,
-  Settings,
-  CloudDownload,
-} from 'lucide-react';
 import {
   WarningIcon,
-  TerminalIcon,
-  TargetIcon,
-  ActivityIcon,
-  LayersIcon,
+  RunIcon,
+  SendIcon,
+  LoadingIcon,
+  StopIcon,
+  SidebarCloseIcon,
+  SidebarOpenIcon,
+  CommitIcon,
+  HistoryIcon,
+  SettingsIcon,
+  ImportIcon,
 } from '../constants/icons';
+import { MODE_ITEMS } from '../constants/mode-config';
 import { toast } from 'sonner';
 import { useEditorStore } from '../stores/editor-store';
 import { DEFAULT_GROOVY_TEMPLATE, DEFAULT_POWERSHELL_TEMPLATE } from '../config/script-templates';
@@ -56,18 +50,6 @@ import { normalizeMode } from '../utils/mode-utils';
 import { normalizeScript } from '../stores/helpers/slice-helpers';
 import { hasAssociatedFileHandle } from '../utils/document-helpers';
 
-interface ModeItem {
-  value: ScriptMode;
-  label: string;
-  icon: LucideIcon;
-}
-
-const MODE_ITEMS: ModeItem[] = [
-  { value: 'freeform', label: 'Freeform', icon: TerminalIcon },
-  { value: 'ad', label: 'Active Discovery', icon: TargetIcon },
-  { value: 'collection', label: 'Collection', icon: ActivityIcon },
-  { value: 'batchcollection', label: 'Batch Collection', icon: LayersIcon },
-];
 
 export function Toolbar() {
   const {
@@ -267,19 +249,15 @@ export function Toolbar() {
           <Button
             onClick={() => executeApiRequest(activeTabId ?? undefined)}
             disabled={!canSendApi}
-            size="sm"
+            size="toolbar"
             variant="execute"
-            className={cn(
-              "gap-1.5 text-xs",
-              SIZES.BUTTON_TOOLBAR,
-              "px-4 font-medium"
-            )}
+            className="px-4 font-medium"
             aria-label={isExecutingApi ? 'Sending request' : 'Send request'}
           >
             {isExecutingApi ? (
-              <Loader2 className={cn(SIZES.ICON_MEDIUM, "animate-spin")} />
+              <LoadingIcon className={SIZES.ICON_MEDIUM} />
             ) : (
-              <Send className={SIZES.ICON_MEDIUM} />
+              <SendIcon className={SIZES.ICON_MEDIUM} />
             )}
             {isExecutingApi ? 'Sending...' : 'Send Request'}
           </Button>
@@ -288,7 +266,7 @@ export function Toolbar() {
               render={
                 <Button
                   variant={rightSidebarOpen ? 'secondary' : 'ghost'}
-                  size="icon-sm"
+                  size="toolbar-icon"
                   onClick={() => {
                     setRightSidebarOpen(!rightSidebarOpen);
                   }}
@@ -297,9 +275,9 @@ export function Toolbar() {
                   aria-pressed={rightSidebarOpen}
                 >
                   {rightSidebarOpen ? (
-                    <PanelRightClose className={SIZES.ICON_MEDIUM} />
+                    <SidebarCloseIcon className={SIZES.ICON_MEDIUM} />
                   ) : (
-                    <PanelRightOpen className={SIZES.ICON_MEDIUM} />
+                    <SidebarOpenIcon className={SIZES.ICON_MEDIUM} />
                   )}
                 </Button>
               }
@@ -420,8 +398,8 @@ export function Toolbar() {
             <TooltipTrigger
               render={
                 <Button
-                  variant="outline"
-                  size="sm"
+                  variant="toolbar-outline"
+                  size="toolbar"
                   onClick={async () => {
                     if (!activeTabId) return;
                     try {
@@ -440,13 +418,12 @@ export function Toolbar() {
                     }
                   }}
                   disabled={isFetchingLineage || !isPortalBoundActive}
-                  className={cn("gap-1.5 text-xs", SIZES.BUTTON_TOOLBAR)}
                   aria-label="View module lineage"
                 >
                   {isFetchingLineage ? (
-                    <Loader2 className={cn(SIZES.ICON_MEDIUM, "animate-spin")} />
+                    <LoadingIcon className={SIZES.ICON_MEDIUM} />
                   ) : (
-                    <History className={SIZES.ICON_MEDIUM} />
+                    <HistoryIcon className={SIZES.ICON_MEDIUM} />
                   )}
                   {isFetchingLineage ? 'Loading...' : 'View Lineage'}
                 </Button>
@@ -468,16 +445,15 @@ export function Toolbar() {
             <TooltipTrigger
               render={
                 <Button
-                  variant="outline"
-                  size="sm"
+                  variant="toolbar-outline"
+                  size="toolbar"
                   onClick={() => {
                     setModuleDetailsDialogOpen(true);
                   }}
                   disabled={!isPortalBoundActive}
-                  className={cn("gap-1.5 text-xs", SIZES.BUTTON_TOOLBAR)}
                   aria-label="Open module details"
                 >
-                  <Settings className={SIZES.ICON_MEDIUM} />
+                  <SettingsIcon className={SIZES.ICON_MEDIUM} />
                   Module Details
                 </Button>
               }
@@ -497,8 +473,8 @@ export function Toolbar() {
             <TooltipTrigger
               render={
                 <Button
-                  variant="outline"
-                  size="sm"
+                  variant="toolbar-outline"
+                  size="toolbar"
                   onClick={async () => {
                     if (!activeTabId) return;
                     const result = await pullLatestFromPortal(activeTabId);
@@ -509,13 +485,12 @@ export function Toolbar() {
                     }
                   }}
                   disabled={isPullingLatest}
-                  className={cn("gap-1.5 text-xs", SIZES.BUTTON_TOOLBAR)}
                   aria-label="Pull latest from portal"
                 >
                   {isPullingLatest ? (
-                    <Loader2 className={cn(SIZES.ICON_MEDIUM, "animate-spin")} />
+                    <LoadingIcon className={SIZES.ICON_MEDIUM} />
                   ) : (
-                    <CloudDownload className={SIZES.ICON_MEDIUM} />
+                    <ImportIcon className={SIZES.ICON_MEDIUM} />
                   )}
                   {isPullingLatest ? 'Pulling...' : 'Pull'}
                 </Button>
@@ -534,7 +509,7 @@ export function Toolbar() {
               render={
                 <Button
                   variant="commit"
-                  size="sm"
+                  size="toolbar"
                   onClick={async () => {
                     if (!activeTabId) return;
                     try {
@@ -547,14 +522,10 @@ export function Toolbar() {
                     }
                   }}
                   disabled={!canCommit}
-                  className={cn(
-                    "gap-1.5 text-xs",
-                    SIZES.BUTTON_TOOLBAR,
-                    "px-3 font-medium"
-                  )}
+                  className="px-3 font-medium"
                   aria-label="Push changes to LogicMonitor portal"
                 >
-                  <Upload className={SIZES.ICON_MEDIUM} />
+                  <CommitIcon className={SIZES.ICON_MEDIUM} />
                   Push to Portal
                 </Button>
               }
@@ -579,19 +550,15 @@ export function Toolbar() {
         <Button
           onClick={handleRunClick}
           disabled={!canExecute}
-          size="sm"
+          size="toolbar"
           variant="execute"
-          className={cn(
-            "gap-1.5 text-xs",
-            SIZES.BUTTON_TOOLBAR,
-            "px-4 font-medium"
-          )}
+          className="px-4 font-medium"
           aria-label={isExecuting ? 'Running script' : 'Run script'}
         >
           {isExecuting ? (
-            <Loader2 className={cn(SIZES.ICON_MEDIUM, "animate-spin")} />
+            <LoadingIcon className={SIZES.ICON_MEDIUM} />
           ) : (
-            <Play className={SIZES.ICON_MEDIUM} />
+            <RunIcon className={SIZES.ICON_MEDIUM} />
           )}
           {isExecuting ? 'Running...' : 'Run Script'}
         </Button>
@@ -603,12 +570,11 @@ export function Toolbar() {
               render={
                 <Button
                   variant="destructive"
-                  size="sm"
+                  size="toolbar"
                   onClick={() => setCancelDialogOpen(true)}
-                  className={cn("gap-1.5 text-xs", SIZES.BUTTON_TOOLBAR)}
                   aria-label="Cancel script execution"
                 >
-                  <StopCircle className={SIZES.ICON_MEDIUM} />
+                  <StopIcon className={SIZES.ICON_MEDIUM} />
                   Cancel
                 </Button>
               }
@@ -625,7 +591,7 @@ export function Toolbar() {
             render={
               <Button
                 variant={rightSidebarOpen ? 'secondary' : 'ghost'}
-                size="icon-sm"
+                size="toolbar-icon"
                 onClick={() => {
                   setRightSidebarOpen(!rightSidebarOpen);
                 }}
@@ -634,9 +600,9 @@ export function Toolbar() {
                 aria-pressed={rightSidebarOpen}
               >
                 {rightSidebarOpen ? (
-                  <PanelRightClose className={SIZES.ICON_MEDIUM} />
+                  <SidebarCloseIcon className={SIZES.ICON_MEDIUM} />
                 ) : (
-                  <PanelRightOpen className={SIZES.ICON_MEDIUM} />
+                  <SidebarOpenIcon className={SIZES.ICON_MEDIUM} />
                 )}
               </Button>
             }
@@ -686,7 +652,7 @@ export function Toolbar() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogMedia className="bg-destructive/10">
-              <StopCircle className="size-8 text-destructive" />
+              <StopIcon className="size-8 text-destructive" />
             </AlertDialogMedia>
             <AlertDialogTitle>Cancel Script Execution?</AlertDialogTitle>
             <AlertDialogDescription>

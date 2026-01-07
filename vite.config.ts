@@ -98,9 +98,24 @@ export default defineConfig(({ command }) => {
       include: ['react', 'react-dom'],
     },
     test: {
-      environment: 'node',
+      // Use jsdom for React component tests, node for pure logic
+      environment: 'jsdom',
       globals: true,
-      include: ['tests/**/*.test.ts'],
+      include: ['tests/**/*.test.{ts,tsx}'],
+      setupFiles: ['./tests/setup.ts'],
+      // Coverage configuration
+      coverage: {
+        provider: 'v8',
+        reporter: ['text', 'text-summary', 'html'],
+        include: ['src/**/*.{ts,tsx}'],
+        exclude: [
+          'src/**/*.d.ts',
+          'src/**/index.ts',
+          'src/**/index.tsx',
+          'src/vite-env.d.ts',
+          'src/manifest.json',
+        ],
+      },
     },
   };
 });

@@ -23,6 +23,34 @@ import {
   Network,
   Tag,
   ScrollText,
+  // Action icons
+  Play,
+  Send,
+  Save,
+  Download,
+  FilePlus,
+  FileInput,
+  Settings,
+  RefreshCw,
+  X,
+  Plus,
+  ChevronDown,
+  Loader2,
+  CloudDownload,
+  FolderSearch,
+  Hammer,
+  Wrench,
+  Puzzle,
+  BookOpen,
+  ExternalLink,
+  PanelRight,
+  PanelRightClose,
+  PanelRightOpen,
+  History,
+  StopCircle,
+  ArrowLeftRight,
+  Braces,
+  Copy,
   type LucideProps,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -148,6 +176,141 @@ export function DebugIcon({ className, ...props }: LucideProps) {
   return <Terminal className={cn(className)} {...props} />;
 }
 
+/** Run/execute script action */
+export function RunIcon({ className, ...props }: LucideProps) {
+  return <Play className={cn(className)} {...props} />;
+}
+
+/** Send API request action */
+export function SendIcon({ className, ...props }: LucideProps) {
+  return <Send className={cn(className)} {...props} />;
+}
+
+/** Save file action */
+export function SaveIcon({ className, ...props }: LucideProps) {
+  return <Save className={cn(className)} {...props} />;
+}
+
+/** Download/export file action */
+export function DownloadIcon({ className, ...props }: LucideProps) {
+  return <Download className={cn(className)} {...props} />;
+}
+
+/** Create new file action */
+export function NewFileIcon({ className, ...props }: LucideProps) {
+  return <FilePlus className={cn(className)} {...props} />;
+}
+
+/** Open file action */
+export function OpenFileIcon({ className, ...props }: LucideProps) {
+  return <FileInput className={cn(className)} {...props} />;
+}
+
+/** Settings/preferences action */
+export function SettingsIcon({ className, ...props }: LucideProps) {
+  return <Settings className={cn(className)} {...props} />;
+}
+
+/** Refresh/reload action */
+export function RefreshIcon({ className, ...props }: LucideProps) {
+  return <RefreshCw className={cn(className)} {...props} />;
+}
+
+/** Close/dismiss action */
+export function CloseIcon({ className, ...props }: LucideProps) {
+  return <X className={cn(className)} {...props} />;
+}
+
+/** Add/create action */
+export function AddIcon({ className, ...props }: LucideProps) {
+  return <Plus className={cn(className)} {...props} />;
+}
+
+/** Loading/spinner indicator */
+export function LoadingIcon({ className, ...props }: LucideProps) {
+  return <Loader2 className={cn('animate-spin', className)} {...props} />;
+}
+
+/** Import from cloud/LMX action */
+export function ImportIcon({ className, ...props }: LucideProps) {
+  return <CloudDownload className={cn(className)} {...props} />;
+}
+
+/** Search modules action */
+export function SearchModulesIcon({ className, ...props }: LucideProps) {
+  return <FolderSearch className={cn(className)} {...props} />;
+}
+
+/** AppliesTo toolbox action */
+export function ToolboxIcon({ className, ...props }: LucideProps) {
+  return <Hammer className={cn(className)} {...props} />;
+}
+
+/** Debug commands action */
+export function DebugCommandsIcon({ className, ...props }: LucideProps) {
+  return <Wrench className={cn(className)} {...props} />;
+}
+
+/** Snippets/code templates action */
+export function SnippetsIcon({ className, ...props }: LucideProps) {
+  return <Puzzle className={cn(className)} {...props} />;
+}
+
+/** Documentation/help action */
+export function DocsIcon({ className, ...props }: LucideProps) {
+  return <BookOpen className={cn(className)} {...props} />;
+}
+
+/** External link indicator */
+export function ExternalLinkIcon({ className, ...props }: LucideProps) {
+  return <ExternalLink className={cn('text-muted-foreground', className)} {...props} />;
+}
+
+/** Toggle sidebar action */
+export function SidebarIcon({ className, ...props }: LucideProps) {
+  return <PanelRight className={cn(className)} {...props} />;
+}
+
+/** Close sidebar action */
+export function SidebarCloseIcon({ className, ...props }: LucideProps) {
+  return <PanelRightClose className={cn(className)} {...props} />;
+}
+
+/** Open sidebar action */
+export function SidebarOpenIcon({ className, ...props }: LucideProps) {
+  return <PanelRightOpen className={cn(className)} {...props} />;
+}
+
+/** View history/lineage action */
+export function HistoryIcon({ className, ...props }: LucideProps) {
+  return <History className={cn(className)} {...props} />;
+}
+
+/** Stop/cancel execution action */
+export function StopIcon({ className, ...props }: LucideProps) {
+  return <StopCircle className={cn(className)} {...props} />;
+}
+
+/** Switch/toggle view action */
+export function SwitchViewIcon({ className, ...props }: LucideProps) {
+  return <ArrowLeftRight className={cn(className)} {...props} />;
+}
+
+/** API/JSON action */
+export function ApiIcon({ className, ...props }: LucideProps) {
+  return <Braces className={cn(className)} {...props} />;
+}
+
+/** Copy to clipboard action */
+export function CopyIcon({ className, ...props }: LucideProps) {
+  return <Copy className={cn(className)} {...props} />;
+}
+
+/** Expand/collapse chevron */
+export function ChevronDownIcon({ className, ...props }: LucideProps) {
+  return <ChevronDown className={cn(className)} {...props} />;
+}
+
 // ============================================================================
 // Raw Icon Exports (for cases where color should not be applied)
 // ============================================================================
@@ -171,5 +334,33 @@ export {
   Network as NetworkIcon,
   Tag as TagIcon,
   ScrollText as ScrollTextIcon,
+  // Raw action icons
+  Play as PlayIcon,
+  Send as SendIconRaw,
+  Save as SaveIconRaw,
+  Download as DownloadIconRaw,
+  FilePlus as FilePlusIcon,
+  FileInput as FileInputIcon,
+  Settings as SettingsIconRaw,
+  RefreshCw as RefreshCwIcon,
+  X as XIcon,
+  Plus as PlusIcon,
+  ChevronDown as ChevronDownIconRaw,
+  Loader2 as Loader2Icon,
+  CloudDownload as CloudDownloadIcon,
+  FolderSearch as FolderSearchIcon,
+  Hammer as HammerIcon,
+  Wrench as WrenchIcon,
+  Puzzle as PuzzleIcon,
+  BookOpen as BookOpenIcon,
+  ExternalLink as ExternalLinkIconRaw,
+  PanelRight as PanelRightIcon,
+  PanelRightClose as PanelRightCloseIcon,
+  PanelRightOpen as PanelRightOpenIcon,
+  History as HistoryIconRaw,
+  StopCircle as StopCircleIcon,
+  ArrowLeftRight as ArrowLeftRightIcon,
+  Braces as BracesIcon,
+  Copy as CopyIconRaw,
 };
 

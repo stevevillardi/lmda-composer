@@ -11,6 +11,7 @@ import {
   Terminal,
   Braces,
 } from 'lucide-react';
+import { Kbd } from '@/components/ui/kbd';
 import { useEditorStore } from '../stores/editor-store';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -155,7 +156,7 @@ export function WelcomeScreenV2() {
     openRecentFile,
     createNewFile,
     openFileFromDisk,
-    openApiExplorerTab,
+    setActiveWorkspace,
     setModuleBrowserOpen,
     setModuleSearchOpen,
     setAppliesToTesterOpen,
@@ -169,7 +170,7 @@ export function WelcomeScreenV2() {
   const hasRecentFiles = recentFiles.length > 0;
 
   return (
-    <div className="h-full flex flex-col bg-background overflow-auto">
+    <div className="h-full flex flex-col bg-background overflow-auto" tabIndex={-1}>
       <div className="flex-1 flex items-center justify-center p-6">
         <div className="w-full max-w-5xl space-y-6">
           <div className="flex flex-col gap-2">
@@ -211,7 +212,7 @@ export function WelcomeScreenV2() {
                     icon={<Braces className="size-4" />}
                     title="API Explorer"
                     description="Explore the LM REST API with your active session"
-                    onClick={openApiExplorerTab}
+                    onClick={() => setActiveWorkspace('api')}
                   />
                   <ActionRow
                     icon={<CloudDownload className="size-4" />}
@@ -304,9 +305,11 @@ export function WelcomeScreenV2() {
           <div className="w-full flex items-center justify-center">
             <div className="text-xs text-muted-foreground flex items-center gap-2">
               <span>Tip</span>
-              <span className="px-1.5 py-0.5 rounded bg-muted border text-[10px] font-mono">
-                Ctrl+K
-              </span>
+              <div className="flex items-center gap-0.5">
+                <Kbd>⌘</Kbd>
+                <Kbd>⇧</Kbd>
+                <Kbd>P</Kbd>
+              </div>
               <span>opens the command palette</span>
             </div>
           </div>

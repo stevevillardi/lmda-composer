@@ -488,23 +488,23 @@ export const createExecutionSlice: StateCreator<
     if (!currentExecutionId) return;
 
     const result = await sendMessage({
-      type: 'CANCEL_EXECUTION',
-      payload: { executionId: currentExecutionId },
-    });
+        type: 'CANCEL_EXECUTION',
+        payload: { executionId: currentExecutionId },
+      });
 
     if (result.ok) {
-      set({ 
-        isExecuting: false, 
-        cancelDialogOpen: false,
-        currentExecution: {
-          id: currentExecutionId,
-          status: 'cancelled',
-          rawOutput: '',
-          duration: 0,
-          startTime: Date.now(),
-          error: 'Execution cancelled by user',
-        },
-      });
+        set({ 
+          isExecuting: false, 
+          cancelDialogOpen: false,
+          currentExecution: {
+            id: currentExecutionId,
+            status: 'cancelled',
+            rawOutput: '',
+            duration: 0,
+            startTime: Date.now(),
+            error: 'Execution cancelled by user',
+          },
+        });
     } else {
       console.error('Failed to cancel execution:', result.error);
     }
