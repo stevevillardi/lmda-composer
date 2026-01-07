@@ -71,9 +71,25 @@ export function supportsPortal(type: DocumentType): boolean {
 // ============================================================================
 
 /**
- * Get the original/saved content for comparison.
+ * Get the original/baseline content for comparison.
+ * 
+ * @param tab - The editor tab to get content from
+ * @param purpose - The comparison purpose:
+ *   - 'local': For detecting local dirty state (unsaved disk changes).
+ *              Returns file.lastSavedContent for local files, otherwise portal.lastKnownContent.
+ *   - 'portal': For detecting portal conflicts (has the portal changed since last sync?).
+ *              Always returns portal.lastKnownContent regardless of local file state.
  */
-export function getOriginalContent(tab: EditorTab): string | undefined {
+export function getOriginalContent(
+  tab: EditorTab, 
+  purpose: 'local' | 'portal' = 'local'
+): string | undefined {
+  if (purpose === 'portal') {
+    // For portal conflict detection: always use the portal baseline
+    return tab.document?.portal?.lastKnownContent;
+  }
+  
+  // For local dirty state: prioritize file content for local files
   if (tab.document?.file?.lastSavedContent !== undefined) {
     return tab.document.file.lastSavedContent;
   }

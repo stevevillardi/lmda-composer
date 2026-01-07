@@ -1118,21 +1118,20 @@ export const createModuleSlice: StateCreator<
         // Extract the current script from the module using shared utility
         const currentScript = extractScriptFromModule(module, tab.source.moduleType!, tab.source.scriptType || 'collection');
         
-        // Check for conflicts: compare fetched script with original content (lastKnownContent)
-        // A conflict means the portal has changed since we last pulled
-        // Use normalization to handle line ending differences and trailing whitespace
-        const origContent = getOriginalContent(tab) || '';
-        const normalizedOrig = normalizeScriptContent(origContent);
+        // Check for conflicts: compare portal baseline against freshly fetched portal content.
+        // Use purpose='portal' to get the portal baseline, not the local file content.
+        const portalBaseline = getOriginalContent(tab, 'portal') || '';
+        const normalizedBaseline = normalizeScriptContent(portalBaseline);
         const normalizedPortal = normalizeScriptContent(currentScript);
-        const hasConflict = normalizedOrig !== normalizedPortal;
+        const hasConflict = normalizedBaseline !== normalizedPortal;
         
         console.log('[ModuleDir] fetchModuleForCommit: Conflict check', {
-          origContentLen: origContent.length,
+          portalBaselineLen: portalBaseline.length,
           currentScriptLen: currentScript.length,
-          normalizedOrigLen: normalizedOrig.length,
+          normalizedBaselineLen: normalizedBaseline.length,
           normalizedPortalLen: normalizedPortal.length,
           hasConflict,
-          origPreview: origContent.substring(450, 520),
+          baselinePreview: portalBaseline.substring(450, 520),
           portalPreview: currentScript.substring(450, 520),
         });
         
@@ -1162,7 +1161,7 @@ export const createModuleSlice: StateCreator<
         });
         
         // If there's a conflict, update the document baseline to the current server state
-        if (hasConflict && currentScript !== origContent) {
+        if (hasConflict && currentScript !== portalBaseline) {
           set({
             tabs: tabs.map(t =>
               t.id === tabId

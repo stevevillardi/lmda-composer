@@ -494,7 +494,7 @@ export function App() {
             moduleType={loadedModuleForCommit.moduleType}
             scriptType={activeTab.source.scriptType || 'collection'}
             scriptLanguage={loadedModuleForCommit.scriptType === 'powerShell' ? 'powershell' : 'groovy'}
-            originalScript={getOriginalContent(activeTab) || ''}
+            originalScript={getOriginalContent(activeTab, 'portal') || ''}
             newScript={activeTab.content}
             hasConflict={moduleCommitConflict?.hasConflict ?? false}
             conflictMessage={moduleCommitConflict?.message}
