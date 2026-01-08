@@ -686,10 +686,8 @@ export function DebugCommandsDialog() {
                       <Button
                         onClick={handleExecute}
                         disabled={!canExecute}
-                        className={cn(
-                          "gap-2",
-                          selectedCommand?.type === 'healthcheck' && "bg-linear-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600"
-                        )}
+                        variant="execute"
+                        className="gap-2"
                       >
                         {isExecutingDebugCommand ? (
                           <>

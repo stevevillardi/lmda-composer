@@ -345,55 +345,14 @@ export const moduleSliceInitialState: ModuleSliceState = {
 // Module-level state for search listener management
 // ============================================================================
 
-/**
- * Manages module search progress listeners with proper cleanup.
- * Ensures listeners are always cleaned up, even on errors.
- */
-class ModuleSearchListenerManager {
-  private listener: ((message: unknown) => boolean) | null = null;
-  private currentSearchId: string | null = null;
-
-  /**
-   * Starts listening for progress updates for a specific search.
-   * Automatically cleans up any existing listener first.
-   */
-  start(searchId: string, onProgress: (progress: unknown) => void): void {
-    // Always clean up first to prevent leaks
-    this.cleanup();
-    
-    this.currentSearchId = searchId;
-    this.listener = (message: unknown) => {
-      const msg = message as { type?: string; payload?: { searchId?: string } };
-      if (msg.type === 'MODULE_SEARCH_PROGRESS' && msg.payload?.searchId === searchId) {
-        onProgress(msg.payload);
-  }
-      return false;
-};
-
-    chrome.runtime.onMessage.addListener(this.listener);
-  }
-
-  /**
-   * Cleans up the current listener. Safe to call multiple times.
-   */
-  cleanup(): void {
-    if (this.listener) {
-      chrome.runtime.onMessage.removeListener(this.listener);
-      this.listener = null;
-    }
-    this.currentSearchId = null;
-  }
-
-  /**
-   * Gets the current search ID, if any.
-   */
-  getCurrentSearchId(): string | null {
-    return this.currentSearchId;
-  }
-}
+import { createFilteredListenerManager } from '@/editor/utils/message-listener';
 
 // Singleton instance for module search listener management
-const searchListenerManager = new ModuleSearchListenerManager();
+// Filters for MODULE_SEARCH_PROGRESS messages matching the search ID
+const searchListenerManager = createFilteredListenerManager<ModuleSearchProgress>(
+  'MODULE_SEARCH_PROGRESS',
+  (msg) => (msg.payload as { searchId?: string })?.searchId
+);
 
 // ============================================================================
 // Slice Creator
@@ -720,7 +679,7 @@ export const createModuleSlice: StateCreator<
 
     // Use managed listener for proper cleanup
     searchListenerManager.start(searchId, (progress) => {
-      set({ moduleSearchProgress: progress as ModuleSearchProgress });
+      set({ moduleSearchProgress: progress });
     });
 
     try {
@@ -809,7 +768,7 @@ export const createModuleSlice: StateCreator<
 
     // Use managed listener for proper cleanup
     searchListenerManager.start(searchId, (progress) => {
-      set({ moduleSearchProgress: progress as ModuleSearchProgress });
+      set({ moduleSearchProgress: progress });
     });
 
     try {
@@ -899,7 +858,7 @@ export const createModuleSlice: StateCreator<
 
     // Use managed listener for proper cleanup
     searchListenerManager.start(searchId, (progress) => {
-      set({ moduleSearchProgress: progress as ModuleSearchProgress });
+      set({ moduleSearchProgress: progress });
     });
 
     try {
@@ -1065,13 +1024,6 @@ export const createModuleSlice: StateCreator<
     // Check if this is a directory-saved module
     const isDirectorySaved = !!tab.directoryHandleId || relatedTabs.some(t => !!t.directoryHandleId);
     
-    console.log('[ModuleDir] canCommitModule: Checking module', {
-      tabId,
-      moduleId,
-      relatedTabCount: relatedTabs.length,
-      isDirectorySaved,
-    });
-    
     // For directory-saved modules, check ALL related tabs (scripts are loaded from disk)
     // For non-directory modules, only check the ACTIVE tab (push only works for active tab)
     const hasScriptChanges = isDirectorySaved
@@ -1082,12 +1034,6 @@ export const createModuleSlice: StateCreator<
     const hasModuleDetailsChanges = relatedTabs.some(t => {
       const draft = moduleDetailsDraftByTabId[t.id];
       return draft && draft.dirtyFields.size > 0;
-    });
-    
-    console.log('[ModuleDir] canCommitModule: Result', {
-      hasScriptChanges,
-      hasModuleDetailsChanges,
-      canCommit: hasScriptChanges || hasModuleDetailsChanges,
     });
     
     // Can commit (push to portal) if scripts or module details have changes
@@ -1134,16 +1080,6 @@ export const createModuleSlice: StateCreator<
         const normalizedBaseline = normalizeScriptContent(portalBaseline);
         const normalizedPortal = normalizeScriptContent(currentScript);
         const hasConflict = normalizedBaseline !== normalizedPortal;
-        
-        console.log('[ModuleDir] fetchModuleForCommit: Conflict check', {
-          portalBaselineLen: portalBaseline.length,
-          currentScriptLen: currentScript.length,
-          normalizedBaselineLen: normalizedBaseline.length,
-          normalizedPortalLen: normalizedPortal.length,
-          hasConflict,
-          baselinePreview: portalBaseline.substring(450, 520),
-          portalPreview: currentScript.substring(450, 520),
-        });
         
         // Normalize scriptType - API may return different casings
         const rawScriptType = module.scriptType || module.collectorAttribute?.scriptType || 'embed';
@@ -1611,8 +1547,6 @@ export const createModuleSlice: StateCreator<
     set({ isFetchingForPull: true, scriptsForPull: null });
     
     try {
-      console.log('[ModuleDir] fetchModuleForPull: Fetching module from portal...');
-      
       // Fetch latest module from portal
       const result = await sendMessage({
         type: 'FETCH_MODULE',
@@ -1696,7 +1630,6 @@ export const createModuleSlice: StateCreator<
         },
       });
     } catch (error) {
-      console.error('[ModuleDir] fetchModuleForPull: Error:', error);
       set({ isFetchingForPull: false });
       throw error;
     }
@@ -1748,12 +1681,6 @@ export const createModuleSlice: StateCreator<
     if (!hasScriptsToSync && !hasDetailsToSync) {
       return { success: false, error: 'No scripts or module details selected to pull' };
     }
-    
-    console.log('[ModuleDir] pullLatestFromPortal: Starting...', {
-      tabId,
-      scriptsToPull: Array.from(scriptsToPull),
-      includeDetailsInPull,
-    });
     
     set({ isPullingLatest: true });
     
@@ -1845,7 +1772,6 @@ export const createModuleSlice: StateCreator<
       const directoryHandleId = tab.directoryHandleId || relatedTabs.find(t => t.directoryHandleId)?.directoryHandleId;
       if (directoryHandleId) {
         try {
-          console.log('[ModuleDir] pullLatestFromPortal: Updating directory files...');
           const storedDir = await documentStore.getDirectoryHandleRecord(directoryHandleId);
           
           if (storedDir) {
@@ -1865,7 +1791,6 @@ export const createModuleSlice: StateCreator<
                   
                   // If script doesn't exist in config, create a new entry
                   if (!scriptConfig) {
-                    console.log('[ModuleDir] pullLatestFromPortal: Creating new script entry for', scriptType);
                     // Determine filename based on language
                     const ext = script.language === 'powershell' ? 'ps1' : 'groovy';
                     const fileName = `${scriptType}.${ext}`;
@@ -1887,8 +1812,6 @@ export const createModuleSlice: StateCreator<
                   const newChecksum = await documentStore.computeChecksum(script.portalContent);
                   scriptConfig.portalChecksum = newChecksum;
                   scriptConfig.diskChecksum = newChecksum;
-                  
-                  console.log('[ModuleDir] pullLatestFromPortal: Updated script file:', scriptConfig.fileName);
                 }
                 
                 // Update module details in module.json if pulling details
@@ -1905,12 +1828,10 @@ export const createModuleSlice: StateCreator<
                 
                 // Save updated module.json
                 await documentStore.writeFileToDirectory(storedDir.handle, 'module.json', JSON.stringify(config, null, 2));
-                console.log('[ModuleDir] pullLatestFromPortal: Directory files updated');
               }
             }
           }
-        } catch (dirError) {
-          console.error('[ModuleDir] pullLatestFromPortal: Error updating directory:', dirError);
+        } catch {
           // Continue - tab content was updated even if directory update failed
         }
       }

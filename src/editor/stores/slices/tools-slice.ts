@@ -61,66 +61,44 @@ const findModuleDraftForTab = (
   );
 };
 
-/**
- * Manages debug command listeners with proper cleanup.
- * Ensures listeners are always cleaned up, even on errors.
- */
-class DebugCommandListenerManager {
-  private listener: ((message: { type: string; executionId?: string; payload?: unknown }) => boolean) | null = null;
-  private currentExecutionId: string | null = null;
+import { MessageListenerManager } from '@/editor/utils/message-listener';
 
+interface DebugCommandMessage {
+  type: string;
+  executionId?: string;
+  payload?: unknown;
+}
+
+/**
+ * Specialized listener manager for debug commands.
+ * Handles complete, update, and error message types.
+ */
+class DebugCommandListenerManager extends MessageListenerManager<DebugCommandMessage> {
   /**
    * Starts listening for debug command updates for a specific execution.
-   * Automatically cleans up any existing listener first.
    */
-  start(
+  startWithCallbacks(
     executionId: string,
     callbacks: {
       onComplete: (results: Record<number, DebugCommandResult>) => void;
       onError: (message: string) => void;
     }
   ): void {
-    // Always clean up first to prevent leaks
-    this.cleanup();
-    
-    this.currentExecutionId = executionId;
-    this.listener = (message: { type: string; executionId?: string; payload?: unknown }) => {
+    this.start(executionId, (message) => {
       // Only handle messages for this execution
       if (message.executionId && message.executionId !== executionId) {
-        return false;
+        return;
       }
 
-      if (message.type === 'DEBUG_COMMAND_UPDATE') {
-        // Progress updates - could show progress in UI if needed
-      } else if (message.type === 'DEBUG_COMMAND_COMPLETE') {
+      if (message.type === 'DEBUG_COMMAND_COMPLETE') {
         callbacks.onComplete((message.payload as { results: Record<number, DebugCommandResult> }).results);
-        this.cleanup();
+        return true; // Signal cleanup
       } else if (message.type === 'ERROR' && (message.payload as { code?: string })?.code === 'DEBUG_COMMAND_ERROR') {
         callbacks.onError((message.payload as { message?: string })?.message || 'Debug command failed');
-        this.cleanup();
+        return true; // Signal cleanup
       }
-      return false;
-    };
-    
-    chrome.runtime.onMessage.addListener(this.listener);
-  }
-
-  /**
-   * Cleans up the current listener. Safe to call multiple times.
-   */
-  cleanup(): void {
-    if (this.listener) {
-      chrome.runtime.onMessage.removeListener(this.listener);
-      this.listener = null;
-    }
-    this.currentExecutionId = null;
-  }
-
-  /**
-   * Gets the current execution ID, if any.
-   */
-  getCurrentExecutionId(): string | null {
-    return this.currentExecutionId;
+      // DEBUG_COMMAND_UPDATE is for progress - no action needed currently
+    });
   }
 }
 
@@ -917,7 +895,7 @@ export const createToolsSlice: StateCreator<
     };
 
     // Use managed listener for proper cleanup
-    debugCommandListenerManager.start(executionId, {
+    debugCommandListenerManager.startWithCallbacks(executionId, {
       onComplete: (results) => {
         set({
           debugCommandResults: results,

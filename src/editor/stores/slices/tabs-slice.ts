@@ -889,29 +889,17 @@ export const createTabsSlice: StateCreator<
 
 
   saveFile: async (tabId?: string) => {
-    console.log('[ModuleDir] saveFile: Starting...');
     const { activeTabId, setSaveOptionsDialogOpen } = get();
     const targetTabId = tabId ?? activeTabId;
     if (!targetTabId) {
-      console.log('[ModuleDir] saveFile: No target tab ID');
       return false;
     }
     
     // Get fresh tab state
     const tab = get().tabs.find(t => t.id === targetTabId);
     if (!tab) {
-      console.log('[ModuleDir] saveFile: Tab not found');
       return false;
     }
-
-    console.log('[ModuleDir] saveFile: Tab info:', {
-      tabId: targetTabId,
-      displayName: tab.displayName,
-      directoryHandleId: tab.directoryHandleId,
-      documentType: tab.document?.type,
-      hasPortalBinding: !!tab.document?.portal,
-      sourceType: tab.source?.type,
-    });
 
     // Directory-based saves (module directories) - check this FIRST
     // This ensures directory-saved modules save directly to disk without prompting
@@ -977,7 +965,6 @@ export const createTabsSlice: StateCreator<
         toast.success('File saved');
         return true;
       } catch (error) {
-        console.error('[ModuleDir] saveFile: Error saving to module directory:', error);
         toast.error('Failed to save file', {
           description: error instanceof Error ? error.message : 'Unknown error',
         });
@@ -1079,33 +1066,20 @@ export const createTabsSlice: StateCreator<
   },
 
   saveFileAs: async (tabId?: string) => {
-    console.log('[ModuleDir] saveFileAs: Starting...');
     const { tabs, activeTabId, setSaveOptionsDialogOpen } = get();
     const targetTabId = tabId ?? activeTabId;
     if (!targetTabId) {
-      console.log('[ModuleDir] saveFileAs: No target tab ID');
       return false;
     }
     
     const tab = tabs.find(t => t.id === targetTabId);
     if (!tab) {
-      console.log('[ModuleDir] saveFileAs: Tab not found');
       return false;
     }
-
-    console.log('[ModuleDir] saveFileAs: Tab info:', {
-      tabId: targetTabId,
-      displayName: tab.displayName,
-      directoryHandleId: tab.directoryHandleId,
-      documentType: tab.document?.type,
-      hasPortalBinding: !!tab.document?.portal,
-      sourceType: tab.source?.type,
-    });
 
     // For portal-bound modules (including directory-saved ones), show save options dialog
     const docType = getDocumentType(tab);
     if (docType === 'portal' || (docType === 'local' && tab.document?.portal)) {
-      console.log('[ModuleDir] saveFileAs: Portal-bound module, showing save options dialog');
       setSaveOptionsDialogOpen(true, targetTabId);
       return false;
     }
@@ -1410,31 +1384,20 @@ export const createTabsSlice: StateCreator<
   // =====================
 
   saveModuleDirectory: async (tabId?: string) => {
-    console.log('[ModuleDir] saveModuleDirectory: Starting...');
     const { tabs, activeTabId, moduleDetailsDraftByTabId } = get();
     const targetTabId = tabId ?? activeTabId;
     if (!targetTabId) {
-      console.log('[ModuleDir] saveModuleDirectory: No target tab ID');
       return false;
     }
 
     const tab = tabs.find(t => t.id === targetTabId);
     if (!tab || tab.kind === 'api') {
-      console.log('[ModuleDir] saveModuleDirectory: Invalid tab or API tab');
       toast.error('Cannot save', { description: 'This tab cannot be saved as a module directory.' });
       return false;
     }
 
-    console.log('[ModuleDir] saveModuleDirectory: Tab info:', {
-      tabId: targetTabId,
-      displayName: tab.displayName,
-      sourceType: tab.source?.type,
-      moduleName: tab.source?.moduleName,
-    });
-
     // Validate this is a portal-bound module
     if (!tab.source || tab.source.type !== 'module') {
-      console.log('[ModuleDir] saveModuleDirectory: Not a module tab');
       toast.error('Cannot save', { description: 'Only portal-bound modules can be saved as module directories.' });
       return false;
     }
@@ -1479,8 +1442,6 @@ export const createTabsSlice: StateCreator<
       
       // For initial save, fetch ALL scripts from portal (not just open tabs)
       // This ensures the directory is complete even if only one script tab is open
-      console.log('[ModuleDir] saveModuleDirectory: Fetching module from portal to ensure complete save...');
-      
       // Fetch the full module from portal to get all scripts
       const fetchResult = await sendMessage({
         type: 'FETCH_MODULE',
@@ -1492,7 +1453,6 @@ export const createTabsSlice: StateCreator<
       });
 
       if (!fetchResult.ok) {
-        console.error('[ModuleDir] saveModuleDirectory: Failed to fetch module from portal:', fetchResult.error);
         toast.error('Failed to save', { description: 'Could not fetch module from portal to complete the save.' });
         return false;
       }
@@ -1530,8 +1490,6 @@ export const createTabsSlice: StateCreator<
           portalChecksum,
           diskChecksum,
         };
-        
-        console.log('[ModuleDir] saveModuleDirectory: Saved collection script:', fileName);
       }
       
       // Save AD script if it exists in portal
@@ -1553,8 +1511,6 @@ export const createTabsSlice: StateCreator<
           portalChecksum,
           diskChecksum,
         };
-        
-        console.log('[ModuleDir] saveModuleDirectory: Saved AD script:', fileName);
       }
 
       // Get module details draft if available
@@ -1641,7 +1597,6 @@ export const createTabsSlice: StateCreator<
         // User cancelled the picker
         return false;
       }
-      console.error('[ModuleDir] saveModuleDirectory: Failed:', error);
       toast.error('Failed to save', {
         description: error instanceof Error ? error.message : 'An unexpected error occurred.',
       });
@@ -1664,8 +1619,6 @@ export const createTabsSlice: StateCreator<
   },
 
   openModuleFolderFromDisk: async () => {
-    console.log('[ModuleDir] openModuleFolderFromDisk: Starting...');
-    
     // Check if directory picker is supported
     if (!documentStore.isDirectoryPickerSupported()) {
       toast.error('Not supported', {
@@ -1681,8 +1634,6 @@ export const createTabsSlice: StateCreator<
       }).showDirectoryPicker({
         mode: 'readwrite',
       });
-
-      console.log('[ModuleDir] openModuleFolderFromDisk: Selected directory:', dirHandle.name);
 
       // Check if module.json exists in this directory
       const configJson = await documentStore.readFileFromDirectory(dirHandle, 'module.json');
@@ -1707,8 +1658,6 @@ export const createTabsSlice: StateCreator<
         return false;
       }
 
-      console.log('[ModuleDir] openModuleFolderFromDisk: Valid module config found:', config.portalBinding.moduleName);
-
       // Save the directory handle to IndexedDB so it becomes a "recent" directory
       const directoryId = documentStore.generateId();
       await documentStore.saveDirectoryHandle(directoryId, dirHandle, {
@@ -1717,8 +1666,6 @@ export const createTabsSlice: StateCreator<
         moduleType: config.portalBinding.moduleType,
         portalHostname: config.portalBinding.portalHostname,
       });
-
-      console.log('[ModuleDir] openModuleFolderFromDisk: Saved directory handle with ID:', directoryId);
 
       // Refresh recent files to include this directory
       await get().loadRecentFiles();
@@ -1730,7 +1677,6 @@ export const createTabsSlice: StateCreator<
     } catch (error) {
       // User cancelled or error occurred
       if ((error as Error).name !== 'AbortError') {
-        console.error('[ModuleDir] openModuleFolderFromDisk: Error:', error);
         toast.error('Failed to open module folder', {
           description: error instanceof Error ? error.message : 'Unknown error occurred',
         });
@@ -1740,12 +1686,10 @@ export const createTabsSlice: StateCreator<
   },
 
   openModuleDirectory: async (directoryId: string, scriptsToOpen?: Array<'collection' | 'ad'>) => {
-    console.log('[ModuleDir] openModuleDirectory: Starting...', { directoryId, scriptsToOpen });
     try {
       // Get directory handle record from IndexedDB
       const record = await documentStore.getDirectoryHandleRecord(directoryId);
       if (!record) {
-        console.log('[ModuleDir] openModuleDirectory: Directory record not found in IndexedDB');
         await documentStore.deleteDirectoryHandle(directoryId);
         await get().loadRecentFiles();
         toast.error('Directory not found', { 
@@ -1753,20 +1697,16 @@ export const createTabsSlice: StateCreator<
         });
         return false;
       }
-      console.log('[ModuleDir] openModuleDirectory: Found directory record:', record.directoryName);
 
       const dirHandle = record.handle;
 
       // Request permission
       let permission = await documentStore.queryDirectoryPermission(dirHandle);
-      console.log('[ModuleDir] openModuleDirectory: Initial permission:', permission);
       if (permission !== 'granted') {
         permission = (await documentStore.requestDirectoryPermission(dirHandle)) ? 'granted' : 'denied';
-        console.log('[ModuleDir] openModuleDirectory: After request permission:', permission);
       }
 
       if (permission !== 'granted') {
-        console.log('[ModuleDir] openModuleDirectory: Permission denied');
         toast.info('Permission required', {
           description: `Permission to access "${record.directoryName}" was denied. Click again to retry.`,
         });
@@ -1774,7 +1714,6 @@ export const createTabsSlice: StateCreator<
       }
 
       // Read module.json
-      console.log('[ModuleDir] openModuleDirectory: Reading module.json...');
       const configJson = await documentStore.readFileFromDirectory(dirHandle, 'module.json');
       if (!configJson) {
         toast.error('Invalid module directory', {
@@ -1930,17 +1869,6 @@ export const createTabsSlice: StateCreator<
           },
         };
 
-        console.log('[ModuleDir] openModuleDirectory: Created tab:', {
-          tabId: newTabId,
-          scriptType,
-          documentType: newTab.document?.type,
-          hasPortalBinding: !!newTab.document?.portal,
-          contentLength: content.length,
-          lastKnownContentLength: newTab.document?.portal?.lastKnownContent?.length,
-          portalSyncSucceeded,
-          contentDiffersFromPortal: newTab.document?.portal?.lastKnownContent !== content,
-        });
-
         newTabs.push(newTab);
       }
 
@@ -1978,12 +1906,6 @@ export const createTabsSlice: StateCreator<
           }
         }
         
-        console.log('[ModuleDir] openModuleDirectory: Restored module details', {
-          dirtyFieldCount: dirtyFields.size,
-          dirtyFields: Array.from(dirtyFields),
-          hasLocalDraft: !!config.moduleDetails.localDraft,
-        });
-        
         for (const newTab of newTabs) {
           updatedModuleDetailsDrafts[newTab.id] = {
             original: portalBaseline,
@@ -2014,7 +1936,6 @@ export const createTabsSlice: StateCreator<
 
       return true;
     } catch (error) {
-      console.error('[ModuleDir] openModuleDirectory: Failed:', error);
       toast.error('Failed to open', {
         description: error instanceof Error ? error.message : 'An unexpected error occurred.',
       });

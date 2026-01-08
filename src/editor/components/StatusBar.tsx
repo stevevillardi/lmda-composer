@@ -21,6 +21,7 @@ const getExtensionVersion = (): string => {
 };
 
 // Keyboard shortcuts for help display
+// Chord shortcuts use ⌘K as the leader key, followed by a letter
 const KEYBOARD_SHORTCUTS = [
   {
     label: 'Editor',
@@ -29,34 +30,30 @@ const KEYBOARD_SHORTCUTS = [
       { keys: ['⌘', '⇧', 'P'], action: 'Command palette' },
       { keys: ['⌘', 'B'], action: 'Toggle sidebar' },
       { keys: ['⌘', ','], action: 'Settings' },
-      { keys: ['⌘', '⇧', 'M'], action: 'Toggle API/Script view' },
     ],
   },
   {
-    label: 'Files',
+    label: 'Files (⌘K chords)',
     items: [
-      { keys: ['⌘', 'K'], action: 'New file' },
-      { keys: ['⌘', 'O'], action: 'Open file' },
+      { keys: ['⌘K', 'N'], action: 'New file' },
+      { keys: ['⌘K', 'O'], action: 'Open file' },
+      { keys: ['⌘K', 'F'], action: 'Open Module Folder' },
       { keys: ['⌘', 'S'], action: 'Save' },
-      { keys: ['⌘', '⇧', 'S'], action: 'Save As...' },
-      { keys: ['⌘', '⇧', 'E'], action: 'Export (Download)' },
+      { keys: ['⌘K', '⇧S'], action: 'Save As...' },
+      { keys: ['⌘K', 'E'], action: 'Export (Download)' },
+      { keys: ['⌘K', 'M'], action: 'Toggle API/Script view' },
     ],
   },
   {
-    label: 'Portal Tools',
+    label: 'Portal Tools (⌘K chords)',
     items: [
-      { keys: ['⌘', '⇧', 'I'], action: 'Import from LMX' },
-      { keys: ['⌘', '⇧', 'F'], action: 'Search LogicModules' },
-      { keys: ['⌘', '⇧', 'A'], action: 'AppliesTo Toolbox' },
-      { keys: ['⌘', '⇧', 'D'], action: 'Debug Commands' },
-      { keys: ['⌘', '⇧', 'L'], action: 'Module Snippets' },
-      { keys: ['⌘', 'R'], action: 'Refresh collectors' },
-    ],
-  },
-  {
-    label: 'Output',
-    items: [
-      { keys: ['⌘', '⇧', 'C'], action: 'Copy output' },
+      { keys: ['⌘K', 'I'], action: 'Import from LMX' },
+      { keys: ['⌘K', 'S'], action: 'Search LogicModules' },
+      { keys: ['⌘K', 'A'], action: 'AppliesTo Toolbox' },
+      { keys: ['⌘K', 'D'], action: 'Debug Commands' },
+      { keys: ['⌘K', 'L'], action: 'Module Snippets' },
+      { keys: ['⌘K', 'R'], action: 'Refresh collectors' },
+      { keys: ['⌘K', 'C'], action: 'Copy output' },
     ],
   },
 ] as const;
@@ -78,6 +75,7 @@ export function StatusBar() {
     selectedCollectorId,
     devices,
     hostname,
+    chordPending,
   } = useEditorStore();
 
   // Get active tab data
@@ -237,18 +235,30 @@ export function StatusBar() {
         aria-label="API status bar"
       >
         <div className="flex items-center gap-3">
-          <Badge
-            variant="secondary"
-            className={cn(
-              "text-[10px] font-semibold",
-              apiStatusStyle?.bgSubtle,
-              apiStatusStyle?.text
-            )}
-            aria-live="polite"
-            aria-atomic="true"
-          >
-            {apiStatusText}
-          </Badge>
+          {/* Chord indicator - shows when ⌘K is pressed */}
+          {chordPending ? (
+            <Badge 
+              variant="default"
+              className="bg-primary text-primary-foreground animate-pulse"
+              aria-live="assertive"
+            >
+              <Kbd className="bg-primary-foreground/20 text-primary-foreground border-primary-foreground/30">⌘K</Kbd>
+              <span className="ml-1.5">waiting...</span>
+            </Badge>
+          ) : (
+            <Badge
+              variant="secondary"
+              className={cn(
+                "text-[10px] font-semibold",
+                apiStatusStyle?.bgSubtle,
+                apiStatusStyle?.text
+              )}
+              aria-live="polite"
+              aria-atomic="true"
+            >
+              {apiStatusText}
+            </Badge>
+          )}
           {selectedPortalId && (
             <>
               <Separator orientation="vertical" className="h-5" aria-hidden="true" />
@@ -293,17 +303,31 @@ export function StatusBar() {
     >
       {/* Left side */}
       <div className="flex items-center gap-3">
+        {/* Chord indicator - shows when ⌘K is pressed */}
+        {chordPending && (
+          <Badge 
+            variant="default"
+            className="bg-primary text-primary-foreground animate-pulse"
+            aria-live="assertive"
+          >
+            <Kbd className="bg-primary-foreground/20 text-primary-foreground border-primary-foreground/30">⌘K</Kbd>
+            <span className="ml-1.5">waiting...</span>
+          </Badge>
+        )}
+
         {/* Status Badge */}
-        <Badge 
-          variant={statusVariant} 
-          className={cn(
-            isExecuting && 'animate-pulse'
-          )}
-          aria-live="polite"
-          aria-atomic="true"
-        >
-          {statusText}
-        </Badge>
+        {!chordPending && (
+          <Badge 
+            variant={statusVariant} 
+            className={cn(
+              isExecuting && 'animate-pulse'
+            )}
+            aria-live="polite"
+            aria-atomic="true"
+          >
+            {statusText}
+          </Badge>
+        )}
 
         {/* Connection status */}
         {selectedPortalId && selectedCollectorId && (

@@ -38,6 +38,14 @@ import {
 } from '@/components/ui/popover';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { 
+  Empty, 
+  EmptyHeader, 
+  EmptyMedia, 
+  EmptyTitle, 
+  EmptyDescription, 
+  EmptyContent 
+} from '@/components/ui/empty';
 import { cn } from '@/lib/utils';
 
 export function ContextDropdown({
@@ -202,15 +210,43 @@ export function ContextDropdown({
       </Tooltip>
 
       <PopoverContent className="w-[360px] p-0" align="start">
-        <div className="p-3 border-b border-border">
-          <h4 className="font-medium text-sm">Execution Context</h4>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {showCollector ? 'Select where to run your scripts' : 'Select your portal'}
-          </p>
-        </div>
+        {portals.length === 0 ? (
+          // Empty state when no portals detected
+          <Empty className="border-none p-6">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <Globe className="size-5" />
+              </EmptyMedia>
+              <EmptyTitle className="text-base">No portals detected</EmptyTitle>
+              <EmptyDescription>
+                Open a LogicMonitor portal tab in your browser and sign in. 
+                The extension will automatically detect your session.
+              </EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefreshPortals}
+                disabled={isRefreshingPortals}
+                className="w-full"
+              >
+                <RefreshCw className={cn("size-3.5 mr-2", isRefreshingPortals && "animate-spin")} />
+                {isRefreshingPortals ? 'Checking...' : 'Check for Portals'}
+              </Button>
+            </EmptyContent>
+          </Empty>
+        ) : (
+          <>
+            <div className="p-3 border-b border-border">
+              <h4 className="font-medium text-sm">Execution Context</h4>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {showCollector ? 'Select where to run your scripts' : 'Select your portal'}
+              </p>
+            </div>
 
-        <div className="p-3 space-y-4">
-          {/* Portal Selector */}
+            <div className="p-3 space-y-4">
+              {/* Portal Selector */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <Label className="text-xs">Portal</Label>
@@ -523,7 +559,9 @@ export function ContextDropdown({
               </div>
             </>
           )}
-        </div>
+            </div>
+          </>
+        )}
       </PopoverContent>
     </Popover>
   );

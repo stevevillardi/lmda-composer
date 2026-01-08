@@ -10,7 +10,7 @@ import { CommandPalette } from './components/CommandPalette';
 import { SettingsDialog } from './components/SettingsDialog';
 import { RightSidebar } from './components/RightSidebar';
 import { TabBar } from './components/TabBar';
-import { WelcomeScreenV2 } from './components/WelcomeScreenV2';
+import { EditorWelcomeScreen } from './components/EditorWelcomeScreen';
 import { BraveFileSystemWarning } from './components/BraveFileSystemWarning';
 import { DebugCommandsDialog } from './components/DebugCommandsDialog';
 import { ModuleDetailsDialog } from './components/ModuleDetailsDialog';
@@ -405,7 +405,7 @@ export function App() {
                   <ApiWelcomeScreenLazy />
                 </Suspense>
               ) : (
-                <WelcomeScreenV2 />
+                <EditorWelcomeScreen />
               )}
             </div>
           );

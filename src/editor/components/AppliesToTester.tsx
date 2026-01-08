@@ -852,6 +852,7 @@ export function AppliesToTester() {
                   onClick={testAppliesTo}
                   disabled={isTestingAppliesTo || !selectedPortalId || !appliesToExpression.trim()}
                   className="gap-2"
+                  variant="execute"
                 >
                   {isTestingAppliesTo ? (
                     <Loader2 className="size-4 animate-spin" />

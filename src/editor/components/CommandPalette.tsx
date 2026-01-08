@@ -11,6 +11,7 @@ import {
   Save,
   FileUp,
   FilePlus,
+  Folder,
   PanelRight,
   CloudDownload,
   FolderSearch,
@@ -19,6 +20,7 @@ import {
   Braces,
   Send,
   Puzzle,
+  ArrowLeftRight,
 } from 'lucide-react';
 import { useEditorStore } from '../stores/editor-store';
 import { copyOutputToClipboard, handleGlobalKeyDown } from '../utils/keyboard-shortcuts';
@@ -65,6 +67,9 @@ export function CommandPalette() {
     setModuleSnippetsDialogOpen,
     tabs,
     activeTabId,
+    activeWorkspace,
+    setActiveWorkspace,
+    setActiveTab,
     setRightSidebarOpen,
     setRightSidebarTab,
     portals,
@@ -74,9 +79,31 @@ export function CommandPalette() {
     saveFile,
     saveFileAs,
     openFileFromDisk,
+    openModuleFolderFromDisk,
     createNewFile,
     openApiExplorerTab,
   } = useEditorStore();
+
+  const activeTab = tabs.find(t => t.id === activeTabId);
+
+  // Toggle view helper
+  const handleToggleView = () => {
+    setCommandPaletteOpen(false);
+    const getLastTabIdByKind = (kind: 'api' | 'script') =>
+      [...tabs].reverse().find(tab => (tab.kind ?? 'script') === kind)?.id ?? null;
+    
+    const currentWorkspace = activeTab?.kind === 'api' ? 'api' : activeWorkspace;
+    
+    if (currentWorkspace === 'api') {
+      setActiveWorkspace('script');
+      const lastScript = getLastTabIdByKind('script');
+      if (lastScript) setActiveTab(lastScript);
+    } else {
+      setActiveWorkspace('api');
+      const lastApi = getLastTabIdByKind('api');
+      if (lastApi) setActiveTab(lastApi);
+    }
+  };
 
   // Define command groups
   const scriptCommands: CommandAction[] = [
@@ -84,7 +111,7 @@ export function CommandPalette() {
       id: 'new-file',
       label: 'New File',
       icon: <FilePlus className="size-4" />,
-      shortcut: '⌘K',
+      shortcut: '⌘K N',
       action: () => {
         setCommandPaletteOpen(false);
         createNewFile();
@@ -115,7 +142,7 @@ export function CommandPalette() {
       id: 'save-file-as',
       label: 'Save As...',
       icon: <Download className="size-4" />,
-      shortcut: '⌘⇧S',
+      shortcut: '⌘K ⇧S',
       action: () => {
         setCommandPaletteOpen(false);
         saveFileAs();
@@ -125,17 +152,27 @@ export function CommandPalette() {
       id: 'open-file',
       label: 'Open File...',
       icon: <FileUp className="size-4" />,
-      shortcut: '⌘O',
+      shortcut: '⌘K O',
       action: () => {
         setCommandPaletteOpen(false);
         openFileFromDisk();
       },
     },
     {
+      id: 'open-module-folder',
+      label: 'Open Module Folder...',
+      icon: <Folder className="size-4" />,
+      shortcut: '⌘K F',
+      action: () => {
+        setCommandPaletteOpen(false);
+        void openModuleFolderFromDisk();
+      },
+    },
+    {
       id: 'export-file',
       label: 'Export (Download)',
       icon: <Download className="size-4" />,
-      shortcut: '⌘⇧E',
+      shortcut: '⌘K E',
       action: () => {
         setCommandPaletteOpen(false);
         exportToFile();
@@ -148,7 +185,7 @@ export function CommandPalette() {
       id: 'new-api-request',
       label: 'New API Request',
       icon: <Braces className="size-4" />,
-      shortcut: '⌘K',
+      shortcut: '⌘K N',
       action: () => {
         setCommandPaletteOpen(false);
         openApiExplorerTab();
@@ -172,7 +209,7 @@ export function CommandPalette() {
       id: 'copy-output',
       label: 'Copy Output',
       icon: <Copy className="size-4" />,
-      shortcut: '⌘⇧C',
+      shortcut: '⌘K C',
       action: () => {
         void copyOutputToClipboard();
       },
@@ -193,10 +230,17 @@ export function CommandPalette() {
 
   const navigationCommands: CommandAction[] = [
     {
+      id: 'toggle-view',
+      label: 'Toggle API/Script View',
+      icon: <ArrowLeftRight className="size-4" />,
+      shortcut: '⌘K M',
+      action: handleToggleView,
+    },
+    {
       id: 'open-module-browser',
       label: 'Import from LMX',
       icon: <CloudDownload className="size-4" />,
-      shortcut: '⌘⇧I',
+      shortcut: '⌘K I',
       action: () => {
         setCommandPaletteOpen(false);
         setModuleBrowserOpen(true);
@@ -207,7 +251,7 @@ export function CommandPalette() {
       id: 'module-search',
       label: 'Search LogicModules',
       icon: <FolderSearch className="size-4" />,
-      shortcut: '⌘⇧F',
+      shortcut: '⌘K S',
       action: () => {
         setCommandPaletteOpen(false);
         setModuleSearchOpen(true);
@@ -218,7 +262,7 @@ export function CommandPalette() {
       id: 'applies-to-tester',
       label: 'AppliesTo Toolbox',
       icon: <Hammer className="size-4" />,
-      shortcut: '⌘⇧A',
+      shortcut: '⌘K A',
       action: () => {
         setCommandPaletteOpen(false);
         setAppliesToTesterOpen(true);
@@ -229,7 +273,7 @@ export function CommandPalette() {
       id: 'debug-commands',
       label: 'Debug Commands',
       icon: <Terminal className="size-4" />,
-      shortcut: '⌘⇧D',
+      shortcut: '⌘K D',
       action: () => {
         setCommandPaletteOpen(false);
         setDebugCommandsDialogOpen(true);
@@ -240,7 +284,7 @@ export function CommandPalette() {
       id: 'module-snippets',
       label: 'Module Snippets',
       icon: <Puzzle className="size-4" />,
-      shortcut: '⌘⇧L',
+      shortcut: '⌘K L',
       action: () => {
         setCommandPaletteOpen(false);
         setModuleSnippetsDialogOpen(true);
@@ -292,7 +336,7 @@ export function CommandPalette() {
       id: 'refresh-collectors',
       label: 'Refresh Collectors',
       icon: <RefreshCw className="size-4" />,
-      shortcut: '⌘R',
+      shortcut: '⌘K R',
       action: () => {
         refreshCollectors();
         setCommandPaletteOpen(false);

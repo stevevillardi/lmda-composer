@@ -1,0 +1,312 @@
+---
+description: Testing patterns with Vitest and React Testing Library for LMDA Composer
+globs:
+  - "tests/**/*.ts"
+  - "tests/**/*.tsx"
+  - "**/*.test.ts"
+  - "**/*.test.tsx"
+alwaysApply: false
+---
+
+# Testing Patterns
+
+## Test Framework Stack
+
+- **Vitest** - Test runner (fast, Vite-native)
+- **React Testing Library** - Component testing
+- **jsdom** - Browser environment simulation
+- **jest-dom** - Extended DOM matchers
+
+## Test File Organization
+
+### Location Options
+Tests can be placed in two locations:
+
+```
+# Option 1: Dedicated tests directory (preferred for unit tests)
+tests/
+├── setup.ts                    # Global test setup
+├── output-parser.test.ts       # Unit tests
+├── portal-binding.test.ts
+├── editor-store-devices.test.ts
+├── components/                 # Component tests
+│   └── Toolbar.test.tsx
+└── helpers/                    # Test utilities
+    └── test-utils.ts
+
+# Option 2: Co-located with source (for component tests)
+src/editor/components/
+├── Toolbar.tsx
+└── Toolbar.test.tsx
+```
+
+### Naming Pattern
+Use `.test.ts` or `.test.tsx` suffix:
+
+```
+✓ output-parser.test.ts
+✓ editor-store-devices.test.ts
+✓ Toolbar.test.tsx
+✗ output-parser.spec.ts
+✗ output-parserTest.ts
+```
+
+## Test Structure
+
+### Basic Test Pattern
+Use `describe`/`it` blocks with clear descriptions:
+
+```typescript
+import { describe, it, expect } from 'vitest';
+import { parseOutput, hasErrors } from '../src/editor/utils/output-parser';
+
+describe('output-parser', () => {
+  it('parses AD output and strips warning lines', () => {
+    const output = '[Warning: Property fetch failed]\n\ninstance-1##Instance One';
+    const result = parseOutput(output, { mode: 'ad' });
+    
+    expect(result?.type).toBe('ad');
+    expect(result?.instances.length).toBe(1);
+    expect(result?.instances[0].id).toBe('instance-1');
+  });
+
+  it('parses collection output and flags invalid values', () => {
+    const output = 'metric1=1\nmetric2=abc';
+    const result = parseOutput(output, { mode: 'collection' });
+    
+    expect(result?.type).toBe('collection');
+    expect(result?.datapoints.length).toBe(2);
+    expect(hasErrors(result!)).toBe(true);
+  });
+});
+```
+
+### Nested Describes for Grouping
+Group related tests with nested describes:
+
+```typescript
+describe('PortalManager', () => {
+  describe('portal discovery', () => {
+    it('discovers LM tabs', () => { ... });
+    it('filters non-LM tabs', () => { ... });
+  });
+
+  describe('CSRF token management', () => {
+    it('caches tokens with expiry', () => { ... });
+    it('refreshes expired tokens', () => { ... });
+  });
+});
+```
+
+## Chrome API Mocking
+
+### Global Setup
+Chrome APIs are mocked in `tests/setup.ts`:
+
+```typescript
+import '@testing-library/jest-dom/vitest';
+import { vi } from 'vitest';
+
+const mockChrome = {
+  runtime: {
+    id: 'test-extension-id',
+    sendMessage: vi.fn(() => Promise.resolve({})),
+    onMessage: {
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+    },
+  },
+  storage: {
+    local: {
+      get: vi.fn(() => Promise.resolve({})),
+      set: vi.fn(() => Promise.resolve()),
+    },
+  },
+  tabs: {
+    query: vi.fn(() => Promise.resolve([])),
+  },
+};
+
+(globalThis as unknown as { chrome: typeof mockChrome }).chrome = mockChrome;
+```
+
+### Per-Test Mock Configuration
+Use helper functions for specific test scenarios:
+
+```typescript
+import { resetChromeMocks, mockSendMessageResponse } from './setup';
+
+describe('module operations', () => {
+  beforeEach(() => {
+    resetChromeMocks();
+  });
+
+  it('fetches modules from portal', async () => {
+    mockSendMessageResponse({
+      ok: true,
+      data: [{ id: '1', name: 'TestModule' }],
+    });
+
+    const result = await fetchModules();
+    expect(result).toHaveLength(1);
+  });
+});
+```
+
+## React Component Testing
+
+### Basic Component Test
+Use React Testing Library patterns:
+
+```typescript
+import { describe, it, expect } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { Toolbar } from '../src/editor/components/Toolbar';
+
+describe('Toolbar', () => {
+  it('renders run button', () => {
+    render(<Toolbar />);
+    expect(screen.getByRole('button', { name: /run script/i })).toBeInTheDocument();
+  });
+
+  it('disables run when no collector selected', () => {
+    render(<Toolbar />);
+    expect(screen.getByRole('button', { name: /run script/i })).toBeDisabled();
+  });
+});
+```
+
+### User Interaction Testing
+Use `userEvent` for realistic interactions:
+
+```typescript
+import userEvent from '@testing-library/user-event';
+
+it('opens settings dialog when clicked', async () => {
+  const user = userEvent.setup();
+  render(<Toolbar />);
+
+  await user.click(screen.getByRole('button', { name: /settings/i }));
+
+  expect(screen.getByRole('dialog')).toBeInTheDocument();
+});
+```
+
+### Store Testing
+Test Zustand stores directly:
+
+```typescript
+import { describe, it, expect, beforeEach } from 'vitest';
+import { useEditorStore } from '../src/editor/stores/editor-store';
+
+describe('editor-store tabs', () => {
+  beforeEach(() => {
+    // Reset store to initial state
+    useEditorStore.setState({
+      tabs: [],
+      activeTabId: null,
+    });
+  });
+
+  it('adds a new tab', () => {
+    const { addTab } = useEditorStore.getState();
+    
+    addTab({ language: 'groovy', mode: 'collection' });
+    
+    const { tabs } = useEditorStore.getState();
+    expect(tabs).toHaveLength(1);
+    expect(tabs[0].language).toBe('groovy');
+  });
+});
+```
+
+## Test Best Practices
+
+### Test Behavior, Not Implementation
+Focus on what the code does, not how:
+
+```typescript
+// Good - tests behavior
+it('shows error when execution fails', async () => {
+  mockSendMessageResponse({ ok: false, error: 'Collector offline' });
+  
+  await executeScript();
+  
+  expect(screen.getByText(/collector offline/i)).toBeInTheDocument();
+});
+
+// Avoid - tests implementation
+it('calls setState with error', async () => {
+  const setStateSpy = vi.spyOn(store, 'setState');
+  await executeScript();
+  expect(setStateSpy).toHaveBeenCalledWith({ error: 'Collector offline' });
+});
+```
+
+### Arrange-Act-Assert Pattern
+Structure tests clearly:
+
+```typescript
+it('updates tab content', () => {
+  // Arrange
+  const initialContent = 'println "Hello"';
+  useEditorStore.setState({
+    tabs: [{ id: '1', content: initialContent }],
+    activeTabId: '1',
+  });
+
+  // Act
+  const { updateTabContent } = useEditorStore.getState();
+  updateTabContent('1', 'println "World"');
+
+  // Assert
+  const { tabs } = useEditorStore.getState();
+  expect(tabs[0].content).toBe('println "World"');
+});
+```
+
+### Descriptive Test Names
+Write test names that describe the scenario and expected outcome:
+
+```typescript
+// Good
+it('parses AD output and strips warning lines', () => { ... });
+it('returns null when output is empty', () => { ... });
+it('flags datapoints with non-numeric values as errors', () => { ... });
+
+// Avoid
+it('works correctly', () => { ... });
+it('test parseOutput', () => { ... });
+```
+
+## Running Tests
+
+```bash
+# Run all tests
+npm test
+
+# Run in watch mode
+npm run test:watch
+
+# Run with coverage
+npm run test:coverage
+
+# Run with UI
+npm run test:ui
+```
+
+## Vitest Configuration
+
+Configuration in `vite.config.ts`:
+
+```typescript
+export default defineConfig({
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: ['./tests/setup.ts'],
+    include: ['tests/**/*.test.{ts,tsx}', 'src/**/*.test.{ts,tsx}'],
+  },
+});
+```

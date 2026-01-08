@@ -28,6 +28,9 @@ export interface UISliceState {
   settingsDialogOpen: boolean;
   executionHistoryOpen: boolean;
   
+  // Chord keyboard shortcut state (⌘K waiting for follow-up key)
+  chordPending: boolean;
+  
   // Right sidebar state
   rightSidebarOpen: boolean;
   rightSidebarTab: 'properties' | 'snippets' | 'history';
@@ -50,6 +53,9 @@ export interface UISliceActions {
   setCommandPaletteOpen: (open: boolean) => void;
   setSettingsDialogOpen: (open: boolean) => void;
   setExecutionHistoryOpen: (open: boolean) => void;
+  
+  // Chord keyboard shortcut action
+  setChordPending: (pending: boolean) => void;
   
   // Right sidebar actions
   setRightSidebarOpen: (open: boolean) => void;
@@ -102,6 +108,9 @@ export const uiSliceInitialState: UISliceState = {
   settingsDialogOpen: false,
   executionHistoryOpen: false,
   
+  // Chord keyboard shortcut
+  chordPending: false,
+  
   // Right sidebar
   rightSidebarOpen: true,
   rightSidebarTab: 'properties',
@@ -142,6 +151,11 @@ export const createUISlice: StateCreator<
 
   setExecutionHistoryOpen: (open) => {
     set({ executionHistoryOpen: open });
+  },
+
+  // Chord keyboard shortcut action
+  setChordPending: (pending) => {
+    set({ chordPending: pending });
   },
 
   // Right sidebar actions

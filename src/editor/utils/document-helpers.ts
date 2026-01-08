@@ -181,68 +181,20 @@ export function isFileDirty(tab: EditorTab): boolean {
 export function hasPortalChanges(tab: EditorTab): boolean {
   const type = getDocumentType(tab);
   
-  console.log('[ModuleDir] hasPortalChanges: Checking...', {
-    tabId: tab.id,
-    displayName: tab.displayName,
-    documentType: type,
-    hasPortalBinding: !!tab.document?.portal,
-    contentLength: tab.content?.length,
-    lastKnownContentLength: tab.document?.portal?.lastKnownContent?.length,
-  });
-  
   // For 'local' documents that have a portal binding (directory-saved modules),
   // we still need to check for portal changes
   if (type === 'local' && tab.document?.portal?.lastKnownContent !== undefined) {
-    const content = tab.content;
-    const lastKnown = tab.document.portal.lastKnownContent;
-    const hasChanges = content !== lastKnown;
-    
-    // Debug: find where the difference is
-    if (hasChanges) {
-      const contentLen = content?.length ?? 0;
-      const lastKnownLen = lastKnown?.length ?? 0;
-      let diffIndex = -1;
-      const minLen = Math.min(contentLen, lastKnownLen);
-      for (let i = 0; i < minLen; i++) {
-        if (content[i] !== lastKnown[i]) {
-          diffIndex = i;
-          break;
-        }
-      }
-      if (diffIndex === -1 && contentLen !== lastKnownLen) {
-        diffIndex = minLen; // Difference is at the end (length difference)
-      }
-      
-      console.log('[ModuleDir] hasPortalChanges: DIFFERENCE FOUND:', {
-        hasChanges,
-        contentLen,
-        lastKnownLen,
-        diffIndex,
-        contentAroundDiff: diffIndex >= 0 ? content?.substring(Math.max(0, diffIndex - 20), diffIndex + 20) : null,
-        lastKnownAroundDiff: diffIndex >= 0 ? lastKnown?.substring(Math.max(0, diffIndex - 20), diffIndex + 20) : null,
-        contentCharAtDiff: diffIndex >= 0 ? content?.charCodeAt(diffIndex) : null,
-        lastKnownCharAtDiff: diffIndex >= 0 ? lastKnown?.charCodeAt(diffIndex) : null,
-        contentEnding: content?.substring(contentLen - 30),
-        lastKnownEnding: lastKnown?.substring(lastKnownLen - 30),
-      });
-    } else {
-      console.log('[ModuleDir] hasPortalChanges: Local with portal binding - NO CHANGES');
-    }
-    return hasChanges;
+    return tab.content !== tab.document.portal.lastKnownContent;
   }
   
   switch (type) {
     case 'portal': {
       // Compare against last known content from portal
       if (tab.document?.portal?.lastKnownContent !== undefined) {
-        const hasChanges = tab.content !== tab.document.portal.lastKnownContent;
-        console.log('[ModuleDir] hasPortalChanges: Portal type result:', hasChanges);
-        return hasChanges;
+        return tab.content !== tab.document.portal.lastKnownContent;
       }
       // If no reference content, consider dirty if there's actual content
-      const hasChanges = tab.content.trim().length > 0;
-      console.log('[ModuleDir] hasPortalChanges: Portal type (no lastKnown) result:', hasChanges);
-      return hasChanges;
+      return tab.content.trim().length > 0;
     }
     
     case 'scratch':
@@ -250,11 +202,9 @@ export function hasPortalChanges(tab: EditorTab): boolean {
     case 'history':
     case 'api':
       // These types don't have portal bindings (local without portal was handled above)
-      console.log('[ModuleDir] hasPortalChanges: No portal binding, returning false');
       return false;
       
     default:
-      console.log('[ModuleDir] hasPortalChanges: Unknown type, returning false');
       return false;
   }
 }

@@ -295,6 +295,7 @@ export function AppliesToEditorSlim({
         <Button
           onClick={handleTest}
           disabled={displayIsTesting || !selectedPortalId || !value.trim()}
+          variant="execute"
           className="gap-2"
         >
           {displayIsTesting ? (

@@ -95,7 +95,7 @@ export function ActionsDropdown() {
     if (lastScript) {
       setActiveTab(lastScript);
     }
-    // If no script tabs exist, the workspace will show WelcomeScreenV2
+    // If no script tabs exist, the workspace will show EditorWelcomeScreen
   };
 
   const switchToApiView = () => {
@@ -139,7 +139,7 @@ export function ActionsDropdown() {
               <DropdownMenuItem onClick={() => openApiExplorerTab()}>
                 <Braces className="size-4 mr-2" />
                 <span className="flex-1">New API Request</span>
-                <Kbd className="ml-auto">⌘K</Kbd>
+                <Kbd className="ml-auto">⌘K</Kbd> <Kbd>N</Kbd>
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => executeApiRequest(activeTabId ?? undefined)}
@@ -152,7 +152,7 @@ export function ActionsDropdown() {
               <DropdownMenuItem onClick={switchToScriptView}>
                 <ArrowLeftRight className="size-4 mr-2" />
                 <span className="flex-1">Switch to Script Editor</span>
-                <Kbd className="ml-auto">⌘⇧M</Kbd>
+                <Kbd className="ml-auto">⌘K</Kbd> <Kbd>M</Kbd>
               </DropdownMenuItem>
             </>
           ) : (
@@ -170,12 +170,12 @@ export function ActionsDropdown() {
               }}>
                 <FilePlus className="size-4 mr-2" />
                 <span className="flex-1">New File</span>
-                <Kbd className="ml-auto">⌘K</Kbd>
+                <Kbd className="ml-auto">⌘K</Kbd> <Kbd>N</Kbd>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={switchToApiView}>
                 <Braces className="size-4 mr-2" />
                 <span className="flex-1">Switch to API Explorer</span>
-                <Kbd className="ml-auto">⌘⇧M</Kbd>
+                <Kbd className="ml-auto">⌘K</Kbd> <Kbd>M</Kbd>
               </DropdownMenuItem>
 
               <DropdownMenuItem onClick={() => {
@@ -183,7 +183,7 @@ export function ActionsDropdown() {
               }}>
                 <FileInput className="size-4 mr-2" />
                 <span className="flex-1">Open File...</span>
-                <Kbd className="ml-auto">⌘O</Kbd>
+                <Kbd className="ml-auto">⌘K</Kbd> <Kbd>O</Kbd>
               </DropdownMenuItem>
 
               <DropdownMenuItem onClick={() => {
@@ -191,6 +191,7 @@ export function ActionsDropdown() {
               }}>
                 <Folder className="size-4 mr-2" />
                 <span className="flex-1">Open Module Folder...</span>
+                <Kbd className="ml-auto">⌘K</Kbd> <Kbd>F</Kbd>
               </DropdownMenuItem>
 
               <DropdownMenuItem 
@@ -208,7 +209,7 @@ export function ActionsDropdown() {
               >
                 <Download className="size-4 mr-2" />
                 <span className="flex-1">Save As...</span>
-                <Kbd className="ml-auto">⌘⇧S</Kbd>
+                <Kbd className="ml-auto">⌘K</Kbd> <Kbd>⇧S</Kbd>
               </DropdownMenuItem>
 
               <DropdownMenuItem 
@@ -222,7 +223,7 @@ export function ActionsDropdown() {
               >
                 <Download className="size-4 mr-2" />
                 <span className="flex-1">Export (Download)</span>
-                <Kbd className="ml-auto">⌘⇧E</Kbd>
+                <Kbd className="ml-auto">⌘K</Kbd> <Kbd>E</Kbd>
               </DropdownMenuItem>
             </>
           )}
@@ -256,7 +257,7 @@ export function ActionsDropdown() {
               >
                 <CloudDownload className="size-4 mr-2" />
                 <span className="flex-1">Import from LMX</span>
-                <Kbd className="ml-auto">⌘⇧I</Kbd>
+                <Kbd className="ml-auto">⌘K</Kbd> <Kbd>I</Kbd>
               </DropdownMenuItem>
 
               <DropdownMenuItem 
@@ -267,7 +268,7 @@ export function ActionsDropdown() {
               >
                 <FolderSearch className="size-4 mr-2" />
                 <span className="flex-1">Search LogicModules</span>
-                <Kbd className="ml-auto">⌘⇧F</Kbd>
+                <Kbd className="ml-auto">⌘K</Kbd> <Kbd>S</Kbd>
               </DropdownMenuItem>
 
               <DropdownMenuItem 
@@ -278,7 +279,7 @@ export function ActionsDropdown() {
               >
                 <Hammer className="size-4 mr-2" />
                 <span className="flex-1">AppliesTo Toolbox</span>
-                <Kbd className="ml-auto">⌘⇧A</Kbd>
+                <Kbd className="ml-auto">⌘K</Kbd> <Kbd>A</Kbd>
               </DropdownMenuItem>
 
               <DropdownMenuItem 
@@ -289,7 +290,7 @@ export function ActionsDropdown() {
               >
                 <Wrench className="size-4 mr-2" />
                 <span className="flex-1">Debug Commands</span>
-                <Kbd className="ml-auto">⌘⇧D</Kbd>
+                <Kbd className="ml-auto">⌘K</Kbd> <Kbd>D</Kbd>
               </DropdownMenuItem>
 
               <DropdownMenuItem 
@@ -299,7 +300,7 @@ export function ActionsDropdown() {
               >
                 <Puzzle className="size-4 mr-2" />
                 <span className="flex-1">Module Snippets</span>
-                <Kbd className="ml-auto">⌘⇧L</Kbd>
+                <Kbd className="ml-auto">⌘K</Kbd> <Kbd>L</Kbd>
               </DropdownMenuItem>
 
               {isModuleTab && (

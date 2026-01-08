@@ -56,7 +56,6 @@ export function OpenModuleDirectoryDialog() {
 
   // Helper to clean up a deleted/invalid directory and close dialog
   const cleanupAndClose = async (directoryId: string, reason: string) => {
-    console.log('[ModuleDir] OpenModuleDirectoryDialog: Cleaning up invalid directory:', directoryId, reason);
     await documentStore.deleteDirectoryHandle(directoryId);
     await loadRecentFiles();
     setOpenModuleDirectoryDialogOpen(false);

@@ -1,0 +1,109 @@
+---
+description: Chrome Extension Manifest V3 architecture and data flow patterns for LMDA Composer
+globs:
+  - "src/**/*.ts"
+  - "src/**/*.tsx"
+alwaysApply: true
+---
+
+# LMDA Composer Architecture
+
+LMDA Composer is a Chrome Extension (Manifest V3) that provides an enhanced script development experience for LogicMonitor. Understanding the three execution contexts is critical for correct implementation.
+
+## Execution Contexts
+
+### 1. Service Worker (`src/background/`)
+The central coordinator running in an isolated background context.
+
+**Key Characteristics:**
+- Event-driven; Chrome can terminate it when idle
+- No DOM access
+- Persists state to `chrome.storage.local` for durability
+- Handles all LogicMonitor API communication
+
+**Key Files:**
+- `service-worker.ts` - Entry point, message routing
+- `portal-manager.ts` - Portal discovery, CSRF tokens, collectors
+- `script-executor.ts` - Script execution orchestration
+- `module-loader.ts` - Module fetching with pagination
+- `rate-limiter.ts` - Rate limit detection and backoff
+
+### 2. Editor UI (`src/editor/`)
+A dedicated extension tab containing the full IDE UI.
+
+**Key Characteristics:**
+- Full React application with Zustand state management
+- Monaco Editor for script editing
+- File System Access API for local file operations
+- IndexedDB for file handle persistence
+
+**Key Files:**
+- `App.tsx` - Main layout with resizable panels
+- `stores/editor-store.ts` - Zustand store combining all slices
+- `utils/document-store.ts` - IndexedDB operations
+
+### 3. Content Script (`src/content/`)
+Injected into LogicMonitor pages.
+
+**Key Characteristics:**
+- Minimal footprint
+- Relays CSRF tokens to service worker
+- Extracts device/portal context from DOM
+
+## Message Passing
+
+All contexts communicate via Chrome messaging APIs. Messages follow a typed pattern:
+
+```typescript
+// Editor/Content → Service Worker
+chrome.runtime.sendMessage({ 
+  type: 'EXECUTE_SCRIPT', 
+  payload: { ... } 
+});
+
+// Service Worker response via sendResponse or direct message
+```
+
+**Message Flow:**
+```
+Content Script ──messages──▶ Service Worker ──HTTPS──▶ LogicMonitor API
+                                   ▲
+Editor Tab ────messages────────────┘
+```
+
+## State Persistence
+
+| Context | Storage | Use Case |
+|---------|---------|----------|
+| Service Worker | `chrome.storage.local` | Portals, collectors, CSRF tokens |
+| Editor UI | Zustand (memory) | Active session state |
+| Editor UI | IndexedDB | File handles, drafts |
+| Editor UI | `chrome.storage.local` | User preferences, execution history |
+
+## Key Architectural Patterns
+
+### Portal Manager Pattern
+`PortalManager` discovers LogicMonitor tabs, manages CSRF tokens, and caches collector/device lists per portal.
+
+### Script Executor Pattern
+`ScriptExecutor` orchestrates execution flow:
+1. Acquire CSRF token (3-level fallback)
+2. Token substitution for `##TOKEN##` placeholders
+3. Execute via debug API
+4. Poll for results with cancellation support
+
+### Handler Pattern
+Message handlers are organized by domain in `src/background/handlers/`:
+- `portal-handlers.ts` - Portal discovery, CSRF, collectors
+- `execution-handlers.ts` - Script execution
+- `module-handlers.ts` - Module operations
+- `snippets-handlers.ts` - Module snippets cache
+
+Each handler receives a `HandlerContext` with access to managers.
+
+## Security Considerations
+
+- CSRF tokens acquired via content script injection into authenticated LM tabs
+- Sender validation in `sender-validation.ts` ensures messages come from extension or LM domains
+- No credentials stored; uses browser session
+- All API calls include CSRF token in `X-CSRF-Token` header

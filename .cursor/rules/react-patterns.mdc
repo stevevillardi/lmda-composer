@@ -1,0 +1,228 @@
+---
+description: React component patterns, hooks, and performance best practices for LMDA Composer
+globs:
+  - "src/editor/**/*.tsx"
+  - "src/components/**/*.tsx"
+  - "src/onboarding/**/*.tsx"
+alwaysApply: false
+---
+
+# React Patterns
+
+## Component Definitions
+
+### Use `function` Keyword for Components
+Prefer the `function` keyword over arrow functions for components:
+
+```typescript
+// Good
+export function Toolbar() {
+  return <div>...</div>;
+}
+
+// Also good for components with props
+export function EditorPanel({ tabId }: EditorPanelProps) {
+  return <div>...</div>;
+}
+
+// Avoid
+export const Toolbar = () => {
+  return <div>...</div>;
+};
+```
+
+### Props Interface Pattern
+Define props interfaces inline or above the component:
+
+```typescript
+interface ToolbarProps {
+  className?: string;
+  onAction?: () => void;
+}
+
+export function Toolbar({ className, onAction }: ToolbarProps) {
+  // ...
+}
+```
+
+## State Management with Zustand
+
+### Fine-Grained Selectors
+Always use fine-grained selectors to minimize re-renders:
+
+```typescript
+// Good - only re-renders when these specific values change
+const selectedPortalId = useEditorStore((state) => state.selectedPortalId);
+const isExecuting = useEditorStore((state) => state.isExecuting);
+
+// Avoid - re-renders on ANY state change
+const { selectedPortalId, isExecuting } = useEditorStore();
+```
+
+### Computed Selectors
+For derived state, compute in the selector:
+
+```typescript
+// Good - computed in selector
+const tabFingerprint = useEditorStore((state) => 
+  `${state.tabs.length}:${state.tabs.map(t => t.id).join(',')}`
+);
+
+// Good - boolean derived state
+const hasUnsavedChanges = useEditorStore((state) => 
+  state.tabs.some(t => t.isDirty)
+);
+```
+
+## Lazy Loading
+
+### Heavy Components
+Use `React.lazy()` with `Suspense` for heavy components:
+
+```typescript
+// In App.tsx
+const MonacoEditorLazy = lazy(() => import('./components/EditorPanel'));
+const ApiWelcomeScreenLazy = lazy(() => import('./components/api/ApiWelcomeScreen'));
+
+// Usage
+<Suspense fallback={<LoadingSpinner />}>
+  <MonacoEditorLazy />
+</Suspense>
+```
+
+## Custom Hooks
+
+### Location and Naming
+- Place in `src/editor/hooks/`
+- Prefix with `use`
+- Include JSDoc comments
+
+```typescript
+/**
+ * Hook to manage draft saving, loading, and restoration.
+ * 
+ * Handles:
+ * - Loading draft on mount
+ * - Auto-saving with debounce
+ * - Saving on page unload
+ */
+export function useDraftManagement(): DraftManagementReturn {
+  // ...
+}
+```
+
+### Return Type Interface
+Define explicit return types for hooks:
+
+```typescript
+interface DraftManagementReturn {
+  pendingDraft: DraftScript | DraftTabs | null;
+  showDraftDialog: boolean;
+  handleRestoreDraft: () => void;
+  handleDiscardDraft: () => void;
+}
+
+export function useDraftManagement(): DraftManagementReturn {
+  // ...
+}
+```
+
+### Effect Cleanup
+Always clean up side effects in hooks:
+
+```typescript
+export function usePortalEventListeners() {
+  useEffect(() => {
+    const listener = (message: PortalMessage) => {
+      // handle message
+    };
+    
+    chrome.runtime.onMessage.addListener(listener);
+    
+    // Cleanup
+    return () => {
+      chrome.runtime.onMessage.removeListener(listener);
+    };
+  }, []);
+}
+```
+
+## Performance Patterns
+
+### Avoid Re-renders on Every Keystroke
+For editor content, don't subscribe to content directly:
+
+```typescript
+// Bad - re-renders on every keystroke
+const content = useEditorStore((state) => state.tabs.find(t => t.id === tabId)?.content);
+
+// Good - use fingerprint for structural changes only
+const tabFingerprint = useEditorStore((state) => 
+  createTabFingerprint(state.tabs, state.activeTabId)
+);
+```
+
+### Memoization
+Use `useMemo` for expensive computations:
+
+```typescript
+const sortedModules = useMemo(() => {
+  return [...modules].sort((a, b) => a.name.localeCompare(b.name));
+}, [modules]);
+```
+
+Use `useCallback` for stable function references:
+
+```typescript
+const handleExecute = useCallback(() => {
+  executeScript(activeTabId);
+}, [activeTabId, executeScript]);
+```
+
+## Conditional Rendering
+
+### Use Concise Syntax
+Prefer concise conditional rendering:
+
+```typescript
+// Good
+{isLoading && <Spinner />}
+{error && <ErrorMessage error={error} />}
+{items.length > 0 && <ItemList items={items} />}
+
+// Good - ternary for either/or
+{isExpanded ? <ExpandedView /> : <CollapsedView />}
+```
+
+## Accessibility
+
+### Required Attributes
+Include accessibility attributes on interactive elements:
+
+```typescript
+<Button
+  onClick={handleAction}
+  aria-label="Run script"
+  tabIndex={0}
+>
+  <PlayIcon />
+</Button>
+```
+
+### Keyboard Navigation
+Support keyboard interaction:
+
+```typescript
+<div
+  role="button"
+  tabIndex={0}
+  onClick={handleClick}
+  onKeyDown={(e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      handleClick();
+    }
+  }}
+>
+  Interactive element
+</div>
+```

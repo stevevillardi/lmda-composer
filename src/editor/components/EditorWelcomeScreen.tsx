@@ -20,29 +20,36 @@ import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/
 import { cn } from '@/lib/utils';
 import logoIcon from '@/assets/icon128.png';
 
-interface ActionRowProps {
+// ============================================================================
+// ActionTile Component - Compact action button with tooltip
+// ============================================================================
+
+interface ActionTileProps {
   icon: React.ReactNode;
   title: string;
   description: string;
   onClick: () => void;
   disabled?: boolean;
   disabledReason?: string;
+  fullWidth?: boolean;
 }
 
-function ActionRow({
+function ActionTile({
   icon,
   title,
   description,
   onClick,
   disabled,
   disabledReason,
-}: ActionRowProps) {
+  fullWidth,
+}: ActionTileProps) {
   const button = (
     <button
       onClick={disabled ? undefined : onClick}
       disabled={disabled}
       className={cn(
-        "flex items-center gap-3 w-full px-3.5 py-2.5 rounded-md border transition-colors text-left",
+        "flex flex-col items-center justify-center gap-1.5 p-3 rounded-md border transition-colors text-center min-h-[72px]",
+        fullWidth ? "col-span-2" : "",
         disabled
           ? "border-border/40 bg-muted/20 cursor-not-allowed opacity-50"
           : "border-border/70 bg-card/30 hover:bg-accent hover:border-primary/40"
@@ -50,41 +57,39 @@ function ActionRow({
     >
       <div
         className={cn(
-          "size-9 rounded-md grid place-items-center shrink-0",
+          "size-8 rounded-md grid place-items-center shrink-0",
           disabled ? "bg-muted/30 text-muted-foreground" : "bg-primary/10 text-primary"
         )}
       >
         {icon}
       </div>
-      <div className="min-w-0">
-        <div
-          className={cn(
-            "text-sm font-medium tracking-tight",
-            disabled ? "text-muted-foreground" : "text-foreground"
-          )}
-        >
-          {title}
-        </div>
-        <div className="text-xs text-muted-foreground mt-0.5 truncate">
-          {description}
-        </div>
-      </div>
+      <span
+        className={cn(
+          "text-xs font-medium tracking-tight leading-tight",
+          disabled ? "text-muted-foreground" : "text-foreground"
+        )}
+      >
+        {title}
+      </span>
     </button>
   );
 
-  if (disabled && disabledReason) {
-    return (
-      <Tooltip>
-        <TooltipTrigger render={button} />
-        <TooltipContent>{disabledReason}</TooltipContent>
-      </Tooltip>
-    );
-  }
+  const tooltipContent = disabled && disabledReason ? disabledReason : description;
 
-  return button;
+  return (
+    <Tooltip>
+      <TooltipTrigger render={button} />
+      <TooltipContent side="bottom" className="max-w-[200px] text-center">
+        {tooltipContent}
+      </TooltipContent>
+    </Tooltip>
+  );
 }
 
+// ============================================================================
 // Helper functions for time formatting
+// ============================================================================
+
 function formatTimeAgo(timestamp: number) {
   const seconds = Math.floor((Date.now() - timestamp) / 1000);
   if (seconds < 60) return 'Just now';
@@ -96,21 +101,9 @@ function formatTimeAgo(timestamp: number) {
   return `${days}d ago`;
 }
 
-function formatDate(timestamp: number) {
-  const date = new Date(timestamp);
-  return (
-    date.toLocaleDateString(undefined, {
-      month: 'short',
-      day: 'numeric',
-      year: date.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined,
-    }) +
-    ', ' +
-    date.toLocaleTimeString(undefined, {
-      hour: 'numeric',
-      minute: '2-digit',
-    })
-  );
-}
+// ============================================================================
+// Recent Item Components
+// ============================================================================
 
 interface RecentFileItemProps {
   fileName: string;
@@ -127,22 +120,15 @@ function RecentFileItem({
     <button
       onClick={onClick}
       className={cn(
-        "flex items-center gap-3 w-full px-3.5 py-2.5 text-left",
+        "flex items-center gap-2.5 w-full px-3 py-2 text-left",
         "hover:bg-accent transition-colors group"
       )}
     >
-      <FileCode className="size-4 text-muted-foreground group-hover:text-primary shrink-0" />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm truncate text-foreground group-hover:text-primary">
-            {fileName}
-          </span>
-        </div>
-      </div>
-      <span className="text-xs text-muted-foreground/60 shrink-0 hidden sm:block">
-        {formatDate(lastAccessed)}
+      <FileCode className="size-3.5 text-muted-foreground group-hover:text-primary shrink-0" />
+      <span className="text-xs truncate text-foreground group-hover:text-primary flex-1">
+        {fileName}
       </span>
-      <span className="text-xs text-muted-foreground shrink-0 ml-auto">
+      <span className="text-[10px] text-muted-foreground shrink-0">
         {formatTimeAgo(lastAccessed)}
       </span>
     </button>
@@ -167,35 +153,46 @@ function RecentDirectoryItem({
   onClick,
 }: RecentDirectoryItemProps) {
   return (
-    <button
-      onClick={onClick}
-      className={cn(
-        "flex items-center gap-3 w-full px-3.5 py-2.5 text-left",
-        "hover:bg-accent transition-colors group"
-      )}
-    >
-      <Folder className="size-4 text-primary/70 group-hover:text-primary shrink-0" />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="text-sm truncate text-foreground group-hover:text-primary">
-            {moduleName}
-          </span>
-          <span className="text-xs text-muted-foreground/60 bg-muted/50 px-1.5 py-0.5 rounded">
-            {moduleType}
-          </span>
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <button
+            onClick={onClick}
+            className={cn(
+              "flex items-center gap-2.5 w-full px-3 py-2 text-left",
+              "hover:bg-accent transition-colors group"
+            )}
+          >
+            <Folder className="size-3.5 text-primary/70 group-hover:text-primary shrink-0" />
+            <div className="flex-1 min-w-0 flex items-center gap-1.5">
+              <span className="text-xs truncate text-foreground group-hover:text-primary">
+                {moduleName}
+              </span>
+              <span className="text-[10px] text-muted-foreground/60 bg-muted/50 px-1 py-0.5 rounded shrink-0">
+                {moduleType}
+              </span>
+            </div>
+            <span className="text-[10px] text-muted-foreground shrink-0">
+              {formatTimeAgo(lastAccessed)}
+            </span>
+          </button>
+        }
+      />
+      <TooltipContent side="left">
+        <div className="text-xs">
+          <div>{directoryName}</div>
+          <div className="text-muted-foreground">{portalHostname}</div>
         </div>
-        <div className="text-xs text-muted-foreground truncate">
-          {directoryName} • {portalHostname}
-        </div>
-      </div>
-      <span className="text-xs text-muted-foreground shrink-0 ml-auto">
-        {formatTimeAgo(lastAccessed)}
-      </span>
-    </button>
+      </TooltipContent>
+    </Tooltip>
   );
 }
 
-export function WelcomeScreenV2() {
+// ============================================================================
+// Main Component
+// ============================================================================
+
+export function EditorWelcomeScreen() {
   const {
     selectedPortalId,
     recentFiles,
@@ -220,10 +217,32 @@ export function WelcomeScreenV2() {
 
   const hasRecentFiles = recentFiles.length > 0 || recentDirectories.length > 0;
 
+  // Combine and sort files and directories, limit to 6 items
+  const recentItems = [
+    ...recentDirectories.map(dir => ({
+      type: 'directory' as const,
+      id: dir.id,
+      displayName: dir.moduleName,
+      directoryName: dir.directoryName,
+      moduleType: dir.moduleType,
+      portalHostname: dir.portalHostname,
+      lastAccessed: dir.lastAccessed,
+    })),
+    ...recentFiles.map(file => ({
+      type: 'file' as const,
+      id: file.tabId,
+      displayName: file.fileName,
+      lastAccessed: file.lastAccessed,
+    })),
+  ]
+    .sort((a, b) => b.lastAccessed - a.lastAccessed)
+    .slice(0, 6);
+
   return (
     <div className="h-full flex flex-col bg-background overflow-auto" tabIndex={-1}>
       <div className="flex-1 flex items-center justify-center p-4">
-        <div className="w-full max-w-5xl space-y-6">
+        <div className="w-full max-w-5xl space-y-5">
+          {/* Header */}
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-3">
               <img src={logoIcon} alt="LMDA Composer" className="size-10" />
@@ -238,151 +257,138 @@ export function WelcomeScreenV2() {
             </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr] gap-6">
-            <div className="space-y-4">
-              <Card size="sm" className="bg-card/40 border-border/70">
-                <CardHeader className="pb-0">
-                  <CardTitle className="text-xs uppercase tracking-wide text-muted-foreground font-medium">
-                    Quick Start
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2.5">
-                  <ActionRow
+          {/* Main 3-Column Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {/* START Column */}
+            <Card size="sm" className="bg-card/40 border-border/70">
+              <CardHeader className="pb-0">
+                <CardTitle className="text-xs uppercase tracking-wide text-muted-foreground font-medium">
+                  Quick Start
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-2">
+                  <ActionTile
                     icon={<FilePlus className="size-4" />}
                     title="New File"
                     description="Start a Groovy or PowerShell script"
                     onClick={createNewFile}
                   />
-                  <ActionRow
+                  <ActionTile
                     icon={<FolderOpen className="size-4" />}
                     title="Open File"
                     description="Open a script from your computer"
                     onClick={openFileFromDisk}
                   />
-                  <ActionRow
+                  <ActionTile
                     icon={<Folder className="size-4" />}
                     title="Open Module Folder"
                     description="Open a saved module directory from disk"
                     onClick={() => void openModuleFolderFromDisk()}
                   />
-                  <ActionRow
+                  <ActionTile
                     icon={<Braces className="size-4" />}
                     title="API Explorer"
                     description="Explore the LM REST API with your active session"
                     onClick={() => setActiveWorkspace('api')}
                   />
-                  <ActionRow
+                  <ActionTile
                     icon={<CloudDownload className="size-4" />}
-                    title="Import from LogicModule Exchange"
-                    description="Browse and import LogicModule scripts"
+                    title="Import from LMX"
+                    description="Browse and import LogicModule scripts from the Exchange"
                     onClick={() => setModuleBrowserOpen(true)}
                     disabled={!selectedPortalId}
                     disabledReason="Connect to a portal first to browse LogicModules"
+                    fullWidth
                   />
-                </CardContent>
-              </Card>
+                </div>
+              </CardContent>
+            </Card>
 
-              <Card size="sm" className="bg-card/40 border-border/70">
-                <CardHeader className="pb-0">
-                  <CardTitle className="text-xs uppercase tracking-wide text-muted-foreground font-medium">
-                    Tools
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2.5">
-                  <ActionRow
+            {/* TOOLS Column */}
+            <Card size="sm" className="bg-card/40 border-border/70">
+              <CardHeader className="pb-0">
+                <CardTitle className="text-xs uppercase tracking-wide text-muted-foreground font-medium">
+                  Tools
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 gap-2">
+                  <ActionTile
                     icon={<FolderSearch className="size-4" />}
-                    title="Search LogicModules"
-                    description="Find scripts and datapoints across modules"
+                    title="Search Modules"
+                    description="Find scripts and datapoints across LogicModules"
                     onClick={() => setModuleSearchOpen(true)}
                     disabled={!selectedPortalId}
                     disabledReason="Connect to a portal first to search modules"
                   />
-                  <ActionRow
+                  <ActionTile
                     icon={<Hammer className="size-4" />}
-                    title="AppliesTo Toolbox"
+                    title="AppliesTo"
                     description="Test and validate AppliesTo expressions"
                     onClick={() => setAppliesToTesterOpen(true)}
                     disabled={!selectedPortalId}
                     disabledReason="Connect to a portal first to test AppliesTo expressions"
                   />
-                  <ActionRow
+                  <ActionTile
                     icon={<Terminal className="size-4" />}
                     title="Debug Commands"
                     description="Run collector debug commands"
                     onClick={() => setDebugCommandsDialogOpen(true)}
                     disabled={!selectedPortalId}
                     disabledReason="Connect to a portal first to run debug commands"
+                    fullWidth
                   />
-                </CardContent>
-              </Card>
+                </div>
+              </CardContent>
+            </Card>
 
-            </div>
-
-            <Card size="sm" className="bg-card/40 border-border/70">
+            {/* RECENT Column */}
+            <Card size="sm" className="bg-card/40 border-border/70 md:col-span-2 lg:col-span-1">
               <CardHeader className="pb-0">
                 <CardTitle className="text-xs uppercase tracking-wide text-muted-foreground font-medium flex items-center gap-2">
                   <Clock className="size-3.5" />
-                  Recent Files
+                  Recent
                 </CardTitle>
               </CardHeader>
               <CardContent className="px-0!">
                 {isLoadingRecentFiles ? (
                   <div className="flex items-center justify-center py-6 text-muted-foreground">
-                    <Loader2 className="size-5 animate-spin mr-2" />
-                    <span className="text-sm">Loading recent files...</span>
+                    <Loader2 className="size-4 animate-spin mr-2" />
+                    <span className="text-xs">Loading...</span>
                   </div>
                 ) : hasRecentFiles ? (
-                  <div className="divide-y divide-border max-h-[360px] overflow-y-auto">
-                    {/* Combine and sort files and directories by lastAccessed */}
-                    {[
-                      ...recentDirectories.map(dir => ({
-                        type: 'directory' as const,
-                        id: dir.id,
-                        displayName: dir.moduleName,
-                        directoryName: dir.directoryName,
-                        moduleType: dir.moduleType,
-                        portalHostname: dir.portalHostname,
-                        lastAccessed: dir.lastAccessed,
-                      })),
-                      ...recentFiles.map(file => ({
-                        type: 'file' as const,
-                        id: file.tabId,
-                        displayName: file.fileName,
-                        lastAccessed: file.lastAccessed,
-                      })),
-                    ]
-                      .sort((a, b) => b.lastAccessed - a.lastAccessed)
-                      .slice(0, 10)
-                      .map((item) => (
-                        item.type === 'directory' ? (
-                          <RecentDirectoryItem
-                            key={`dir-${item.id}`}
-                            directoryName={item.directoryName!}
-                            moduleName={item.displayName}
-                            moduleType={item.moduleType!}
-                            portalHostname={item.portalHostname!}
-                            lastAccessed={item.lastAccessed}
-                            onClick={() => showOpenModuleDirectoryDialog(item.id)}
-                          />
-                        ) : (
-                          <RecentFileItem
-                            key={`file-${item.id}`}
-                            fileName={item.displayName}
-                            lastAccessed={item.lastAccessed}
-                            onClick={() => openRecentFile(item.id)}
-                          />
-                        )
-                      ))}
+                  <div className="divide-y divide-border/50 max-h-[220px] overflow-y-auto">
+                    {recentItems.map((item) => (
+                      item.type === 'directory' ? (
+                        <RecentDirectoryItem
+                          key={`dir-${item.id}`}
+                          directoryName={item.directoryName!}
+                          moduleName={item.displayName}
+                          moduleType={item.moduleType!}
+                          portalHostname={item.portalHostname!}
+                          lastAccessed={item.lastAccessed}
+                          onClick={() => showOpenModuleDirectoryDialog(item.id)}
+                        />
+                      ) : (
+                        <RecentFileItem
+                          key={`file-${item.id}`}
+                          fileName={item.displayName}
+                          lastAccessed={item.lastAccessed}
+                          onClick={() => openRecentFile(item.id)}
+                        />
+                      )
+                    ))}
                   </div>
                 ) : (
-                  <Empty className="border-0 py-10">
+                  <Empty className="border-0 py-6">
                     <EmptyHeader>
                       <EmptyMedia variant="icon">
-                        <FileCode className="size-5" />
+                        <FileCode className="size-4" />
                       </EmptyMedia>
-                      <EmptyTitle className="text-sm">No recent files</EmptyTitle>
-                      <EmptyDescription className="text-xs">
-                        Files you open or save will appear here
+                      <EmptyTitle className="text-xs">No recent files</EmptyTitle>
+                      <EmptyDescription className="text-[10px]">
+                        Files you open will appear here
                       </EmptyDescription>
                     </EmptyHeader>
                   </Empty>
@@ -391,6 +397,7 @@ export function WelcomeScreenV2() {
             </Card>
           </div>
 
+          {/* Footer Tip */}
           <div className="w-full flex items-center justify-center">
             <div className="text-xs text-muted-foreground flex items-center gap-2">
               <span>Tip</span>

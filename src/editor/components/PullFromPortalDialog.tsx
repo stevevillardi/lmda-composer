@@ -375,7 +375,7 @@ export function PullFromPortalDialog({
           </Button>
           <Button 
             type="button" 
-            variant="default"
+            variant="commit"
             onClick={handleConfirm} 
             disabled={isProcessing || isLoading || !hasAnythingSelected}
           >
