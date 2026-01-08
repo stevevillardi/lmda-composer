@@ -350,6 +350,8 @@ export async function searchDatapointsFromIndex(
       try {
         const record = cursor.value as ModuleIndexRecord;
         const module = record.module;
+        // Note: Ghost datapoints are filtered at the API parsing level, not here
+        // LogicModuleInfo.dataPoints is already filtered
         const dataPoints = module.dataPoints || [];
         processed += 1;
 

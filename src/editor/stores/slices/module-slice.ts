@@ -1305,6 +1305,11 @@ export const createModuleSlice: StateCreator<
                 ? { ...schema.autoDiscoveryDefaults, ...draftConfig }
                 : draftConfig;
               payload.autoDiscoveryConfig = baseConfig;
+            } else if (field === 'dataPoints') {
+              // Send the full dataPoints array when modified
+              if (Array.isArray(draftValue)) {
+                payload.dataPoints = draftValue;
+              }
             } else if (field === 'tags' && tab.source.moduleType === 'logsource') {
               const tagsText = Array.isArray(draftValue) ? draftValue.join(',') : String(draftValue ?? '');
               const tagsArray = tagsText

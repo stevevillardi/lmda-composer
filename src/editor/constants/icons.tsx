@@ -51,6 +51,16 @@ import {
   ArrowLeftRight,
   Braces,
   Copy,
+  // Datapoint icons
+  Gauge,
+  Timer,
+  TrendingUp,
+  Calculator,
+  FileOutput,
+  // Alert severity icons
+  CircleAlert,
+  TriangleAlert,
+  OctagonAlert,
   type LucideProps,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -309,4 +319,52 @@ export function CopyIcon({ className, ...props }: LucideProps) {
 /** Expand/collapse chevron */
 export function ChevronDownIcon({ className, ...props }: LucideProps) {
   return <ChevronDown className={cn(className)} {...props} />;
+}
+
+// ============================================================================
+// Datapoint Icons
+// ============================================================================
+
+/** Gauge metric type - instantaneous value */
+export function GaugeIcon({ className, ...props }: LucideProps) {
+  return <Gauge className={cn('text-muted-foreground', className)} {...props} />;
+}
+
+/** Counter metric type - cumulative/incrementing value */
+export function CounterIcon({ className, ...props }: LucideProps) {
+  return <Timer className={cn('text-muted-foreground', className)} {...props} />;
+}
+
+/** Derive metric type - rate of change */
+export function DeriveIcon({ className, ...props }: LucideProps) {
+  return <TrendingUp className={cn('text-muted-foreground', className)} {...props} />;
+}
+
+/** Expression/complex datapoint - calculated from other datapoints */
+export function ExpressionIcon({ className, ...props }: LucideProps) {
+  return <Calculator className={cn('text-amber-500', className)} {...props} />;
+}
+
+/** Script output source */
+export function OutputIcon({ className, ...props }: LucideProps) {
+  return <FileOutput className={cn('text-cyan-500', className)} {...props} />;
+}
+
+// ============================================================================
+// Alert Severity Icons
+// ============================================================================
+
+/** Warning severity alert - yellow */
+export function WarningAlertIcon({ className, ...props }: LucideProps) {
+  return <CircleAlert className={cn('text-yellow-500', className)} {...props} />;
+}
+
+/** Error severity alert - orange */
+export function ErrorAlertIcon({ className, ...props }: LucideProps) {
+  return <TriangleAlert className={cn('text-orange-500', className)} {...props} />;
+}
+
+/** Critical severity alert - red */
+export function CriticalAlertIcon({ className, ...props }: LucideProps) {
+  return <OctagonAlert className={cn('text-red-500', className)} {...props} />;
 }

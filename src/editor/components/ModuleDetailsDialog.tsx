@@ -97,7 +97,10 @@ export function ModuleDetailsDialog() {
       sections.add('alertSettings');
     }
     
-    // Datapoints are read-only, so no dirty tracking needed
+    // Datapoints fields
+    if (dirtyFields.has('dataPoints')) {
+      sections.add('datapoints');
+    }
     
     return sections;
   }, [draft]);
@@ -109,7 +112,7 @@ export function ModuleDetailsDialog() {
         return enableAutoDiscovery && schema.supportsAutoDiscovery;
       }
       if (section === 'datapoints') {
-        return schema.readOnlyList === 'datapoints';
+        return schema.editableList === 'datapoints';
       }
       if (section === 'configChecks') {
         return schema.readOnlyList === 'configChecks';
@@ -325,7 +328,7 @@ export function ModuleDetailsDialog() {
                   {activeSection === 'activeDiscovery' && enableAutoDiscovery && (
                     <ModuleDetailsActiveDiscovery tabId={activeTabId!} moduleType={activeTab.source.moduleType} />
                   )}
-                  {activeSection === 'datapoints' && schema?.readOnlyList === 'datapoints' && (
+                  {activeSection === 'datapoints' && schema?.editableList === 'datapoints' && (
                     <ModuleDetailsDatapoints tabId={activeTabId!} moduleId={activeTab.source.moduleId} moduleType={activeTab.source.moduleType} />
                   )}
                   {activeSection === 'configChecks' && schema?.readOnlyList === 'configChecks' && (

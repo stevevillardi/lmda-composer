@@ -597,13 +597,81 @@ export interface AutoDiscoveryConfig {
   method: ADMethod;
 }
 
+/**
+ * Status display name entry for gauge datapoints.
+ */
+export interface StatusDisplayName {
+  id?: number;
+  datapointId?: number;
+  statusDisplayName: string;
+  operator: 'EQ' | 'NEQ' | 'GTE' | 'LTE' | 'GT' | 'LT';
+  metricValue: number;
+}
+
+/**
+ * Full datapoint configuration.
+ * Used for editing and committing datapoint changes.
+ */
 export interface DataPoint {
-  id: number;
+  /** Datapoint ID - undefined for new datapoints */
+  id?: number;
+  /** DataSource ID - provided for existing datapoints */
+  dataSourceId?: number;
+  /** Datapoint name (required) */
   name: string;
-  dataType: number;
+  /** Description */
   description: string;
+  /** Metric type: 1=counter, 2=gauge, 3=derive */
+  type: number;
+  /** Data value type: Always 7 (double) for scripted modules */
+  dataType: number;
+  /** Max digits - always 4, legacy field */
+  maxDigits: number;
+  /** Post processor method: namevalue, expression, none, json, regex, etc. */
   postProcessorMethod: string;
+  /** Post processor parameter (key, expression, path, etc.) */
   postProcessorParam: string;
+  /** Raw data field: 'output', 'exitCode', 'responseTime', or empty for expressions */
+  rawDataFieldName: string;
+  /** Min value for datapoint range (empty string for no limit) */
+  minValue: string;
+  /** Max value for datapoint range (empty string for no limit) */
+  maxValue: string;
+  /** Alert for no data: 0=no alert, 1=no alert, 2=warn, 3=error, 4=critical */
+  alertForNoData: number;
+  /** Alert threshold expression (e.g., '> 60 80 90') */
+  alertExpr: string;
+  /** Alert threshold history note */
+  alertExprNote: string;
+  /** Alert subject template */
+  alertSubject: string;
+  /** Alert body template */
+  alertBody: string;
+  /** Poll cycles before alert triggers */
+  alertTransitionInterval: number;
+  /** Poll cycles before alert clears */
+  alertClearTransitionInterval: number;
+  // Preserved but not editable in this phase
+  /** Origin ID for tracking */
+  originId?: string;
+  /** Anomaly alert suppression - not editable */
+  enableAnomalyAlertSuppression?: string;
+  /** AD advanced setting enabled - not editable */
+  adAdvSettingEnabled?: boolean;
+  /** Warning AD advanced setting - not editable */
+  warnAdAdvSetting?: string;
+  /** Error AD advanced setting - not editable */
+  errorAdAdvSetting?: string;
+  /** Critical AD advanced setting - not editable */
+  criticalAdAdvSetting?: string;
+  /** User param 1 - not used */
+  userParam1?: string;
+  /** User param 2 - not used */
+  userParam2?: string;
+  /** User param 3 - not used */
+  userParam3?: string;
+  /** Status display names for gauge datapoints */
+  statusDisplayNames?: StatusDisplayName[];
 }
 
 export type ModuleSearchMatchType = 'substring' | 'exact' | 'regex';

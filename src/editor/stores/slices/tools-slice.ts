@@ -20,6 +20,7 @@ import type {
   EditorTab,
   Portal,
   ExecuteDebugCommandRequest,
+  DataPoint,
 } from '@/shared/types';
 import { APPLIES_TO_FUNCTIONS } from '../../data/applies-to-functions';
 import { MODULE_TYPE_SCHEMAS, getSchemaFieldName } from '@/shared/module-type-schemas';
@@ -33,6 +34,7 @@ import {
 import { sendMessage } from '../../utils/chrome-messaging';
 import * as documentStore from '../../utils/document-store';
 import { EDITABLE_MODULE_DETAILS_FIELDS } from '../../utils/document-helpers';
+import { filterValidDatapoints } from '@/shared/datapoint-utils';
 import type { ModuleDirectoryConfig } from '@/shared/types';
 
 // ============================================================================
@@ -136,15 +138,9 @@ interface AutoDiscoveryConfig {
 
 /**
  * Represents a datapoint configuration.
+ * Uses the shared DataPoint type from types.ts
  */
-interface DataPointConfig {
-  id: number;
-  name: string;
-  type?: number;
-  description?: string;
-  postProcessorMethod?: string;
-  [key: string]: unknown;
-}
+type DataPointConfig = Partial<DataPoint> & { name: string };
 
 /**
  * Represents a config check configuration.
@@ -352,6 +348,11 @@ export interface ToolsSliceActions {
   resetModuleDetailsDraft: (tabId: string) => void;
   persistModuleDetailsToDirectory: (tabId: string) => Promise<boolean>;
   fetchAccessGroups: (tabId: string) => Promise<void>;
+  
+  // Datapoint CRUD actions
+  addDatapoint: (tabId: string, datapoint: DataPoint) => void;
+  updateDatapoint: (tabId: string, index: number, datapoint: DataPoint) => void;
+  deleteDatapoint: (tabId: string, index: number) => void;
 }
 
 /**
@@ -1264,7 +1265,9 @@ export const createToolsSlice: StateCreator<
         const descriptionValue = module[getSchemaFieldName(schema, 'description') as keyof typeof module];
         const groupValue = module[getSchemaFieldName(schema, 'group') as keyof typeof module];
         const tagsValue = module[getSchemaFieldName(schema, 'tags') as keyof typeof module];
-        const dataPoints = schema.readOnlyList === 'datapoints' ? module.dataPoints || [] : [];
+        // Filter out ghost datapoints (no rawDataFieldName AND method is 'none')
+        const rawDataPoints = schema.editableList === 'datapoints' ? module.dataPoints || [] : [];
+        const dataPoints = filterValidDatapoints(rawDataPoints) as DataPointConfig[];
         const configChecks = schema.readOnlyList === 'configChecks' ? module.configChecks || [] : [];
         const autoDiscoveryConfig = schema.autoDiscoveryDefaults
           ? {
@@ -1517,7 +1520,9 @@ export const createToolsSlice: StateCreator<
         const descriptionValue = module[getSchemaFieldName(schema, 'description') as keyof typeof module];
         const groupValue = module[getSchemaFieldName(schema, 'group') as keyof typeof module];
         const tagsValue = module[getSchemaFieldName(schema, 'tags') as keyof typeof module];
-        const dataPoints = schema.readOnlyList === 'datapoints' ? module.dataPoints || [] : [];
+        // Filter out ghost datapoints (no rawDataFieldName AND method is 'none')
+        const rawDataPoints = schema.editableList === 'datapoints' ? module.dataPoints || [] : [];
+        const dataPoints = filterValidDatapoints(rawDataPoints) as DataPointConfig[];
         const configChecks = schema.readOnlyList === 'configChecks' ? module.configChecks || [] : [];
         const autoDiscoveryConfig = schema.autoDiscoveryDefaults
           ? {
@@ -1715,5 +1720,92 @@ export const createToolsSlice: StateCreator<
         isLoadingAccessGroups: false,
       });
     }
+  },
+
+  // =====================
+  // Datapoint CRUD Actions
+  // =====================
+
+  addDatapoint: (tabId: string, datapoint: DataPoint) => {
+    const { tabs, moduleDetailsDraftByTabId } = get();
+    const draft = moduleDetailsDraftByTabId[tabId];
+    if (!draft) return;
+
+    const currentDataPoints = (draft.draft.dataPoints || []) as DataPoint[];
+    const newDataPoints = [...currentDataPoints, datapoint];
+    
+    const newDraft = { ...draft.draft, dataPoints: newDataPoints };
+    const newDirtyFields = new Set(draft.dirtyFields);
+    newDirtyFields.add('dataPoints');
+
+    const moduleTabIds = getModuleTabIds(tabs, tabId);
+    const updatedDrafts = { ...moduleDetailsDraftByTabId };
+    moduleTabIds.forEach((id) => {
+      updatedDrafts[id] = {
+        ...draft,
+        draft: newDraft,
+        dirtyFields: new Set(newDirtyFields),
+        tabId: id,
+      };
+    });
+
+    set({ moduleDetailsDraftByTabId: updatedDrafts });
+  },
+
+  updateDatapoint: (tabId: string, index: number, datapoint: DataPoint) => {
+    const { tabs, moduleDetailsDraftByTabId } = get();
+    const draft = moduleDetailsDraftByTabId[tabId];
+    if (!draft) return;
+
+    const currentDataPoints = (draft.draft.dataPoints || []) as DataPoint[];
+    if (index < 0 || index >= currentDataPoints.length) return;
+
+    const newDataPoints = [...currentDataPoints];
+    newDataPoints[index] = datapoint;
+    
+    const newDraft = { ...draft.draft, dataPoints: newDataPoints };
+    const newDirtyFields = new Set(draft.dirtyFields);
+    newDirtyFields.add('dataPoints');
+
+    const moduleTabIds = getModuleTabIds(tabs, tabId);
+    const updatedDrafts = { ...moduleDetailsDraftByTabId };
+    moduleTabIds.forEach((id) => {
+      updatedDrafts[id] = {
+        ...draft,
+        draft: newDraft,
+        dirtyFields: new Set(newDirtyFields),
+        tabId: id,
+      };
+    });
+
+    set({ moduleDetailsDraftByTabId: updatedDrafts });
+  },
+
+  deleteDatapoint: (tabId: string, index: number) => {
+    const { tabs, moduleDetailsDraftByTabId } = get();
+    const draft = moduleDetailsDraftByTabId[tabId];
+    if (!draft) return;
+
+    const currentDataPoints = (draft.draft.dataPoints || []) as DataPoint[];
+    if (index < 0 || index >= currentDataPoints.length) return;
+
+    const newDataPoints = currentDataPoints.filter((_, i) => i !== index);
+    
+    const newDraft = { ...draft.draft, dataPoints: newDataPoints };
+    const newDirtyFields = new Set(draft.dirtyFields);
+    newDirtyFields.add('dataPoints');
+
+    const moduleTabIds = getModuleTabIds(tabs, tabId);
+    const updatedDrafts = { ...moduleDetailsDraftByTabId };
+    moduleTabIds.forEach((id) => {
+      updatedDrafts[id] = {
+        ...draft,
+        draft: newDraft,
+        dirtyFields: new Set(newDirtyFields),
+        tabId: id,
+      };
+    });
+
+    set({ moduleDetailsDraftByTabId: updatedDrafts });
   },
 });

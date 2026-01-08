@@ -31,7 +31,9 @@ export interface ModuleTypeSchema {
   autoDiscoveryEditableFields?: string[];
   autoDiscoveryDefaults?: Record<string, unknown>;
   fieldAliases?: Record<string, string>;
-  readOnlyList?: 'datapoints' | 'configChecks';
+  readOnlyList?: 'configChecks';
+  /** Editable list type for this module - datapoints can be edited for datasources */
+  editableList?: 'datapoints';
   supportsAlertSettings?: boolean;
   alertSettingsFields?: string[];
 }
@@ -93,7 +95,7 @@ const LOGSOURCE_COLLECTION_INTERVALS: CollectIntervalOption[] = DATASOURCE_COLLE
 
 export const MODULE_TYPE_SCHEMAS: Record<LogicModuleType, ModuleTypeSchema> = {
   datasource: {
-    editableFields: ['name', 'displayName', 'description', 'appliesTo', 'group', 'technology', 'tags', 'collectInterval', 'accessGroupIds'],
+    editableFields: ['name', 'displayName', 'description', 'appliesTo', 'group', 'technology', 'tags', 'collectInterval', 'accessGroupIds', 'dataPoints'],
     requiredFields: ['name', 'collectInterval'],
     sections: ['basic', 'organization', 'access', 'appliesTo', 'activeDiscovery', 'datapoints'],
     accessGroupSupport: true,
@@ -103,7 +105,7 @@ export const MODULE_TYPE_SCHEMAS: Record<LogicModuleType, ModuleTypeSchema> = {
     intervalFormat: 'seconds',
     intervalLabel: 'Collect Interval',
     supportsAutoDiscovery: true,
-    readOnlyList: 'datapoints',
+    editableList: 'datapoints',
   },
   configsource: {
     editableFields: ['name', 'displayName', 'description', 'appliesTo', 'group', 'technology', 'tags', 'collectInterval', 'accessGroupIds'],

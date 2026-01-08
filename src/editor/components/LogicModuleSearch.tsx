@@ -36,8 +36,17 @@ import { Progress } from '@/components/ui/progress';
 import { LoadingState } from './shared/LoadingState';
 import { CopyButton } from './shared/CopyButton';
 import { cn } from '@/lib/utils';
-import { COLORS } from '../constants/colors';
 import { LOGIC_MODULE_TYPES } from '../constants/logic-module-types';
+import {
+  parseAlertThresholds,
+  ALERT_LEVEL_TEXT_STYLES,
+  type AlertLevel,
+} from '@/shared/alert-threshold-utils';
+import {
+  WarningAlertIcon,
+  ErrorAlertIcon,
+  CriticalAlertIcon,
+} from '../constants/icons';
 import { buildMonacoOptions, getMonacoTheme } from '@/editor/utils/monaco-settings';
 
 import '../monaco-loader';
@@ -53,6 +62,13 @@ const ALERT_FOR_NO_DATA_LABELS: Record<number, string> = {
   2: 'Trigger warning alert',
   3: 'Trigger error alert',
   4: 'Trigger critical alert',
+};
+
+// Alert level icon components
+const ALERT_LEVEL_ICONS: Record<AlertLevel, React.ComponentType<{ className?: string }>> = {
+  warning: WarningAlertIcon,
+  error: ErrorAlertIcon,
+  critical: CriticalAlertIcon,
 };
 
 function formatPollInterval(seconds?: number): string {
@@ -76,62 +92,6 @@ function formatIntervalDetail(
   return `${interval} polls (~${minuteLabel})`;
 }
 
-type AlertLevel = 'warning' | 'error' | 'critical';
-
-const ALERT_LEVEL_LABELS: Record<AlertLevel, string> = {
-  warning: 'Warning',
-  error: 'Error',
-  critical: 'Critical',
-};
-
-const ALERT_LEVEL_STYLES: Record<AlertLevel, string> = {
-  warning: COLORS.WARNING_STRONG.text,
-  error: COLORS.ERROR_STRONG.text,
-  critical: COLORS.CRITICAL_STRONG.text,
-};
-
-function parseAlertThresholds(expression: string | undefined): Array<{ level: AlertLevel; operator: string; value: number }> | null {
-  if (!expression?.trim()) return null;
-  const tokens = expression.trim().split(/\s+/);
-  if (tokens.length < 2) return null;
-
-  const operator = tokens[0];
-  const values = tokens.slice(1).map((value) => Number(value)).filter((value) => !Number.isNaN(value));
-  if (values.length === 0) return null;
-
-  const thresholds: Array<{ level: AlertLevel; operator: string; value: number }> = [];
-
-  if (values.length === 1) {
-    thresholds.push({ level: 'warning', operator, value: values[0] });
-    return thresholds;
-  }
-
-  if (values.length === 2) {
-    const [warningValue, errorValue] = values;
-    if (warningValue === errorValue) {
-      thresholds.push({ level: 'error', operator, value: errorValue });
-      return thresholds;
-    }
-    thresholds.push({ level: 'warning', operator, value: warningValue });
-    thresholds.push({ level: 'error', operator, value: errorValue });
-    return thresholds;
-  }
-
-  const [warningValue, errorValue, criticalValue] = values;
-  if (errorValue === criticalValue && warningValue !== errorValue) {
-    thresholds.push({ level: 'warning', operator, value: warningValue });
-    thresholds.push({ level: 'critical', operator, value: errorValue });
-    return thresholds;
-  }
-  if (warningValue === errorValue && errorValue === criticalValue) {
-    thresholds.push({ level: 'critical', operator, value: criticalValue });
-    return thresholds;
-  }
-  thresholds.push({ level: 'warning', operator, value: warningValue });
-  thresholds.push({ level: 'error', operator, value: errorValue });
-  thresholds.push({ level: 'critical', operator, value: criticalValue });
-  return thresholds;
-}
 
 function dedupeLineHighlights(matches: ScriptMatchRange[]): ScriptMatchRange[] {
   const seen = new Set<number>();
@@ -654,14 +614,18 @@ export function LogicModuleSearch() {
                     <span className="text-muted-foreground">Alert Thresholds</span>
                     {alertThresholds ? (
                       <div className="text-right flex flex-wrap justify-end gap-2">
-                        {alertThresholds.map((threshold) => (
-                          <span
-                            key={`${threshold.level}-${threshold.value}-${threshold.operator}`}
-                            className={cn('font-medium', ALERT_LEVEL_STYLES[threshold.level])}
-                          >
-                            {ALERT_LEVEL_LABELS[threshold.level]} {threshold.operator} {threshold.value}
-                          </span>
-                        ))}
+                        {alertThresholds.map((threshold) => {
+                          const AlertIcon = ALERT_LEVEL_ICONS[threshold.level];
+                          return (
+                            <span
+                              key={`${threshold.level}-${threshold.value}-${threshold.operator}`}
+                              className={cn('font-medium flex items-center gap-1', ALERT_LEVEL_TEXT_STYLES[threshold.level])}
+                            >
+                              <AlertIcon className="size-3.5" />
+                              {threshold.operator} {threshold.value}
+                            </span>
+                          );
+                        })}
                       </div>
                     ) : (
                       <span className="text-right text-muted-foreground">No threshold set</span>

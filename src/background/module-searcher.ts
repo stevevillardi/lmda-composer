@@ -82,6 +82,8 @@ export async function searchDatapoints(
   const results: DataPointSearchResult[] = [];
 
   for (const module of datasources) {
+    // Note: Ghost datapoints are filtered at the API parsing level
+    // LogicModuleInfo.dataPoints is already filtered
     const dataPoints = module.dataPoints || [];
     if (!dataPoints.length) {
       continue;

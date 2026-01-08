@@ -12,6 +12,7 @@ import type {
   Portal,
   LogicModuleType,
 } from '@/shared/types';
+import { filterValidDatapoints } from '@/shared/datapoint-utils';
 import { DEFAULT_GROOVY_TEMPLATE, DEFAULT_POWERSHELL_TEMPLATE } from '../config/script-templates';
 import { normalizeScript } from '../stores/helpers/slice-helpers';
 
@@ -673,7 +674,9 @@ export function parseModuleDetailsFromResponse(
   const descriptionValue = module[getSchemaFieldNameFn(schema, 'description') as keyof typeof module];
   const groupValue = module[getSchemaFieldNameFn(schema, 'group') as keyof typeof module];
   const tagsValue = module[getSchemaFieldNameFn(schema, 'tags') as keyof typeof module];
-  const dataPoints = schema.readOnlyList === 'datapoints' ? module.dataPoints || [] : [];
+  // Filter out ghost datapoints (no rawDataFieldName AND method is 'none')
+  const rawDataPoints = schema.editableList === 'datapoints' ? module.dataPoints || [] : [];
+  const dataPoints = filterValidDatapoints(rawDataPoints) as unknown[];
   const configChecks = schema.readOnlyList === 'configChecks' ? module.configChecks || [] : [];
   const autoDiscoveryConfig = schema.autoDiscoveryDefaults
     ? {
