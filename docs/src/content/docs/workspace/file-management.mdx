@@ -40,7 +40,7 @@ When you open a file, the extension determines the language, syntax highlighting
     Click **Open File** and select from the system dialog.
   </FeatureCard>
   <FeatureCard title="Keyboard" icon="laptop" color="blue">
-    Press <kbd>Ctrl</kbd>+<kbd>O</kbd> / <kbd>Cmd</kbd>+<kbd>O</kbd>.
+    Press <kbd>Ctrl</kbd>+<kbd>K</kbd>, <kbd>O</kbd> / <kbd>Cmd</kbd>+<kbd>K</kbd>, <kbd>O</kbd>.
   </FeatureCard>
   <FeatureCard title="Drag and Drop" icon="folder" color="purple">
     Drag a file onto the LMDA Composer window.
@@ -52,11 +52,125 @@ When you open a file, the extension determines the language, syntax highlighting
 
 ---
 
+## Open Module Directory
+
+Open a saved module folder to restore a previously saved LogicModule with its metadata and portal binding intact.
+
+### What It Does
+
+<CardGrid>
+  <FeatureCard title="Restore Module Binding" icon="link" color="blue">
+    Automatically reconnects to the original portal and module from saved metadata.
+  </FeatureCard>
+  <FeatureCard title="Enable Commit Workflow" icon="upload" color="green">
+    Push changes back to LogicMonitor just like a freshly loaded module.
+  </FeatureCard>
+  <FeatureCard title="Load All Scripts" icon="layers" color="purple">
+    Opens the main script plus any AD scripts or pre-scripts in the folder.
+  </FeatureCard>
+</CardGrid>
+
+### How to Access
+
+<CardGrid>
+  <FeatureCard title="Keyboard" icon="laptop" color="blue">
+    Press <kbd>Cmd</kbd>+<kbd>K</kbd>, <kbd>F</kbd> to open directly.
+  </FeatureCard>
+  <FeatureCard title="Actions Menu" icon="scroll-text" color="purple">
+    Click **Actions → Open Module Folder** in the toolbar.
+  </FeatureCard>
+  <FeatureCard title="Welcome Screen" icon="rocket" color="orange">
+    Click **Open Module Folder** on the welcome screen.
+  </FeatureCard>
+</CardGrid>
+
+### Module Directory Structure
+
+When you save a portal-bound module to disk, LMDA Composer creates a folder with the following structure:
+
+```
+my-datasource/
+├── script.groovy          # Main collection script
+├── ad-script.groovy       # Active Discovery script (if applicable)
+├── pre-script.groovy      # Pre-script (if applicable)
+└── module.json            # Module metadata + portal binding
+```
+
+The `module.json` file contains:
+- Module ID and name
+- Portal hostname and module type
+- Script type mappings
+- Original module metadata for diffing
+
+### Use Cases
+
+<Tabs>
+  <TabItem label="Version Control" icon="git-branch">
+    **Track module changes with Git:**
+
+    1. Save module to a local folder
+    2. Initialize a Git repository: `git init`
+    3. Commit changes as you develop
+    4. Push to GitHub/GitLab for backup and collaboration
+
+    This provides full version history that LogicMonitor doesn't offer natively.
+  </TabItem>
+  <TabItem label="Team Collaboration" icon="users">
+    **Share module development:**
+
+    1. Save module to a shared repository
+    2. Team members clone the repo
+    3. Each developer opens the module directory
+    4. Changes can be reviewed via pull requests
+    5. One person commits approved changes to LM
+  </TabItem>
+  <TabItem label="Backup & Restore" icon="save">
+    **Keep local copies of important modules:**
+
+    1. Save critical modules to disk as backups
+    2. Store in cloud-synced folder (Dropbox, OneDrive)
+    3. Restore anytime by opening the module directory
+    4. Compare local vs portal versions before committing
+  </TabItem>
+  <TabItem label="Offline Development" icon="laptop">
+    **Work without portal connection:**
+
+    1. Save module while connected
+    2. Develop offline with full editor features
+    3. Reconnect to portal when ready
+    4. Open module directory and commit changes
+  </TabItem>
+</Tabs>
+
+### Workflow Example
+
+<Steps>
+
+1. **Load module from portal** using the LogicModule Browser
+
+2. **Save to disk** via Actions → Save As or <kbd>Cmd</kbd>+<kbd>K</kbd>, <kbd>Shift</kbd>+<kbd>S</kbd>
+
+3. **Initialize Git** in the module folder for version tracking
+
+4. **Make changes** and commit locally with descriptive messages
+
+5. **Later, open module directory** with <kbd>Cmd</kbd>+<kbd>K</kbd>, <kbd>F</kbd>
+
+6. **Push changes back to portal** using the Commit button
+
+</Steps>
+
+<Aside type="tip" title="Module Binding Persistence">
+  The `module.json` file stores all the information needed to reconnect to your portal. As long as this file exists and the module still exists in your portal, you can restore the full commit workflow.
+</Aside>
+
+---
+
 ## Creating New Files
 
 <Steps>
 
-1. Click **New File** on welcome screen, or click **+** in the tab bar, or press <kbd>Ctrl</kbd>+<kbd>N</kbd>
+1. Click **New File** on welcome screen, or click **+** in the tab bar, or press <kbd>Ctrl</kbd>+<kbd>K</kbd>, <kbd>N</kbd>
 
 2. File opens with your default language setting
 
@@ -79,7 +193,7 @@ When you open a file, the extension determines the language, syntax highlighting
     **Subsequent saves:** File updates in place, no dialog appears, dirty indicator clears.
   </TabItem>
   <TabItem label="Save As" icon="document">
-    **Keyboard:** <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> / <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd>
+    **Keyboard:** <kbd>Ctrl</kbd>+<kbd>K</kbd>, <kbd>Shift</kbd>+<kbd>S</kbd> / <kbd>Cmd</kbd>+<kbd>K</kbd>, <kbd>Shift</kbd>+<kbd>S</kbd>
 
     Creates a copy at a new location. Original file remains unchanged.
   </TabItem>
