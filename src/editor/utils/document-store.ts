@@ -166,21 +166,47 @@ function openDatabase(): Promise<IDBDatabase> {
 // ============================================================================
 
 /**
+ * Find an existing file handle that matches the given handle.
+ * Uses isSameEntry() to compare handles.
+ */
+async function findExistingFileHandle(handle: FileSystemFileHandle): Promise<StoredFileHandle | null> {
+  const allHandles = await getAllFileHandles();
+  
+  for (const [, record] of allHandles) {
+    try {
+      if (await handle.isSameEntry(record.handle)) {
+        return record;
+      }
+    } catch {
+      // Handle may be invalid, skip it
+    }
+  }
+  
+  return null;
+}
+
+/**
  * Save a file handle to IndexedDB.
+ * If a handle for the same file already exists, updates it instead of creating a duplicate.
+ * Returns the ID of the saved/updated handle.
  */
 export async function saveFileHandle(
   id: string, 
   handle: FileSystemFileHandle, 
   fileName: string
-): Promise<void> {
+): Promise<string> {
   const db = await openDatabase();
+  
+  // Check for existing handle pointing to the same file
+  const existing = await findExistingFileHandle(handle);
+  const effectiveId = existing?.id ?? id;
   
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(STORES.FILE_HANDLES, 'readwrite');
     const store = transaction.objectStore(STORES.FILE_HANDLES);
     
     const data: StoredFileHandle = {
-      id,
+      id: effectiveId,
       handle,
       fileName,
       lastAccessed: Date.now(),
@@ -188,7 +214,7 @@ export async function saveFileHandle(
     
     const request = store.put(data);
     
-    request.onsuccess = () => resolve();
+    request.onsuccess = () => resolve(effectiveId);
     request.onerror = () => reject(request.error);
   });
 }
@@ -368,7 +394,32 @@ async function cleanupOldFileHandles(allRecords: StoredFileHandle[]): Promise<vo
 // ============================================================================
 
 /**
+ * Find an existing directory handle that matches the given handle.
+ * Uses isSameEntry() to compare handles.
+ */
+async function findExistingDirectoryHandle(handle: FileSystemDirectoryHandle): Promise<StoredDirectoryHandle | null> {
+  const allHandles = await getAllDirectoryHandles();
+  
+  for (const [, record] of allHandles) {
+    try {
+      // Cast to use isSameEntry which exists on FileSystemHandle
+      const recordHandle = record.handle as unknown as { isSameEntry(other: FileSystemHandle): Promise<boolean> };
+      const inputHandle = handle as unknown as FileSystemHandle;
+      if (await recordHandle.isSameEntry(inputHandle)) {
+        return record;
+      }
+    } catch {
+      // Handle may be invalid, skip it
+    }
+  }
+  
+  return null;
+}
+
+/**
  * Save a directory handle to IndexedDB.
+ * If a handle for the same directory already exists, updates it instead of creating a duplicate.
+ * Returns the ID of the saved/updated handle.
  */
 export async function saveDirectoryHandle(
   id: string,
@@ -379,15 +430,19 @@ export async function saveDirectoryHandle(
     portalHostname: string;
     moduleType: string;
   }
-): Promise<void> {
+): Promise<string> {
   const db = await openDatabase();
+  
+  // Check for existing handle pointing to the same directory
+  const existing = await findExistingDirectoryHandle(handle);
+  const effectiveId = existing?.id ?? id;
   
   return new Promise((resolve, reject) => {
     const transaction = db.transaction(STORES.DIRECTORY_HANDLES, 'readwrite');
     const store = transaction.objectStore(STORES.DIRECTORY_HANDLES);
     
     const data: StoredDirectoryHandle = {
-      id,
+      id: effectiveId,
       handle,
       directoryName: metadata.directoryName,
       moduleName: metadata.moduleName,
@@ -398,7 +453,7 @@ export async function saveDirectoryHandle(
     
     const request = store.put(data);
     
-    request.onsuccess = () => resolve();
+    request.onsuccess = () => resolve(effectiveId);
     request.onerror = () => reject(request.error);
   });
 }

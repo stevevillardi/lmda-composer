@@ -853,12 +853,11 @@ export const createTabsSlice: StateCreator<
       const fileName = file.name;
       const isGroovy = fileName.endsWith('.groovy');
       
-      // Generate tab ID and file handle ID (same initially, but can diverge on language change)
+      // Generate tab ID
       const tabId = crypto.randomUUID();
-      const fileHandleId = crypto.randomUUID();
       
-      // Store handle in IndexedDB using fileHandleId
-      await documentStore.saveFileHandle(fileHandleId, handle, fileName);
+      // Store handle in IndexedDB - may return existing ID if file was opened before
+      const fileHandleId = await documentStore.saveFileHandle(crypto.randomUUID(), handle, fileName);
       
       // Create new tab
       const source: EditorTabSource = { type: 'file' };
@@ -1115,12 +1114,8 @@ export const createTabsSlice: StateCreator<
       // Write content to file
       await documentStore.writeToHandle(handle, contentToSave);
       
-      // Generate a new fileHandleId for this file
-      // This ensures the old file handle (if any) remains in IndexedDB for recent files
-      const newFileHandleId = crypto.randomUUID();
-      
-      // Store new handle in IndexedDB with the new ID
-      await documentStore.saveFileHandle(newFileHandleId, handle, handle.name);
+      // Store new handle in IndexedDB - may return existing ID if file was saved before
+      const newFileHandleId = await documentStore.saveFileHandle(crypto.randomUUID(), handle, handle.name);
       
       // Update tab state with new document
       set({
@@ -1549,9 +1544,8 @@ export const createTabsSlice: StateCreator<
         JSON.stringify(config, null, 2)
       );
 
-      // Save directory handle to IndexedDB
-      const directoryHandleId = crypto.randomUUID();
-      await documentStore.saveDirectoryHandle(directoryHandleId, dirHandle, {
+      // Save directory handle to IndexedDB - may return existing ID if directory was used before
+      const directoryHandleId = await documentStore.saveDirectoryHandle(crypto.randomUUID(), dirHandle, {
         directoryName: dirHandle.name,
         moduleName,
         portalHostname,
@@ -1658,9 +1652,8 @@ export const createTabsSlice: StateCreator<
         return false;
       }
 
-      // Save the directory handle to IndexedDB so it becomes a "recent" directory
-      const directoryId = documentStore.generateId();
-      await documentStore.saveDirectoryHandle(directoryId, dirHandle, {
+      // Save the directory handle to IndexedDB - may return existing ID if directory was used before
+      const directoryId = await documentStore.saveDirectoryHandle(documentStore.generateId(), dirHandle, {
         directoryName: dirHandle.name,
         moduleName: config.portalBinding.moduleName,
         moduleType: config.portalBinding.moduleType,
