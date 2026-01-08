@@ -370,27 +370,17 @@ export function DatapointEditorSheet({
     return ALERT_INTERVAL_OPTIONS.find(opt => opt.value === formData.alertClearTransitionInterval)?.label || 'Select';
   }, [formData.alertClearTransitionInterval]);
 
-  // Title based on type and new/edit state
-  const sheetTitle = useMemo(() => {
-    if (!isNew) {
-      return `Edit: ${datapoint?.name || 'Datapoint'}`;
-    }
-    return isComplex ? 'Add Complex Datapoint' : 'Add Normal Datapoint';
-  }, [isNew, isComplex, datapoint?.name]);
-
-  const sheetDescription = useMemo(() => {
-    if (isComplex) {
-      return 'Create a calculated datapoint using an expression that references other datapoints.';
-    }
-    return 'Create a datapoint that extracts values from script output, exit code, or response time.';
-  }, [isComplex]);
-
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-[500px] sm:max-w-[500px] flex flex-col overflow-hidden p-0">
+      <SheetContent side="right" className="w-[500px] max-w-[500px] flex flex-col overflow-hidden p-0">
         <SheetHeader className="shrink-0 border-b p-4">
-          <SheetTitle>{sheetTitle}</SheetTitle>
-          <SheetDescription>{sheetDescription}</SheetDescription>
+        <SheetTitle className="flex items-center gap-2">
+            <Database className="size-5" />
+            {isNew ? 'Add Datapoint' : 'Edit Datapoint'}
+          </SheetTitle>
+          <SheetDescription>
+            {isNew ? 'Configure a new datapoint for this module.' : 'Modify the datapoint settings.'}
+          </SheetDescription>
         </SheetHeader>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4">

@@ -677,7 +677,7 @@ export function parseModuleDetailsFromResponse(
   // Filter out ghost datapoints (no rawDataFieldName AND method is 'none')
   const rawDataPoints = schema.editableList === 'datapoints' ? module.dataPoints || [] : [];
   const dataPoints = filterValidDatapoints(rawDataPoints) as unknown[];
-  const configChecks = schema.readOnlyList === 'configChecks' ? module.configChecks || [] : [];
+  const configChecks = schema.editableList === 'configChecks' ? module.configChecks || [] : [];
   const autoDiscoveryConfig = schema.autoDiscoveryDefaults
     ? {
         ...schema.autoDiscoveryDefaults,

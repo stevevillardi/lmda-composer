@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Upload, Loader2, AlertCircle, type LucideIcon, Info, FolderTree, Shield, Filter, Target, Database, Bell, FileCode, FolderSearch } from 'lucide-react';
+import { Upload, Loader2, AlertCircle, type LucideIcon, Info, FolderTree, Shield, Filter, Target, Database, Bell, FileCode, FolderSearch, Settings } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
@@ -239,6 +239,49 @@ export function PushToPortalDialog({
     });
   };
 
+  // Config check change status for display (same pattern as datapoints)
+  type ConfigCheckChangeStatus = 'added' | 'removed' | 'modified' | 'unchanged';
+  
+  interface ConfigCheckDisplayItem {
+    name: string;
+    status: ConfigCheckChangeStatus;
+  }
+
+  // Sort config checks by name and sort keys within each check
+  const sortConfigChecks = <T extends { name?: string }>(checks: T[]): T[] => {
+    const sorted = [...checks].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    return sorted.map((c) => sortObjectKeys(c)) as T[];
+  };
+
+  // Compare config checks and return items with change status
+  const compareConfigChecks = (
+    originalChecks: Array<Record<string, unknown>>,
+    modifiedChecks: Array<Record<string, unknown>>
+  ): ConfigCheckDisplayItem[] => {
+    const originalByName = new Map(originalChecks.map(c => [c.name as string, c]));
+    const modifiedByName = new Map(modifiedChecks.map(c => [c.name as string, c]));
+    
+    const allNames = new Set([...originalByName.keys(), ...modifiedByName.keys()]);
+    const sortedNames = [...allNames].sort((a, b) => a.localeCompare(b));
+    
+    return sortedNames.map(name => {
+      const original = originalByName.get(name);
+      const modified = modifiedByName.get(name);
+      
+      if (!original && modified) {
+        return { name, status: 'added' as const };
+      }
+      if (original && !modified) {
+        return { name, status: 'removed' as const };
+      }
+      // Both exist - check if modified
+      if (!deepEqual(original, modified)) {
+        return { name, status: 'modified' as const };
+      }
+      return { name, status: 'unchanged' as const };
+    });
+  };
+
   const readableModuleDetailsChanges = useMemo(() => {
     if (!moduleDetailsDraft || !hasModuleDetailsChanges) return [];
     const changes: Array<{
@@ -250,6 +293,7 @@ export function PushToPortalDialog({
       originalLines?: string[];
       modifiedLines?: string[];
       datapointItems?: DatapointDisplayItem[];
+      configCheckItems?: ConfigCheckDisplayItem[];
     }> = [];
 
     const pushChange = (key: string, section: string, label: string, original: unknown, modified: unknown) => {
@@ -414,6 +458,21 @@ export function PushToPortalDialog({
           });
           break;
         }
+        case 'configChecks': {
+          const originalChecks = Array.isArray(original) ? (original as Array<Record<string, unknown>>) : [];
+          const modifiedChecks = Array.isArray(modified) ? (modified as Array<Record<string, unknown>>) : [];
+          const configCheckItems = compareConfigChecks(originalChecks, modifiedChecks);
+          const changedCount = configCheckItems.filter(c => c.status !== 'unchanged').length;
+          changes.push({
+            key: field,
+            section: 'Config Checks',
+            label: `Config Checks (${changedCount} changed)`,
+            original: `${originalChecks.length} check${originalChecks.length !== 1 ? 's' : ''}`,
+            modified: `${modifiedChecks.length} check${modifiedChecks.length !== 1 ? 's' : ''}`,
+            configCheckItems,
+          });
+          break;
+        }
         default:
           pushChange(field, 'Module', field, original, modified);
       }
@@ -448,6 +507,9 @@ export function PushToPortalDialog({
         } else if (field === 'dataPoints' && Array.isArray(draftValue)) {
           // Sort datapoints by name for consistent diff display
           payload.dataPoints = sortDatapoints(draftValue as Array<{ name?: string }>);
+        } else if (field === 'configChecks' && Array.isArray(draftValue)) {
+          // Sort config checks by name for consistent diff display
+          payload.configChecks = sortConfigChecks(draftValue as Array<{ name?: string }>);
         } else {
           payload[field] = draftValue;
         }
@@ -483,6 +545,9 @@ export function PushToPortalDialog({
         } else if (field === 'dataPoints' && Array.isArray(originalValue)) {
           // Sort datapoints by name for consistent diff display
           payload.dataPoints = sortDatapoints(originalValue as Array<{ name?: string }>);
+        } else if (field === 'configChecks' && Array.isArray(originalValue)) {
+          // Sort config checks by name for consistent diff display
+          payload.configChecks = sortConfigChecks(originalValue as Array<{ name?: string }>);
         } else {
           payload[field] = originalValue;
         }
@@ -567,6 +632,43 @@ export function PushToPortalDialog({
     );
   };
 
+  const renderConfigCheckItems = (items?: ConfigCheckDisplayItem[]) => {
+    if (!items || items.length === 0) {
+      return <span className="text-xs text-muted-foreground">(none)</span>;
+    }
+    
+    const statusStyles: Record<ConfigCheckChangeStatus, string> = {
+      added: 'bg-green-500/15 text-green-600 border-green-500/30',
+      removed: 'bg-red-500/15 text-red-600 border-red-500/30 line-through',
+      modified: 'bg-amber-500/15 text-amber-600 border-amber-500/30',
+      unchanged: '',
+    };
+    
+    const statusIndicators: Record<ConfigCheckChangeStatus, string> = {
+      added: '+',
+      removed: '−',
+      modified: '~',
+      unchanged: '',
+    };
+
+    return (
+      <div className="flex flex-wrap gap-1">
+        {items.map((item) => (
+          <Badge 
+            key={item.name} 
+            variant={item.status === 'unchanged' ? 'secondary' : 'outline'} 
+            className={`text-[11px] font-mono ${statusStyles[item.status]}`}
+          >
+            {statusIndicators[item.status] && (
+              <span className="mr-0.5 font-bold">{statusIndicators[item.status]}</span>
+            )}
+            {item.name}
+          </Badge>
+        ))}
+      </div>
+    );
+  };
+
   const sectionIcons: Record<string, LucideIcon> = {
     Basic: Info,
     Organization: FolderTree,
@@ -574,6 +676,7 @@ export function PushToPortalDialog({
     'Applies To': Filter,
     'Active Discovery': Target,
     Datapoints: Database,
+    'Config Checks': Settings,
     'Alert Settings': Bell,
   };
 
@@ -875,6 +978,27 @@ export function PushToPortalDialog({
                                   </div>
                                   <div className="font-mono text-xs bg-background p-2 rounded border">
                                     {renderDatapointItems(change.datapointItems)}
+                                  </div>
+                                </div>
+                              ) : change.configCheckItems ? (
+                                // Special rendering for config checks - unified view with change indicators
+                                <div key={change.key} className="space-y-2">
+                                  <div className="flex items-center justify-between">
+                                    <div className="text-sm font-medium select-none">{change.label}</div>
+                                    <div className="flex items-center gap-3 text-[11px] select-none">
+                                      <span className="flex items-center gap-1 text-green-600">
+                                        <span className="font-bold">+</span> Added
+                                      </span>
+                                      <span className="flex items-center gap-1 text-amber-600">
+                                        <span className="font-bold">~</span> Modified
+                                      </span>
+                                      <span className="flex items-center gap-1 text-red-600">
+                                        <span className="font-bold">−</span> Removed
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="font-mono text-xs bg-background p-2 rounded border">
+                                    {renderConfigCheckItems(change.configCheckItems)}
                                   </div>
                                 </div>
                               ) : (

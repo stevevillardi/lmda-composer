@@ -203,6 +203,9 @@ export interface ModuleSliceDependencies {
   selectedPortalId: string | null;
   portals: Portal[];
   
+  // From UISlice (for workspace switching)
+  setActiveWorkspace: (workspace: 'script' | 'api') => void;
+  
   // From ToolsSlice (for commit)
   moduleDetailsDraftByTabId: Record<string, ModuleDetailsDraft>;
 }
@@ -918,7 +921,7 @@ export const createModuleSlice: StateCreator<
   // ==========================================================================
 
   openModuleScripts: (module, scripts) => {
-    const { tabs, selectedPortalId, portals } = get();
+    const { tabs, selectedPortalId, portals, setActiveWorkspace } = get();
     const language: ScriptLanguage = module.scriptType === 'powerShell' ? 'powershell' : 'groovy';
     const portal = portals.find((entry) => entry.id === selectedPortalId);
     
@@ -964,6 +967,9 @@ export const createModuleSlice: StateCreator<
     }
     
     if (newTabs.length > 0) {
+      // Switch to script workspace when opening module scripts
+      setActiveWorkspace('script');
+      
       set({
         tabs: [...tabs, ...newTabs],
         activeTabId: newTabs[0].id,
@@ -1309,6 +1315,11 @@ export const createModuleSlice: StateCreator<
               // Send the full dataPoints array when modified
               if (Array.isArray(draftValue)) {
                 payload.dataPoints = draftValue;
+              }
+            } else if (field === 'configChecks') {
+              // Send the full configChecks array when modified
+              if (Array.isArray(draftValue)) {
+                payload.configChecks = draftValue;
               }
             } else if (field === 'tags' && tab.source.moduleType === 'logsource') {
               const tagsText = Array.isArray(draftValue) ? draftValue.join(',') : String(draftValue ?? '');

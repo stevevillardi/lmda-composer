@@ -42,6 +42,7 @@ export function ActionsDropdown() {
     activeTabId,
     selectedPortalId,
     portals,
+    activeWorkspace,
     setActiveTab,
     setActiveWorkspace,
     setModuleBrowserOpen,
@@ -74,7 +75,9 @@ export function ActionsDropdown() {
     : null;
   const isPortalBoundActive = portalBinding?.isActive ?? true;
   const canCommit = activeTabId && isModuleTab && canCommitModule(activeTabId);
-  const isApiActive = activeTab?.kind === 'api';
+  // Determine if we're in API mode based on active workspace
+  // This ensures welcome screens show the correct menu items
+  const isApiActive = activeWorkspace === 'api';
   const canSendApi = Boolean(
     selectedPortalId &&
     activeTab?.kind === 'api' &&

@@ -169,6 +169,8 @@ export interface TabsSliceActions {
   clearDraft: () => Promise<void>;
   restoreDraft: (draft: DraftScript) => void;
   restoreDraftTabs: (draftTabs: DraftTabs) => void;
+  /** Merge draft tabs with existing tabs (used when URL params opened tabs first) */
+  mergeDraftTabs: (draftTabs: DraftTabs) => void;
   
   // File export
   exportToFile: () => void;
@@ -216,6 +218,7 @@ export interface TabsSliceDependencies {
   // From UI slice (for preferences, output tab, and workspace)
   preferences: { defaultLanguage: ScriptLanguage; defaultMode: ScriptMode };
   outputTab: string;
+  activeWorkspace: 'script' | 'api';
   setActiveWorkspace: (workspace: 'script' | 'api') => void;
   
   // From execution slice (for clearing parsed output when mode changes)
@@ -590,7 +593,7 @@ export const createTabsSlice: StateCreator<
 
   saveDraft: async () => {
     try {
-      const { tabs, activeTabId, hasSavedDraft, moduleDetailsDraftByTabId } = get();
+      const { tabs, activeTabId, hasSavedDraft, moduleDetailsDraftByTabId, activeWorkspace } = get();
       
       // Check if all tabs are default templates (nothing to save)
       const hasApiTabs = tabs.some(tab => tab.kind === 'api');
@@ -636,6 +639,7 @@ export const createTabsSlice: StateCreator<
         activeTabId,
         lastModified: Date.now(),
         moduleDetailsDrafts: serializedModuleDetailsDrafts,
+        activeWorkspace,
       };
       
       await documentStore.saveTabDrafts(draftTabs);
@@ -650,6 +654,12 @@ export const createTabsSlice: StateCreator<
       // First try to load from IndexedDB (new storage location)
       const idbDrafts = await documentStore.loadTabDrafts();
       if (idbDrafts) {
+        // Validate that the draft has tabs - skip 0-tab drafts
+        if ('tabs' in idbDrafts && idbDrafts.tabs.length === 0) {
+          console.log('[tabs-slice] Skipping draft with 0 tabs');
+          await documentStore.clearTabDrafts();
+          return null;
+        }
         set({ hasSavedDraft: true });
         return idbDrafts;
       }
@@ -659,6 +669,14 @@ export const createTabsSlice: StateCreator<
       const tabsResult = await chrome.storage.local.get(LEGACY_STORAGE_KEYS.DRAFT_TABS);
       if (tabsResult[LEGACY_STORAGE_KEYS.DRAFT_TABS]) {
         const draftTabs = tabsResult[LEGACY_STORAGE_KEYS.DRAFT_TABS] as DraftTabs;
+        
+        // Validate that the draft has tabs - skip 0-tab drafts
+        if (draftTabs.tabs.length === 0) {
+          console.log('[tabs-slice] Skipping legacy draft with 0 tabs');
+          await chrome.storage.local.remove(LEGACY_STORAGE_KEYS.DRAFT_TABS);
+          await chrome.storage.local.remove(LEGACY_STORAGE_KEYS.DRAFT);
+          return null;
+        }
         
         // Migrate to IndexedDB
         await documentStore.saveTabDrafts(draftTabs);
@@ -729,6 +747,8 @@ export const createTabsSlice: StateCreator<
   },
   
   restoreDraftTabs: (draftTabs) => {
+    const { setActiveWorkspace } = get();
+    
     // Normalize any legacy mode values to valid modes
     const normalizedTabs = draftTabs.tabs.map(tab => ({
       ...tab,
@@ -760,7 +780,69 @@ export const createTabsSlice: StateCreator<
       hasSavedDraft: true, // Mark as having saved draft so auto-save will update it
       moduleDetailsDraftByTabId: restoredModuleDetailsDrafts,
     });
+    
+    // Restore the active workspace if saved, but ensure it matches the active tab's kind
+    // If active tab is a script tab, use script workspace regardless of saved workspace
+    const activeTab = normalizedTabs.find(t => t.id === draftTabs.activeTabId);
+    if (activeTab) {
+      const tabKind = activeTab.kind ?? 'script';
+      setActiveWorkspace(tabKind === 'api' ? 'api' : 'script');
+    } else if (draftTabs.activeWorkspace) {
+      setActiveWorkspace(draftTabs.activeWorkspace);
+    }
     // Don't call clearDraft here - let the auto-save overwrite instead
+  },
+  
+  mergeDraftTabs: (draftTabs) => {
+    const { tabs: existingTabs, activeTabId: existingActiveTabId } = get();
+    
+    // Get IDs of existing tabs to avoid duplicates
+    const existingTabIds = new Set(existingTabs.map(t => t.id));
+    
+    // Normalize any legacy mode values to valid modes
+    const normalizedDraftTabs = draftTabs.tabs
+      .filter(tab => !existingTabIds.has(tab.id)) // Exclude tabs that already exist
+      .map(tab => ({
+        ...tab,
+        mode: normalizeMode(tab.mode),
+      }));
+    
+    // Merge draft tabs with existing tabs (existing tabs come first, they're from URL params)
+    const mergedTabs = [...existingTabs, ...normalizedDraftTabs];
+    
+    // Restore module details drafts if present (convert Array back to Set)
+    // Only for tabs that are in the merged set
+    const restoredModuleDetailsDrafts: Record<string, ModuleDetailsDraft> = {};
+    
+    if (draftTabs.moduleDetailsDrafts) {
+      const mergedTabIds = new Set(mergedTabs.map(t => t.id));
+      for (const [tabId, serialized] of Object.entries(draftTabs.moduleDetailsDrafts)) {
+        if (mergedTabIds.has(tabId)) {
+          restoredModuleDetailsDrafts[tabId] = {
+            original: serialized.original,
+            draft: serialized.draft,
+            dirtyFields: new Set(serialized.dirtyFields),
+            loadedAt: serialized.loadedAt,
+            tabId: serialized.tabId,
+            moduleId: serialized.moduleId,
+            moduleType: serialized.moduleType,
+            portalId: serialized.portalId,
+            version: serialized.version,
+          } as ModuleDetailsDraft;
+        }
+      }
+    }
+    
+    // Keep existing active tab if present, otherwise use the first existing tab
+    // This ensures the URL-opened module tab stays active
+    const activeTabId = existingActiveTabId ?? mergedTabs[0]?.id ?? null;
+    
+    set({
+      tabs: mergedTabs,
+      activeTabId,
+      hasSavedDraft: true,
+      moduleDetailsDraftByTabId: restoredModuleDetailsDrafts,
+    });
   },
 
   // =====================

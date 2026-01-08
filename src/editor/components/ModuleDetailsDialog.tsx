@@ -102,6 +102,11 @@ export function ModuleDetailsDialog() {
       sections.add('datapoints');
     }
     
+    // ConfigChecks fields
+    if (dirtyFields.has('configChecks')) {
+      sections.add('configChecks');
+    }
+    
     return sections;
   }, [draft]);
   
@@ -115,7 +120,7 @@ export function ModuleDetailsDialog() {
         return schema.editableList === 'datapoints';
       }
       if (section === 'configChecks') {
-        return schema.readOnlyList === 'configChecks';
+        return schema.editableList === 'configChecks';
       }
       if (section === 'alertSettings') {
         return schema.supportsAlertSettings;
@@ -331,7 +336,7 @@ export function ModuleDetailsDialog() {
                   {activeSection === 'datapoints' && schema?.editableList === 'datapoints' && (
                     <ModuleDetailsDatapoints tabId={activeTabId!} moduleId={activeTab.source.moduleId} moduleType={activeTab.source.moduleType} />
                   )}
-                  {activeSection === 'configChecks' && schema?.readOnlyList === 'configChecks' && (
+                  {activeSection === 'configChecks' && schema?.editableList === 'configChecks' && (
                     <ModuleDetailsConfigChecks tabId={activeTabId!} moduleId={activeTab.source.moduleId} moduleType={activeTab.source.moduleType} />
                   )}
                   {activeSection === 'alertSettings' && schema?.supportsAlertSettings && (

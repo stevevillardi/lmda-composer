@@ -21,6 +21,7 @@ import type {
   Portal,
   ExecuteDebugCommandRequest,
   DataPoint,
+  ConfigCheck,
 } from '@/shared/types';
 import { APPLIES_TO_FUNCTIONS } from '../../data/applies-to-functions';
 import { MODULE_TYPE_SCHEMAS, getSchemaFieldName } from '@/shared/module-type-schemas';
@@ -144,9 +145,10 @@ type DataPointConfig = Partial<DataPoint> & { name: string };
 
 /**
  * Represents a config check configuration.
+ * id is optional for new config checks.
  */
 interface ConfigCheckConfig {
-  id: number;
+  id?: number;
   name: string;
   description?: string;
   alertLevel?: number;
@@ -353,6 +355,11 @@ export interface ToolsSliceActions {
   addDatapoint: (tabId: string, datapoint: DataPoint) => void;
   updateDatapoint: (tabId: string, index: number, datapoint: DataPoint) => void;
   deleteDatapoint: (tabId: string, index: number) => void;
+  
+  // ConfigCheck CRUD actions
+  addConfigCheck: (tabId: string, configCheck: ConfigCheck) => void;
+  updateConfigCheck: (tabId: string, index: number, configCheck: ConfigCheck) => void;
+  deleteConfigCheck: (tabId: string, index: number) => void;
 }
 
 /**
@@ -1268,7 +1275,7 @@ export const createToolsSlice: StateCreator<
         // Filter out ghost datapoints (no rawDataFieldName AND method is 'none')
         const rawDataPoints = schema.editableList === 'datapoints' ? module.dataPoints || [] : [];
         const dataPoints = filterValidDatapoints(rawDataPoints) as DataPointConfig[];
-        const configChecks = schema.readOnlyList === 'configChecks' ? module.configChecks || [] : [];
+        const configChecks = schema.editableList === 'configChecks' ? module.configChecks || [] : [];
         const autoDiscoveryConfig = schema.autoDiscoveryDefaults
           ? {
               ...schema.autoDiscoveryDefaults,
@@ -1523,7 +1530,7 @@ export const createToolsSlice: StateCreator<
         // Filter out ghost datapoints (no rawDataFieldName AND method is 'none')
         const rawDataPoints = schema.editableList === 'datapoints' ? module.dataPoints || [] : [];
         const dataPoints = filterValidDatapoints(rawDataPoints) as DataPointConfig[];
-        const configChecks = schema.readOnlyList === 'configChecks' ? module.configChecks || [] : [];
+        const configChecks = schema.editableList === 'configChecks' ? module.configChecks || [] : [];
         const autoDiscoveryConfig = schema.autoDiscoveryDefaults
           ? {
               ...schema.autoDiscoveryDefaults,
@@ -1794,6 +1801,93 @@ export const createToolsSlice: StateCreator<
     const newDraft = { ...draft.draft, dataPoints: newDataPoints };
     const newDirtyFields = new Set(draft.dirtyFields);
     newDirtyFields.add('dataPoints');
+
+    const moduleTabIds = getModuleTabIds(tabs, tabId);
+    const updatedDrafts = { ...moduleDetailsDraftByTabId };
+    moduleTabIds.forEach((id) => {
+      updatedDrafts[id] = {
+        ...draft,
+        draft: newDraft,
+        dirtyFields: new Set(newDirtyFields),
+        tabId: id,
+      };
+    });
+
+    set({ moduleDetailsDraftByTabId: updatedDrafts });
+  },
+
+  // =========================
+  // ConfigCheck CRUD Actions
+  // =========================
+
+  addConfigCheck: (tabId: string, configCheck: ConfigCheck) => {
+    const { tabs, moduleDetailsDraftByTabId } = get();
+    const draft = moduleDetailsDraftByTabId[tabId];
+    if (!draft) return;
+
+    const currentConfigChecks = (draft.draft.configChecks || []) as ConfigCheck[];
+    const newConfigChecks = [...currentConfigChecks, configCheck];
+    
+    const newDraft = { ...draft.draft, configChecks: newConfigChecks as ConfigCheckConfig[] };
+    const newDirtyFields = new Set(draft.dirtyFields);
+    newDirtyFields.add('configChecks');
+
+    const moduleTabIds = getModuleTabIds(tabs, tabId);
+    const updatedDrafts = { ...moduleDetailsDraftByTabId };
+    moduleTabIds.forEach((id) => {
+      updatedDrafts[id] = {
+        ...draft,
+        draft: newDraft,
+        dirtyFields: new Set(newDirtyFields),
+        tabId: id,
+      };
+    });
+
+    set({ moduleDetailsDraftByTabId: updatedDrafts });
+  },
+
+  updateConfigCheck: (tabId: string, index: number, configCheck: ConfigCheck) => {
+    const { tabs, moduleDetailsDraftByTabId } = get();
+    const draft = moduleDetailsDraftByTabId[tabId];
+    if (!draft) return;
+
+    const currentConfigChecks = (draft.draft.configChecks || []) as ConfigCheck[];
+    if (index < 0 || index >= currentConfigChecks.length) return;
+
+    const newConfigChecks = [...currentConfigChecks];
+    newConfigChecks[index] = configCheck;
+    
+    const newDraft = { ...draft.draft, configChecks: newConfigChecks as ConfigCheckConfig[] };
+    const newDirtyFields = new Set(draft.dirtyFields);
+    newDirtyFields.add('configChecks');
+
+    const moduleTabIds = getModuleTabIds(tabs, tabId);
+    const updatedDrafts = { ...moduleDetailsDraftByTabId };
+    moduleTabIds.forEach((id) => {
+      updatedDrafts[id] = {
+        ...draft,
+        draft: newDraft,
+        dirtyFields: new Set(newDirtyFields),
+        tabId: id,
+      };
+    });
+
+    set({ moduleDetailsDraftByTabId: updatedDrafts });
+  },
+
+  deleteConfigCheck: (tabId: string, index: number) => {
+    const { tabs, moduleDetailsDraftByTabId } = get();
+    const draft = moduleDetailsDraftByTabId[tabId];
+    if (!draft) return;
+
+    const currentConfigChecks = (draft.draft.configChecks || []) as ConfigCheck[];
+    if (index < 0 || index >= currentConfigChecks.length) return;
+
+    const newConfigChecks = currentConfigChecks.filter((_, i) => i !== index);
+    
+    const newDraft = { ...draft.draft, configChecks: newConfigChecks as ConfigCheckConfig[] };
+    const newDirtyFields = new Set(draft.dirtyFields);
+    newDirtyFields.add('configChecks');
 
     const moduleTabIds = getModuleTabIds(tabs, tabId);
     const updatedDrafts = { ...moduleDetailsDraftByTabId };

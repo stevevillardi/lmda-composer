@@ -10,6 +10,21 @@ import { useEditorStore } from '../stores/editor-store';
 import { ALL_LOGIC_MODULE_TYPES } from '@/shared/logic-modules';
 import type { LogicModuleType } from '@/shared/types';
 
+/**
+ * Synchronously check if URL params indicate a module should be opened.
+ * This is used to determine if session restore should merge tabs rather than replace.
+ */
+export function hasModuleUrlParams(): boolean {
+  const params = new URLSearchParams(window.location.search);
+  const portalParam = params.get('portal');
+  const moduleTypeParam = params.get('moduleType');
+  const moduleIdParam = params.get('moduleId');
+  const dataSourceIdParam = params.get('dataSourceId');
+  
+  // Module will be opened if we have portal AND (moduleType+moduleId OR dataSourceId)
+  return Boolean(portalParam && ((moduleTypeParam && moduleIdParam) || dataSourceIdParam));
+}
+
 export interface PendingUrlContext {
   pendingResourceId: number | null;
   pendingDataSourceId: number | null;

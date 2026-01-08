@@ -14,6 +14,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useEditorStore } from '../stores/editor-store';
+import { hasModuleUrlParams } from './useUrlParamsHandler';
 import type { DraftScript, DraftTabs } from '@/shared/types';
 
 interface DraftManagementReturn {
@@ -42,12 +43,16 @@ export function useDraftManagement(): DraftManagementReturn {
   const loadDraft = useEditorStore((state) => state.loadDraft);
   const restoreDraft = useEditorStore((state) => state.restoreDraft);
   const restoreDraftTabs = useEditorStore((state) => state.restoreDraftTabs);
+  const mergeDraftTabs = useEditorStore((state) => state.mergeDraftTabs);
   const clearDraft = useEditorStore((state) => state.clearDraft);
   const saveDraft = useEditorStore((state) => state.saveDraft);
 
   // Draft restore dialog state
   const [pendingDraft, setPendingDraft] = useState<DraftScript | DraftTabs | null>(null);
   const [showDraftDialog, setShowDraftDialog] = useState(false);
+  
+  // Track if URL params will open a module (checked once on mount)
+  const [shouldMergeRestore, setShouldMergeRestore] = useState(false);
   
   // Debounce timer for auto-save
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -57,6 +62,11 @@ export function useDraftManagement(): DraftManagementReturn {
   // Check for saved draft on mount
   useEffect(() => {
     const checkDraft = async () => {
+      // Check if URL params indicate a module will be opened
+      // This determines whether we merge or replace tabs on restore
+      const willOpenFromUrl = hasModuleUrlParams();
+      setShouldMergeRestore(willOpenFromUrl);
+      
       const draft = await loadDraft();
       if (draft) {
         setPendingDraft(draft);
@@ -129,8 +139,14 @@ export function useDraftManagement(): DraftManagementReturn {
   const handleRestoreDraft = useCallback(() => {
     if (pendingDraft) {
       if ('tabs' in pendingDraft) {
-        // Multi-tab draft
-        restoreDraftTabs(pendingDraft);
+        // Multi-tab draft - merge or replace based on URL params
+        if (shouldMergeRestore) {
+          // URL params will open tabs, merge draft with those tabs
+          mergeDraftTabs(pendingDraft);
+        } else {
+          // No URL params, replace tabs
+          restoreDraftTabs(pendingDraft);
+        }
       } else {
         // Legacy single-file draft
         restoreDraft(pendingDraft);
@@ -141,7 +157,7 @@ export function useDraftManagement(): DraftManagementReturn {
     }
     setShowDraftDialog(false);
     setPendingDraft(null);
-  }, [pendingDraft, restoreDraft, restoreDraftTabs, saveDraft]);
+  }, [pendingDraft, restoreDraft, restoreDraftTabs, mergeDraftTabs, shouldMergeRestore, saveDraft]);
 
   // Handle discard draft
   const handleDiscardDraft = useCallback(() => {

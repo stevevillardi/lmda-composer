@@ -387,6 +387,8 @@ export interface DraftTabs {
   lastModified: number;
   /** Module details drafts indexed by tab ID (serializable format) */
   moduleDetailsDrafts?: Record<string, SerializableModuleDetailsDraft>;
+  /** Active workspace (script or api) at time of save */
+  activeWorkspace?: 'script' | 'api';
 }
 
 // API Explorer
@@ -718,6 +720,88 @@ export interface LogicModule {
   autoDiscoveryConfig: AutoDiscoveryConfig | null;
   collectorAttribute: CollectorAttribute;
   dataPoints: DataPoint[];
+}
+
+// ============================================================================
+// ConfigCheck Types (for ConfigSource modules)
+// ============================================================================
+
+/**
+ * Diff check configuration for 'ignore' type config checks.
+ * Defines which lines/patterns to exclude from change detection.
+ */
+export interface DiffCheckConfig {
+  ignore_line_with_regex?: string[];
+  ignore_line_start_with?: string[];
+  ignore_blank_lines?: boolean;
+  ignore_space?: boolean;
+  ignore_line_contain?: string[];
+}
+
+/**
+ * Value check configuration for 'missing' and 'value' type config checks.
+ */
+export interface ValueCheckConfig {
+  variable: string;
+  must: ValueCheckMust[];
+}
+
+/**
+ * Condition for value checks - can be missing, value_change, or range comparison.
+ */
+export type ValueCheckMust = 
+  | { missing: Record<string, never> }
+  | { value_change: Record<string, never> }
+  | { range: { gt?: string; lt?: string; gte?: string; lte?: string; ne?: string; eq?: string } };
+
+/**
+ * Script configuration for config checks.
+ * The structure varies based on the config check type.
+ */
+export interface ConfigCheckScript {
+  /** Always 'arbitrary' - not UI-exposed */
+  format: 'arbitrary';
+  /** Groovy script code - for type='groovy' */
+  groovy?: string;
+  /** Diff exclusion rules - for type='ignore' */
+  diff_check?: DiffCheckConfig;
+  /** Fetch check config - for type='fetch', always { fetch: 0 } */
+  fetch_check?: { fetch: 0 };
+  /** Value/missing check config - for type='missing' or type='value' */
+  value_check?: ValueCheckConfig;
+}
+
+/**
+ * Config check type identifiers.
+ */
+export type ConfigCheckType = 'ignore' | 'groovy' | 'fetch' | 'missing' | 'value';
+
+/**
+ * Full ConfigCheck definition for ConfigSource modules.
+ */
+export interface ConfigCheck {
+  /** Config check ID - undefined for new checks */
+  id?: number;
+  /** ConfigSource ID - provided for existing checks */
+  configSourceId?: number;
+  /** Check name (required) */
+  name: string;
+  /** Description */
+  description: string;
+  /** Check type */
+  type: ConfigCheckType;
+  /** Alert level: 1=none, 2=warn, 3=error, 4=critical */
+  alertLevel: number;
+  /** Clear alert on acknowledgement */
+  ackClearAlert: boolean;
+  /** Clear after N minutes, 0=never */
+  alertEffectiveIval: number;
+  /** Transition interval - always 0, not UI-exposed */
+  alertTransitionInterval: number;
+  /** Script/check configuration */
+  script: ConfigCheckScript;
+  /** Origin ID for tracking */
+  originId?: string | null;
 }
 
 // Message Types
