@@ -210,7 +210,7 @@ function TabItem({
                     {/* Close button - shows on tab hover or when active */}
                     <span
                       role="button"
-                      className="flex items-center justify-center size-4 rounded hover:bg-destructive/20 focus:outline-none focus:ring-2 focus:ring-destructive focus:ring-offset-1 shrink-0"
+                      className="flex items-center justify-center size-4 rounded hover:bg-destructive/20 focus:outline-none shrink-0"
                       onClick={(e) => {
                         e.stopPropagation();
                         onClose();
