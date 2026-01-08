@@ -85,6 +85,8 @@ export function Toolbar() {
     canPullLatest,
     setPullLatestDialogOpen,
     isPullingLatest,
+    // Module details
+    moduleDetailsDraftByTabId,
   } = useEditorStore();
 
   // Get active tab data
@@ -168,6 +170,13 @@ export function Toolbar() {
   // Check if active tab is a module tab
   const isModuleTab = activeTab?.source?.type === 'module';
   const hasLineage = !!activeTab?.source?.lineageId;
+  
+  // Get dirty field count for module details
+  const moduleDetailsDirtyCount = useMemo(() => {
+    if (!activeTabId) return 0;
+    const draft = moduleDetailsDraftByTabId[activeTabId];
+    return draft?.dirtyFields?.size ?? 0;
+  }, [activeTabId, moduleDetailsDraftByTabId]);
   
   // Check if we can commit module changes (has changes and portal selected)
   const canCommit = activeTabId && canCommitModule(activeTabId);
@@ -455,13 +464,23 @@ export function Toolbar() {
                 >
                   <SettingsIcon className={SIZES.ICON_MEDIUM} />
                   Module Details
+                  {moduleDetailsDirtyCount > 0 && (
+                    <span 
+                      className="ml-1.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center text-[10px] font-semibold rounded-full bg-amber-500 text-white"
+                      aria-label={`${moduleDetailsDirtyCount} unsaved changes`}
+                    >
+                      {moduleDetailsDirtyCount}
+                    </span>
+                  )}
                 </Button>
               }
             />
             <TooltipContent>
               {!isPortalBoundActive
                 ? 'Portal mismatch: switch to the bound portal to edit details'
-                : 'Edit module metadata (name, description, appliesTo, etc.)'}
+                : moduleDetailsDirtyCount > 0
+                  ? `Edit module metadata (${moduleDetailsDirtyCount} pending change${moduleDetailsDirtyCount !== 1 ? 's' : ''})`
+                  : 'Edit module metadata (name, description, appliesTo, etc.)'}
             </TooltipContent>
           </Tooltip>
         )}

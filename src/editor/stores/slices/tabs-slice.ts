@@ -1572,10 +1572,16 @@ export const createTabsSlice: StateCreator<
           lineageId,
         },
         scripts: scriptsConfig,
+        // Store both portalBaseline and localDraft (if different) for module details
+        // This mirrors how scripts track portalChecksum vs diskChecksum
         moduleDetails: moduleDetailsDraft ? {
           portalVersion: moduleDetailsDraft.version,
           lastPulledAt: new Date(moduleDetailsDraft.loadedAt).toISOString(),
-          values: moduleDetailsDraft.draft as Record<string, unknown>,
+          portalBaseline: moduleDetailsDraft.original as Record<string, unknown>,
+          // Only store localDraft if there are dirty fields (user has made changes)
+          localDraft: moduleDetailsDraft.dirtyFields.size > 0 
+            ? moduleDetailsDraft.draft as Record<string, unknown>
+            : undefined,
         } : undefined,
         lastSyncedAt: new Date().toISOString(),
       };
@@ -1948,13 +1954,59 @@ export const createTabsSlice: StateCreator<
       // Update lastAccessed
       await documentStore.touchDirectoryHandle(directoryId);
 
+      // Pre-populate module details draft from module.json if available
+      // Uses portalBaseline as original and localDraft (if exists) as current draft
+      // This mirrors how scripts use portalChecksum vs diskChecksum
+      let updatedModuleDetailsDrafts = { ...get().moduleDetailsDraftByTabId };
+      if (config.moduleDetails?.portalBaseline) {
+        const portalBaseline = config.moduleDetails.portalBaseline as Partial<ModuleDetailsDraft['draft']>;
+        // Use localDraft if available, otherwise fall back to portalBaseline
+        const localDraft = config.moduleDetails.localDraft 
+          ? config.moduleDetails.localDraft as Partial<ModuleDetailsDraft['draft']>
+          : { ...portalBaseline };
+        
+        // Compute dirty fields by comparing localDraft vs portalBaseline
+        const dirtyFields = new Set<string>();
+        if (config.moduleDetails.localDraft) {
+          for (const key of Object.keys(localDraft)) {
+            const localVal = localDraft[key as keyof typeof localDraft];
+            const baselineVal = portalBaseline[key as keyof typeof portalBaseline];
+            // Use JSON comparison for objects/arrays
+            if (JSON.stringify(localVal) !== JSON.stringify(baselineVal)) {
+              dirtyFields.add(key);
+            }
+          }
+        }
+        
+        console.log('[ModuleDir] openModuleDirectory: Restored module details', {
+          dirtyFieldCount: dirtyFields.size,
+          dirtyFields: Array.from(dirtyFields),
+          hasLocalDraft: !!config.moduleDetails.localDraft,
+        });
+        
+        for (const newTab of newTabs) {
+          updatedModuleDetailsDrafts[newTab.id] = {
+            original: portalBaseline,
+            draft: { ...localDraft },
+            dirtyFields,
+            loadedAt: Date.now(),
+            tabId: newTab.id,
+            moduleId: config.portalBinding.moduleId,
+            moduleType: config.portalBinding.moduleType,
+            portalId: config.portalBinding.portalId,
+            version: config.moduleDetails.portalVersion,
+          };
+        }
+      }
+
       // Add tabs and activate the first one
       set({
         tabs: [...tabs, ...newTabs],
         activeTabId: newTabs[0].id,
         openModuleDirectoryDialogOpen: false,
         openModuleDirectoryDialogId: null,
-      });
+        moduleDetailsDraftByTabId: updatedModuleDetailsDrafts,
+      } as Partial<TabsSlice & TabsSliceDependencies>);
 
       toast.success('Module opened', {
         description: `Opened ${newTabs.length} script(s) from "${record.directoryName}".`,

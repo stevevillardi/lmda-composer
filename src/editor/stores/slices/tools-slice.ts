@@ -32,6 +32,7 @@ import {
 } from '../helpers/slice-helpers';
 import { sendMessage } from '../../utils/chrome-messaging';
 import * as documentStore from '../../utils/document-store';
+import { EDITABLE_MODULE_DETAILS_FIELDS } from '../../utils/document-helpers';
 import type { ModuleDirectoryConfig } from '@/shared/types';
 
 // ============================================================================
@@ -187,7 +188,7 @@ interface ConfigCheckConfig {
 /**
  * Represents the module metadata that can be edited.
  */
-interface ModuleMetadata {
+export interface ModuleMetadata {
   id: number;
   name: string;
   displayName?: string;
@@ -293,6 +294,15 @@ export interface ToolsSliceState {
   moduleDetailsDialogOpen: boolean;
   moduleDetailsLoading: boolean;
   moduleDetailsError: string | null;
+  /** Conflict state when portal details differ from local baseline */
+  moduleDetailsConflict: {
+    hasConflict: boolean;
+    message?: string;
+    portalVersion?: number;
+    conflictingFields?: string[];
+  } | null;
+  /** Is a background refresh in progress to check for conflicts */
+  isRefreshingModuleDetails: boolean;
   accessGroups: Array<{ id: number; name: string; description?: string; createdOn?: number; updatedOn?: number; createdBy?: string; tenantId?: string | null }>;
   isLoadingAccessGroups: boolean;
 }
@@ -356,7 +366,10 @@ export interface ToolsSliceActions {
   
   // Module details
   setModuleDetailsDialogOpen: (open: boolean) => void;
-  loadModuleDetails: (tabId: string) => Promise<void>;
+  loadModuleDetails: (tabId: string, forceRefresh?: boolean) => Promise<void>;
+  refreshModuleDetailsBaseline: (tabId: string) => Promise<void>;
+  clearModuleDetailsConflict: () => void;
+  resolveModuleDetailsConflict: (tabId: string, resolution: 'keep-local' | 'use-portal') => Promise<void>;
   updateModuleDetailsField: (tabId: string, field: string, value: unknown) => Promise<void>;
   resetModuleDetailsDraft: (tabId: string) => void;
   persistModuleDetailsToDirectory: (tabId: string) => Promise<boolean>;
@@ -449,6 +462,8 @@ export const toolsSliceInitialState: ToolsSliceState = {
   moduleDetailsDialogOpen: false,
   moduleDetailsLoading: false,
   moduleDetailsError: null,
+  moduleDetailsConflict: null,
+  isRefreshingModuleDetails: false,
   accessGroups: [],
   isLoadingAccessGroups: false,
 };
@@ -1202,11 +1217,11 @@ export const createToolsSlice: StateCreator<
   setModuleDetailsDialogOpen: (open: boolean) => {
     set({ moduleDetailsDialogOpen: open });
     if (!open) {
-      set({ moduleDetailsError: null });
+      set({ moduleDetailsError: null, moduleDetailsConflict: null });
     }
   },
 
-  loadModuleDetails: async (tabId: string) => {
+  loadModuleDetails: async (tabId: string, forceRefresh?: boolean) => {
     const { tabs, selectedPortalId, portals, moduleDetailsDraftByTabId } = get();
     const tab = tabs.find(t => t.id === tabId);
     if (!tab) {
@@ -1223,7 +1238,7 @@ export const createToolsSlice: StateCreator<
     const moduleId = source.moduleId!;
 
     const existingDraft = findModuleDraftForTab(moduleDetailsDraftByTabId, tabs, tabId);
-    if (existingDraft) {
+    if (existingDraft && !forceRefresh) {
       set({
         moduleDetailsDraftByTabId: {
           ...moduleDetailsDraftByTabId,
@@ -1402,6 +1417,200 @@ export const createToolsSlice: StateCreator<
     set({ moduleDetailsDraftByTabId: updatedDrafts });
   },
 
+  clearModuleDetailsConflict: () => {
+    set({ moduleDetailsConflict: null });
+  },
+
+  refreshModuleDetailsBaseline: async (tabId: string) => {
+    const { tabs, selectedPortalId, portals, moduleDetailsDraftByTabId } = get();
+    const tab = tabs.find(t => t.id === tabId);
+    if (!tab || tab.source?.type !== 'module') return;
+
+    const source = tab.source;
+    if (!source.moduleId || !source.moduleType || !source.portalId) return;
+
+    const existingDraft = moduleDetailsDraftByTabId[tabId];
+    if (!existingDraft) return;
+
+    set({ isRefreshingModuleDetails: true });
+
+    try {
+      const binding = ensurePortalBindingActive(tab, selectedPortalId, portals);
+
+      const result = await sendMessage({
+        type: 'FETCH_MODULE_DETAILS',
+        payload: {
+          portalId: binding.portalId,
+          moduleType: source.moduleType,
+          moduleId: source.moduleId,
+        },
+      });
+
+      if (result.ok) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const module = (result.data as { module: any }).module;
+        const portalVersion = module.version || 0;
+
+        // Compare portal version with our stored baseline
+        if (portalVersion !== existingDraft.version) {
+          // Find which fields differ using the shared editable fields list
+          const conflictingFields: string[] = [];
+          
+          for (const { key } of EDITABLE_MODULE_DETAILS_FIELDS) {
+            const originalValue = existingDraft.original?.[key as keyof typeof existingDraft.original];
+            const portalValue = module[key];
+            // Handle array comparisons (like accessGroupIds)
+            const originalStr = JSON.stringify(originalValue);
+            const portalStr = JSON.stringify(portalValue);
+            if (originalStr !== portalStr) {
+              conflictingFields.push(key);
+            }
+          }
+
+          if (conflictingFields.length > 0) {
+            set({
+              moduleDetailsConflict: {
+                hasConflict: true,
+                message: 'Module details have been modified in the portal since you last opened them.',
+                portalVersion,
+                conflictingFields,
+              },
+              isRefreshingModuleDetails: false,
+            });
+            return;
+          }
+        }
+
+        set({ moduleDetailsConflict: null, isRefreshingModuleDetails: false });
+      } else {
+        set({ isRefreshingModuleDetails: false });
+      }
+    } catch (error) {
+      console.error('[refreshModuleDetailsBaseline] Error:', error);
+      set({ isRefreshingModuleDetails: false });
+    }
+  },
+
+  resolveModuleDetailsConflict: async (tabId: string, resolution: 'keep-local' | 'use-portal') => {
+    const { tabs, selectedPortalId, portals, moduleDetailsDraftByTabId } = get();
+    const tab = tabs.find(t => t.id === tabId);
+    if (!tab || tab.source?.type !== 'module') return;
+
+    const source = tab.source;
+    if (!source.moduleId || !source.moduleType || !source.portalId) return;
+
+    if (resolution === 'keep-local') {
+      // Just clear the conflict, keep local changes
+      set({ moduleDetailsConflict: null });
+      return;
+    }
+
+    // Use portal version - fetch fresh and replace local draft
+    set({ moduleDetailsLoading: true, moduleDetailsConflict: null });
+
+    try {
+      const binding = ensurePortalBindingActive(tab, selectedPortalId, portals);
+
+      const result = await sendMessage({
+        type: 'FETCH_MODULE_DETAILS',
+        payload: {
+          portalId: binding.portalId,
+          moduleType: source.moduleType,
+          moduleId: source.moduleId,
+        },
+      });
+
+      if (result.ok) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const module = (result.data as { module: any }).module;
+        const schema = MODULE_TYPE_SCHEMAS[source.moduleType!];
+        const intervalField = schema.intervalField || 'collectInterval';
+        const intervalValue =
+          module[intervalField as keyof typeof module] ??
+          module.collectInterval ??
+          module[getSchemaFieldName(schema, 'collectInterval') as keyof typeof module];
+        const collectIntervalValue =
+          schema.intervalFormat === 'object' && typeof intervalValue === 'object' && intervalValue
+            ? (intervalValue as { offset?: number }).offset
+            : intervalValue;
+        const appliesToValue = module[getSchemaFieldName(schema, 'appliesTo') as keyof typeof module];
+        const technologyValue = module[getSchemaFieldName(schema, 'technology') as keyof typeof module];
+        const displayNameValue = module[getSchemaFieldName(schema, 'displayName') as keyof typeof module];
+        const descriptionValue = module[getSchemaFieldName(schema, 'description') as keyof typeof module];
+        const groupValue = module[getSchemaFieldName(schema, 'group') as keyof typeof module];
+        const tagsValue = module[getSchemaFieldName(schema, 'tags') as keyof typeof module];
+        const dataPoints = schema.readOnlyList === 'datapoints' ? module.dataPoints || [] : [];
+        const configChecks = schema.readOnlyList === 'configChecks' ? module.configChecks || [] : [];
+        const autoDiscoveryConfig = schema.autoDiscoveryDefaults
+          ? {
+              ...schema.autoDiscoveryDefaults,
+              ...(module.autoDiscoveryConfig || {}),
+              method: {
+                ...(module.autoDiscoveryConfig?.method || {}),
+              },
+            }
+          : module.autoDiscoveryConfig;
+
+        const metadata: Partial<ModuleMetadata> = {
+          id: module.id,
+          name: module.name || '',
+          displayName: displayNameValue,
+          description: descriptionValue,
+          appliesTo: appliesToValue,
+          group: groupValue,
+          technology: technologyValue,
+          tags: tagsValue,
+          collectInterval: collectIntervalValue,
+          accessGroupIds: module.accessGroupIds,
+          version: module.version,
+          enableAutoDiscovery: module.enableAutoDiscovery,
+          autoDiscoveryConfig,
+          dataPoints,
+          configChecks,
+          alertSubjectTemplate: module.alertSubjectTemplate,
+          alertBodyTemplate: module.alertBodyTemplate,
+          alertLevel: module.alertLevel,
+          clearAfterAck: module.clearAfterAck,
+          alertEffectiveIval: module.alertEffectiveIval,
+        };
+
+        const moduleTabIds = getModuleTabIds(tabs, tabId);
+        const updatedDrafts = { ...moduleDetailsDraftByTabId };
+        moduleTabIds.forEach((id) => {
+          updatedDrafts[id] = {
+            original: metadata,
+            draft: { ...metadata },
+            dirtyFields: new Set<string>(),
+            loadedAt: Date.now(),
+            tabId: id,
+            moduleId: source.moduleId!,
+            moduleType: source.moduleType!,
+            portalId: source.portalId,
+            version: module.version || 0,
+          };
+        });
+
+        set({
+          moduleDetailsDraftByTabId: updatedDrafts,
+          moduleDetailsLoading: false,
+        });
+        
+        toast.success('Module details refreshed from portal');
+      } else {
+        set({ 
+          moduleDetailsError: result.error || 'Failed to fetch module details', 
+          moduleDetailsLoading: false,
+        });
+      }
+    } catch (error) {
+      console.error('[resolveModuleDetailsConflict] Error:', error);
+      set({
+        moduleDetailsError: error instanceof Error ? error.message : 'Failed to refresh module details',
+        moduleDetailsLoading: false,
+      });
+    }
+  },
+
   persistModuleDetailsToDirectory: async (tabId: string) => {
     const { tabs, moduleDetailsDraftByTabId } = get();
     const tab = tabs.find(t => t.id === tabId);
@@ -1454,18 +1663,22 @@ export const createToolsSlice: StateCreator<
       }
       
       // Update module details with draft values
-      const existingValues = config.moduleDetails?.values || {};
-      const updatedValues = { ...existingValues };
+      // portalBaseline stays the same, localDraft gets updated with user's changes
+      const existingBaseline = config.moduleDetails?.portalBaseline || draft.original || {};
+      const existingLocalDraft = config.moduleDetails?.localDraft || { ...existingBaseline };
+      const updatedLocalDraft = { ...existingLocalDraft };
       
       // Only update the fields that were changed
       for (const field of draft.dirtyFields) {
-        updatedValues[field] = draft.draft[field as keyof typeof draft.draft];
+        updatedLocalDraft[field] = draft.draft[field as keyof typeof draft.draft];
       }
       
       config.moduleDetails = {
         portalVersion: draft.version,
         lastPulledAt: config.moduleDetails?.lastPulledAt || new Date().toISOString(),
-        values: updatedValues,
+        portalBaseline: existingBaseline,
+        // Store localDraft since user has made changes
+        localDraft: updatedLocalDraft,
       };
       
       // Write updated module.json

@@ -637,3 +637,125 @@ export function normalizeScriptContent(content: string): string {
     .trim();                  // Remove leading/trailing whitespace
 }
 
+// ============================================================================
+// Module Details Helpers
+// ============================================================================
+
+/**
+ * List of editable module details fields for comparison and syncing.
+ * Used by conflict detection and pull operations.
+ */
+export const EDITABLE_MODULE_DETAILS_FIELDS = [
+  { key: 'name', label: 'Name' },
+  { key: 'displayName', label: 'Display Name' },
+  { key: 'description', label: 'Description' },
+  { key: 'appliesTo', label: 'Applies To' },
+  { key: 'group', label: 'Group' },
+  { key: 'technology', label: 'Technical Notes' },
+  { key: 'tags', label: 'Tags' },
+  { key: 'collectInterval', label: 'Collect Interval' },
+  { key: 'accessGroupIds', label: 'Access Groups' },
+  { key: 'enableAutoDiscovery', label: 'Auto Discovery' },
+  { key: 'alertSubjectTemplate', label: 'Alert Subject' },
+  { key: 'alertBodyTemplate', label: 'Alert Body' },
+  { key: 'alertLevel', label: 'Alert Level' },
+  { key: 'clearAfterAck', label: 'Clear After ACK' },
+  { key: 'alertEffectiveIval', label: 'Alert Effective Interval' },
+] as const;
+
+/**
+ * Module metadata extracted from a LogicMonitor module API response.
+ * This is the standardized format used for module details across the application.
+ */
+export interface ParsedModuleMetadata {
+  id: number;
+  name: string;
+  displayName?: string;
+  description?: string;
+  appliesTo?: string;
+  group?: string;
+  technology?: string;
+  tags?: string;
+  collectInterval?: number;
+  accessGroupIds?: number[];
+  version: number;
+  enableAutoDiscovery?: boolean;
+  autoDiscoveryConfig?: Record<string, unknown>;
+  dataPoints?: unknown[];
+  configChecks?: unknown[];
+  alertSubjectTemplate?: string;
+  alertBodyTemplate?: string;
+  alertLevel?: string;
+  clearAfterAck?: boolean;
+  alertEffectiveIval?: number;
+}
+
+/**
+ * Parses module details from a LogicMonitor module API response.
+ * Handles schema differences across module types using MODULE_TYPE_SCHEMAS.
+ * 
+ * @param module - The raw module object from the LogicMonitor API
+ * @param schema - The schema for this module type from MODULE_TYPE_SCHEMAS
+ * @param getSchemaFieldNameFn - Function to get field name from schema
+ * @returns Standardized module metadata object
+ */
+export function parseModuleDetailsFromResponse(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  module: any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  schema: any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  getSchemaFieldNameFn: (schema: any, field: string) => string
+): ParsedModuleMetadata {
+  const intervalField = schema.intervalField || 'collectInterval';
+  const intervalValue =
+    module[intervalField as keyof typeof module] ??
+    module.collectInterval ??
+    module[getSchemaFieldNameFn(schema, 'collectInterval') as keyof typeof module];
+  const collectIntervalValue =
+    schema.intervalFormat === 'object' && typeof intervalValue === 'object' && intervalValue
+      ? (intervalValue as { offset?: number }).offset
+      : intervalValue;
+  
+  const appliesToValue = module[getSchemaFieldNameFn(schema, 'appliesTo') as keyof typeof module];
+  const technologyValue = module[getSchemaFieldNameFn(schema, 'technology') as keyof typeof module];
+  const displayNameValue = module[getSchemaFieldNameFn(schema, 'displayName') as keyof typeof module];
+  const descriptionValue = module[getSchemaFieldNameFn(schema, 'description') as keyof typeof module];
+  const groupValue = module[getSchemaFieldNameFn(schema, 'group') as keyof typeof module];
+  const tagsValue = module[getSchemaFieldNameFn(schema, 'tags') as keyof typeof module];
+  const dataPoints = schema.readOnlyList === 'datapoints' ? module.dataPoints || [] : [];
+  const configChecks = schema.readOnlyList === 'configChecks' ? module.configChecks || [] : [];
+  const autoDiscoveryConfig = schema.autoDiscoveryDefaults
+    ? {
+        ...schema.autoDiscoveryDefaults,
+        ...(module.autoDiscoveryConfig || {}),
+        method: {
+          ...(module.autoDiscoveryConfig?.method || {}),
+        },
+      }
+    : module.autoDiscoveryConfig;
+  
+  return {
+    id: module.id,
+    name: module.name || '',
+    displayName: displayNameValue,
+    description: descriptionValue,
+    appliesTo: appliesToValue,
+    group: groupValue,
+    technology: technologyValue,
+    tags: tagsValue,
+    collectInterval: collectIntervalValue,
+    accessGroupIds: module.accessGroupIds,
+    version: module.version || 0,
+    enableAutoDiscovery: module.enableAutoDiscovery,
+    autoDiscoveryConfig,
+    dataPoints,
+    configChecks,
+    alertSubjectTemplate: module.alertSubjectTemplate,
+    alertBodyTemplate: module.alertBodyTemplate,
+    alertLevel: module.alertLevel,
+    clearAfterAck: module.clearAfterAck,
+    alertEffectiveIval: module.alertEffectiveIval,
+  };
+}
+

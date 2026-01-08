@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Settings, Loader2, AlertCircle } from 'lucide-react';
+import { Settings, Loader2, AlertCircle, AlertTriangle, RefreshCw } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -34,10 +34,14 @@ export function ModuleDetailsDialog() {
     moduleDetailsLoading,
     moduleDetailsError,
     moduleDetailsDraftByTabId,
+    moduleDetailsConflict,
+    isRefreshingModuleDetails,
     loadModuleDetails,
     fetchAccessGroups,
     resetModuleDetailsDraft,
     persistModuleDetailsToDirectory,
+    refreshModuleDetailsBaseline,
+    resolveModuleDetailsConflict,
   } = useEditorStore();
 
   const activeTab = tabs.find(t => t.id === activeTabId);
@@ -176,6 +180,14 @@ export function ModuleDetailsDialog() {
     }
   }, [moduleDetailsDialogOpen, activeTabId, isModuleTab, draft, loadModuleDetails]);
 
+  // Auto-refresh to check for portal changes when dialog opens and user has dirty fields
+  useEffect(() => {
+    if (moduleDetailsDialogOpen && activeTabId && isModuleTab && draft && hasChanges) {
+      // Silently check for portal updates in the background
+      refreshModuleDetailsBaseline(activeTabId);
+    }
+  }, [moduleDetailsDialogOpen, activeTabId, isModuleTab, draft, hasChanges, refreshModuleDetailsBaseline]);
+
   // Always fetch access groups when dialog opens (needed to display names)
   useEffect(() => {
     if (moduleDetailsDialogOpen && activeTabId && isModuleTab) {
@@ -218,6 +230,12 @@ export function ModuleDetailsDialog() {
                 <DialogTitle className="flex items-center gap-2">
                   <Settings className="size-5" />
                   Module Details
+                  {isRefreshingModuleDetails && (
+                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                      <RefreshCw className="size-3 animate-spin" />
+                      Checking for updates...
+                    </span>
+                  )}
                 </DialogTitle>
                 <DialogDescription className="mt-1">
                   Edit module metadata for {activeTab.source.moduleName}
@@ -237,6 +255,45 @@ export function ModuleDetailsDialog() {
 
             {/* Main Content Area */}
             <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+              {/* Conflict Warning Banner */}
+              {moduleDetailsConflict?.hasConflict && (
+                <div className="shrink-0 p-4 bg-warning/10 border-b border-warning/30">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="size-5 text-warning shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-warning">
+                        Portal Changes Detected
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {moduleDetailsConflict.message}
+                        {moduleDetailsConflict.conflictingFields && moduleDetailsConflict.conflictingFields.length > 0 && (
+                          <span className="block mt-1">
+                            Changed fields: {moduleDetailsConflict.conflictingFields.join(', ')}
+                          </span>
+                        )}
+                      </p>
+                      <div className="flex gap-2 mt-3">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => activeTabId && resolveModuleDetailsConflict(activeTabId, 'keep-local')}
+                        >
+                          Keep My Changes
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => activeTabId && resolveModuleDetailsConflict(activeTabId, 'use-portal')}
+                        >
+                          <RefreshCw className="size-3.5 mr-1.5" />
+                          Use Portal Version
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {moduleDetailsLoading ? (
                 <div className="flex items-center justify-center h-full">
                   <div className="flex flex-col items-center gap-3">

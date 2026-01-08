@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect, useMemo } from 'react';
-import { Download, Loader2, AlertCircle, Info, FileCode, RefreshCw } from 'lucide-react';
+import { Download, Loader2, AlertCircle, Info, FileCode, RefreshCw, Settings } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
@@ -23,6 +23,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { DiffEditor } from './DiffEditor';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useEditorStore } from '../stores/editor-store';
+import { EDITABLE_MODULE_DETAILS_FIELDS } from '../utils/document-helpers';
 import type { LogicModuleType } from '@/shared/types';
 
 interface PullFromPortalDialogProps {
@@ -52,10 +53,14 @@ export function PullFromPortalDialog({
     scriptsForPull,
     selectedScriptsForPull,
     toggleScriptForPull,
+    moduleDetailsForPull,
+    includeDetailsInPull,
+    setIncludeDetailsInPull,
     isFetchingForPull,
     isPullingLatest,
     fetchModuleForPull,
     pullLatestFromPortal,
+    moduleDetailsDraftByTabId,
     preferences,
   } = useEditorStore();
 
@@ -101,6 +106,44 @@ export function PullFromPortalDialog({
   const hasSelectedScripts = selectedScriptsForPull.size > 0;
   const isLoading = isFetchingForPull;
   const isProcessing = isPullingLatest;
+
+  // Compute module details changes
+  const localDraft = moduleDetailsDraftByTabId[tabId];
+  const detailsChanges = useMemo(() => {
+    if (!moduleDetailsForPull?.portalDetails || !localDraft?.original) return [];
+    
+    const changes: Array<{ field: string; label: string; localValue: string; portalValue: string }> = [];
+    
+    for (const { key, label } of EDITABLE_MODULE_DETAILS_FIELDS) {
+      // Compare user's current local draft values vs portal (shows what would be overwritten)
+      const localVal = localDraft.draft[key as keyof typeof localDraft.draft];
+      const portalVal = moduleDetailsForPull.portalDetails[key];
+      // Handle array/object comparisons with JSON stringify
+      const localStr = JSON.stringify(localVal);
+      const portalStr = JSON.stringify(portalVal);
+      if (localStr !== portalStr) {
+        // Format display values
+        const formatValue = (val: unknown): string => {
+          if (val === null || val === undefined) return '(empty)';
+          if (typeof val === 'boolean') return val ? 'Yes' : 'No';
+          if (Array.isArray(val)) return val.length > 0 ? val.join(', ') : '(none)';
+          if (typeof val === 'object') return JSON.stringify(val);
+          return String(val);
+        };
+        changes.push({
+          field: key,
+          label,
+          localValue: formatValue(localVal),
+          portalValue: formatValue(portalVal),
+        });
+      }
+    }
+    
+    return changes;
+  }, [moduleDetailsForPull, localDraft]);
+
+  const hasDetailsChanges = detailsChanges.length > 0;
+  const hasAnythingSelected = hasSelectedScripts || (includeDetailsInPull && hasDetailsChanges);
 
   return (
     <Dialog open={pullLatestDialogOpen} onOpenChange={setPullLatestDialogOpen}>
@@ -249,11 +292,78 @@ export function PullFromPortalDialog({
               </div>
             )}
 
+            {/* Module details section */}
+            {!isLoading && moduleDetailsForPull && (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Settings className="size-4 text-muted-foreground" />
+                  <Label className="text-sm font-medium">Module Details</Label>
+                  {hasDetailsChanges ? (
+                    <Badge variant="secondary" className="text-xs">
+                      {detailsChanges.length} field{detailsChanges.length !== 1 ? 's' : ''} differ
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-xs text-green-600 border-green-600/50">
+                      In sync
+                    </Badge>
+                  )}
+                </div>
+                
+                {hasDetailsChanges && (
+                  <div className="border border-border rounded-md">
+                    <label className="flex items-center gap-3 p-3 hover:bg-muted/40 cursor-pointer transition-colors border-b border-border">
+                      <Checkbox
+                        checked={includeDetailsInPull}
+                        onCheckedChange={(checked) => setIncludeDetailsInPull(!!checked)}
+                        aria-label="Include module details in pull"
+                      />
+                      <div className="flex items-center gap-2 flex-1">
+                        <Settings className="size-4 text-muted-foreground" />
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium">Include Module Details</span>
+                          <span className="text-xs text-muted-foreground">
+                            Refresh module metadata like appliesTo, description, etc.
+                          </span>
+                        </div>
+                      </div>
+                    </label>
+                    
+                    {includeDetailsInPull && (
+                      <div className="p-3 bg-muted/20 space-y-2 max-h-48 overflow-y-auto">
+                        <p className="text-xs font-medium text-muted-foreground mb-2">Fields to update:</p>
+                        {detailsChanges.map((change) => (
+                          <div key={change.field} className="text-xs space-y-0.5">
+                            <div className="font-medium text-foreground">{change.label}</div>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div className="bg-background/50 border border-border rounded px-2 py-1">
+                                <span className="text-muted-foreground text-[10px] uppercase">Local:</span>
+                                <span className="block truncate">{change.localValue || '(empty)'}</span>
+                              </div>
+                              <div className="bg-primary/5 border border-primary/20 rounded px-2 py-1">
+                                <span className="text-muted-foreground text-[10px] uppercase">Portal:</span>
+                                <span className="block truncate">{change.portalValue || '(empty)'}</span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+                
+                {!hasDetailsChanges && (
+                  <div className="text-xs text-muted-foreground italic border border-dashed border-border rounded-md p-3 bg-muted/20">
+                    Module details are up to date with the portal (version {moduleDetailsForPull.portalVersion}).
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* No scripts selected */}
-            {!isLoading && scriptsForPull && selectedScriptsForPull.size === 0 && (
+            {!isLoading && scriptsForPull && !hasAnythingSelected && (
               <div className="flex items-center gap-2 border border-dashed border-border rounded-md p-3 bg-muted/20 text-xs text-muted-foreground">
                 <Info className="size-4" />
-                Select at least one script to pull from the portal.
+                Select at least one script or module details to pull from the portal.
               </div>
             )}
           </div>
@@ -267,7 +377,7 @@ export function PullFromPortalDialog({
             type="button" 
             variant="default"
             onClick={handleConfirm} 
-            disabled={isProcessing || isLoading || !hasSelectedScripts}
+            disabled={isProcessing || isLoading || !hasAnythingSelected}
           >
             {isProcessing ? (
               <>

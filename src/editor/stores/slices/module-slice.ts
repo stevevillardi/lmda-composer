@@ -24,9 +24,9 @@ import type {
   FetchModulesResponse,
   ModuleDirectoryConfig,
 } from '@/shared/types';
-import type { ModuleDetailsDraft } from './tools-slice';
+import type { ModuleDetailsDraft, ModuleMetadata } from './tools-slice';
 import { toast } from 'sonner';
-import { hasPortalChanges, updateDocumentAfterPush, updateDocumentAfterPull, getOriginalContent, createPortalDocument, extractScriptFromModule, detectScriptLanguage, normalizeScriptContent } from '../../utils/document-helpers';
+import { hasPortalChanges, updateDocumentAfterPush, updateDocumentAfterPull, getOriginalContent, createPortalDocument, extractScriptFromModule, detectScriptLanguage, normalizeScriptContent, parseModuleDetailsFromResponse } from '../../utils/document-helpers';
 import { getPortalBindingStatus } from '../../utils/portal-binding';
 import { MODULE_TYPE_SCHEMAS, getSchemaFieldName } from '@/shared/module-type-schemas';
 import { 
@@ -125,6 +125,13 @@ export interface ModuleSliceState {
     hasChanges: boolean;
   }> | null;
   selectedScriptsForPull: Set<'collection' | 'ad'>;
+  /** Module details from portal for pull comparison */
+  moduleDetailsForPull: {
+    portalDetails: Record<string, unknown>;
+    portalVersion: number;
+  } | null;
+  /** Whether to include module details in pull operation */
+  includeDetailsInPull: boolean;
 }
 
 /**
@@ -174,6 +181,7 @@ export interface ModuleSliceActions {
   fetchModuleForPull: (tabId: string) => Promise<void>;
   pullLatestFromPortal: (tabId: string, selectedScripts?: Set<'collection' | 'ad'>) => Promise<{ success: boolean; error?: string }>;
   toggleScriptForPull: (scriptType: 'collection' | 'ad') => void;
+  setIncludeDetailsInPull: (include: boolean) => void;
   canPullLatest: (tabId: string) => boolean;
 }
 
@@ -329,6 +337,8 @@ export const moduleSliceInitialState: ModuleSliceState = {
   isFetchingForPull: false,
   scriptsForPull: null,
   selectedScriptsForPull: new Set(),
+  moduleDetailsForPull: null,
+  includeDetailsInPull: true,
 };
 
 // ============================================================================
@@ -1478,6 +1488,19 @@ export const createModuleSlice: StateCreator<
                     moduleConfig.scripts.ad.portalChecksum = await documentStore.computeChecksum(adScript);
                   }
                   
+                  // Update module details if pushed
+                  // After push, portalBaseline = what we just pushed, localDraft = undefined (no local changes)
+                  if (hasModuleDetailsChanges && moduleDetailsDraft) {
+                    moduleConfig.moduleDetails = {
+                      portalVersion: (moduleDetailsDraft.version || 0) + 1,
+                      lastPulledAt: new Date().toISOString(),
+                      // The pushed values become the new portal baseline
+                      portalBaseline: moduleDetailsDraft.draft as Record<string, unknown>,
+                      // Clear localDraft since we just pushed everything to portal
+                      localDraft: undefined,
+                    };
+                  }
+                  
                   // Update lastSyncedAt
                   moduleConfig.lastSyncedAt = new Date().toISOString();
                   
@@ -1546,6 +1569,8 @@ export const createModuleSlice: StateCreator<
         pullLatestDialogOpen: open,
         scriptsForPull: null,
         selectedScriptsForPull: new Set(),
+        moduleDetailsForPull: null,
+        includeDetailsInPull: true,
       });
     }
   },
@@ -1559,6 +1584,10 @@ export const createModuleSlice: StateCreator<
       newSet.add(scriptType);
     }
     set({ selectedScriptsForPull: newSet });
+  },
+
+  setIncludeDetailsInPull: (include: boolean) => {
+    set({ includeDetailsInPull: include });
   },
 
   fetchModuleForPull: async (tabId: string) => {
@@ -1653,15 +1682,18 @@ export const createModuleSlice: StateCreator<
         }
       });
       
-      console.log('[ModuleDir] fetchModuleForPull: Prepared scripts for pull:', {
-        scriptCount: scripts.length,
-        selectedCount: selectedScripts.size,
-      });
+      // Parse module details for pull
+      const schema = MODULE_TYPE_SCHEMAS[source.moduleType!];
+      const portalDetails = parseModuleDetailsFromResponse(module, schema, getSchemaFieldName);
       
       set({
         isFetchingForPull: false,
         scriptsForPull: scripts.length > 0 ? scripts : null,
         selectedScriptsForPull: selectedScripts,
+        moduleDetailsForPull: {
+          portalDetails: portalDetails as unknown as Record<string, unknown>,
+          portalVersion: portalDetails.version,
+        },
       });
     } catch (error) {
       console.error('[ModuleDir] fetchModuleForPull: Error:', error);
@@ -1689,7 +1721,7 @@ export const createModuleSlice: StateCreator<
   },
 
   pullLatestFromPortal: async (tabId: string, selectedScripts?: Set<'collection' | 'ad'>) => {
-    const { tabs, portals, scriptsForPull } = get();
+    const { tabs, portals, scriptsForPull, moduleDetailsForPull, includeDetailsInPull, moduleDetailsDraftByTabId } = get();
     const tab = tabs.find(t => t.id === tabId);
     
     if (!tab || tab.source?.type !== 'module') {
@@ -1709,13 +1741,18 @@ export const createModuleSlice: StateCreator<
     // Use selected scripts from argument or dialog state
     const scriptsToPull = selectedScripts || get().selectedScriptsForPull;
     
-    if (scriptsToPull.size === 0) {
-      return { success: false, error: 'No scripts selected to pull' };
+    // Allow pulling if either scripts are selected OR module details are selected
+    const hasScriptsToSync = scriptsToPull.size > 0;
+    const hasDetailsToSync = includeDetailsInPull && moduleDetailsForPull !== null;
+    
+    if (!hasScriptsToSync && !hasDetailsToSync) {
+      return { success: false, error: 'No scripts or module details selected to pull' };
     }
     
     console.log('[ModuleDir] pullLatestFromPortal: Starting...', {
       tabId,
       scriptsToPull: Array.from(scriptsToPull),
+      includeDetailsInPull,
     });
     
     set({ isPullingLatest: true });
@@ -1854,6 +1891,18 @@ export const createModuleSlice: StateCreator<
                   console.log('[ModuleDir] pullLatestFromPortal: Updated script file:', scriptConfig.fileName);
                 }
                 
+                // Update module details in module.json if pulling details
+                // After pull, portalBaseline = new portal values, localDraft = undefined (no local changes)
+                if (includeDetailsInPull && moduleDetailsForPull) {
+                  config.moduleDetails = {
+                    portalVersion: moduleDetailsForPull.portalVersion,
+                    lastPulledAt: new Date().toISOString(),
+                    portalBaseline: moduleDetailsForPull.portalDetails,
+                    // Clear localDraft since we're syncing to portal state
+                    localDraft: undefined,
+                  };
+                }
+                
                 // Save updated module.json
                 await documentStore.writeFileToDirectory(storedDir.handle, 'module.json', JSON.stringify(config, null, 2));
                 console.log('[ModuleDir] pullLatestFromPortal: Directory files updated');
@@ -1866,16 +1915,81 @@ export const createModuleSlice: StateCreator<
         }
       }
       
+      // Update module details drafts if pulling details
+      let updatedModuleDetailsDrafts = { ...moduleDetailsDraftByTabId };
+      if (includeDetailsInPull && moduleDetailsForPull) {
+        const relatedTabIds = relatedTabs.map(t => t.id);
+        for (const relatedTabId of relatedTabIds) {
+          const existingDraft = moduleDetailsDraftByTabId[relatedTabId];
+          if (existingDraft) {
+            // Merge: keep user's dirty fields that don't conflict, update original baseline
+            const newOriginal = moduleDetailsForPull.portalDetails as Partial<ModuleMetadata>;
+            const newDraft = { ...existingDraft.draft };
+            const newDirtyFields = new Set<string>();
+            
+            // Check each dirty field - if user's value differs from new portal value, keep it dirty
+            for (const field of existingDraft.dirtyFields) {
+              const userValue = existingDraft.draft[field as keyof typeof existingDraft.draft];
+              const portalValue = newOriginal[field as keyof typeof newOriginal];
+              if (userValue !== portalValue) {
+                newDirtyFields.add(field);
+              }
+            }
+            
+            // Update non-dirty fields to portal values
+            for (const [key, value] of Object.entries(newOriginal)) {
+              if (!newDirtyFields.has(key)) {
+                (newDraft as Record<string, unknown>)[key] = value;
+              }
+            }
+            
+            updatedModuleDetailsDrafts[relatedTabId] = {
+              ...existingDraft,
+              original: newOriginal,
+              draft: newDraft,
+              dirtyFields: newDirtyFields,
+              loadedAt: Date.now(),
+              version: moduleDetailsForPull.portalVersion,
+            };
+          } else {
+            // No existing draft - create fresh one
+            const newDetails = moduleDetailsForPull.portalDetails as Partial<ModuleMetadata>;
+            updatedModuleDetailsDrafts[relatedTabId] = {
+              original: newDetails,
+              draft: { ...newDetails },
+              dirtyFields: new Set(),
+              loadedAt: Date.now(),
+              tabId: relatedTabId,
+              moduleId: source.moduleId,
+              moduleType: source.moduleType,
+              portalId: source.portalId,
+              version: moduleDetailsForPull.portalVersion,
+            };
+          }
+        }
+      }
+      
       set({ 
         tabs: updatedTabs, 
+        moduleDetailsDraftByTabId: updatedModuleDetailsDrafts,
         isPullingLatest: false,
         pullLatestDialogOpen: false,
         scriptsForPull: null,
         selectedScriptsForPull: new Set(),
+        moduleDetailsForPull: null,
       } as Partial<ModuleSlice & ModuleSliceDependencies>);
       
+      // Build success message based on what was pulled
+      const parts: string[] = [];
+      if (pulledCount > 0) {
+        parts.push(`${pulledCount} script${pulledCount !== 1 ? 's' : ''}`);
+      }
+      if (includeDetailsInPull && moduleDetailsForPull) {
+        parts.push('module details');
+      }
+      
       toast.success('Pulled latest from portal', {
-        description: `Updated ${pulledCount} script${pulledCount !== 1 ? 's' : ''} from ${source.moduleName || 'module'}`,
+        description: `Updated ${parts.join(' and ')} from ${source.moduleName || 'module'}`,
       });
       
       return { success: true };

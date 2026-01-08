@@ -345,8 +345,18 @@ export interface ModuleDirectoryConfig {
     portalVersion: number;
     /** When last pulled from portal */
     lastPulledAt: string;
-    /** Serialized module details values */
-    values: Record<string, unknown>;
+    /** 
+     * Baseline values from portal at last sync.
+     * Used to detect what user has changed vs portal state.
+     * Analogous to portalChecksum for scripts.
+     */
+    portalBaseline: Record<string, unknown>;
+    /**
+     * User's local draft values (only stored if different from portalBaseline).
+     * Analogous to diskChecksum for scripts.
+     * If undefined, localDraft equals portalBaseline.
+     */
+    localDraft?: Record<string, unknown>;
   };
   
   /** When this directory was last synced (push or pull) */
