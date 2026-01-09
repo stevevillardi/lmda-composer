@@ -59,6 +59,23 @@ const EXTERNAL_LINKS = [
 ] as const;
 
 // ============================================================================
+// Visual Components
+// ============================================================================
+
+function GradientBackground() {
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {/* Purple accent glow - top right */}
+      <div className="absolute -top-24 -right-24 h-64 w-64 rounded-full bg-purple-400/25 blur-3xl dark:bg-purple-500/15" />
+      {/* Teal accent glow - left side */}
+      <div className="absolute top-40 -left-24 h-72 w-72 rounded-full bg-teal-400/25 blur-3xl dark:bg-teal-500/15" />
+      {/* Cyan accent glow - bottom */}
+      <div className="absolute bottom-0 right-1/3 h-48 w-48 rounded-full bg-cyan-400/20 blur-3xl dark:bg-cyan-500/10" />
+    </div>
+  );
+}
+
+// ============================================================================
 // Sub-components
 // ============================================================================
 
@@ -84,16 +101,16 @@ function ActionRow({
       onClick={disabled ? undefined : onClick}
       disabled={disabled}
       className={cn(
-        "flex items-center gap-3 w-full px-3.5 py-2.5 rounded-md border transition-colors text-left",
+        "flex items-center gap-3 w-full px-3.5 py-2.5 rounded-md border transition-all text-left",
         disabled
           ? "border-border/40 bg-muted/20 cursor-not-allowed opacity-50"
-          : "border-border/70 bg-card/30 hover:bg-accent hover:border-primary/40"
+          : "border-border/60 bg-card/40 hover:bg-accent/50 hover:border-primary/40 hover:shadow-sm"
       )}
     >
       <div
         className={cn(
-          "size-9 rounded-md grid place-items-center shrink-0",
-          disabled ? "bg-muted/30 text-muted-foreground" : "bg-primary/10 text-primary"
+          "size-9 rounded-md grid place-items-center shrink-0 transition-colors",
+          disabled ? "bg-muted/30 text-muted-foreground" : "bg-primary/10 text-primary group-hover:bg-primary/20"
         )}
       >
         {icon}
@@ -139,15 +156,15 @@ function ExternalLinkRow({ title, description, url }: ExternalLinkRowProps) {
       target="_blank"
       rel="noopener noreferrer"
       className={cn(
-        "flex items-center gap-3 w-full px-3.5 py-2.5 rounded-md border transition-colors text-left group",
-        "border-border/70 bg-card/30 hover:bg-accent hover:border-primary/40"
+        "flex items-center gap-3 w-full px-3.5 py-2.5 rounded-md border transition-all text-left group",
+        "border-border/60 bg-card/40 hover:bg-accent/50 hover:border-primary/40 hover:shadow-sm"
       )}
     >
-      <div className="size-9 rounded-md grid place-items-center shrink-0 bg-primary/10 text-primary">
+      <div className="size-9 rounded-md grid place-items-center shrink-0 bg-primary/10 text-primary transition-colors group-hover:bg-primary/20">
         <ExternalLink className="size-4" />
       </div>
       <div className="min-w-0 flex-1">
-        <div className="text-sm font-medium tracking-tight text-foreground group-hover:text-primary">
+        <div className="text-sm font-medium tracking-tight text-foreground group-hover:text-primary transition-colors">
           {title}
         </div>
         <div className="text-xs text-muted-foreground mt-0.5 truncate">
@@ -174,14 +191,16 @@ export function ApiWelcomeScreen() {
   };
 
   return (
-    <div className="h-full flex flex-col bg-background overflow-auto" tabIndex={-1}>
-      <div className="flex-1 flex items-center justify-center p-6">
+    <div className="h-full relative flex flex-col bg-background overflow-auto" tabIndex={-1}>
+      <GradientBackground />
+      
+      <div className="flex-1 flex items-center justify-center p-6 relative z-10">
         <div className="w-full max-w-5xl space-y-6">
           {/* Header */}
           <div className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <img src={logoIcon} alt="LMDA Composer" className="size-10" />
+                <img src={logoIcon} alt="LMDA Composer" className="size-10 drop-shadow-sm" />
                 <div className="leading-tight">
                   <h1 className="text-2xl font-semibold text-foreground tracking-tight">
                     API Explorer
@@ -195,7 +214,7 @@ export function ApiWelcomeScreen() {
                 variant="ghost"
                 size="sm"
                 onClick={handleBackToComposer}
-                className="text-muted-foreground hover:text-foreground"
+                className="text-muted-foreground hover:text-foreground hover:bg-white/10"
               >
                 <ArrowLeft className="size-4 mr-1.5" />
                 Back to Composer
@@ -208,7 +227,7 @@ export function ApiWelcomeScreen() {
             {/* Left Column */}
             <div className="space-y-4">
               {/* Quick Start */}
-              <Card size="sm" className="bg-card/40 border-border/70">
+              <Card size="sm" className="bg-card/60 backdrop-blur-sm border-border/60 shadow-sm">
                 <CardHeader className="pb-0">
                   <CardTitle className="text-xs uppercase tracking-wide text-muted-foreground font-medium">
                     Quick Start
@@ -227,7 +246,7 @@ export function ApiWelcomeScreen() {
               </Card>
 
               {/* Rate Limits */}
-              <Card size="sm" className="bg-card/40 border-border/70">
+              <Card size="sm" className="bg-card/60 backdrop-blur-sm border-border/60 shadow-sm">
                 <CardHeader className="pb-0">
                   <CardTitle className="text-xs uppercase tracking-wide text-muted-foreground font-medium flex items-center gap-2">
                     <Gauge className="size-3.5" />
@@ -263,7 +282,7 @@ export function ApiWelcomeScreen() {
               </Card>
 
               {/* Resources */}
-              <Card size="sm" className="bg-card/40 border-border/70">
+              <Card size="sm" className="bg-card/60 backdrop-blur-sm border-border/60 shadow-sm">
                 <CardHeader className="pb-0">
                   <CardTitle className="text-xs uppercase tracking-wide text-muted-foreground font-medium flex items-center gap-2">
                     <BookOpen className="size-3.5" />
@@ -284,7 +303,7 @@ export function ApiWelcomeScreen() {
             </div>
 
             {/* Right Column - Error Codes Reference */}
-            <Card size="sm" className="bg-card/40 border-border/70">
+            <Card size="sm" className="bg-card/60 backdrop-blur-sm border-border/60 shadow-sm">
               <CardHeader className="pb-0">
                 <CardTitle className="text-xs uppercase tracking-wide text-muted-foreground font-medium flex items-center gap-2">
                   <AlertCircle className="size-3.5" />
@@ -292,9 +311,9 @@ export function ApiWelcomeScreen() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="border border-border/50 rounded-md overflow-hidden">
+                <div className="border border-border/50 rounded-md overflow-hidden bg-background/50">
                   {/* Table Header */}
-                  <div className="grid grid-cols-[60px_60px_1fr] bg-muted/30 border-b border-border/50 px-3 py-1.5">
+                  <div className="grid grid-cols-[60px_60px_1fr] bg-muted/40 border-b border-border/50 px-3 py-1.5">
                     <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
                       HTTP
                     </span>
@@ -306,7 +325,7 @@ export function ApiWelcomeScreen() {
                     </span>
                   </div>
                   {/* Table Body */}
-                  <div className="divide-y divide-border/30 max-h-[350px] overflow-y-auto">
+                  <div className="divide-y divide-border/30 max-h-[350px] overflow-y-auto scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
                     {ERROR_CODES.map(({ http, lm, description }) => (
                       <div
                         key={http}
@@ -331,7 +350,7 @@ export function ApiWelcomeScreen() {
                   </div>
                 </div>
                 <p className="text-[10px] text-muted-foreground mt-2 text-center">
-                  The <code className="font-mono bg-muted px-1 rounded">errorCode</code> field appears in the response body for failed requests.
+                  The <code className="font-mono bg-muted/50 px-1 rounded">errorCode</code> field appears in the response body for failed requests.
                 </p>
               </CardContent>
             </Card>
@@ -354,4 +373,3 @@ export function ApiWelcomeScreen() {
     </div>
   );
 }
-

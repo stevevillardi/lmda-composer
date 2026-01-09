@@ -300,6 +300,7 @@ export function ActionsDropdown() {
                 onClick={() => {
                   setModuleSnippetsDialogOpen(true);
                 }}
+                disabled={!selectedPortalId}
               >
                 <Puzzle className="size-4 mr-2" />
                 <span className="flex-1">Module Snippets</span>

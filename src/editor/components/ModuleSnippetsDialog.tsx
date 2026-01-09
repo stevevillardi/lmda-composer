@@ -609,7 +609,7 @@ function EmptyState({
 }: EmptyStateProps) {
   return (
     <div className="flex-1 flex items-center justify-center p-8 border-t border-border">
-      <Empty className="border-0 max-w-md">
+      <Empty className="border-0 max-w-lg">
         <EmptyHeader>
           <EmptyMedia variant="icon">
             <Puzzle className="size-6" />

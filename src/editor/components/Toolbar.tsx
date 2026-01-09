@@ -322,78 +322,94 @@ export function Toolbar() {
         <Label className="text-xs text-muted-foreground whitespace-nowrap hidden lg:block">
           Language:
         </Label>
-        <div 
-          className="flex items-center rounded-md border border-input bg-background/50 p-0.5 gap-0.5"
-          role="group"
-          aria-label="Script language selector"
-        >
-          <Button
-            variant={language === 'groovy' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => handleLanguageClick('groovy')}
-            disabled={tabs.length === 0}
-            className={cn(
-              SIZES.BUTTON_SIDEBAR,
-              "px-3 text-xs font-medium",
-              language === 'groovy' && "shadow-sm"
-            )}
-            aria-pressed={language === 'groovy'}
-            aria-label="Groovy language"
-          >
-            Groovy
-          </Button>
-          <Button
-            variant={language === 'powershell' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => handleLanguageClick('powershell')}
-            disabled={tabs.length === 0}
-            className={cn(
-              SIZES.BUTTON_SIDEBAR,
-              "px-3 text-xs font-medium",
-              language === 'powershell' && "shadow-sm"
-            )}
-            aria-pressed={language === 'powershell'}
-            aria-label="PowerShell language"
-          >
-            PowerShell
-          </Button>
-        </div>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <div 
+                className="flex items-center rounded-md border border-input bg-background/50 p-0.5 gap-0.5"
+                role="group"
+                aria-label="Script language selector"
+              >
+                <Button
+                  variant={language === 'groovy' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => handleLanguageClick('groovy')}
+                  disabled={tabs.length === 0}
+                  className={cn(
+                    SIZES.BUTTON_SIDEBAR,
+                    "px-3 text-xs font-medium",
+                    language === 'groovy' && "shadow-sm"
+                  )}
+                  aria-pressed={language === 'groovy'}
+                  aria-label="Groovy language"
+                >
+                  Groovy
+                </Button>
+                <Button
+                  variant={language === 'powershell' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => handleLanguageClick('powershell')}
+                  disabled={tabs.length === 0}
+                  className={cn(
+                    SIZES.BUTTON_SIDEBAR,
+                    "px-3 text-xs font-medium",
+                    language === 'powershell' && "shadow-sm"
+                  )}
+                  aria-pressed={language === 'powershell'}
+                  aria-label="PowerShell language"
+                >
+                  PowerShell
+                </Button>
+              </div>
+            }
+          />
+          <TooltipContent>Select script language</TooltipContent>
+        </Tooltip>
 
         {/* Mode Selector */}
         <div className="flex items-center gap-2">
           <Label className="text-xs text-muted-foreground whitespace-nowrap hidden lg:block">
             Mode:
           </Label>
-          <Select 
-            value={mode} 
-            onValueChange={(value) => setMode(value as ScriptMode)}
-            items={MODE_ITEMS}
-            disabled={tabs.length === 0}
-          >
-            <SelectTrigger size="sm" className="w-[180px] text-xs" disabled={tabs.length === 0} aria-label="Script execution mode">
-              <div className="flex items-center gap-2">
-                {(() => {
-                  const selectedMode = MODE_ITEMS.find(m => m.value === mode);
-                  const Icon = selectedMode?.icon;
-                  return Icon ? <Icon className="size-4 shrink-0" /> : null;
-                })()}
-                <SelectValue />
-              </div>
-            </SelectTrigger>
-            <SelectContent align="start">
-              {MODE_ITEMS.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <SelectItem key={item.value} value={item.value}>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Select 
+                  value={mode} 
+                  onValueChange={(value) => setMode(value as ScriptMode)}
+                  items={MODE_ITEMS}
+                  disabled={tabs.length === 0}
+                >
+                  <SelectTrigger size="sm" className="w-[180px] text-xs" disabled={tabs.length === 0} aria-label="Script execution mode">
                     <div className="flex items-center gap-2">
-                      <Icon className="size-4" />
-                      <span>{item.label}</span>
+                      {(() => {
+                        const selectedMode = MODE_ITEMS.find(m => m.value === mode);
+                        const Icon = selectedMode?.icon;
+                        return Icon ? <Icon className="size-4 shrink-0" /> : null;
+                      })()}
+                      <SelectValue />
                     </div>
-                  </SelectItem>
-                );
-              })}
-            </SelectContent>
-          </Select>
+                  </SelectTrigger>
+                  <SelectContent align="start">
+                    {MODE_ITEMS.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <SelectItem key={item.value} value={item.value}>
+                          <div className="flex items-center gap-2">
+                            <Icon className="size-4" />
+                            <span>{item.label}</span>
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              }
+            />
+            <TooltipContent>
+              {tabs.length === 0 ? 'Open a file to select mode' : 'Select execution mode'}
+            </TooltipContent>
+          </Tooltip>
         </div>
       </div>
 
