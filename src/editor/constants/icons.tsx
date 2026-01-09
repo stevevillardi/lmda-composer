@@ -76,12 +76,12 @@ export function FreeformIcon({ className, ...props }: LucideProps) {
 
 /** Active Discovery script mode - device/instance discovery */
 export function ActiveDiscoveryIcon({ className, ...props }: LucideProps) {
-  return <Target className={cn('text-blue-500', className)} {...props} />;
+  return <Target className={cn('text-cyan-500', className)} {...props} />;
 }
 
 /** Collection script mode - metric/data collection */
 export function CollectionIcon({ className, ...props }: LucideProps) {
-  return <Activity className={cn('text-green-500', className)} {...props} />;
+  return <Activity className={cn('text-teal-500', className)} {...props} />;
 }
 
 /** Batch Collection script mode - bulk data collection */
@@ -91,27 +91,27 @@ export function BatchCollectionIcon({ className, ...props }: LucideProps) {
 
 /** ConfigSource mode - configuration collection */
 export function ConfigSourceIcon({ className, ...props }: LucideProps) {
-  return <FileText className={cn('text-slate-500', className)} {...props} />;
+  return <FileText className={cn('text-grey-500', className)} {...props} />;
 }
 
 /** EventSource mode - event generation */
 export function EventSourceIcon({ className, ...props }: LucideProps) {
-  return <Bell className={cn('text-orange-500', className)} {...props} />;
+  return <Bell className={cn('text-yellow-600', className)} {...props} />;
 }
 
 /** TopologySource mode - network topology */
 export function TopologySourceIcon({ className, ...props }: LucideProps) {
-  return <Network className={cn('text-cyan-500', className)} {...props} />;
+  return <Network className={cn('text-cyan-400', className)} {...props} />;
 }
 
 /** PropertySource mode - property discovery */
 export function PropertySourceIcon({ className, ...props }: LucideProps) {
-  return <Tag className={cn('text-pink-500', className)} {...props} />;
+  return <Tag className={cn('text-purple-300', className)} {...props} />;
 }
 
 /** LogSource mode - log collection */
 export function LogSourceIcon({ className, ...props }: LucideProps) {
-  return <ScrollText className={cn('text-teal-500', className)} {...props} />;
+  return <ScrollText className={cn('text-teal-600', className)} {...props} />;
 }
 
 // ============================================================================
@@ -159,17 +159,17 @@ export function AlertSettingsIcon({ className, ...props }: LucideProps) {
 
 /** Success/complete status */
 export function SuccessIcon({ className, ...props }: LucideProps) {
-  return <CheckCircle2 className={cn('text-green-500', className)} {...props} />;
+  return <CheckCircle2 className={cn('text-teal-500', className)} {...props} />;
 }
 
 /** Error/failure status */
 export function ErrorIcon({ className, ...props }: LucideProps) {
-  return <XCircle className={cn('text-red-500', className)} {...props} />;
+  return <XCircle className={cn('text-red-500', className)} {...props} />; /* red-vivid-500 */
 }
 
 /** Warning/caution status */
 export function WarningIcon({ className, ...props }: LucideProps) {
-  return <AlertTriangle className={cn('text-amber-500', className)} {...props} />;
+  return <AlertTriangle className={cn('text-yellow-500', className)} {...props} />;
 }
 
 // ============================================================================
@@ -342,12 +342,12 @@ export function DeriveIcon({ className, ...props }: LucideProps) {
 
 /** Expression/complex datapoint - calculated from other datapoints */
 export function ExpressionIcon({ className, ...props }: LucideProps) {
-  return <Calculator className={cn('text-amber-500', className)} {...props} />;
+  return <Calculator className={cn('text-yellow-500', className)} {...props} />;
 }
 
 /** Script output source */
 export function OutputIcon({ className, ...props }: LucideProps) {
-  return <FileOutput className={cn('text-cyan-500', className)} {...props} />;
+  return <FileOutput className={cn('text-cyan-400', className)} {...props} />;
 }
 
 // ============================================================================
@@ -356,12 +356,12 @@ export function OutputIcon({ className, ...props }: LucideProps) {
 
 /** Warning severity alert - yellow */
 export function WarningAlertIcon({ className, ...props }: LucideProps) {
-  return <CircleAlert className={cn('text-yellow-500', className)} {...props} />;
+  return <CircleAlert className={cn('text-yellow-400', className)} {...props} />;
 }
 
 /** Error severity alert - orange */
 export function ErrorAlertIcon({ className, ...props }: LucideProps) {
-  return <TriangleAlert className={cn('text-orange-500', className)} {...props} />;
+  return <TriangleAlert className={cn('text-yellow-700', className)} {...props} />;
 }
 
 /** Critical severity alert - red */

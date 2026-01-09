@@ -289,7 +289,7 @@ export function ContextDropdown({
                     className={cn(
                       'size-2 shrink-0',
                       selectedPortal?.status === 'active'
-                        ? 'fill-green-500 text-green-500'
+                        ? 'fill-green-500 text-teal-500'
                         : selectedPortal
                           ? 'fill-yellow-500 text-yellow-500'
                           : 'fill-muted-foreground text-muted-foreground'
@@ -311,7 +311,7 @@ export function ContextDropdown({
                           className={cn(
                             'size-2',
                             portal.status === 'active'
-                              ? 'fill-green-500 text-green-500'
+                              ? 'fill-green-500 text-teal-500'
                               : 'fill-yellow-500 text-yellow-500'
                           )}
                         />
@@ -372,7 +372,7 @@ export function ContextDropdown({
                             'size-4 shrink-0',
                             selectedCollector.isDown 
                               ? 'text-red-500' 
-                              : 'text-green-500'
+                              : 'text-teal-500'
                           )}
                         />
                       )}
@@ -397,7 +397,7 @@ export function ContextDropdown({
                                 'size-4 shrink-0',
                                 collector.isDown 
                                   ? 'text-red-500' 
-                                  : 'text-green-500'
+                                  : 'text-teal-500'
                               )}
                             />
                             <div className="flex flex-col min-w-0 flex-1">
@@ -475,7 +475,7 @@ export function ContextDropdown({
                         <Server className={cn(
                           "size-4 shrink-0",
                           selectedDevice?.hostStatus === 'normal'
-                            ? "text-green-500"
+                            ? "text-teal-500"
                             : "text-red-500"
                         )} />
                       </InputGroupAddon>
@@ -537,7 +537,7 @@ export function ContextDropdown({
                               <Server className={cn(
                                 "size-4 shrink-0",
                                 device.hostStatus === 'normal' 
-                                  ? "text-green-500" 
+                                  ? "text-teal-500" 
                                   : "text-red-500"
                               )} />
                               <div className="flex flex-col min-w-0 flex-1">

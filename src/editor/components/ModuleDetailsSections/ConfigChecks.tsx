@@ -39,7 +39,7 @@ const ALERT_LEVEL_CONFIG: Record<number, {
 }> = {
   1: { label: 'No Alert', shortLabel: 'None', Icon: null, bgStyle: '' },
   2: { label: 'Warning', shortLabel: 'Warn', Icon: WarningAlertIcon, bgStyle: 'bg-yellow-500/15 text-yellow-500 border-yellow-500/30' },
-  3: { label: 'Error', shortLabel: 'Error', Icon: ErrorAlertIcon, bgStyle: 'bg-orange-500/15 text-orange-500 border-orange-500/30' },
+  3: { label: 'Error', shortLabel: 'Error', Icon: ErrorAlertIcon, bgStyle: 'bg-yellow-700/15 text-yellow-700 border-yellow-700/30' },
   4: { label: 'Critical', shortLabel: 'Crit', Icon: CriticalAlertIcon, bgStyle: 'bg-red-500/15 text-red-500 border-red-500/30' },
 };
 

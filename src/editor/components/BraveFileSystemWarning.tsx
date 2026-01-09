@@ -36,8 +36,8 @@ export function BraveFileSystemWarning({
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent size="default" className="max-w-xl! !sm:max-w-2xl">
         <AlertDialogHeader>
-          <AlertDialogMedia className="bg-amber-500/10">
-            <AlertTriangle className="size-8 text-amber-500" />
+          <AlertDialogMedia className="bg-yellow-500/10">
+            <AlertTriangle className="size-8 text-yellow-500" />
           </AlertDialogMedia>
           <AlertDialogTitle>File System Access Not Enabled</AlertDialogTitle>
           <AlertDialogDescription>

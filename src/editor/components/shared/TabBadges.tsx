@@ -24,7 +24,7 @@ export function LanguageBadge({
     <span className={cn(
       "text-[10px] font-mono font-medium px-1 py-0.5 rounded",
       language === 'groovy' 
-        ? "bg-blue-500/20 text-blue-400" 
+        ? "bg-cyan-500/20 text-cyan-400" 
         : "bg-cyan-500/20 text-cyan-400",
       className
     )}>
@@ -39,7 +39,7 @@ export function LanguageBadge({
 export function ApiBadge({ className }: BadgeBaseProps) {
   return (
     <span className={cn(
-      "text-[10px] font-medium px-1 py-0.5 rounded bg-emerald-500/20 text-emerald-400",
+      "text-[10px] font-medium px-1 py-0.5 rounded bg-teal-500/20 text-teal-400",
       className
     )}>
       API
@@ -78,11 +78,11 @@ export function HttpMethodBadge({
   className 
 }: BadgeBaseProps & { method: string }) {
   const methodColors: Record<string, string> = {
-    GET: 'bg-blue-500/15 text-blue-400',
-    POST: 'bg-emerald-500/15 text-emerald-400',
-    PUT: 'bg-amber-500/15 text-amber-400',
+    GET: 'bg-cyan-500/15 text-cyan-400',
+    POST: 'bg-teal-500/15 text-teal-400',
+    PUT: 'bg-yellow-500/15 text-yellow-400',
     PATCH: 'bg-cyan-500/15 text-cyan-400',
-    DELETE: 'bg-rose-500/15 text-rose-400',
+    DELETE: 'bg-red-500/15 text-red-400',
   };
   
   return (

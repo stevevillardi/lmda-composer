@@ -466,7 +466,7 @@ export function Toolbar() {
                   Module Details
                   {moduleDetailsDirtyCount > 0 && (
                     <span 
-                      className="ml-1.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center text-[10px] font-semibold rounded-full bg-amber-500 text-white"
+                      className="ml-1.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center text-[10px] font-semibold rounded-full bg-yellow-500 text-white"
                       aria-label={`${moduleDetailsDirtyCount} unsaved changes`}
                     >
                       {moduleDetailsDirtyCount}
@@ -635,7 +635,7 @@ export function Toolbar() {
       <AlertDialog open={pendingLanguage !== null} onOpenChange={(open) => !open && cancelLanguageSwitch()}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogMedia className="bg-amber-500/10">
+            <AlertDialogMedia className="bg-yellow-500/10">
               <WarningIcon className="size-8" />
             </AlertDialogMedia>
             <AlertDialogTitle>

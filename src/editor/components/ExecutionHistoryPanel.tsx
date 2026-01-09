@@ -82,7 +82,7 @@ function HistoryItem({ entry, onReload, onView }: HistoryItemProps) {
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-1.5 min-w-0">
           {entry.status === 'success' ? (
-            <CheckCircle2 className="size-3.5 text-green-500 shrink-0" />
+            <CheckCircle2 className="size-3.5 text-teal-500 shrink-0" />
           ) : (
             <XCircle className="size-3.5 text-red-500 shrink-0" />
           )}

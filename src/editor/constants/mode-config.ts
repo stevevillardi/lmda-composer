@@ -41,15 +41,15 @@ export const MODE_CONFIG: Record<ScriptMode, ModeConfig> = {
   collection: {
     label: 'Collection',
     icon: Activity,
-    bgColor: 'bg-green-500/20',
-    textColor: 'text-green-400',
+    bgColor: 'bg-teal-500/20',
+    textColor: 'text-teal-400',
   },
   batchcollection: {
     label: 'Batch Collection',
     shortLabel: 'Batch',
     icon: Layers,
-    bgColor: 'bg-amber-500/20',
-    textColor: 'text-amber-400',
+    bgColor: 'bg-yellow-500/20',
+    textColor: 'text-yellow-400',
   },
 } as const;
 

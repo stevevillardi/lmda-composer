@@ -263,7 +263,7 @@ export function StatusBar() {
             <>
               <Separator orientation="vertical" className="h-5" aria-hidden="true" />
               <span className="text-muted-foreground flex items-center gap-1.5" aria-label="Portal status">
-                <span className="size-1.5 rounded-full bg-green-500" aria-hidden="true" />
+                <span className="size-1.5 rounded-full bg-teal-500" aria-hidden="true" />
                 Connected to {selectedPortal?.hostname}
               </span>
             </>
@@ -334,7 +334,7 @@ export function StatusBar() {
           <>
             <Separator orientation="vertical" className="h-5" aria-hidden="true" />
             <span className="text-muted-foreground flex items-center gap-1.5" aria-label="Connection status">
-              <span className="size-1.5 rounded-full bg-green-500 shrink-0" aria-hidden="true" />
+              <span className="size-1.5 rounded-full bg-teal-500 shrink-0" aria-hidden="true" />
               <span>
                 Connected to {selectedPortal?.hostname} via {selectedCollector?.description || selectedCollector?.hostname}
                 {deviceLabel ? (

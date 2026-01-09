@@ -55,7 +55,7 @@ export function AppliesToQueries({ queries }: AppliesToQueriesProps) {
                 onClick={() => copyToClipboard(item.query, index)}
               >
                 {copiedIndex === index ? (
-                  <Check className="size-3.5 text-green-500" />
+                  <Check className="size-3.5 text-teal-500" />
                 ) : (
                   <Copy className="size-3.5" />
                 )}

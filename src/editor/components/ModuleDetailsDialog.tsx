@@ -355,7 +355,7 @@ export function ModuleDetailsDialog() {
             <div className="flex items-center justify-between w-full">
               <div className="text-xs text-muted-foreground">
                 {hasChanges && (
-                  <span className="text-amber-500">You have changes that have not been staged</span>
+                  <span className="text-yellow-500">You have changes that have not been staged</span>
                 )}
               </div>
               <div className="flex items-center gap-2 ml-auto">

@@ -23,8 +23,8 @@ import { SnippetPreviewDialog } from './SnippetPreviewDialog';
 import { ConfirmationDialog } from './ConfirmationDialog';
 
 const LANGUAGE_COLORS: Record<string, string> = {
-  groovy: 'bg-orange-500/10 text-orange-500 border-orange-500/20',
-  powershell: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
+  groovy: 'bg-yellow-700/10 text-yellow-700 border-yellow-700/20',
+  powershell: 'bg-cyan-500/10 text-cyan-500 border-cyan-500/20',
   both: 'bg-purple-500/10 text-purple-500 border-purple-500/20',
 };
 

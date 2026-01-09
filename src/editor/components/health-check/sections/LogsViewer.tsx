@@ -113,7 +113,7 @@ function LogTab({
         <Button variant="outline" size="sm" onClick={onCopy}>
           {isCopied ? (
             <>
-              <Check className="size-3.5 mr-1 text-green-500" />
+              <Check className="size-3.5 mr-1 text-teal-500" />
               Copied
             </>
           ) : (

@@ -20,8 +20,8 @@ import { buildMonacoOptions, getMonacoTheme } from '../utils/monaco-settings';
 import '../monaco-loader';
 
 const LANGUAGE_COLORS: Record<string, string> = {
-  groovy: 'bg-orange-500/10 text-orange-500 border-orange-500/20',
-  powershell: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
+  groovy: 'bg-yellow-700/10 text-yellow-700 border-yellow-700/20',
+  powershell: 'bg-cyan-500/10 text-cyan-500 border-cyan-500/20',
   both: 'bg-purple-500/10 text-purple-500 border-purple-500/20',
 };
 
@@ -133,7 +133,7 @@ export function SnippetPreviewDialog({
 
         <DialogFooter className="shrink-0">
           {!isCompatible && (
-            <p className="text-xs text-amber-500 mr-auto">
+            <p className="text-xs text-yellow-500 mr-auto">
               This snippet is for {snippet.language === 'groovy' ? 'Groovy' : 'PowerShell'} only.
               Switch language to insert it.
             </p>

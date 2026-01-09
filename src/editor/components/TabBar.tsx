@@ -163,7 +163,7 @@ function TabItem({
                     <span
                       className={cn(
                         'flex items-center justify-center size-4 rounded-sm',
-                        isPortalActive ? 'text-muted-foreground' : 'text-amber-500'
+                        isPortalActive ? 'text-muted-foreground' : 'text-yellow-500'
                       )}
                       aria-label={isPortalActive ? 'Portal bound' : 'Portal mismatch'}
                     >
@@ -180,7 +180,7 @@ function TabItem({
                           render={
                             <Cloud className={cn(
                               "size-3 shrink-0",
-                              isActive ? "text-blue-400" : "text-blue-400/70"
+                              isActive ? "text-cyan-400" : "text-cyan-400/70"
                             )} />
                           }
                         />
@@ -197,7 +197,7 @@ function TabItem({
                           render={
                             <Circle className={cn(
                               "size-2.5 fill-current shrink-0",
-                              isActive ? "text-amber-400" : "text-muted-foreground"
+                              isActive ? "text-yellow-400" : "text-muted-foreground"
                             )} />
                           }
                         />
@@ -277,13 +277,13 @@ function TabItem({
         {(portalChanges || fileDirty) && (
           <div className="flex items-center gap-2 text-[10px] mt-1 pt-1 border-t border-border/50">
             {portalChanges && (
-              <span className="flex items-center gap-1 text-blue-400">
+              <span className="flex items-center gap-1 text-cyan-400">
                 <Cloud className="size-2.5" />
                 Unpushed changes
               </span>
             )}
             {fileDirty && (
-              <span className="flex items-center gap-1 text-amber-400">
+              <span className="flex items-center gap-1 text-yellow-400">
                 <Circle className="size-2 fill-current" />
                 Unsaved changes
               </span>
@@ -592,8 +592,8 @@ export function TabBar() {
         <AlertDialog open={pendingCloseTabId !== null} onOpenChange={(open) => !open && handleCancelClose()}>
           <AlertDialogContent className="max-w-xl!">
             <AlertDialogHeader>
-              <AlertDialogMedia className="bg-amber-500/10">
-                <AlertTriangle className="size-8 text-amber-500" />
+              <AlertDialogMedia className="bg-yellow-500/10">
+                <AlertTriangle className="size-8 text-yellow-500" />
               </AlertDialogMedia>
               <AlertDialogTitle>
                 {closeScenario === 'directory-saved' && 'Unsaved Changes'}

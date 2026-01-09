@@ -385,8 +385,8 @@ export function DatapointEditorSheet({
 
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
           {/* Advanced options disclaimer */}
-          <div className="flex items-start gap-3 rounded-lg border-l-4 border-blue-500 bg-blue-500/10 p-3">
-            <Info className="size-4 text-blue-500 mt-0.5 shrink-0" />
+          <div className="flex items-start gap-3 rounded-lg border-l-4 border-cyan-500 bg-cyan-500/10 p-3">
+            <Info className="size-4 text-cyan-500 mt-0.5 shrink-0" />
             <p className="text-sm text-muted-foreground">
               Some advanced options (dynamic thresholds, anomaly detection) are not shown. 
               Edit in Portal for full control.

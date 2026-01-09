@@ -60,8 +60,8 @@ const EDGE_TYPE_COLORS: Record<string, string> = {
 };
 
 const NODE_COLORS = {
-  device: 'bg-blue-500/20 border-blue-500/50',
-  external: 'bg-slate-500/20 border-slate-500/50',
+  device: 'bg-cyan-500/20 border-cyan-500/50',
+  external: 'bg-grey-500/20 border-grey-500/50',
 };
 
 // ============================================================================
@@ -566,13 +566,13 @@ export function TopologyGraphView({ result }: TopologyGraphViewProps) {
             {/* Node types */}
             {vertices.length > 0 && (
               <div className="flex items-center gap-1 text-muted-foreground">
-                <div className="w-2.5 h-2.5 rounded-sm bg-blue-500/50 border border-blue-500" />
+                <div className="w-2.5 h-2.5 rounded-sm bg-cyan-500/50 border border-cyan-500" />
                 <span>Device</span>
               </div>
             )}
             {hasExternalNodes && (
               <div className="flex items-center gap-1 text-muted-foreground">
-                <div className="w-2.5 h-2.5 rounded-sm bg-slate-500/50 border border-slate-500" />
+                <div className="w-2.5 h-2.5 rounded-sm bg-grey-500/50 border border-grey-500" />
                 <span>External</span>
               </div>
             )}

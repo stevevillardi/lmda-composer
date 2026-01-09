@@ -287,7 +287,7 @@ export function ModuleSnippetsDialog() {
                             <Tooltip>
                               <TooltipTrigger
                                 render={
-                                  <Database className="size-3 text-emerald-500" />
+                                  <Database className="size-3 text-teal-500" />
                                 }
                               />
                               <TooltipContent>Source cached locally</TooltipContent>
@@ -355,7 +355,7 @@ export function ModuleSnippetsDialog() {
                   <SelectTrigger className="h-8 w-auto gap-2 text-xs min-w-[100px]">
                     <div className="flex items-center gap-1.5">
                       {isCurrentVersionCached && (
-                        <Database className="size-3 text-emerald-500" />
+                        <Database className="size-3 text-teal-500" />
                       )}
                       <SelectValue />
                     </div>
@@ -378,7 +378,7 @@ export function ModuleSnippetsDialog() {
                                 </Badge>
                               )}
                               {isCached && (
-                                <Database className="size-3 text-emerald-500 ml-auto" />
+                                <Database className="size-3 text-teal-500 ml-auto" />
                               )}
                             </div>
                           </SelectItem>

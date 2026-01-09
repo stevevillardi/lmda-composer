@@ -6,100 +6,104 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.13 0.028 261.692);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.13 0.028 261.692);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.13 0.028 261.692);
-    --primary: oklch(0.21 0.034 264.665);
-    --primary-foreground: oklch(0.985 0.002 247.839);
-    --secondary: oklch(0.967 0.003 264.542);
-    --secondary-foreground: oklch(0.21 0.034 264.665);
-    --muted: oklch(0.967 0.003 264.542);
-    --muted-foreground: oklch(0.551 0.027 264.364);
-    --accent: oklch(0.967 0.003 264.542);
-    --accent-foreground: oklch(0.21 0.034 264.665);
-    --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.928 0.006 264.531);
-    --input: oklch(0.928 0.006 264.531);
-    --ring: oklch(0.707 0.022 261.325);
-    --chart-1: oklch(0.646 0.222 41.116);
-    --chart-2: oklch(0.6 0.118 184.704);
-    --chart-3: oklch(0.398 0.07 227.392);
-    --chart-4: oklch(0.828 0.189 84.429);
-    --chart-5: oklch(0.769 0.188 70.08);
+    /* Palette 3 - Light Theme
+       Primary: Purple, Neutrals: Blue-Grey */
+    --background: #FFFFFF;
+    --foreground: #102A43; /* grey-900 */
+    --card: #FFFFFF;
+    --card-foreground: #102A43; /* grey-900 */
+    --popover: #FFFFFF;
+    --popover-foreground: #102A43; /* grey-900 */
+    --primary: #3525E6; /* purple-700 */
+    --primary-foreground: #E6E6FF; /* purple-50 */
+    --secondary: #D9E2EC; /* grey-100 */
+    --secondary-foreground: #243B53; /* grey-800 */
+    --muted: #F0F4F8; /* grey-50 */
+    --muted-foreground: #627D98; /* grey-500 */
+    --accent: #E6E6FF; /* purple-50 */
+    --accent-foreground: #3525E6; /* purple-700 */
+    --destructive: #E12D39; /* red-500 */
+    --border: #D9E2EC; /* grey-100 */
+    --input: #D9E2EC; /* grey-100 */
+    --ring: #5D55FA; /* purple-500 */
+    --chart-1: #5D55FA; /* purple-500 */
+    --chart-2: #27AB83; /* teal-500 */
+    --chart-3: #2BB0ED; /* cyan-500 */
+    --chart-4: #F0B429; /* yellow-500 */
+    --chart-5: #E12D39; /* red-500 */
     --radius: 0.625rem;
-    --sidebar: oklch(0.985 0.002 247.839);
-    --sidebar-foreground: oklch(0.13 0.028 261.692);
-    --sidebar-primary: oklch(0.21 0.034 264.665);
-    --sidebar-primary-foreground: oklch(0.985 0.002 247.839);
-    --sidebar-accent: oklch(0.967 0.003 264.542);
-    --sidebar-accent-foreground: oklch(0.21 0.034 264.665);
-    --sidebar-border: oklch(0.928 0.006 264.531);
-    --sidebar-ring: oklch(0.707 0.022 261.325);
+    --sidebar: #F0F4F8; /* grey-50 */
+    --sidebar-foreground: #102A43; /* grey-900 */
+    --sidebar-primary: #3525E6; /* purple-700 */
+    --sidebar-primary-foreground: #E6E6FF; /* purple-50 */
+    --sidebar-accent: #D9E2EC; /* grey-100 */
+    --sidebar-accent-foreground: #243B53; /* grey-800 */
+    --sidebar-border: #D9E2EC; /* grey-100 */
+    --sidebar-ring: #5D55FA; /* purple-500 */
     
     /* Status colors */
-    --success: oklch(0.627 0.194 149);
-    --warning: oklch(0.769 0.188 84);
-    --error: oklch(0.577 0.245 27);
-    --info: oklch(0.623 0.214 259);
+    --success: #27AB83; /* teal-500 */
+    --warning: #F0B429; /* yellow-500 */
+    --error: #E12D39; /* red-500 */
+    --info: #2BB0ED; /* cyan-500 */
     
     /* Scrollbar colors */
-    --scrollbar-thumb-hover: oklch(0.85 0.006 264.531);
+    --scrollbar-thumb-hover: #BCCCDC; /* grey-200 */
     
     /* Monaco editor highlight colors */
-    --monaco-search-line: rgba(245, 158, 11, 0.18);
-    --monaco-search-inline: rgba(245, 158, 11, 0.35);
-    --monaco-search-inline-border: rgba(245, 158, 11, 0.7);
+    --monaco-search-line: rgba(240, 180, 41, 0.18); /* yellow-500 based */
+    --monaco-search-inline: rgba(240, 180, 41, 0.35);
+    --monaco-search-inline-border: rgba(240, 180, 41, 0.7);
 }
 
 .dark {
-    --background: oklch(0.13 0.028 261.692);
-    --foreground: oklch(0.985 0.002 247.839);
-    --card: oklch(0.21 0.034 264.665);
-    --card-foreground: oklch(0.985 0.002 247.839);
-    --popover: oklch(0.21 0.034 264.665);
-    --popover-foreground: oklch(0.985 0.002 247.839);
-    --primary: oklch(0.928 0.006 264.531);
-    --primary-foreground: oklch(0.21 0.034 264.665);
-    --secondary: oklch(0.278 0.033 256.848);
-    --secondary-foreground: oklch(0.985 0.002 247.839);
-    --muted: oklch(0.278 0.033 256.848);
-    --muted-foreground: oklch(0.707 0.022 261.325);
-    --accent: oklch(0.278 0.033 256.848);
-    --accent-foreground: oklch(0.985 0.002 247.839);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.551 0.027 264.364);
-    --chart-1: oklch(0.488 0.243 264.376);
-    --chart-2: oklch(0.696 0.17 162.48);
-    --chart-3: oklch(0.769 0.188 70.08);
-    --chart-4: oklch(0.627 0.265 303.9);
-    --chart-5: oklch(0.645 0.246 16.439);
-    --sidebar: oklch(0.21 0.034 264.665);
-    --sidebar-foreground: oklch(0.985 0.002 247.839);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0.002 247.839);
-    --sidebar-accent: oklch(0.278 0.033 256.848);
-    --sidebar-accent-foreground: oklch(0.985 0.002 247.839);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.551 0.027 264.364);
+    /* Palette 3 - Dark Theme
+       Primary: Purple (lighter shades), Neutrals: Blue-Grey (darker shades) */
+    --background: #102A43; /* grey-900 */
+    --foreground: #F0F4F8; /* grey-50 */
+    --card: #243B53; /* grey-800 */
+    --card-foreground: #F0F4F8; /* grey-50 */
+    --popover: #243B53; /* grey-800 */
+    --popover-foreground: #F0F4F8; /* grey-50 */
+    --primary: #7069FA; /* purple-400 */
+    --primary-foreground: #E6E6FF; /* purple-50 */
+    --secondary: #334E68; /* grey-700 */
+    --secondary-foreground: #F0F4F8; /* grey-50 */
+    --muted: #334E68; /* grey-700 */
+    --muted-foreground: #9FB3C8; /* grey-300 */
+    --accent: rgba(112, 105, 250, 0.15); /* purple-400 at 15% - visible purple tint */
+    --accent-foreground: #C4C6FF; /* purple-100 */
+    --destructive: #EF4E4E; /* red-400 */
+    --border: rgba(255, 255, 255, 0.1);
+    --input: rgba(255, 255, 255, 0.15);
+    --ring: #7069FA; /* purple-400 */
+    --chart-1: #7069FA; /* purple-400 */
+    --chart-2: #3EBD93; /* teal-400 */
+    --chart-3: #40C3F7; /* cyan-400 */
+    --chart-4: #F7C948; /* yellow-400 */
+    --chart-5: #EF4E4E; /* red-400 */
+    --sidebar: #243B53; /* grey-800 */
+    --sidebar-foreground: #F0F4F8; /* grey-50 */
+    --sidebar-primary: #7069FA; /* purple-400 */
+    --sidebar-primary-foreground: #E6E6FF; /* purple-50 */
+    --sidebar-accent: rgba(112, 105, 250, 0.15); /* purple-400 at 15% */
+    --sidebar-accent-foreground: #F0F4F8; /* grey-50 */
+    --sidebar-border: rgba(255, 255, 255, 0.1);
+    --sidebar-ring: #7069FA; /* purple-400 */
     
     /* Status colors */
-    --success: oklch(0.627 0.194 149);
-    --warning: oklch(0.769 0.188 84);
-    --error: oklch(0.704 0.191 22);
-    --info: oklch(0.623 0.214 259);
+    --success: #3EBD93; /* teal-400 */
+    --warning: #F7C948; /* yellow-400 */
+    --error: #EF4E4E; /* red-400 */
+    --info: #40C3F7; /* cyan-400 */
     
     /* Scrollbar colors */
-    --scrollbar-thumb-hover: oklch(1 0 0 / 40%);
+    --scrollbar-thumb-hover: rgba(255, 255, 255, 0.4);
     
     /* Monaco editor highlight colors - slightly brighter for dark mode */
-    --monaco-search-line: rgba(245, 158, 11, 0.22);
-    --monaco-search-inline: rgba(245, 158, 11, 0.40);
-    --monaco-search-inline-border: rgba(245, 158, 11, 0.75);
+    --monaco-search-line: rgba(247, 201, 72, 0.22); /* yellow-400 based */
+    --monaco-search-inline: rgba(247, 201, 72, 0.40);
+    --monaco-search-inline-border: rgba(247, 201, 72, 0.75);
 }
 
 @theme inline {
@@ -146,6 +150,82 @@
     --radius-2xl: calc(var(--radius) + 8px);
     --radius-3xl: calc(var(--radius) + 12px);
     --radius-4xl: calc(var(--radius) + 16px);
+    
+    /* ============================================
+       Palette 3 - Custom Color Scale
+       ============================================ */
+    
+    /* Purple - Primary brand color */
+    --color-purple-50: #E6E6FF;
+    --color-purple-100: #C4C6FF;
+    --color-purple-200: #A2A5FC;
+    --color-purple-300: #8888FC;
+    --color-purple-400: #7069FA;
+    --color-purple-500: #5D55FA;
+    --color-purple-600: #4D3DF7;
+    --color-purple-700: #3525E6;
+    --color-purple-800: #1D0EBE;
+    --color-purple-900: #0C008C;
+    
+    /* Teal - Success, positive states */
+    --color-teal-50: #EFFCF6;
+    --color-teal-100: #C6F7E2;
+    --color-teal-200: #8EEDC7;
+    --color-teal-300: #65D6AD;
+    --color-teal-400: #3EBD93;
+    --color-teal-500: #27AB83;
+    --color-teal-600: #199473;
+    --color-teal-700: #147D64;
+    --color-teal-800: #0C6B58;
+    --color-teal-900: #014D40;
+    
+    /* Blue Grey - Neutrals */
+    --color-grey-50: #F0F4F8;
+    --color-grey-100: #D9E2EC;
+    --color-grey-200: #BCCCDC;
+    --color-grey-300: #9FB3C8;
+    --color-grey-400: #829AB1;
+    --color-grey-500: #627D98;
+    --color-grey-600: #486581;
+    --color-grey-700: #334E68;
+    --color-grey-800: #243B53;
+    --color-grey-900: #102A43;
+    
+    /* Light Blue Vivid - Info, links */
+    --color-cyan-50: #E3F8FF;
+    --color-cyan-100: #B3ECFF;
+    --color-cyan-200: #81DEFD;
+    --color-cyan-300: #5ED0FA;
+    --color-cyan-400: #40C3F7;
+    --color-cyan-500: #2BB0ED;
+    --color-cyan-600: #1992D4;
+    --color-cyan-700: #127FBF;
+    --color-cyan-800: #0B69A3;
+    --color-cyan-900: #035388;
+    
+    /* Red Vivid - Error, destructive, critical */
+    --color-red-50: #FFE3E3;
+    --color-red-100: #FFBDBD;
+    --color-red-200: #FF9B9B;
+    --color-red-300: #F86A6A;
+    --color-red-400: #EF4E4E;
+    --color-red-500: #E12D39;
+    --color-red-600: #CF1124;
+    --color-red-700: #AB091E;
+    --color-red-800: #8A041A;
+    --color-red-900: #610316;
+    
+    /* Yellow Vivid - Warning states */
+    --color-yellow-50: #FFFBEA;
+    --color-yellow-100: #FFF3C4;
+    --color-yellow-200: #FCE588;
+    --color-yellow-300: #FADB5F;
+    --color-yellow-400: #F7C948;
+    --color-yellow-500: #F0B429;
+    --color-yellow-600: #DE911D;
+    --color-yellow-700: #CB6E17;
+    --color-yellow-800: #B44D12;
+    --color-yellow-900: #8D2B0B;
 }
 
 @layer base {

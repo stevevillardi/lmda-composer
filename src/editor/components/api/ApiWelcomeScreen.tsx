@@ -315,8 +315,8 @@ export function ApiWelcomeScreen() {
                         <span className={cn(
                           "text-xs font-mono font-medium",
                           http >= 500 ? "text-red-500" :
-                          http >= 400 ? "text-amber-500" :
-                          http >= 200 ? "text-emerald-500" : "text-muted-foreground"
+                          http >= 400 ? "text-yellow-500" :
+                          http >= 200 ? "text-teal-500" : "text-muted-foreground"
                         )}>
                           {http}
                         </span>

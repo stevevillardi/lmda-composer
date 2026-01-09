@@ -250,7 +250,7 @@ export function ApiResponseViewer() {
           <Tooltip>
             <TooltipTrigger
               render={
-                <Badge className="text-[10px] font-semibold bg-amber-500/15 text-amber-500 select-none">
+                <Badge className="text-[10px] font-semibold bg-yellow-500/15 text-yellow-500 select-none">
                   Response truncated
                 </Badge>
               }

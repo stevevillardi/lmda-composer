@@ -378,7 +378,7 @@ export function OpenModuleDirectoryDialog() {
                   {hasAnyMissingScripts && !canReExportMissing && (
                     <Tooltip>
                       <TooltipTrigger>
-                        <Badge variant="outline" className="text-xs text-amber-600 border-amber-600/50">
+                        <Badge variant="outline" className="text-xs text-yellow-600 border-amber-600/50">
                           <AlertTriangle className="size-3 mr-1" />
                           Missing files
                         </Badge>
@@ -406,7 +406,7 @@ export function OpenModuleDirectoryDialog() {
                           key={scriptType}
                           className={`flex items-center gap-3 p-3 rounded-md border ${
                             isMissing 
-                              ? 'border-amber-600/50 bg-amber-500/5' 
+                              ? 'border-amber-600/50 bg-yellow-500/5' 
                               : 'border-border/70 bg-card/30'
                           }`}
                         >
@@ -425,7 +425,7 @@ export function OpenModuleDirectoryDialog() {
                               <div className="text-sm font-medium capitalize flex items-center gap-2">
                                 {scriptType === 'collection' ? 'Collection' : 'Active Discovery'}
                                 {isMissing && (
-                                  <Badge variant="outline" className="text-xs text-amber-600 border-amber-600/50">
+                                  <Badge variant="outline" className="text-xs text-yellow-600 border-amber-600/50">
                                     <AlertTriangle className="size-3 mr-1" />
                                     Missing
                                   </Badge>
@@ -433,7 +433,7 @@ export function OpenModuleDirectoryDialog() {
                                 {!isMissing && isModified && (
                                   <Tooltip>
                                     <TooltipTrigger>
-                                      <Badge variant="outline" className="text-xs text-blue-600 border-blue-600/50">
+                                      <Badge variant="outline" className="text-xs text-cyan-600 border-blue-600/50">
                                         Modified
                                       </Badge>
                                     </TooltipTrigger>
@@ -443,7 +443,7 @@ export function OpenModuleDirectoryDialog() {
                                   </Tooltip>
                                 )}
                                 {!isMissing && !isModified && (
-                                  <CheckCircle2 className="size-3 text-green-600" />
+                                  <CheckCircle2 className="size-3 text-teal-600" />
                                 )}
                               </div>
                               <div className="text-xs text-muted-foreground">

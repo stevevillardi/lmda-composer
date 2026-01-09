@@ -40,7 +40,7 @@ export const ALERT_LEVEL_SHORT_LABELS: Record<AlertLevel, string> = {
  */
 export const ALERT_LEVEL_TEXT_STYLES: Record<AlertLevel, string> = {
   warning: 'text-yellow-500',
-  error: 'text-orange-500',
+  error: 'text-yellow-700',
   critical: 'text-red-500',
 };
 
@@ -49,7 +49,7 @@ export const ALERT_LEVEL_TEXT_STYLES: Record<AlertLevel, string> = {
  */
 export const ALERT_LEVEL_BG_STYLES: Record<AlertLevel, string> = {
   warning: 'bg-yellow-500/15 text-yellow-500 border-yellow-500/30',
-  error: 'bg-orange-500/15 text-orange-500 border-orange-500/30',
+  error: 'bg-yellow-700/15 text-yellow-700 border-yellow-700/30',
   critical: 'bg-red-500/15 text-red-500 border-red-500/30',
 };
 

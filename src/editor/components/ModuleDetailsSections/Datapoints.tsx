@@ -467,11 +467,11 @@ export function ModuleDetailsDatapoints({ tabId, moduleId, moduleType }: ModuleD
                                           {dp.alertForNoData === 1 ? (
                                             <BellOff className="size-3.5 text-muted-foreground" />
                                           ) : (
-                                            <Bell className="size-3.5 text-amber-500" />
+                                            <Bell className="size-3.5 text-yellow-500" />
                                           )}
                                           <span className="text-muted-foreground">No Data:</span>
                                           <span className={cn(
-                                            hasNoDataAlert && 'text-amber-500'
+                                            hasNoDataAlert && 'text-yellow-500'
                                           )}>
                                             {ALERT_NO_DATA_LABELS[dp.alertForNoData] || 'Unknown'}
                                           </span>

@@ -173,7 +173,7 @@ export function PullFromPortalDialog({
               <AlertDescription>
                 Pulling will overwrite your local content with the version from the portal.
                 {scriptsForPull?.some(s => s.hasChanges) && (
-                  <span className="block mt-1 text-amber-600 dark:text-amber-400">
+                  <span className="block mt-1 text-yellow-600 dark:text-yellow-400">
                     You have local changes that will be lost if you proceed.
                   </span>
                 )}
@@ -235,11 +235,11 @@ export function PullFromPortalDialog({
                           {script.language === 'powershell' ? 'PowerShell' : 'Groovy'}
                         </Badge>
                         {script.hasChanges ? (
-                          <Badge variant="outline" className="text-xs text-amber-600 border-amber-600/50">
+                          <Badge variant="outline" className="text-xs text-yellow-600 border-amber-600/50">
                             Local changes
                           </Badge>
                         ) : (
-                          <Badge variant="outline" className="text-xs text-green-600 border-green-600/50">
+                          <Badge variant="outline" className="text-xs text-teal-600 border-green-600/50">
                             In sync
                           </Badge>
                         )}
@@ -303,7 +303,7 @@ export function PullFromPortalDialog({
                       {detailsChanges.length} field{detailsChanges.length !== 1 ? 's' : ''} differ
                     </Badge>
                   ) : (
-                    <Badge variant="outline" className="text-xs text-green-600 border-green-600/50">
+                    <Badge variant="outline" className="text-xs text-teal-600 border-green-600/50">
                       In sync
                     </Badge>
                   )}

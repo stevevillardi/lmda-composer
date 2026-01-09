@@ -14,10 +14,10 @@ import { useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 
 const TYPE_COLORS: Record<string, string> = {
-  system: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
-  custom: 'bg-green-500/10 text-green-500 border-green-500/20',
+  system: 'bg-cyan-500/10 text-cyan-500 border-cyan-500/20',
+  custom: 'bg-teal-500/10 text-teal-500 border-teal-500/20',
   inherited: 'bg-purple-500/10 text-purple-500 border-purple-500/20',
-  auto: 'bg-amber-500/10 text-amber-500 border-amber-500/20',
+  auto: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
 };
 
 export function DevicePropertiesPanel() {

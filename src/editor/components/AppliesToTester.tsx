@@ -721,7 +721,7 @@ export function AppliesToTester() {
                         Editing: {loadedFunction.name}
                       </Badge>
                       {hasExpressionChanged && (
-                        <Badge variant="outline" className="text-xs text-orange-500 border-orange-500">
+                        <Badge variant="outline" className="text-xs text-yellow-700 border-yellow-700">
                           Modified
                         </Badge>
                       )}
@@ -958,7 +958,7 @@ export function AppliesToTester() {
                                 className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
                               >
                                 {copiedId === match.id ? (
-                                  <Check className="size-3 text-green-500" />
+                                  <Check className="size-3 text-teal-500" />
                                 ) : (
                                   <Copy className="size-3" />
                                 )}
@@ -975,7 +975,7 @@ export function AppliesToTester() {
 
               {/* Success indicator when results exist */}
               {appliesToResults.length > 0 && !appliesToError && (
-                <div className="flex items-center gap-2 text-sm text-green-500">
+                <div className="flex items-center gap-2 text-sm text-teal-500">
                   <SuccessIcon className="size-4" />
                   <span>Expression is valid</span>
                 </div>

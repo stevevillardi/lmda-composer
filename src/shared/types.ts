@@ -98,7 +98,7 @@ export interface UserPreferences {
 }
 
 export const DEFAULT_PREFERENCES: UserPreferences = {
-  theme: 'dark',
+  theme: 'system',
   fontSize: 14,
   tabSize: 2,
   wordWrap: true,

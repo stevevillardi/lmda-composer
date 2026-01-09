@@ -381,16 +381,16 @@ export function App() {
 
       {/* File Permission Banner - shown when files need permission re-request */}
       {tabsNeedingPermission.length > 0 && (
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 border-b border-amber-500/20">
-          <FileWarning className="size-4 text-amber-500 shrink-0" />
-          <span className="text-sm text-amber-500 flex-1">
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-yellow-500/10 border-b border-yellow-500/20">
+          <FileWarning className="size-4 text-yellow-500 shrink-0" />
+          <span className="text-sm text-yellow-500 flex-1">
             {tabsNeedingPermission.length} file{tabsNeedingPermission.length !== 1 ? 's' : ''} need permission to save directly
           </span>
           <Button 
             variant="outline" 
             size="sm"
             onClick={requestFilePermissions}
-            className="border-amber-500/30 text-amber-500 hover:bg-amber-500/10"
+            className="border-yellow-500/30 text-yellow-500 hover:bg-yellow-500/10"
           >
             Restore Access
           </Button>

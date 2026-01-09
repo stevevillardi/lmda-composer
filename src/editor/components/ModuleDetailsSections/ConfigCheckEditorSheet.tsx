@@ -87,7 +87,7 @@ interface InfoBoxProps {
 
 function InfoBox({ icon = <Info className="size-4" />, children, className = '' }: InfoBoxProps) {
   return (
-    <div className={`flex gap-2 p-3 rounded-md bg-blue-500/5 border-l-2 border-blue-500/50 text-sm text-muted-foreground ${className}`}>
+    <div className={`flex gap-2 p-3 rounded-md bg-cyan-500/5 border-l-2 border-cyan-500/50 text-sm text-muted-foreground ${className}`}>
       <div className="shrink-0 mt-0.5">{icon}</div>
       <div>{children}</div>
     </div>

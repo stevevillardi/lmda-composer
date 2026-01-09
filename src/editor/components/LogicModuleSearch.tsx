@@ -1007,7 +1007,7 @@ export function LogicModuleSearch() {
                   : ''}
               </span>
               {moduleSearchIndexInfo?.isStale && (
-                <Badge variant="outline" className="text-[10px] text-amber-500 border-amber-500/30">
+                <Badge variant="outline" className="text-[10px] text-yellow-500 border-yellow-500/30">
                   Stale
                 </Badge>
               )}

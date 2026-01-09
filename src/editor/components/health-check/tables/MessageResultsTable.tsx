@@ -28,7 +28,7 @@ export function MessageResultsTable({ data }: MessageResultsTableProps) {
     return (
       <SectionCard title="Top Message Results" icon={<MessageSquare className="size-4" />}>
         <div className="flex items-center justify-center py-8 text-muted-foreground select-none">
-          <CheckCircle className="size-5 mr-2 text-green-500" />
+          <CheckCircle className="size-5 mr-2 text-teal-500" />
           <span className="text-sm">No error messages detected</span>
         </div>
       </SectionCard>
@@ -77,7 +77,7 @@ function MessageTable({ messages }: { messages: { message: string; count: number
   if (messages.length === 0) {
     return (
       <div className="flex items-center justify-center py-8 text-muted-foreground select-none">
-        <CheckCircle className="size-4 mr-2 text-green-500" />
+        <CheckCircle className="size-4 mr-2 text-teal-500" />
         <span className="text-sm">No messages</span>
       </div>
     );

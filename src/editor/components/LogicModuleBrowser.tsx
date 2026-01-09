@@ -339,7 +339,7 @@ export function LogicModuleBrowser() {
       <AlertDialog open={pendingModuleLoad !== null} onOpenChange={(open) => !open && cancelModuleLoad()}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogMedia className="bg-amber-500/10">
+            <AlertDialogMedia className="bg-yellow-500/10">
               <WarningIcon className="size-8" />
             </AlertDialogMedia>
             <AlertDialogTitle>Load script?</AlertDialogTitle>

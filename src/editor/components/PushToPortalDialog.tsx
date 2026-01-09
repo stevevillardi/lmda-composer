@@ -601,9 +601,9 @@ export function PushToPortalDialog({
     }
     
     const statusStyles: Record<DatapointChangeStatus, string> = {
-      added: 'bg-green-500/15 text-green-600 border-green-500/30',
+      added: 'bg-teal-500/15 text-teal-600 border-teal-500/30',
       removed: 'bg-red-500/15 text-red-600 border-red-500/30 line-through',
-      modified: 'bg-amber-500/15 text-amber-600 border-amber-500/30',
+      modified: 'bg-yellow-500/15 text-yellow-600 border-yellow-500/30',
       unchanged: '',
     };
     
@@ -638,9 +638,9 @@ export function PushToPortalDialog({
     }
     
     const statusStyles: Record<ConfigCheckChangeStatus, string> = {
-      added: 'bg-green-500/15 text-green-600 border-green-500/30',
+      added: 'bg-teal-500/15 text-teal-600 border-teal-500/30',
       removed: 'bg-red-500/15 text-red-600 border-red-500/30 line-through',
-      modified: 'bg-amber-500/15 text-amber-600 border-amber-500/30',
+      modified: 'bg-yellow-500/15 text-yellow-600 border-yellow-500/30',
       unchanged: '',
     };
     
@@ -816,7 +816,7 @@ export function PushToPortalDialog({
                         {script.language === 'powershell' ? 'PowerShell' : 'Groovy'}
                       </Badge>
                       {script.hasChanges ? (
-                        <Badge variant="outline" className="text-xs text-amber-600 border-amber-600/50">
+                        <Badge variant="outline" className="text-xs text-yellow-600 border-amber-600/50">
                           Modified
                         </Badge>
                       ) : (
@@ -965,10 +965,10 @@ export function PushToPortalDialog({
                                   <div className="flex items-center justify-between">
                                     <div className="text-sm font-medium select-none">{change.label}</div>
                                     <div className="flex items-center gap-3 text-[11px] select-none">
-                                      <span className="flex items-center gap-1 text-green-600">
+                                      <span className="flex items-center gap-1 text-teal-600">
                                         <span className="font-bold">+</span> Added
                                       </span>
-                                      <span className="flex items-center gap-1 text-amber-600">
+                                      <span className="flex items-center gap-1 text-yellow-600">
                                         <span className="font-bold">~</span> Modified
                                       </span>
                                       <span className="flex items-center gap-1 text-red-600">
@@ -986,10 +986,10 @@ export function PushToPortalDialog({
                                   <div className="flex items-center justify-between">
                                     <div className="text-sm font-medium select-none">{change.label}</div>
                                     <div className="flex items-center gap-3 text-[11px] select-none">
-                                      <span className="flex items-center gap-1 text-green-600">
+                                      <span className="flex items-center gap-1 text-teal-600">
                                         <span className="font-bold">+</span> Added
                                       </span>
-                                      <span className="flex items-center gap-1 text-amber-600">
+                                      <span className="flex items-center gap-1 text-yellow-600">
                                         <span className="font-bold">~</span> Modified
                                       </span>
                                       <span className="flex items-center gap-1 text-red-600">
@@ -1016,7 +1016,7 @@ export function PushToPortalDialog({
                                   </div>
                                   <div className="space-y-1">
                                     <div className="text-xs text-muted-foreground select-none">Modified</div>
-                                    <div className="font-mono text-xs bg-background p-2 rounded border border-blue-500/50">
+                                    <div className="font-mono text-xs bg-background p-2 rounded border border-cyan-500/50">
                                       {change.modifiedLines ? renderFilterLines(change.modifiedLines) : change.modified}
                                     </div>
                                   </div>

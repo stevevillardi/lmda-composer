@@ -125,7 +125,7 @@ function ValidationSummary({ result }: ValidationSummaryProps) {
           title="Valid"
           value={summary.valid}
           icon={CheckCircle2}
-          className={summary.valid > 0 ? 'bg-green-500/10 text-green-600' : 'bg-muted/30'}
+          className={summary.valid > 0 ? 'bg-teal-500/10 text-teal-600' : 'bg-muted/30'}
         />
         <SummaryCard
           title="Errors"
@@ -143,11 +143,11 @@ function ValidationSummary({ result }: ValidationSummaryProps) {
 
       {/* All Valid Message */}
       {allValid && (
-        <Card className="border-green-500/30 bg-green-500/5">
+        <Card className="border-teal-500/30 bg-teal-500/5">
           <CardContent className="py-4 flex items-center gap-3">
             <SuccessIcon className="size-6" />
             <div>
-              <div className="font-medium text-green-600">All Valid</div>
+              <div className="font-medium text-teal-600">All Valid</div>
               <div className="text-sm text-muted-foreground">
                 All {summary.total} {getItemLabel(result.type)} passed validation.
               </div>
@@ -188,9 +188,9 @@ function ValidationSummary({ result }: ValidationSummaryProps) {
               title="Info"
               issues={infos}
               icon={Info}
-              iconClass="text-blue-500"
+              iconClass="text-cyan-500"
               badgeVariant="outline"
-              badgeClass="text-blue-500 border-blue-500/30"
+              badgeClass="text-cyan-500 border-cyan-500/30"
             />
           )}
         </div>

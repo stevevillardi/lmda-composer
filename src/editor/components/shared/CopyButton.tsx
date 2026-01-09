@@ -49,7 +49,7 @@ export function CopyButton({
             aria-label={tooltip}
           >
             {copied ? (
-              <CheckCircle2 className={`${iconSize} text-green-500`} />
+              <CheckCircle2 className={`${iconSize} text-teal-500`} />
             ) : (
               <Copy className={iconSize} />
             )}

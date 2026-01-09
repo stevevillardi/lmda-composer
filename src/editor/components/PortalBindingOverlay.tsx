@@ -81,11 +81,11 @@ export function PortalBindingOverlay({ tabId }: PortalBindingOverlayProps) {
   return (
     <>
       <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-        <Card className="max-w-lg w-full mx-4 shadow-xl border-amber-500/30 bg-card">
+        <Card className="max-w-lg w-full mx-4 shadow-xl border-yellow-500/30 bg-card">
           <CardHeader className="pb-3">
             <div className="flex items-center gap-3">
-              <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-amber-500/15">
-                <Lock className="size-5 text-amber-500" />
+              <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-yellow-500/15">
+                <Lock className="size-5 text-yellow-500" />
               </div>
               <div>
                 <CardTitle className="text-base">Portal Bound Tab</CardTitle>
@@ -96,9 +96,9 @@ export function PortalBindingOverlay({ tabId }: PortalBindingOverlayProps) {
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3">
+            <div className="rounded-lg border border-yellow-500/20 bg-yellow-500/5 p-3">
               <div className="flex items-start gap-2">
-                <AlertTriangle className="size-4 text-amber-500 mt-0.5 shrink-0" />
+                <AlertTriangle className="size-4 text-yellow-500 mt-0.5 shrink-0" />
                 <div className="space-y-1 min-w-0">
                   <p className="text-sm text-foreground">{reason}</p>
                   <div className="text-xs text-muted-foreground space-y-0.5">

@@ -15,9 +15,9 @@ const buttonVariants = cva(
         destructive: "bg-destructive/10 hover:bg-destructive/20 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/20 text-destructive focus-visible:border-destructive/40 dark:hover:bg-destructive/30",
         link: "text-primary underline-offset-4 hover:underline",
         // Semantic action variants with improved light mode disabled states
-        commit: "bg-blue-600 hover:bg-blue-700 dark:hover:bg-blue-500 text-white disabled:opacity-100 disabled:bg-blue-300 disabled:text-blue-100 dark:disabled:bg-blue-900 dark:disabled:text-blue-500 disabled:cursor-not-allowed",
-        execute: "bg-green-600 hover:bg-green-700 dark:hover:bg-green-500 text-white disabled:opacity-100 disabled:bg-green-300 disabled:text-green-100 dark:disabled:bg-green-900 dark:disabled:text-green-500 disabled:cursor-not-allowed",
-        warning: "bg-amber-600 hover:bg-amber-700 dark:hover:bg-amber-500 text-white disabled:opacity-100 disabled:bg-amber-300 disabled:text-amber-100 dark:disabled:bg-amber-900 dark:disabled:text-amber-500 disabled:cursor-not-allowed",
+        commit: "bg-purple-600 hover:bg-purple-700 dark:hover:bg-purple-500 text-white disabled:opacity-100 disabled:bg-purple-300 disabled:text-purple-100 dark:disabled:bg-purple-900 dark:disabled:text-purple-500 disabled:cursor-not-allowed",
+        execute: "bg-teal-600 hover:bg-teal-700 dark:hover:bg-teal-500 text-white disabled:opacity-100 disabled:bg-teal-300 disabled:text-teal-100 dark:disabled:bg-teal-900 dark:disabled:text-teal-500 disabled:cursor-not-allowed",
+        warning: "bg-yellow-600 hover:bg-yellow-700 dark:hover:bg-yellow-500 text-white disabled:opacity-100 disabled:bg-yellow-300 disabled:text-yellow-100 dark:disabled:bg-yellow-900 dark:disabled:text-yellow-500 disabled:cursor-not-allowed",
         // Toolbar-specific variants
         "toolbar-outline": "border-border bg-background hover:bg-muted hover:text-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50 text-xs font-medium shadow-xs",
         "toolbar-ghost": "hover:bg-muted hover:text-foreground dark:hover:bg-muted/50 text-xs font-medium",
