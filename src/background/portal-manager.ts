@@ -130,33 +130,31 @@ export class PortalManager {
    * Get a valid tab ID for a portal, trying alternatives if the first fails.
    * Returns null if no valid tabs remain.
    * Note: Does NOT delete the portal if tabs are exhausted - caller should handle rediscovery.
+   * 
+   * This method builds a new array of valid tab IDs and updates atomically to avoid
+   * race conditions when called concurrently.
    */
   private async getValidTabId(portal: Portal): Promise<number | null> {
-    for (let i = 0; i < portal.tabIds.length; i++) {
-      const tabId = portal.tabIds[i];
+    const validTabIds: number[] = [];
+    
+    for (const tabId of portal.tabIds) {
       try {
         // Check if the tab still exists
         const tab = await chrome.tabs.get(tabId);
-        const url = tab?.url ? new URL(tab.url) : null;
-        if (url && url.hostname.endsWith('.logicmonitor.com')) {
-          // Move this tab to the front if it wasn't already
-          if (i > 0) {
-            portal.tabIds.splice(i, 1);
-            portal.tabIds.unshift(tabId);
-          }
-          return tabId;
+        if (tab?.url && new URL(tab.url).hostname.endsWith('.logicmonitor.com')) {
+          validTabIds.push(tabId);
         }
-        portal.tabIds.splice(i, 1);
-        i--;
       } catch {
-        portal.tabIds.splice(i, 1);
-        i--;
+        // Tab no longer exists, skip it
       }
     }
     
+    // Atomic update - replace the entire array at once
+    portal.tabIds = validTabIds;
+    
     // Don't delete the portal here - let the caller handle rediscovery
     // The portal might be refreshable with discoverPortals()
-    return null;
+    return validTabIds[0] ?? null;
   }
 
   private async resolvePortalAndTab(

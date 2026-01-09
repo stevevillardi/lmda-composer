@@ -3,7 +3,7 @@ import { ScriptExecutor, type ExecutorContext } from './script-executor';
 import { ApiExecutor } from './api-executor';
 import { ModuleLoader } from './module-loader';
 import { isValidSender } from './sender-validation';
-import { clearRateLimitState } from './rate-limiter';
+import { clearRateLimitState, initRateLimitState } from './rate-limiter';
 // Initialize the health check script
 import './health-check-script';
 import type { 
@@ -60,6 +60,11 @@ const moduleLoader = new ModuleLoader(portalManager);
 // Load persisted portal state on service worker startup
 portalManager.initialize().catch((err) => {
   console.error('Failed to initialize PortalManager:', err);
+});
+
+// Load persisted rate limit state on service worker startup
+initRateLimitState().catch((err) => {
+  console.error('Failed to initialize rate limit state:', err);
 });
 
 // Create executor context that bridges to PortalManager
