@@ -688,6 +688,8 @@ export interface ScriptSearchResult {
   module: LogicModuleInfo;
   collectionMatches: ScriptMatchRange[];
   adMatches: ScriptMatchRange[];
+  /** True if matched by module name/displayName only (no script content matches) */
+  nameMatch?: boolean;
 }
 
 export interface DataPointSearchResult {

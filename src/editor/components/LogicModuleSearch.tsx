@@ -12,6 +12,8 @@ import {
   CaseSensitive,
   RefreshCw,
   X,
+  FileCode,
+  Tag,
 } from 'lucide-react';
 import {
   ActiveDiscoveryIcon,
@@ -167,6 +169,24 @@ export function LogicModuleSearch() {
       setCollapsedGroups({});
     }
   }, [moduleSearchOpen]);
+
+  // Automatic index hygiene: build on first open, refresh if stale (24 hours)
+  useEffect(() => {
+    if (!moduleSearchOpen || !selectedPortalId) return;
+    // Don't auto-refresh if already loading/indexing
+    if (moduleSearchProgress?.stage === 'indexing') return;
+
+    const indexedAt = moduleSearchIndexInfo?.indexedAt;
+    const STALE_THRESHOLD_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+    if (!indexedAt) {
+      // No index exists - build on first open
+      refreshModuleSearchIndex();
+    } else if (Date.now() - indexedAt > STALE_THRESHOLD_MS) {
+      // Index is stale - refresh automatically
+      refreshModuleSearchIndex();
+    }
+  }, [moduleSearchOpen, selectedPortalId, moduleSearchIndexInfo?.indexedAt, moduleSearchProgress?.stage, refreshModuleSearchIndex]);
 
   const groupedScriptResults = useMemo(() => {
     const grouped = new Map<LogicModuleType, ScriptSearchResult[]>();
@@ -429,6 +449,7 @@ export function LogicModuleSearch() {
                     const isSelected = selectedScriptSearchResult?.module.id === result.module.id;
                     const collectionCount = result.collectionMatches.length;
                     const adCount = result.adMatches.length;
+                    const isNameOnlyMatch = result.nameMatch === true;
                     return (
                       <button
                         key={`${result.module.id}-${result.module.name}`}
@@ -450,25 +471,38 @@ export function LogicModuleSearch() {
                             </div>
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
-                            {adCount > 0 && (
+                            {isNameOnlyMatch ? (
                               <Badge
-                                variant="secondary"
+                                variant="outline"
                                 className="text-[10px] flex items-center gap-1"
-                                aria-label={`${adCount} Active Discovery matches`}
+                                aria-label="Matched by module name"
                               >
-                                <ActiveDiscoveryIcon className="size-3" />
-                                {adCount}
+                                <Tag className="size-3" />
+                                Name
                               </Badge>
-                            )}
-                            {collectionCount > 0 && (
-                              <Badge
-                                variant="secondary"
-                                className="text-[10px] flex items-center gap-1"
-                                aria-label={`${collectionCount} Collection matches`}
-                              >
-                                <CollectionIcon className="size-3" />
-                                {collectionCount}
-                              </Badge>
+                            ) : (
+                              <>
+                                {adCount > 0 && (
+                                  <Badge
+                                    variant="secondary"
+                                    className="text-[10px] flex items-center gap-1"
+                                    aria-label={`${adCount} Active Discovery matches`}
+                                  >
+                                    <ActiveDiscoveryIcon className="size-3" />
+                                    {adCount}
+                                  </Badge>
+                                )}
+                                {collectionCount > 0 && (
+                                  <Badge
+                                    variant="secondary"
+                                    className="text-[10px] flex items-center gap-1"
+                                    aria-label={`${collectionCount} Collection matches`}
+                                  >
+                                    <CollectionIcon className="size-3" />
+                                    {collectionCount}
+                                  </Badge>
+                                )}
+                              </>
                             )}
                           </div>
                         </div>
@@ -666,15 +700,21 @@ export function LogicModuleSearch() {
 
     if (!selectedScriptSearchResult) {
       return (
-        <Empty>
-          <EmptyMedia>
-            <Search className="size-8 text-muted-foreground" />
-          </EmptyMedia>
-          <EmptyHeader>
-            <EmptyTitle>Select a module</EmptyTitle>
-            <EmptyDescription>Pick a result to preview the matching scripts.</EmptyDescription>
-          </EmptyHeader>
-        </Empty>
+        <div className="flex h-full items-center justify-center p-6">
+          <Empty>
+            <EmptyMedia>
+              <FileCode className="size-10 text-muted-foreground" />
+            </EmptyMedia>
+            <EmptyHeader>
+              <EmptyTitle>Search Across All Modules</EmptyTitle>
+              <EmptyDescription className="max-w-sm text-center">
+                Find LogicModules by name or search within script content.
+                Select a result from the list to preview Active Discovery
+                and Collection scripts with matches highlighted.
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        </div>
       );
     }
 
@@ -712,6 +752,15 @@ export function LogicModuleSearch() {
             </div>
           )}
         </div>
+
+        {selectedScriptSearchResult.nameMatch && (
+          <div className="px-4 py-2.5 bg-muted/50 border-b border-border flex items-center gap-2">
+            <Tag className="size-3.5 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">
+              Matched by module name — no script content matches found
+            </span>
+          </div>
+        )}
 
         <div className={`flex-1 flex min-h-0 ${showDualPane ? 'flex-row' : 'flex-col'}`}>
           {hasADScript && (
@@ -967,10 +1016,10 @@ export function LogicModuleSearch() {
                 size="xs"
                 onClick={refreshModuleSearchIndex}
                 className="gap-1 text-xs"
-                disabled={!selectedPortalId}
+                disabled={!selectedPortalId || moduleSearchProgress?.stage === 'indexing'}
               >
-                <RefreshCw className="size-3" />
-                Refresh index
+                <RefreshCw className={cn('size-3', moduleSearchProgress?.stage === 'indexing' && 'animate-spin')} />
+                {moduleSearchProgress?.stage === 'indexing' ? 'Indexing...' : 'Refresh index'}
               </Button>
             </div>
             {moduleSearchProgress && (
@@ -999,6 +1048,7 @@ export function LogicModuleSearch() {
                 value={moduleSearchModuleTypes}
                 onValueChange={handleModuleTypesChange}
                 variant="outline"
+                multiple={true}
                 className="w-full justify-start flex-wrap"
               >
                 {LOGIC_MODULE_TYPES.map((type) => {
