@@ -31,8 +31,11 @@ export function LogsViewer({ logs }: LogsViewerProps) {
   if (!hasLogs) {
     return (
       <SectionCard title="Collector Logs" icon={<FileText className="size-4" />}>
-        <div className="flex items-center justify-center py-8 text-muted-foreground select-none">
-          <Info className="size-5 mr-2 opacity-50" />
+        <div className="
+          flex items-center justify-center py-8 text-muted-foreground
+          select-none
+        ">
+          <Info className="mr-2 size-5 opacity-50" />
           <span className="text-sm">No log data available</span>
         </div>
       </SectionCard>
@@ -104,7 +107,7 @@ function LogTab({
   isCopied: boolean;
 }) {
   if (lines.length === 0) {
-    return <p className="text-sm text-muted-foreground py-4">No {name} log entries</p>;
+    return <p className="py-4 text-sm text-muted-foreground">No {name} log entries</p>;
   }
 
   return (
@@ -113,19 +116,19 @@ function LogTab({
         <Button variant="outline" size="sm" onClick={onCopy}>
           {isCopied ? (
             <>
-              <Check className="size-3.5 mr-1 text-teal-500" />
+              <Check className="mr-1 size-3.5 text-teal-500" />
               Copied
             </>
           ) : (
             <>
-              <Copy className="size-3.5 mr-1" />
+              <Copy className="mr-1 size-3.5" />
               Copy
             </>
           )}
         </Button>
       </div>
       <ScrollArea className="h-64 rounded-md border bg-muted/30">
-        <pre className="p-3 text-xs font-mono">
+        <pre className="p-3 font-mono text-xs">
           {lines.map((line, index) => (
             <div 
               key={index} 

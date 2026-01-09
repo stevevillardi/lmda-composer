@@ -17,7 +17,7 @@ export async function isBraveBrowser(): Promise<boolean> {
         ? await braveCheck 
         : braveCheck === true;
       return isBrave;
-    } catch (error) {
+    } catch (_error) {
       // Fall through to user agent check
     }
   }

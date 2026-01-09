@@ -22,9 +22,14 @@ interface HostStatsTableProps {
 export function HostStatsTable({ data }: HostStatsTableProps) {
   if (!data || data.length === 0) {
     return (
-      <SectionCard title="Devices by Task Count" icon={<Server className="size-4" />}>
-        <div className="flex items-center justify-center py-8 text-muted-foreground select-none">
-          <Info className="size-5 mr-2 opacity-50" />
+      <SectionCard title="Devices by Task Count" icon={<Server className="
+        size-4
+      " />}>
+        <div className="
+          flex items-center justify-center py-8 text-muted-foreground
+          select-none
+        ">
+          <Info className="mr-2 size-5 opacity-50" />
           <span className="text-sm">No host data available</span>
         </div>
       </SectionCard>
@@ -50,9 +55,11 @@ export function HostStatsTable({ data }: HostStatsTableProps) {
           <TableBody>
             {data.map((item, index) => (
               <TableRow key={index}>
-                <TableCell className="font-mono text-sm max-w-[200px]">
+                <TableCell className="max-w-[200px] font-mono text-sm">
                   <Tooltip>
-                    <TooltipTrigger className="block truncate cursor-default text-left">
+                    <TooltipTrigger className="
+                      block cursor-default truncate text-left
+                    ">
                       {item.host}
                     </TooltipTrigger>
                     <TooltipContent side="top">
@@ -62,7 +69,7 @@ export function HostStatsTable({ data }: HostStatsTableProps) {
                 </TableCell>
                 <TableCell className="text-right tabular-nums">{item.dataTask}</TableCell>
                 <TableCell className="text-right tabular-nums">{item.eventTask}</TableCell>
-                <TableCell className="text-right tabular-nums font-medium">
+                <TableCell className="text-right font-medium tabular-nums">
                   {item.dataTask + item.eventTask}
                 </TableCell>
               </TableRow>

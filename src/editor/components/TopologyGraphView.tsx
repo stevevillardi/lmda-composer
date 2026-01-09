@@ -81,23 +81,30 @@ function TopologyNode({ data, selected }: CustomNodeProps) {
   return (
     <div
       className={cn(
-        'px-3 py-2 rounded-lg border-2 min-w-[120px] max-w-[200px] transition-all',
+        `
+          max-w-[200px] min-w-[120px] rounded-lg border-2 px-3 py-2
+          transition-all
+        `,
         data.isExternalResource ? NODE_COLORS.external : NODE_COLORS.device,
         selected && 'ring-2 ring-primary ring-offset-2 ring-offset-background'
       )}
     >
-      <Handle type="target" position={Position.Top} className="bg-muted-foreground!" />
+      <Handle type="target" position={Position.Top} className="
+        bg-muted-foreground!
+      " />
       <div className="flex flex-col gap-1">
-        <span className="text-xs font-medium truncate" title={data.label}>
+        <span className="truncate text-xs font-medium" title={data.label}>
           {truncatedLabel}
         </span>
         {data.type && (
-          <Badge variant="outline" className="text-[10px] w-fit">
+          <Badge variant="outline" className="w-fit text-[10px]">
             {data.type}
           </Badge>
         )}
       </div>
-      <Handle type="source" position={Position.Bottom} className="bg-muted-foreground!" />
+      <Handle type="source" position={Position.Bottom} className="
+        bg-muted-foreground!
+      " />
     </div>
   );
 }
@@ -166,7 +173,10 @@ interface DetailPanelProps {
 function DetailPanel({ selectedNode, selectedEdge }: DetailPanelProps) {
   if (!selectedNode && !selectedEdge) {
     return (
-      <div className="h-full flex items-center justify-center text-muted-foreground text-xs p-4 text-center">
+      <div className="
+        flex h-full items-center justify-center p-4 text-center text-xs
+        text-muted-foreground
+      ">
         Click a node or edge to view details
       </div>
     );
@@ -176,20 +186,26 @@ function DetailPanel({ selectedNode, selectedEdge }: DetailPanelProps) {
     const { data } = selectedNode;
     return (
       <ScrollArea className="h-full">
-        <div className="p-3 space-y-3">
+        <div className="space-y-3 p-3">
           <div>
-            <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Node</div>
+            <div className="
+              mb-1 text-[10px] tracking-wide text-muted-foreground uppercase
+            ">Node</div>
             <div className="text-sm font-medium break-all">{data.label}</div>
           </div>
           {data.type && (
             <div>
-              <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Type</div>
+              <div className="
+                mb-1 text-[10px] tracking-wide text-muted-foreground uppercase
+              ">Type</div>
               <Badge variant="outline" className="text-xs">{data.type}</Badge>
             </div>
           )}
           {data.properties && Object.keys(data.properties).length > 0 && (
             <div>
-              <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Properties</div>
+              <div className="
+                mb-1 text-[10px] tracking-wide text-muted-foreground uppercase
+              ">Properties</div>
               <div className="space-y-1">
                 {Object.entries(data.properties).map(([key, value]) => (
                   <div key={key} className="text-xs">
@@ -244,10 +260,12 @@ function DetailPanel({ selectedNode, selectedEdge }: DetailPanelProps) {
     
     return (
       <ScrollArea className="h-full">
-        <div className="p-3 space-y-3">
+        <div className="space-y-3 p-3">
           <div>
-            <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Connection</div>
-            <div className="text-sm space-y-1">
+            <div className="
+              mb-1 text-[10px] tracking-wide text-muted-foreground uppercase
+            ">Connection</div>
+            <div className="space-y-1 text-sm">
               <div className="flex items-center gap-2">
                 <span className="text-muted-foreground">From:</span>
                 <span className="font-medium break-all">{source}</span>
@@ -261,8 +279,10 @@ function DetailPanel({ selectedNode, selectedEdge }: DetailPanelProps) {
           
           {(data?.type || data?.displayType) && (
             <div>
-              <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Edge Type</div>
-              <div className="flex gap-2 flex-wrap">
+              <div className="
+                mb-1 text-[10px] tracking-wide text-muted-foreground uppercase
+              ">Edge Type</div>
+              <div className="flex flex-wrap gap-2">
                 {data?.type && <Badge variant="outline" className="text-xs">{data.type}</Badge>}
                 {data?.displayType && data.displayType !== data.type && (
                   <Badge variant="secondary" className="text-xs">{data.displayType}</Badge>
@@ -273,7 +293,9 @@ function DetailPanel({ selectedNode, selectedEdge }: DetailPanelProps) {
           
           {data?.instanceEdgeType && (
             <div>
-              <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Instance Edge Type</div>
+              <div className="
+                mb-1 text-[10px] tracking-wide text-muted-foreground uppercase
+              ">Instance Edge Type</div>
               <Badge 
                 className="text-xs"
                 style={{ 
@@ -288,8 +310,10 @@ function DetailPanel({ selectedNode, selectedEdge }: DetailPanelProps) {
           
           {(data?.fromInstance || data?.toInstance) && (
             <div>
-              <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Instances</div>
-              <div className="text-xs space-y-1 font-mono">
+              <div className="
+                mb-1 text-[10px] tracking-wide text-muted-foreground uppercase
+              ">Instances</div>
+              <div className="space-y-1 font-mono text-xs">
                 {data?.fromInstance && (
                   <div className="break-all">
                     <span className="text-muted-foreground">From: </span>
@@ -314,7 +338,9 @@ function DetailPanel({ selectedNode, selectedEdge }: DetailPanelProps) {
           
           {healthSources && (
             <div>
-              <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Health DataSources</div>
+              <div className="
+                mb-1 text-[10px] tracking-wide text-muted-foreground uppercase
+              ">Health DataSources</div>
               <div className="space-y-2">
                 {healthSources.map(({ metric, dataSource, datapoints }) => (
                   <div key={metric} className="text-xs">
@@ -322,7 +348,9 @@ function DetailPanel({ selectedNode, selectedEdge }: DetailPanelProps) {
                     <div className="text-muted-foreground">
                       DS: <span className="font-mono">{dataSource}</span>
                     </div>
-                    <div className="text-muted-foreground/70 text-[10px] font-mono">
+                    <div className="
+                      font-mono text-[10px] text-muted-foreground/70
+                    ">
                       {datapoints.join(', ')}
                     </div>
                   </div>
@@ -333,7 +361,9 @@ function DetailPanel({ selectedNode, selectedEdge }: DetailPanelProps) {
           
           {data?.metaData && Object.keys(data.metaData).length > 0 && (
             <div>
-              <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Metadata</div>
+              <div className="
+                mb-1 text-[10px] tracking-wide text-muted-foreground uppercase
+              ">Metadata</div>
               <div className="space-y-1">
                 {Object.entries(data.metaData).map(([key, value]) => (
                   <div key={key} className="text-xs">
@@ -347,7 +377,9 @@ function DetailPanel({ selectedNode, selectedEdge }: DetailPanelProps) {
           
           {data?.metricReportingNode && (
             <div>
-              <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Metric Reporting</div>
+              <div className="
+                mb-1 text-[10px] tracking-wide text-muted-foreground uppercase
+              ">Metric Reporting</div>
               <Badge variant="secondary" className="text-xs">{data.metricReportingNode}</Badge>
             </div>
           )}
@@ -502,7 +534,7 @@ export function TopologyGraphView({ result }: TopologyGraphViewProps) {
   
   if (vertices.length === 0 && edges.length === 0) {
     return (
-      <Empty className="border-none h-full py-8">
+      <Empty className="h-full border-none py-8">
         <EmptyHeader>
           <EmptyMedia variant="icon">
             <Network className="size-5" />
@@ -517,9 +549,9 @@ export function TopologyGraphView({ result }: TopologyGraphViewProps) {
   }
   
   return (
-    <div className="h-full flex relative">
+    <div className="relative flex h-full">
       {/* Graph Area */}
-      <div className="flex-1 min-w-0 relative">
+      <div className="relative min-w-0 flex-1">
         <ReactFlow
           nodes={nodes}
           edges={flowEdges}
@@ -538,13 +570,21 @@ export function TopologyGraphView({ result }: TopologyGraphViewProps) {
           className="bg-background"
         >
           <Controls 
-            className="bg-card! border-border! shadow-md! [&>button]:bg-card! [&>button]:border-border! [&>button]:text-foreground! [&>button:hover]:bg-muted!" 
+            className="
+              border-border! bg-card! shadow-md!
+              [&>button]:border-border! [&>button]:bg-card!
+              [&>button]:text-foreground!
+              [&>button:hover]:bg-muted!
+            " 
           />
           <Background color="hsl(var(--muted-foreground) / 0.2)" gap={20} />
         </ReactFlow>
         
         {/* Floating Legend - bottom left of graph, positioned above zoom controls */}
-        <div className="absolute bottom-4 left-16 bg-card/95 backdrop-blur-sm border border-border rounded-lg p-2 shadow-md">
+        <div className="
+          absolute bottom-4 left-16 rounded-lg border border-border bg-card/95
+          p-2 shadow-md backdrop-blur-sm
+        ">
           <div className="flex items-center gap-3 text-[10px]">
             {/* Edge types */}
             {uniqueEdgeTypes.map(type => {
@@ -552,7 +592,7 @@ export function TopologyGraphView({ result }: TopologyGraphViewProps) {
               return (
                 <div key={type} className="flex items-center gap-1">
                   <div 
-                    className="w-4 h-0.5 rounded-full" 
+                    className="h-0.5 w-4 rounded-full" 
                     style={{ backgroundColor: color }}
                   />
                   <span style={{ color }}>{type}</span>
@@ -561,18 +601,22 @@ export function TopologyGraphView({ result }: TopologyGraphViewProps) {
             })}
             {/* Node types separator */}
             {uniqueEdgeTypes.length > 0 && (hasExternalNodes || vertices.length > 0) && (
-              <div className="w-px h-3 bg-border" />
+              <div className="h-3 w-px bg-border" />
             )}
             {/* Node types */}
             {vertices.length > 0 && (
               <div className="flex items-center gap-1 text-muted-foreground">
-                <div className="w-2.5 h-2.5 rounded-sm bg-cyan-500/50 border border-cyan-500" />
+                <div className="
+                  size-2.5 rounded-sm border border-cyan-500 bg-cyan-500/50
+                " />
                 <span>Device</span>
               </div>
             )}
             {hasExternalNodes && (
               <div className="flex items-center gap-1 text-muted-foreground">
-                <div className="w-2.5 h-2.5 rounded-sm bg-grey-500/50 border border-grey-500" />
+                <div className="
+                  size-2.5 rounded-sm border border-grey-500 bg-grey-500/50
+                " />
                 <span>External</span>
               </div>
             )}
@@ -584,7 +628,9 @@ export function TopologyGraphView({ result }: TopologyGraphViewProps) {
           variant="outline"
           size="icon-sm"
           onClick={() => setDetailsOpen(!detailsOpen)}
-          className="absolute top-4 right-4 bg-card/95 backdrop-blur-sm shadow-md"
+          className="
+            absolute top-4 right-4 bg-card/95 shadow-md backdrop-blur-sm
+          "
           title={detailsOpen ? 'Hide details' : 'Show details'}
         >
           {detailsOpen ? (
@@ -598,25 +644,33 @@ export function TopologyGraphView({ result }: TopologyGraphViewProps) {
       {/* Collapsible Detail Sidebar */}
       <div 
         className={cn(
-          "border-l border-border bg-card flex flex-col transition-all duration-200 ease-in-out overflow-hidden",
+          `
+            flex flex-col overflow-hidden border-l border-border bg-card
+            transition-all duration-200 ease-in-out
+          `,
           detailsOpen ? "w-80" : "w-0 border-l-0"
         )}
       >
-        <div className="w-80 h-full flex flex-col">
-          <div className="px-3 py-2 border-b border-border flex items-center justify-between shrink-0">
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+        <div className="flex h-full w-80 flex-col">
+          <div className="
+            flex shrink-0 items-center justify-between border-b border-border
+            px-3 py-2
+          ">
+            <span className="
+              text-xs font-medium tracking-wide text-muted-foreground uppercase
+            ">
               Details
             </span>
             <Button
               variant="ghost"
               size="icon-sm"
               onClick={() => setDetailsOpen(false)}
-              className="h-6 w-6"
+              className="size-6"
             >
               <PanelRightClose className="size-3.5" />
             </Button>
           </div>
-          <div className="flex-1 min-h-0">
+          <div className="min-h-0 flex-1">
             <DetailPanel selectedNode={selectedNode} selectedEdge={selectedEdge} />
           </div>
         </div>

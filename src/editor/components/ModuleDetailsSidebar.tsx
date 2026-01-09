@@ -35,8 +35,10 @@ export function ModuleDetailsSidebar({
   };
 
   return (
-    <div className="w-64 shrink-0 border-r border-border bg-muted/20 flex flex-col">
-      <nav className="flex-1 overflow-y-auto p-3 space-y-1">
+    <div className="
+      flex w-64 shrink-0 flex-col border-r border-border bg-muted/20
+    ">
+      <nav className="flex-1 space-y-1 overflow-y-auto p-3">
         {sections.map((sectionId) => {
           const section = sectionMetadata[sectionId];
           const Icon = section.icon;
@@ -48,22 +50,30 @@ export function ModuleDetailsSidebar({
               key={sectionId}
               onClick={() => onSectionChange(sectionId)}
               className={cn(
-                'w-full flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-all relative text-left',
+                `
+                  relative flex w-full items-center gap-3 rounded-md px-3 py-2.5
+                  text-left text-sm font-medium transition-all
+                `,
                 'hover:bg-accent hover:text-accent-foreground',
                 isActive
                   ? 'bg-accent text-accent-foreground shadow-sm'
                   : 'text-muted-foreground',
-                isInvalid && 'text-destructive hover:text-destructive'
+                isInvalid && `
+                  text-destructive
+                  hover:text-destructive
+                `
               )}
             >
-              <Icon className={cn("size-4 shrink-0", isInvalid && "text-destructive")} />
+              <Icon className={cn("size-4 shrink-0", isInvalid && `
+                text-destructive
+              `)} />
               <span className="flex-1 text-left">{section.label}</span>
               <div className="flex items-center gap-1">
                 {dirtySections.has(section.id) && !isInvalid && (
-                  <span className="size-2 rounded-full bg-primary shrink-0" />
+                  <span className="size-2 shrink-0 rounded-full bg-primary" />
                 )}
                 {isInvalid && (
-                  <AlertCircle className="size-3.5 text-destructive shrink-0" />
+                  <AlertCircle className="size-3.5 shrink-0 text-destructive" />
                 )}
               </div>
             </button>

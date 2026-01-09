@@ -80,53 +80,76 @@ export function PortalBindingOverlay({ tabId }: PortalBindingOverlayProps) {
 
   return (
     <>
-      <div className="absolute inset-0 z-20 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-        <Card className="max-w-lg w-full mx-4 shadow-xl border-yellow-500/30 bg-card">
+      <div className="
+        absolute inset-0 z-20 flex items-center justify-center bg-background/80
+        backdrop-blur-sm
+      ">
+        <Card className="
+          mx-4 w-full max-w-lg border-yellow-500/30 bg-card shadow-xl
+        ">
           <CardHeader className="pb-3">
             <div className="flex items-center gap-3">
-              <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-yellow-500/15">
+              <div className="
+                flex size-10 shrink-0 items-center justify-center rounded-full
+                bg-yellow-500/15
+              ">
                 <Lock className="size-5 text-yellow-500" />
               </div>
               <div>
                 <CardTitle className="text-base">Portal Bound Tab</CardTitle>
-                <p className="text-sm text-muted-foreground mt-0.5">
+                <p className="mt-0.5 text-sm text-muted-foreground">
                   This tab is locked until its portal is active
                 </p>
               </div>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="rounded-lg border border-yellow-500/20 bg-yellow-500/5 p-3">
+            <div className="
+              rounded-lg border border-yellow-500/20 bg-yellow-500/5 p-3
+            ">
               <div className="flex items-start gap-2">
-                <AlertTriangle className="size-4 text-yellow-500 mt-0.5 shrink-0" />
-                <div className="space-y-1 min-w-0">
+                <AlertTriangle className="
+                  mt-0.5 size-4 shrink-0 text-yellow-500
+                " />
+                <div className="min-w-0 space-y-1">
                   <p className="text-sm text-foreground">{reason}</p>
-                  <div className="text-xs text-muted-foreground space-y-0.5">
-                    <p>Bound to: <span className="text-foreground font-medium">{boundPortalLabel}</span></p>
-                    <p>Active portal: <span className="text-foreground font-medium">{activePortalLabel}</span></p>
+                  <div className="space-y-0.5 text-xs text-muted-foreground">
+                    <p>Bound to: <span className="font-medium text-foreground">{boundPortalLabel}</span></p>
+                    <p>Active portal: <span className="
+                      font-medium text-foreground
+                    ">{activePortalLabel}</span></p>
                   </div>
                 </div>
               </div>
             </div>
             <div className="flex flex-col gap-2">
               {canSwitchToPortal ? (
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <Button onClick={handleSwitchPortal} variant="default" className="gap-2 flex-1">
+                <div className="
+                  flex flex-col gap-2
+                  sm:flex-row
+                ">
+                  <Button onClick={handleSwitchPortal} variant="default" className="
+                    flex-1 gap-2
+                  ">
                     <RefreshCw className="size-4" />
                     Switch Portal
                   </Button>
-                  <Button onClick={handleConvert} variant="secondary" className="gap-2">
+                  <Button onClick={handleConvert} variant="secondary" className="
+                    gap-2
+                  ">
                     <Link2 className="size-4" />
                     Convert to Local
                   </Button>
                 </div>
               ) : (
                 <div className="space-y-2">
-                  <Button onClick={handleConvert} variant="secondary" className="gap-2 w-full">
+                  <Button onClick={handleConvert} variant="secondary" className="
+                    w-full gap-2
+                  ">
                     <Link2 className="size-4" />
                     Convert to Local File
                   </Button>
-                  <p className="text-xs text-muted-foreground text-center">
+                  <p className="text-center text-xs text-muted-foreground">
                     The bound portal is not available. Open a tab to that portal to reconnect.
                   </p>
                 </div>

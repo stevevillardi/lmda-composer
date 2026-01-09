@@ -89,7 +89,7 @@ function TabItem({
   onCloseOthers, 
   onCloseAll,
 }: TabItemProps) {
-  const tabRef = useRef<HTMLButtonElement>(null);
+  const tabRef = useRef<HTMLDivElement>(null);
   const [isTabHovered, setIsTabHovered] = useState(false);
   
   // Scroll active tab into view
@@ -122,7 +122,7 @@ function TabItem({
           render={
             <ContextMenuTrigger
               render={
-                <button
+                <div
                   ref={tabRef}
                   onClick={onActivate}
                   onMouseEnter={() => setIsTabHovered(true)}
@@ -131,14 +131,32 @@ function TabItem({
                   aria-selected={isActive}
                   aria-controls={`tabpanel-${tab.id}`}
                   tabIndex={isActive ? 0 : -1}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onActivate();
+                    }
+                  }}
                   className={cn(
-                    "group flex items-center gap-1.5 px-3 py-1.5 text-sm border-r border-border",
+                    `
+                      group flex items-center gap-1.5 border-r border-border
+                      px-3 py-1.5 text-sm
+                    `,
                     "min-w-[120px] shrink-0",
                     "transition-colors duration-100",
-                    "focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1",
+                    `
+                      focus:ring-2 focus:ring-primary focus:ring-offset-1
+                      focus:outline-none
+                    `,
                     isActive 
-                      ? "bg-background text-foreground border-b-2 border-b-primary" 
-                      : "bg-secondary/30 text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
+                      ? `
+                        border-b-2 border-b-primary bg-background
+                        text-foreground
+                      ` 
+                      : `
+                        bg-secondary/30 text-muted-foreground
+                        hover:bg-secondary/50 hover:text-foreground
+                      `
                   )}
                 >
                   {/* Language/Module type indicator */}
@@ -151,10 +169,16 @@ function TabItem({
                   )}
                   
                   {/* Tab name */}
-                  <span className="min-w-0 flex-1 text-left flex items-center gap-1.5 overflow-hidden">
+                  <span className="
+                    flex min-w-0 flex-1 items-center gap-1.5 overflow-hidden
+                    text-left
+                  ">
                     <span className="truncate">{tab.displayName}</span>
                     {hasAssociatedFileHandle(tab) && (
-                      <span className="text-[10px] text-muted-foreground ml-1 opacity-70 shrink-0">(local)</span>
+                      <span className="
+                        ml-1 shrink-0 text-[10px] text-muted-foreground
+                        opacity-70
+                      ">(local)</span>
                     )}
                   </span>
                   
@@ -162,8 +186,10 @@ function TabItem({
                   {isPortalBound && (
                     <span
                       className={cn(
-                        'flex items-center justify-center size-4 rounded-sm',
-                        isPortalActive ? 'text-muted-foreground' : 'text-yellow-500'
+                        'flex size-4 items-center justify-center rounded-sm',
+                        isPortalActive ? 'text-muted-foreground' : `
+                          text-yellow-500
+                        `
                       )}
                       aria-label={isPortalActive ? 'Portal bound' : 'Portal mismatch'}
                     >
@@ -172,7 +198,7 @@ function TabItem({
                   )}
                   
                   {/* Dirty indicators and close button container */}
-                  <span className="flex items-center gap-0.5 shrink-0">
+                  <span className="flex shrink-0 items-center gap-0.5">
                     {/* Portal changes indicator (blue cloud) */}
                     {portalChanges && (
                       <Tooltip>
@@ -196,8 +222,10 @@ function TabItem({
                         <TooltipTrigger
                           render={
                             <Circle className={cn(
-                              "size-2.5 fill-current shrink-0",
-                              isActive ? "text-yellow-400" : "text-muted-foreground"
+                              "size-2.5 shrink-0 fill-current",
+                              isActive ? "text-yellow-400" : `
+                                text-muted-foreground
+                              `
                             )} />
                           }
                         />
@@ -208,9 +236,15 @@ function TabItem({
                     )}
                     
                     {/* Close button - shows on tab hover or when active */}
-                    <span
-                      role="button"
-                      className="flex items-center justify-center size-4 rounded hover:bg-destructive/20 focus:outline-none shrink-0"
+                    <button
+                      type="button"
+                      className="
+                        flex size-4 shrink-0 cursor-pointer items-center
+                        justify-center rounded-sm
+                        hover:bg-destructive/20
+                        focus-visible:ring-2 focus-visible:ring-ring
+                        focus-visible:ring-offset-1 focus-visible:outline-none
+                      "
                       onClick={(e) => {
                         e.stopPropagation();
                         onClose();
@@ -219,12 +253,15 @@ function TabItem({
                       tabIndex={-1}
                     >
                       <X className={cn(
-                        "size-3 hover:text-destructive transition-opacity duration-100",
+                        `
+                          size-3 transition-opacity duration-100
+                          hover:text-destructive
+                        `,
                         isTabHovered || isActive ? "opacity-100" : "opacity-0"
                       )} />
-                    </span>
+                    </button>
                   </span>
-                </button>
+                </div>
               }
             />
           }
@@ -246,7 +283,7 @@ function TabItem({
               toast.success('Copied to clipboard', {
                 description: tab.displayName,
               });
-            } catch (error) {
+            } catch (_error) {
               toast.error('Failed to copy', {
                 description: 'Could not copy tab name to clipboard',
               });
@@ -259,11 +296,11 @@ function TabItem({
       <TooltipContent side="bottom" className="max-w-xs">
         <div className="text-xs">{tooltipContent}</div>
         {isPortalBound && (
-          <div className="text-[10px] text-muted-foreground mt-1">
+          <div className="mt-1 text-[10px] text-muted-foreground">
             {isPortalActive ? 'Portal bound' : 'Portal mismatch'} • {portalLabel || 'Unknown portal'}
           </div>
         )}
-        <div className="text-[10px] text-muted-foreground mt-0.5">
+        <div className="mt-0.5 text-[10px] text-muted-foreground">
           {tab.kind === 'api'
             ? 'API request tab'
             : hasAssociatedFileHandle(tab) 
@@ -275,7 +312,10 @@ function TabItem({
                   : 'New file'}
         </div>
         {(portalChanges || fileDirty) && (
-          <div className="flex items-center gap-2 text-[10px] mt-1 pt-1 border-t border-border/50">
+          <div className="
+            mt-1 flex items-center gap-2 border-t border-border/50 pt-1
+            text-[10px]
+          ">
             {portalChanges && (
               <span className="flex items-center gap-1 text-cyan-400">
                 <Cloud className="size-2.5" />
@@ -529,14 +569,19 @@ export function TabBar() {
   
   return (
     <div 
-      className="flex items-center bg-secondary/20 border-b border-border overflow-hidden"
+      className="
+        flex items-center overflow-hidden border-b border-border bg-secondary/20
+      "
       role="tablist"
       aria-label="Editor tabs"
       onKeyDown={handleKeyDown}
       ref={tabListRef}
     >
       {/* Scrollable tab list */}
-      <div className="flex-1 flex items-center overflow-x-auto scrollbar-thin scrollbar-thumb-border">
+      <div className="
+        scrollbar-thin scrollbar-thumb-border flex flex-1 items-center
+        overflow-x-auto
+      ">
         {visibleTabs.map((tab) => (
           <TabItem
             key={tab.id}
@@ -555,7 +600,7 @@ export function TabBar() {
       </div>
       
       {/* New tab button */}
-      <div className="flex items-center px-1 border-l border-border">
+      <div className="flex items-center border-l border-border px-1">
         <Tooltip>
           <TooltipTrigger
             render={
@@ -563,9 +608,11 @@ export function TabBar() {
                 variant="ghost"
                 size="sm"
                 onClick={handleNewTab}
-                className="h-6 px-2 gap-1 text-xs"
+                className="h-6 gap-1 px-2 text-xs"
               >
-                {isApiActive ? <Braces className="size-3.5" /> : <Plus className="size-3.5" />}
+                {isApiActive ? <Braces className="size-3.5" /> : <Plus className="
+                  size-3.5
+                " />}
                 <span>{isApiActive ? 'New API Request' : 'New File'}</span>
               </Button>
             }
@@ -576,7 +623,9 @@ export function TabBar() {
       
       {/* Active tab info badges */}
       {activeTabId && (
-        <div className="flex items-center gap-1 px-2 border-l border-border">
+        <div className="
+          flex items-center gap-1 border-l border-border px-2 select-none
+        ">
           {(() => {
             if (!activeTab) return null;
             if (activeTab.kind === 'api') {
@@ -616,12 +665,15 @@ export function TabBar() {
                   {closeScenario === 'local-file' && ' has unsaved changes.'}
                   {closeScenario === 'scratch' && ' has not been saved.'}
                 </span>
-                <span className="block text-sm text-muted-foreground mt-1">
+                <span className="mt-1 block text-sm text-muted-foreground">
                   What would you like to do before closing?
                 </span>
               </AlertDialogDescription>
             </AlertDialogHeader>
-            <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogFooter className="
+              flex-col gap-2
+              sm:flex-row
+            ">
               <AlertDialogCancel onClick={handleCancelClose}>
                 Cancel
               </AlertDialogCancel>

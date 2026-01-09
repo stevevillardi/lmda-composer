@@ -15,7 +15,7 @@ interface DropdownMenuSectionHeaderProps {
  */
 export function DropdownMenuSectionHeader({ children }: DropdownMenuSectionHeaderProps) {
   return (
-    <div className="relative flex items-center gap-2 my-2">
+    <div className="relative my-2 flex items-center gap-2">
       <Separator className="flex-1" />
       <span className="shrink-0 px-2 text-xs text-muted-foreground select-none">
         {children}

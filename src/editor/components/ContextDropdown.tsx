@@ -183,7 +183,7 @@ export function ContextDropdown({
                 <Button
                   variant="outline"
                   size="sm"
-                  className="h-8 gap-1.5 max-w-[280px]"
+                  className="h-8 max-w-[280px] gap-1.5"
                 >
                   <Globe className="size-3.5 shrink-0" />
                   <Circle
@@ -228,10 +228,14 @@ export function ContextDropdown({
         </TooltipContent>
       </Tooltip>
 
-      <PopoverContent className="w-[360px] p-0 bg-background/95 backdrop-blur-xl" align="start">
+      <PopoverContent className="
+        w-[360px] bg-background/95 p-0 backdrop-blur-xl
+      " align="start">
         {portals.length === 0 ? (
           // Empty state when no portals detected
-          <Empty className="border-none bg-transparent p-6 flex flex-col justify-center">
+          <Empty className="
+            flex flex-col justify-center border-none bg-transparent p-6
+          ">
             <EmptyHeader>
               <EmptyMedia variant="icon" className="bg-muted/50">
                 <Globe className="size-5 text-muted-foreground/70" />
@@ -250,21 +254,25 @@ export function ContextDropdown({
                 disabled={isRefreshingPortals}
                 className="w-full bg-background/50"
               >
-                <RefreshCw className={cn("size-3.5 mr-2", isRefreshingPortals && "animate-spin")} />
+                <RefreshCw className={cn("mr-2 size-3.5", isRefreshingPortals && `
+                  animate-spin
+                `)} />
                 {isRefreshingPortals ? 'Checking...' : 'Check for Portals'}
               </Button>
             </EmptyContent>
           </Empty>
         ) : (
           <>
-            <div className="p-3 border-b border-border bg-secondary/30">
-              <h4 className="font-medium text-sm">Execution Context</h4>
-              <p className="text-xs text-muted-foreground mt-0.5">
+            <div className="
+              border-b border-border bg-secondary/30 p-3 select-none
+            ">
+              <h4 className="text-sm font-medium">Execution Context</h4>
+              <p className="mt-0.5 text-xs text-muted-foreground">
                 {showCollector ? 'Select where to run your scripts' : 'Select your portal'}
               </p>
             </div>
 
-            <div className="p-3 space-y-4">
+            <div className="space-y-4 p-3">
               {/* Portal Selector */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
@@ -302,8 +310,10 @@ export function ContextDropdown({
               onValueChange={(value) => setSelectedPortal(value || null)}
               items={portalItems}
             >
-              <SelectTrigger className="w-full h-8" aria-label="Select portal">
-                <div className="flex items-center gap-2 overflow-hidden flex-1 min-w-0">
+              <SelectTrigger className="h-8 w-full" aria-label="Select portal">
+                <div className="
+                  flex min-w-0 flex-1 items-center gap-2 overflow-hidden
+                ">
                   <Circle
                     className={cn(
                       'size-2 shrink-0',
@@ -319,7 +329,9 @@ export function ContextDropdown({
               </SelectTrigger>
               <SelectContent align="start">
                 {portals.length === 0 ? (
-                  <div className="px-2 py-4 text-sm text-muted-foreground text-center">
+                  <div className="
+                    px-2 py-4 text-center text-sm text-muted-foreground
+                  ">
                     No portals found
                   </div>
                 ) : (
@@ -346,7 +358,9 @@ export function ContextDropdown({
           {selectedPortal && !isPortalActive && (
             <>
               <Separator />
-              <Empty className="border border-border/50 bg-background/40 p-4 rounded-lg">
+              <Empty className="
+                rounded-lg border border-border/50 bg-background/40 p-4
+              ">
                 <EmptyHeader>
                   <EmptyMedia variant="icon" className="bg-muted/50">
                     <Globe className="size-5 text-muted-foreground/70" />
@@ -365,7 +379,9 @@ export function ContextDropdown({
                     disabled={isRefreshingPortals}
                     className="w-full bg-background/50"
                   >
-                    <RefreshCw className={cn("size-3.5 mr-2", isRefreshingPortals && "animate-spin")} />
+                    <RefreshCw className={cn("mr-2 size-3.5", isRefreshingPortals && `
+                      animate-spin
+                    `)} />
                     {isRefreshingPortals ? 'Checking...' : 'Refresh portal status'}
                   </Button>
                 </EmptyContent>
@@ -413,8 +429,10 @@ export function ContextDropdown({
                   disabled={!selectedPortalId || collectors.length === 0}
                   items={collectorItems}
                 >
-                  <SelectTrigger className="w-full h-8" aria-label="Select collector">
-                    <div className="flex items-center gap-2 overflow-hidden flex-1 min-w-0">
+                  <SelectTrigger className="h-8 w-full" aria-label="Select collector">
+                    <div className="
+                      flex min-w-0 flex-1 items-center gap-2 overflow-hidden
+                    ">
                       {selectedCollector && (
                         <Server
                           className={cn(
@@ -430,7 +448,9 @@ export function ContextDropdown({
                   </SelectTrigger>
                   <SelectContent align="start" className="min-w-[320px]">
                     {collectors.length === 0 ? (
-                      <div className="px-2 py-4 text-sm text-muted-foreground text-center">
+                      <div className="
+                        px-2 py-4 text-center text-sm text-muted-foreground
+                      ">
                         {selectedPortalId ? 'No collectors found' : 'Select a portal first'}
                       </div>
                     ) : (
@@ -440,7 +460,7 @@ export function ContextDropdown({
                           value={collector.id.toString()}
                           disabled={collector.isDown}
                         >
-                          <div className="flex items-center gap-2 w-full">
+                          <div className="flex w-full items-center gap-2">
                             <Server
                               className={cn(
                                 'size-4 shrink-0',
@@ -449,14 +469,16 @@ export function ContextDropdown({
                                   : 'text-teal-500'
                               )}
                             />
-                            <div className="flex flex-col min-w-0 flex-1">
-                              <span className="font-medium truncate">
+                            <div className="flex min-w-0 flex-1 flex-col">
+                              <span className="truncate font-medium">
                                 {collector.description || collector.hostname}
                                 {collector.isDown && (
-                                  <span className="text-red-500 text-xs ml-1.5">(offline)</span>
+                                  <span className="ml-1.5 text-xs text-red-500">(offline)</span>
                                 )}
                               </span>
-                              <span className="text-xs text-muted-foreground truncate">
+                              <span className="
+                                truncate text-xs text-muted-foreground
+                              ">
                                 #{collector.id}
                                 {collector.collectorGroupName && ` · ${collector.collectorGroupName}`}
                                 {collector.arch && ` · ${collector.arch}`}
@@ -518,7 +540,7 @@ export function ContextDropdown({
                   }}
                   disabled={!selectedCollectorId}
                 >
-                  <InputGroup className="w-full h-9" data-disabled={!selectedCollectorId}>
+                  <InputGroup className="h-9 w-full" data-disabled={!selectedCollectorId}>
                     {hostname && (
                       <InputGroupAddon align="inline-start">
                         <Server className={cn(
@@ -547,7 +569,7 @@ export function ContextDropdown({
                         <ComboboxPrimitive.Clear
                           render={<InputGroupButton variant="ghost" size="icon-xs" />}
                         >
-                          <X className="size-3.5 pointer-events-none" />
+                          <X className="pointer-events-none size-3.5" />
                         </ComboboxPrimitive.Clear>
                       ) : (
                         <InputGroupButton
@@ -557,7 +579,9 @@ export function ContextDropdown({
                           disabled={!selectedCollectorId}
                           className="data-pressed:bg-transparent"
                         >
-                          <ChevronDown className="size-3.5 text-muted-foreground pointer-events-none" />
+                          <ChevronDown className="
+                            pointer-events-none size-3.5 text-muted-foreground
+                          " />
                         </InputGroupButton>
                       )}
                     </InputGroupAddon>
@@ -565,18 +589,27 @@ export function ContextDropdown({
                   <ComboboxContent className="min-w-[320px]">
                     <ComboboxList>
                       {isFetchingDevices ? (
-                        <div className="flex items-center justify-center py-4 text-sm text-muted-foreground">
-                          <Loader2 className="size-4 animate-spin mr-2" />
+                        <div className="
+                          flex items-center justify-center py-4 text-sm
+                          text-muted-foreground
+                        ">
+                          <Loader2 className="mr-2 size-4 animate-spin" />
                           Loading devices...
                         </div>
                       ) : devices.length === 0 ? (
-                        <div className="flex items-center justify-center py-4 text-sm text-muted-foreground">
+                        <div className="
+                          flex items-center justify-center py-4 text-sm
+                          text-muted-foreground
+                        ">
                           {selectedCollectorId 
                             ? 'No devices found on this collector'
                             : 'Select a collector first'}
                         </div>
                       ) : filteredDevices.length === 0 ? (
-                        <div className="flex items-center justify-center py-4 text-sm text-muted-foreground">
+                        <div className="
+                          flex items-center justify-center py-4 text-sm
+                          text-muted-foreground
+                        ">
                           No devices match "{deviceSearchQuery}"
                         </div>
                       ) : (
@@ -584,23 +617,34 @@ export function ContextDropdown({
                           <ComboboxItem 
                             key={device.id} 
                             value={device.name}
-                            className="group relative px-2.5 py-2 mx-1 my-0.5 rounded-sm border-l-2 border-transparent aria-selected:bg-accent/50 aria-selected:border-primary aria-selected:text-accent-foreground cursor-pointer transition-all hover:bg-accent/40 hover:border-l-primary/50"
+                            className="
+                              group relative mx-1 my-0.5 cursor-pointer
+                              rounded-sm border-l-2 border-transparent px-2.5
+                              py-2 transition-all
+                              hover:border-l-primary/50 hover:bg-accent/40
+                              aria-selected:border-primary
+                              aria-selected:bg-accent/50
+                              aria-selected:text-accent-foreground
+                            "
                           >
-                            <div className="flex items-center gap-2 w-full">
+                            <div className="flex w-full items-center gap-2">
                               <Server className={cn(
                                 "size-3.5 shrink-0 transition-colors",
                                 device.hostStatus === 'normal' 
                                   ? "text-teal-500" 
                                   : "text-red-500"
                               )} />
-                              <div className="flex flex-col min-w-0 flex-1">
-                                <span className="font-medium text-xs truncate">
+                              <div className="flex min-w-0 flex-1 flex-col">
+                                <span className="truncate text-xs font-medium">
                                   {device.displayName}
                                   {device.hostStatus !== 'normal' && (
-                                    <span className="text-red-500 ml-1.5">(offline)</span>
+                                    <span className="ml-1.5 text-red-500">(offline)</span>
                                   )}
                                 </span>
-                                <span className="text-[10px] text-muted-foreground truncate group-aria-selected:text-muted-foreground/80">{device.name}</span>
+                                <span className="
+                                  truncate text-[10px] text-muted-foreground
+                                  group-aria-selected:text-muted-foreground/80
+                                ">{device.name}</span>
                               </div>
                             </div>
                           </ComboboxItem>

@@ -26,9 +26,14 @@ export function MessageResultsTable({ data }: MessageResultsTableProps) {
 
   if (!hasData) {
     return (
-      <SectionCard title="Top Message Results" icon={<MessageSquare className="size-4" />}>
-        <div className="flex items-center justify-center py-8 text-muted-foreground select-none">
-          <CheckCircle className="size-5 mr-2 text-teal-500" />
+      <SectionCard title="Top Message Results" icon={<MessageSquare className="
+        size-4
+      " />}>
+        <div className="
+          flex items-center justify-center py-8 text-muted-foreground
+          select-none
+        ">
+          <CheckCircle className="mr-2 size-5 text-teal-500" />
           <span className="text-sm">No error messages detected</span>
         </div>
       </SectionCard>
@@ -76,8 +81,10 @@ export function MessageResultsTable({ data }: MessageResultsTableProps) {
 function MessageTable({ messages }: { messages: { message: string; count: number }[] }) {
   if (messages.length === 0) {
     return (
-      <div className="flex items-center justify-center py-8 text-muted-foreground select-none">
-        <CheckCircle className="size-4 mr-2 text-teal-500" />
+      <div className="
+        flex items-center justify-center py-8 text-muted-foreground select-none
+      ">
+        <CheckCircle className="mr-2 size-4 text-teal-500" />
         <span className="text-sm">No messages</span>
       </div>
     );
@@ -95,10 +102,12 @@ function MessageTable({ messages }: { messages: { message: string; count: number
         <TableBody>
           {messages.map((item, index) => (
             <TableRow key={index}>
-              <TableCell className="tabular-nums font-medium">{item.count}</TableCell>
-              <TableCell className="text-sm font-mono max-w-md">
+              <TableCell className="font-medium tabular-nums">{item.count}</TableCell>
+              <TableCell className="max-w-md font-mono text-sm">
                 <Tooltip>
-                  <TooltipTrigger className="block truncate cursor-default text-left">
+                  <TooltipTrigger className="
+                    block cursor-default truncate text-left
+                  ">
                     {item.message}
                   </TooltipTrigger>
                   <TooltipContent side="top" className="max-w-lg">

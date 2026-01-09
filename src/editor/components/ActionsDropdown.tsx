@@ -122,7 +122,10 @@ export function ActionsDropdown() {
                   size="toolbar"
                 >
                   <CommandIcon className="size-4" />
-                  <span className="hidden sm:inline text-xs">Actions</span>
+                  <span className="
+                    hidden text-xs
+                    sm:inline
+                  ">Actions</span>
                 </Button>
               }
             />
@@ -140,7 +143,7 @@ export function ActionsDropdown() {
           {isApiActive ? (
             <>
               <DropdownMenuItem onClick={() => openApiExplorerTab()}>
-                <Braces className="size-4 mr-2" />
+                <Braces className="mr-2 size-4" />
                 <span className="flex-1">New API Request</span>
                 <Kbd className="ml-auto">⌘K</Kbd> <Kbd>N</Kbd>
               </DropdownMenuItem>
@@ -148,12 +151,12 @@ export function ActionsDropdown() {
                 onClick={() => executeApiRequest(activeTabId ?? undefined)}
                 disabled={!canSendApi}
               >
-                <Send className="size-4 mr-2" />
+                <Send className="mr-2 size-4" />
                 <span className="flex-1">Send Request</span>
                 <Kbd className="ml-auto">⌘↵</Kbd>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={switchToScriptView}>
-                <ArrowLeftRight className="size-4 mr-2" />
+                <ArrowLeftRight className="mr-2 size-4" />
                 <span className="flex-1">Switch to Script Editor</span>
                 <Kbd className="ml-auto">⌘K</Kbd> <Kbd>M</Kbd>
               </DropdownMenuItem>
@@ -164,19 +167,19 @@ export function ActionsDropdown() {
                 onClick={() => executeScript()}
                 disabled={!canRunScript}
               >
-                <Play className="size-4 mr-2" />
+                <Play className="mr-2 size-4" />
                 <span className="flex-1">Run Script</span>
                 <Kbd className="ml-auto">⌘↵</Kbd>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => {
                 createNewFile();
               }}>
-                <FilePlus className="size-4 mr-2" />
+                <FilePlus className="mr-2 size-4" />
                 <span className="flex-1">New File</span>
                 <Kbd className="ml-auto">⌘K</Kbd> <Kbd>N</Kbd>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={switchToApiView}>
-                <Braces className="size-4 mr-2" />
+                <Braces className="mr-2 size-4" />
                 <span className="flex-1">Switch to API Explorer</span>
                 <Kbd className="ml-auto">⌘K</Kbd> <Kbd>M</Kbd>
               </DropdownMenuItem>
@@ -184,7 +187,7 @@ export function ActionsDropdown() {
               <DropdownMenuItem onClick={() => {
                 openFileFromDisk();
               }}>
-                <FileInput className="size-4 mr-2" />
+                <FileInput className="mr-2 size-4" />
                 <span className="flex-1">Open File...</span>
                 <Kbd className="ml-auto">⌘K</Kbd> <Kbd>O</Kbd>
               </DropdownMenuItem>
@@ -192,7 +195,7 @@ export function ActionsDropdown() {
               <DropdownMenuItem onClick={() => {
                 void openModuleFolderFromDisk();
               }}>
-                <Folder className="size-4 mr-2" />
+                <Folder className="mr-2 size-4" />
                 <span className="flex-1">Open Module Folder...</span>
                 <Kbd className="ml-auto">⌘K</Kbd> <Kbd>F</Kbd>
               </DropdownMenuItem>
@@ -201,7 +204,7 @@ export function ActionsDropdown() {
                 onClick={() => void saveFile()}
                 disabled={!hasOpenTabs}
               >
-                <Save className="size-4 mr-2" />
+                <Save className="mr-2 size-4" />
                 <span className="flex-1">Save</span>
                 <Kbd className="ml-auto">⌘S</Kbd>
               </DropdownMenuItem>
@@ -210,7 +213,7 @@ export function ActionsDropdown() {
                 onClick={() => void saveFileAs()}
                 disabled={!hasOpenTabs}
               >
-                <Download className="size-4 mr-2" />
+                <Download className="mr-2 size-4" />
                 <span className="flex-1">Save As...</span>
                 <Kbd className="ml-auto">⌘K</Kbd> <Kbd>⇧S</Kbd>
               </DropdownMenuItem>
@@ -224,7 +227,7 @@ export function ActionsDropdown() {
                 }}
                 disabled={!hasOpenTabs}
               >
-                <Download className="size-4 mr-2" />
+                <Download className="mr-2 size-4" />
                 <span className="flex-1">Export (Download)</span>
                 <Kbd className="ml-auto">⌘K</Kbd> <Kbd>E</Kbd>
               </DropdownMenuItem>
@@ -258,7 +261,7 @@ export function ActionsDropdown() {
                 }}
                 disabled={!selectedPortalId}
               >
-                <CloudDownload className="size-4 mr-2" />
+                <CloudDownload className="mr-2 size-4" />
                 <span className="flex-1">Import from LMX</span>
                 <Kbd className="ml-auto">⌘K</Kbd> <Kbd>I</Kbd>
               </DropdownMenuItem>
@@ -269,7 +272,7 @@ export function ActionsDropdown() {
                 }}
                 disabled={!selectedPortalId}
               >
-                <FolderSearch className="size-4 mr-2" />
+                <FolderSearch className="mr-2 size-4" />
                 <span className="flex-1">Search LogicModules</span>
                 <Kbd className="ml-auto">⌘K</Kbd> <Kbd>S</Kbd>
               </DropdownMenuItem>
@@ -280,7 +283,7 @@ export function ActionsDropdown() {
                 }}
                 disabled={!selectedPortalId}
               >
-                <Hammer className="size-4 mr-2" />
+                <Hammer className="mr-2 size-4" />
                 <span className="flex-1">AppliesTo Toolbox</span>
                 <Kbd className="ml-auto">⌘K</Kbd> <Kbd>A</Kbd>
               </DropdownMenuItem>
@@ -291,7 +294,7 @@ export function ActionsDropdown() {
                 }}
                 disabled={!selectedPortalId}
               >
-                <Wrench className="size-4 mr-2" />
+                <Wrench className="mr-2 size-4" />
                 <span className="flex-1">Debug Commands</span>
                 <Kbd className="ml-auto">⌘K</Kbd> <Kbd>D</Kbd>
               </DropdownMenuItem>
@@ -302,7 +305,7 @@ export function ActionsDropdown() {
                 }}
                 disabled={!selectedPortalId}
               >
-                <Puzzle className="size-4 mr-2" />
+                <Puzzle className="mr-2 size-4" />
                 <span className="flex-1">Module Snippets</span>
                 <Kbd className="ml-auto">⌘K</Kbd> <Kbd>L</Kbd>
               </DropdownMenuItem>
@@ -325,7 +328,7 @@ export function ActionsDropdown() {
                         }}
                         disabled={!selectedPortalId || !canCommit}
                       >
-                        <Upload className="size-4 mr-2" />
+                        <Upload className="mr-2 size-4" />
                         <span className="flex-1">Push to Portal</span>
                       </DropdownMenuItem>
                     }
@@ -354,7 +357,7 @@ export function ActionsDropdown() {
             }}
             disabled={!hasOpenTabs}
           >
-            <PanelRight className="size-4 mr-2" />
+            <PanelRight className="mr-2 size-4" />
             <span className="flex-1">{rightSidebarOpen ? 'Hide' : 'Show'} Sidebar</span>
             <Kbd className="ml-auto">⌘B</Kbd>
           </DropdownMenuItem>
@@ -366,7 +369,7 @@ export function ActionsDropdown() {
           <DropdownMenuItem onClick={() => {
             setSettingsDialogOpen(true);
           }}>
-            <Settings className="size-4 mr-2" />
+            <Settings className="mr-2 size-4" />
             <span className="flex-1">Settings</span>
             <Kbd className="ml-auto">⌘,</Kbd>
           </DropdownMenuItem>
@@ -374,7 +377,7 @@ export function ActionsDropdown() {
           <DropdownMenuItem onClick={() => {
             window.open('https://stevevillardi.github.io/lmda-composer/', '_blank');
           }}>
-            <BookOpen className="size-4 mr-2" />
+            <BookOpen className="mr-2 size-4" />
             <span className="flex-1">Documentation</span>
             <ExternalLink className="size-3 text-muted-foreground" />
           </DropdownMenuItem>
@@ -382,7 +385,7 @@ export function ActionsDropdown() {
           <DropdownMenuItem onClick={() => {
             window.open('https://logicmonitor.github.io/lm-powershell-module-docs/', '_blank');
           }}>
-            <Terminal className="size-4 mr-2" />
+            <Terminal className="mr-2 size-4" />
             <span className="flex-1">Install the LM Pwsh Module</span>
             <ExternalLink className="size-3 text-muted-foreground" />
           </DropdownMenuItem>

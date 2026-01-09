@@ -307,7 +307,7 @@ export function AppliesToTester() {
     setCursorWordStart(wordContext.start);
     
     // Calculate suggestions inline
-    let currentSuggestions: Array<AppliesToFunction | AppliesToOperator> = [];
+    const currentSuggestions: Array<AppliesToFunction | AppliesToOperator> = [];
     if (wordContext.word.length >= 1) {
       const word = wordContext.word.toLowerCase();
       
@@ -601,9 +601,11 @@ export function AppliesToTester() {
         setAppliesToTesterOpen(open);
       }}
     >
-      <DialogContent className="w-[90vw]! max-w-[90vw]! h-[90vh] flex flex-col gap-0 p-0" showCloseButton>
+      <DialogContent className="
+        flex h-[90vh] w-[90vw]! max-w-[90vw]! flex-col gap-0 p-0
+      " showCloseButton>
         {/* Header */}
-        <DialogHeader className="px-6 pt-6 pb-4 shrink-0 border-b relative">
+        <DialogHeader className="relative shrink-0 border-b px-6 pt-6 pb-4">
           <div className="flex items-center justify-between pr-8">
             <div className="space-y-1">
               <DialogTitle className="flex items-center gap-2">
@@ -621,14 +623,19 @@ export function AppliesToTester() {
                   <Button variant="outline" size="sm" className="gap-2">
                     <HelpCircle className="size-4" />
                     Function Reference
-                    <Badge variant="secondary" className="text-xs h-5 px-1.5 ml-1">
+                    <Badge variant="secondary" className="
+                      ml-1 h-5 px-1.5 text-xs
+                    ">
                       {typedAllFunctions.length}
                     </Badge>
                   </Button>
                 }
               />
-              <SheetContent side="right" className="w-full sm:max-w-md p-0 flex flex-col">
-                <SheetHeader className="p-6 border-b">
+              <SheetContent side="right" className="
+                flex w-full flex-col p-0
+                sm:max-w-md
+              ">
+                <SheetHeader className="border-b p-6">
                   <SheetTitle>Function Reference</SheetTitle>
                   <SheetDescription>
                     Browse built-in functions, operators, and manage your custom functions.
@@ -637,19 +644,25 @@ export function AppliesToTester() {
                 
                 <div className="flex-1 overflow-auto p-6">
                   {/* Search and Filter */}
-                  <div className="flex items-center gap-2 mb-4">
+                  <div className="mb-4 flex items-center gap-2">
                     <div className="relative flex-1">
-                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                      <Search className="
+                        absolute top-1/2 left-2.5 size-4 -translate-y-1/2
+                        text-muted-foreground
+                      " />
                       <Input
                         type="text"
                         placeholder="Search functions..."
                         value={appliesToFunctionSearch}
                         onChange={(e) => setAppliesToFunctionSearch(e.target.value)}
-                        className="pl-8 h-8"
+                        className="h-8 pl-8"
                       />
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <Label htmlFor="custom-switch" className="text-xs text-muted-foreground whitespace-nowrap cursor-pointer">
+                    <div className="flex shrink-0 items-center gap-2">
+                      <Label htmlFor="custom-switch" className="
+                        cursor-pointer text-xs whitespace-nowrap
+                        text-muted-foreground
+                      ">
                         Custom only
                       </Label>
                       <Switch
@@ -663,14 +676,19 @@ export function AppliesToTester() {
                   {/* Loading state */}
                   {isLoadingCustomFunctions && (
                     <div className="flex items-center justify-center py-8">
-                      <Loader2 className="size-5 animate-spin text-muted-foreground" />
+                      <Loader2 className="
+                        size-5 animate-spin text-muted-foreground
+                      " />
                       <span className="ml-2 text-sm text-muted-foreground">Loading custom functions...</span>
                     </div>
                   )}
 
                   {/* Error state */}
                   {customFunctionError && !isLoadingCustomFunctions && (
-                    <div className="rounded-md bg-destructive/10 border border-destructive/20 p-3 mb-2">
+                    <div className="
+                      mb-2 rounded-md border border-destructive/20
+                      bg-destructive/10 p-3
+                    ">
                       <div className="flex items-center gap-2">
                         <AlertCircle className="size-4 text-destructive" />
                         <p className="text-sm text-destructive">{customFunctionError}</p>
@@ -694,7 +712,7 @@ export function AppliesToTester() {
                           ))}
                         </div>
                       ) : (
-                        <Empty className="h-64 border rounded-md">
+                        <Empty className="h-64 rounded-md border">
                           <EmptyHeader>
                             <EmptyMedia variant="icon">
                               <Search className="size-5 text-muted-foreground" />
@@ -717,18 +735,25 @@ export function AppliesToTester() {
         </DialogHeader>
 
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col min-h-0 bg-muted/5">
+        <div className="flex min-h-0 flex-1 flex-col bg-muted/5">
           {/* Top section: Expression + Results (side by side) */}
-          <div className="flex-1 flex min-h-0">
+          <div className="flex min-h-0 flex-1">
             {/* Left Panel - Expression Input */}
-            <div className="w-1/2 flex flex-col border-r border-border p-6 gap-6">
+            <div className="
+              flex w-1/2 flex-col gap-6 border-r border-border p-6
+            ">
               {/* Operator Toolbar */}
               <div className="space-y-3">
-                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Quick Insert Operators</Label>
+                <Label className="
+                  text-xs font-semibold tracking-wider text-muted-foreground
+                  uppercase
+                ">Quick Insert Operators</Label>
                 <div className="space-y-4">
                   {/* Comparison Operators */}
                   <div className="space-y-1.5">
-                    <span className="text-[10px] text-muted-foreground font-medium uppercase">Comparison</span>
+                    <span className="
+                      text-[10px] font-medium text-muted-foreground uppercase
+                    ">Comparison</span>
                     <div className="flex flex-wrap gap-1.5">
                       {getOperatorsByCategory('comparison').map((op) => (
                         <Tooltip key={op.symbol}>
@@ -738,7 +763,11 @@ export function AppliesToTester() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => insertItem(op)}
-                                className="h-7 min-w-8 px-2 text-xs font-mono bg-background hover:bg-accent hover:text-accent-foreground"
+                                className="
+                                  h-7 min-w-8 bg-background px-2 font-mono
+                                  text-xs
+                                  hover:bg-accent hover:text-accent-foreground
+                                "
                                 aria-label={op.description}
                               >
                                 {op.symbol}
@@ -749,7 +778,9 @@ export function AppliesToTester() {
                             <div className="space-y-1">
                               <div className="font-medium">{op.symbol}</div>
                               <div className="text-xs">{op.description}</div>
-                              <div className="text-xs text-muted-foreground font-mono">{op.example}</div>
+                              <div className="
+                                font-mono text-xs text-muted-foreground
+                              ">{op.example}</div>
                             </div>
                           </TooltipContent>
                         </Tooltip>
@@ -759,7 +790,9 @@ export function AppliesToTester() {
                   
                   {/* Logical Operators */}
                   <div className="space-y-1.5">
-                    <span className="text-[10px] text-muted-foreground font-medium uppercase">Logical</span>
+                    <span className="
+                      text-[10px] font-medium text-muted-foreground uppercase
+                    ">Logical</span>
                     <div className="flex flex-wrap gap-1.5">
                       {getOperatorsByCategory('logical').map((op) => (
                         <Tooltip key={op.symbol}>
@@ -769,7 +802,11 @@ export function AppliesToTester() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => insertItem(op)}
-                                className="h-7 min-w-8 px-2 text-xs font-mono bg-background hover:bg-accent hover:text-accent-foreground"
+                                className="
+                                  h-7 min-w-8 bg-background px-2 font-mono
+                                  text-xs
+                                  hover:bg-accent hover:text-accent-foreground
+                                "
                                 aria-label={op.description}
                               >
                                 {op.symbol}
@@ -780,7 +817,9 @@ export function AppliesToTester() {
                             <div className="space-y-1">
                               <div className="font-medium">{op.symbol}</div>
                               <div className="text-xs">{op.description}</div>
-                              <div className="text-xs text-muted-foreground font-mono">{op.example}</div>
+                              <div className="
+                                font-mono text-xs text-muted-foreground
+                              ">{op.example}</div>
                             </div>
                           </TooltipContent>
                         </Tooltip>
@@ -790,7 +829,9 @@ export function AppliesToTester() {
                   
                   {/* Grouping Operators */}
                   <div className="space-y-1.5">
-                    <span className="text-[10px] text-muted-foreground font-medium uppercase">Grouping</span>
+                    <span className="
+                      text-[10px] font-medium text-muted-foreground uppercase
+                    ">Grouping</span>
                     <div className="flex flex-wrap gap-1.5">
                       {getOperatorsByCategory('grouping').map((op) => (
                         <Tooltip key={op.symbol}>
@@ -800,7 +841,11 @@ export function AppliesToTester() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => insertItem(op)}
-                                className="h-7 min-w-8 px-2 text-xs font-mono bg-background hover:bg-accent hover:text-accent-foreground"
+                                className="
+                                  h-7 min-w-8 bg-background px-2 font-mono
+                                  text-xs
+                                  hover:bg-accent hover:text-accent-foreground
+                                "
                                 aria-label={op.description}
                               >
                                 {op.symbol}
@@ -811,7 +856,9 @@ export function AppliesToTester() {
                             <div className="space-y-1">
                               <div className="font-medium">{op.symbol}</div>
                               <div className="text-xs">{op.description}</div>
-                              <div className="text-xs text-muted-foreground font-mono">{op.example}</div>
+                              <div className="
+                                font-mono text-xs text-muted-foreground
+                              ">{op.example}</div>
                             </div>
                           </TooltipContent>
                         </Tooltip>
@@ -822,7 +869,7 @@ export function AppliesToTester() {
               </div>
 
               {/* Expression textarea */}
-              <div className="flex-1 flex flex-col gap-2 min-h-0">
+              <div className="flex min-h-0 flex-1 flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Label htmlFor="expression" className="text-sm font-medium">
@@ -832,7 +879,10 @@ export function AppliesToTester() {
                       variant="ghost"
                       size="xs"
                       onClick={() => setAppliesToExpression('')}
-                      className="h-5 px-2 text-[10px] text-muted-foreground hover:text-foreground"
+                      className="
+                        h-5 px-2 text-[10px] text-muted-foreground
+                        hover:text-foreground
+                      "
                       disabled={!appliesToExpression}
                     >
                       Clear
@@ -844,7 +894,9 @@ export function AppliesToTester() {
                         Editing: {loadedFunction.name}
                       </Badge>
                       {hasExpressionChanged && (
-                        <Badge variant="outline" className="text-xs text-yellow-700 border-yellow-700">
+                        <Badge variant="outline" className="
+                          border-yellow-700 text-xs text-yellow-700
+                        ">
                           Modified
                         </Badge>
                       )}
@@ -855,7 +907,7 @@ export function AppliesToTester() {
                               variant="ghost"
                               size="icon-xs"
                               onClick={handleUnloadFunction}
-                              className="h-5 w-5"
+                              className="size-5"
                               aria-label="Unload function"
                             >
                               <X className="size-3" />
@@ -869,7 +921,7 @@ export function AppliesToTester() {
                     </div>
                   )}
                 </div>
-                <div className="relative flex-1 min-h-0">
+                <div className="relative min-h-0 flex-1">
                   <Textarea
                     ref={textareaRef}
                     id="expression"
@@ -891,12 +943,19 @@ export function AppliesToTester() {
                       setCursorWordStart(wordContext.start);
                     }}
                     placeholder='hasCategory("Linux") && isDevice()'
-                    className="h-full min-h-[120px] font-mono text-sm resize-none relative z-10 bg-background shadow-sm"
+                    className="
+                      relative z-10 h-full min-h-[120px] resize-none
+                      bg-background font-mono text-sm shadow-sm
+                    "
                   />
                   
                   {/* Autocomplete suggestions dropdown */}
                   {showSuggestions && suggestions.length > 0 && (
-                    <div className="absolute left-0 right-0 bottom-full mb-1 z-50 bg-popover border border-border rounded-md shadow-lg max-h-48 overflow-auto">
+                    <div className="
+                      absolute right-0 bottom-full left-0 z-50 mb-1 max-h-48
+                      overflow-auto rounded-md border border-border bg-popover
+                      shadow-lg
+                    ">
                       {suggestions.map((item, index) => {
                         const isFunction = 'name' in item;
                         const displayName = isFunction ? (item as AppliesToFunction).name : (item as AppliesToOperator).symbol;
@@ -914,29 +973,41 @@ export function AppliesToTester() {
                             key={isFunction ? (item as AppliesToFunction).name : (item as AppliesToOperator).symbol}
                             onClick={() => selectSuggestion(item)}
                             className={cn(
-                              "w-full px-3 py-2 text-left text-sm flex items-center gap-2 hover:bg-accent transition-colors",
+                              `
+                                flex w-full items-center gap-2 px-3 py-2
+                                text-left text-sm transition-colors
+                                hover:bg-accent
+                              `,
                               index === suggestionIndex && "bg-accent"
                             )}
                             aria-label={`${isFunction ? 'Function' : 'Operator'}: ${displayName}`}
                           >
                             <Badge 
                               variant={isFunction ? 'default' : 'secondary'} 
-                              className="text-xs font-mono flex items-center gap-0"
+                              className="
+                                flex items-center gap-0 font-mono text-xs
+                              "
                             >
                               <span className="font-semibold">{matchedPart}</span>
                               <span className="opacity-70">{remainingPart}</span>
                             </Badge>
-                            <span className="text-muted-foreground text-xs truncate flex-1">
+                            <span className="
+                              flex-1 truncate text-xs text-muted-foreground
+                            ">
                               {description}
                               {fullDescription.length > 60 && '...'}
                             </span>
                             {isFunction && (
-                              <Badge variant="outline" className="text-[10px] shrink-0">
+                              <Badge variant="outline" className="
+                                shrink-0 text-[10px]
+                              ">
                                 Function
                               </Badge>
                             )}
                             {!isFunction && (
-                              <Badge variant="outline" className="text-[10px] shrink-0">
+                              <Badge variant="outline" className="
+                                shrink-0 text-[10px]
+                              ">
                                 {(item as AppliesToOperator).category}
                               </Badge>
                             )}
@@ -988,7 +1059,7 @@ export function AppliesToTester() {
             </div>
 
             {/* Right Panel - Results */}
-            <div className="w-1/2 flex flex-col p-6 gap-4 bg-background/50">
+            <div className="flex w-1/2 flex-col gap-4 bg-background/50 p-6">
               {/* Results header */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -1017,15 +1088,28 @@ export function AppliesToTester() {
               </div>
 
               {/* Results list */}
-              <div className="flex-1 min-h-0 overflow-auto border border-border rounded-md bg-background shadow-sm">
+              <div className="
+                min-h-0 flex-1 overflow-auto rounded-md border border-border
+                bg-background shadow-sm
+              ">
                 {/* Error display - show in results area */}
                 {appliesToError ? (
-                  <div className="h-full flex flex-col">
-                    <div className="flex items-start gap-3 p-4 bg-destructive/10 border-b border-destructive/20">
-                      <AlertCircle className="size-5 text-destructive mt-0.5 shrink-0" />
+                  <div className="flex h-full flex-col">
+                    <div className="
+                      flex items-start gap-3 border-b border-destructive/20
+                      bg-destructive/10 p-4
+                    ">
+                      <AlertCircle className="
+                        mt-0.5 size-5 shrink-0 text-destructive
+                      " />
                       <div className="flex-1">
-                        <div className="text-sm font-medium text-destructive mb-2">Expression Error</div>
-                        <pre className="text-sm text-destructive/90 whitespace-pre-wrap font-mono">
+                        <div className="
+                          mb-2 text-sm font-medium text-destructive
+                        ">Expression Error</div>
+                        <pre className="
+                          font-mono text-sm whitespace-pre-wrap
+                          text-destructive/90
+                        ">
                           {appliesToError}
                         </pre>
                       </div>
@@ -1060,15 +1144,24 @@ export function AppliesToTester() {
                     {appliesToResults.map((match) => (
                       <div 
                         key={match.id}
-                        className="flex items-center gap-3 px-4 py-2.5 hover:bg-accent/50 transition-colors group"
+                        className="
+                          group flex items-center gap-3 px-4 py-2.5
+                          transition-colors
+                          hover:bg-accent/50
+                        "
                       >
-                        <Badge variant="outline" className="shrink-0 font-mono text-xs">
+                        <Badge variant="outline" className="
+                          shrink-0 font-mono text-xs
+                        ">
                           {match.type}
                         </Badge>
-                        <span className="font-mono text-xs text-muted-foreground shrink-0 w-16 text-right">
+                        <span className="
+                          w-16 shrink-0 text-right font-mono text-xs
+                          text-muted-foreground
+                        ">
                           #{match.id}
                         </span>
-                        <span className="text-sm truncate flex-1" title={match.name}>
+                        <span className="flex-1 truncate text-sm" title={match.name}>
                           {match.name}
                         </span>
                         <Tooltip>
@@ -1078,7 +1171,10 @@ export function AppliesToTester() {
                                 variant="ghost"
                                 size="icon-xs"
                                 onClick={() => handleCopy(match.id)}
-                                className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                                className="
+                                  shrink-0 opacity-0 transition-opacity
+                                  group-hover:opacity-100
+                                "
                               >
                                 {copiedId === match.id ? (
                                   <Check className="size-3 text-teal-500" />
@@ -1147,7 +1243,7 @@ export function AppliesToTester() {
             <AlertDialogDescription>
               Are you sure you want to delete this custom function? This action cannot be undone.
               {deletingFunctionId && (
-                <span className="mt-2 font-mono text-sm block">
+                <span className="mt-2 block font-mono text-sm">
                   {customFunctions.find((cf: CustomAppliesToFunction) => cf.id === deletingFunctionId)?.name}
                 </span>
               )}
@@ -1184,30 +1280,51 @@ function FunctionCard({ func, onInsert, onLoad, onDelete }: FunctionCardProps) {
     : null;
 
   return (
-    <div className="group relative flex items-center gap-3 p-3 rounded-md border border-border bg-card/40 hover:bg-accent/40 hover:border-primary/30 transition-all shadow-xs hover:shadow-md">
+    <div className="
+      group relative flex items-center gap-3 rounded-md border border-border
+      bg-card/40 p-3 shadow-xs transition-all
+      hover:border-primary/30 hover:bg-accent/40 hover:shadow-md
+    ">
       <Tooltip>
         <TooltipTrigger 
           render={
             <button
               onClick={onInsert}
-              className="flex-1 text-left min-w-0"
+              className="min-w-0 flex-1 text-left"
             >
-              <div className="flex items-center justify-between gap-2 mb-1 min-w-0">
-                <div className="flex items-center gap-2 min-w-0">
-                  <code className="text-sm font-semibold text-primary truncate font-mono group-hover:text-primary/80 transition-colors">
+              <div className="
+                mb-1 flex min-w-0 items-center justify-between gap-2
+              ">
+                <div className="flex min-w-0 items-center gap-2">
+                  <code className="
+                    truncate font-mono text-sm font-semibold text-primary
+                    transition-colors
+                    group-hover:text-primary/80
+                  ">
                     {func.syntax}
                   </code>
                   {isCustom && (
-                    <Badge variant="secondary" className="text-[10px] h-4 px-1 shrink-0 rounded-[4px] font-normal">
+                    <Badge variant="secondary" className="
+                      h-4 shrink-0 rounded-[4px] px-1 text-[10px] font-normal
+                    ">
                       Custom
                     </Badge>
                   )}
                 </div>
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity text-[10px] font-medium text-muted-foreground bg-background/50 px-1.5 py-0.5 rounded border border-border/50 shadow-sm">
+                <div className="
+                  rounded-sm border border-border/50 bg-background/50 px-1.5
+                  py-0.5 text-[10px] font-medium text-muted-foreground opacity-0
+                  shadow-sm transition-opacity
+                  group-hover:opacity-100
+                ">
                   Insert
                 </div>
               </div>
-              <p className="text-xs text-muted-foreground line-clamp-2 leading-snug group-hover:text-foreground/80 transition-colors">
+              <p className="
+                line-clamp-2 text-xs/snug text-muted-foreground
+                transition-colors
+                group-hover:text-foreground/80
+              ">
                 {func.description}
               </p>
             </button>
@@ -1223,12 +1340,14 @@ function FunctionCard({ func, onInsert, onLoad, onDelete }: FunctionCardProps) {
             )}
             <div className="text-xs">{func.description}</div>
             {func.example && (
-              <div className="text-xs text-muted-foreground mt-1">
+              <div className="mt-1 text-xs text-muted-foreground">
                 <span className="font-medium">Example:</span> <code>{func.example}</code>
               </div>
             )}
             {isCustom && customFunction && (
-              <div className="text-xs text-muted-foreground mt-1 pt-1 border-t border-border">
+              <div className="
+                mt-1 border-t border-border pt-1 text-xs text-muted-foreground
+              ">
                 <div className="font-medium">Code:</div>
                 <code className="text-[10px]">{customFunction.code}</code>
               </div>
@@ -1239,7 +1358,9 @@ function FunctionCard({ func, onInsert, onLoad, onDelete }: FunctionCardProps) {
       
       {/* Actions for custom functions */}
       {isCustom && customFunction && (onLoad || onDelete) && (
-        <div className="flex items-center gap-2 shrink-0 pl-3 border-l border-border/50">
+        <div className="
+          flex shrink-0 items-center gap-2 border-l border-border/50 pl-3
+        ">
           {onLoad && (
             <Tooltip>
               <TooltipTrigger 
@@ -1247,7 +1368,11 @@ function FunctionCard({ func, onInsert, onLoad, onDelete }: FunctionCardProps) {
                   <Button
                     variant="secondary"
                     size="sm"
-                    className="h-7 px-3 text-xs font-medium gap-1.5 bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary border-transparent shadow-none"
+                    className="
+                      h-7 gap-1.5 border-transparent bg-primary/10 px-3 text-xs
+                      font-medium text-primary shadow-none
+                      hover:bg-primary/20 hover:text-primary
+                    "
                     onClick={(e) => {
                       e.stopPropagation();
                       onLoad(customFunction);
@@ -1268,7 +1393,10 @@ function FunctionCard({ func, onInsert, onLoad, onDelete }: FunctionCardProps) {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-7 w-7 text-destructive/70 hover:text-destructive hover:bg-destructive/10"
+                    className="
+                      size-7 text-destructive/70
+                      hover:bg-destructive/10 hover:text-destructive
+                    "
                     onClick={(e) => {
                       e.stopPropagation();
                       onDelete(customFunction.id);

@@ -86,9 +86,9 @@ export function EditorPanel() {
   }, [activeTab, setEditorInstance]);
 
   return (
-    <div className="h-full w-full flex flex-col relative">
+    <div className="relative flex size-full flex-col">
       {/* Monaco Editor */}
-      <div className="flex-1 min-h-0" role="region" aria-label="Code editor">
+      <div className="min-h-0 flex-1" role="region" aria-label="Code editor">
         {activeTab ? (
           <Editor
             key={activeTabId} // Re-mount editor when switching tabs for proper state isolation
@@ -100,7 +100,10 @@ export function EditorPanel() {
             onMount={handleEditorMount}
             options={editorOptions}
             loading={
-              <div className="flex flex-col items-center justify-center h-full gap-3 text-muted-foreground" role="status" aria-label="Loading editor">
+              <div className="
+                flex h-full flex-col items-center justify-center gap-3
+                text-muted-foreground
+              " role="status" aria-label="Loading editor">
                 <Loader2 className="size-8 animate-spin text-primary/50" />
                 <span className="text-sm font-medium">Initializing Editor...</span>
               </div>
@@ -108,14 +111,17 @@ export function EditorPanel() {
           />
         ) : (
           <div 
-            className="flex flex-col items-center justify-center h-full text-muted-foreground gap-4" 
+            className="
+              flex h-full flex-col items-center justify-center gap-4
+              text-muted-foreground
+            " 
             role="status" 
             aria-label="No file open"
           >
-            <div className="p-4 rounded-full bg-secondary/30">
+            <div className="rounded-full bg-secondary/30 p-4">
               <FilePlus className="size-8 text-muted-foreground/50" />
             </div>
-            <div className="text-center space-y-1">
+            <div className="space-y-1 text-center">
               <p className="font-medium text-foreground">No file open</p>
               <p className="text-sm text-muted-foreground">
                 Press <Kbd>⌘</Kbd> <Kbd>N</Kbd> to create a new file
@@ -123,7 +129,11 @@ export function EditorPanel() {
             </div>
             <button
               onClick={createNewFile}
-              className="mt-2 px-4 py-2 text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 rounded-md transition-colors"
+              className="
+                mt-2 rounded-md bg-primary/10 px-4 py-2 text-xs font-medium
+                text-primary transition-colors
+                hover:bg-primary/20
+              "
             >
               Create New File
             </button>

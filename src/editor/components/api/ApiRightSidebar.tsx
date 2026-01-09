@@ -69,32 +69,38 @@ export function ApiRightSidebar() {
   }, [responseJson]);
 
   return (
-    <div className="h-full flex flex-col border-l border-border bg-background">
-      <div className="h-12 px-3 border-b border-border flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase tracking-wide select-none">
+    <div className="flex h-full flex-col border-l border-border bg-background">
+      <div className="
+        flex h-12 items-center gap-2 border-b border-border px-3 text-xs
+        font-medium tracking-wide text-muted-foreground uppercase select-none
+      ">
         <Settings2 className="size-3.5" />
         <span>API Tools</span>
       </div>
-      <Tabs defaultValue="variables" className="flex-1 min-h-0">
+      <Tabs defaultValue="variables" className="min-h-0 flex-1">
         <TabsList className="px-3 pt-3" variant="line">
           <TabsTrigger value="variables">
-            <Variable className="size-3.5 mr-1" />
+            <Variable className="mr-1 size-3.5" />
             Variables
           </TabsTrigger>
           <TabsTrigger value="history">
-            <Clock className="size-3.5 mr-1" />
+            <Clock className="mr-1 size-3.5" />
             History
           </TabsTrigger>
           <TabsTrigger value="helpers">
-            <Settings2 className="size-3.5 mr-1" />
+            <Settings2 className="mr-1 size-3.5" />
             Helpers
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="variables" className="flex-1 min-h-0 px-3 pb-3">
+        <TabsContent value="variables" className="min-h-0 flex-1 px-3 pb-3">
           <ScrollArea className="h-full pr-2">
             <div className="space-y-4">
               <ApiKeyValueEditor
-                className="bg-card/40 rounded-md border border-border/40 p-3 shadow-sm backdrop-blur-sm"
+                className="
+                  rounded-md border border-border/40 bg-card/40 p-3 shadow-sm
+                  backdrop-blur-sm
+                "
                 label={
                   <>
                     <Variable className="size-3.5" />
@@ -113,8 +119,10 @@ export function ApiRightSidebar() {
           </ScrollArea>
         </TabsContent>
 
-        <TabsContent value="history" className="flex-1 min-h-0 px-3 pb-3">
-          <div className="flex items-center justify-between py-2 border-b border-border mb-2">
+        <TabsContent value="history" className="min-h-0 flex-1 px-3 pb-3">
+          <div className="
+            mb-2 flex items-center justify-between border-b border-border py-2
+          ">
             <span className="text-xs text-muted-foreground select-none">
               Last {preferences.apiHistoryLimit} responses
             </span>
@@ -123,16 +131,22 @@ export function ApiRightSidebar() {
               size="xs"
               onClick={() => clearApiHistory(selectedPortalId ?? undefined)}
               disabled={!selectedPortalId || history.length === 0}
-              className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+              className="
+                text-muted-foreground
+                hover:bg-destructive/10 hover:text-destructive
+              "
             >
               Clear
             </Button>
           </div>
           <ScrollArea className="h-full pr-2">
             {history.length === 0 ? (
-              <Empty className="border-0 bg-transparent py-8 flex flex-col items-center justify-center">
+              <Empty className="
+                flex flex-col items-center justify-center border-0
+                bg-transparent py-8
+              ">
                 <EmptyHeader>
-                  <EmptyMedia variant="icon" className="bg-muted/50 mb-4">
+                  <EmptyMedia variant="icon" className="mb-4 bg-muted/50">
                     <HistoryIcon className="size-5 text-muted-foreground/70" />
                   </EmptyMedia>
                   <EmptyTitle className="text-base font-medium">No requests yet</EmptyTitle>
@@ -147,30 +161,46 @@ export function ApiRightSidebar() {
                   return (
                     <div
                       key={entry.id}
-                      className="group relative p-2 rounded-lg border border-border/50 bg-card/40 backdrop-blur-sm hover:bg-card hover:border-border transition-colors select-none"
+                      className="
+                        group relative rounded-lg border border-border/50
+                        bg-card/40 p-2 backdrop-blur-sm transition-colors
+                        select-none
+                        hover:border-border hover:bg-card
+                      "
                     >
                       <div className={cn(
-                        "absolute left-0 top-0 bottom-0 w-1 rounded-l-lg",
+                        "absolute top-0 bottom-0 left-0 w-1 rounded-l-lg",
                         isSuccess ? "bg-teal-500" : "bg-red-500"
                       )} />
                       
                       <div className="pl-2">
-                        <div className="flex items-center justify-between gap-2 mb-1">
+                        <div className="
+                          mb-1 flex items-center justify-between gap-2
+                        ">
                           <div className="flex items-center gap-2">
                             <span
                               className={cn(
-                                "text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-tight",
+                                `
+                                  rounded-sm px-1.5 py-0.5 text-[9px] font-bold
+                                  tracking-tight uppercase
+                                `,
                                 methodStyle.bgSubtle,
                                 methodStyle.text
                               )}
                             >
                               {entry.request.method}
                             </span>
-                            <Badge variant="outline" className={cn("text-[9px] h-4 px-1 border-transparent", isSuccess ? "bg-teal-500/10 text-teal-600" : "bg-red-500/10 text-red-600")}>
+                            <Badge variant="outline" className={cn(`
+                              h-4 border-transparent px-1 text-[9px]
+                            `, isSuccess ? `bg-teal-500/10 text-teal-600` : `
+                              bg-red-500/10 text-red-600
+                            `)}>
                               {entry.response.status}
                             </Badge>
                           </div>
-                          <span className="text-[10px] text-muted-foreground font-mono">
+                          <span className="
+                            font-mono text-[10px] text-muted-foreground
+                          ">
                             {entry.response.durationMs}ms
                           </span>
                         </div>
@@ -178,19 +208,28 @@ export function ApiRightSidebar() {
                         <div className="flex items-center justify-between gap-2">
                           <Tooltip>
                             <TooltipTrigger
-                              render={<div className="text-xs text-foreground/90 truncate flex-1 font-mono">{entry.request.path}</div>}
+                              render={<div className="
+                                flex-1 truncate font-mono text-xs
+                                text-foreground/90
+                              ">{entry.request.path}</div>}
                             />
                             <TooltipContent>{entry.request.path}</TooltipContent>
                           </Tooltip>
                           
-                          <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div className="
+                            opacity-0 transition-opacity
+                            group-hover:opacity-100
+                          ">
                             <Tooltip>
                               <TooltipTrigger
                                 render={
                                   <Button
                                     variant="ghost"
                                     size="icon-xs"
-                                    className="size-6 hover:bg-primary/10 hover:text-primary"
+                                    className="
+                                      size-6
+                                      hover:bg-primary/10 hover:text-primary
+                                    "
                                     onClick={() => {
                                       const newTabId = openApiExplorerTab();
                                       updateApiTabRequest(newTabId, entry.request);
@@ -215,31 +254,55 @@ export function ApiRightSidebar() {
           </ScrollArea>
         </TabsContent>
 
-        <TabsContent value="helpers" className="flex-1 min-h-0 px-3 pb-3">
+        <TabsContent value="helpers" className="min-h-0 flex-1 px-3 pb-3">
           <ScrollArea className="h-full pr-2">
             <div className="space-y-4">
-              <div className="space-y-2 border border-border/40 rounded-md p-3 bg-card/40 backdrop-blur-sm">
-                <div className="flex items-center justify-between pb-2 border-b border-border/40">
+              <div className="
+                space-y-2 rounded-md border border-border/40 bg-card/40 p-3
+                backdrop-blur-sm
+              ">
+                <div className="
+                  flex items-center justify-between border-b border-border/40
+                  pb-2
+                ">
                   <div className="flex items-center gap-2">
                     <Route className="size-4 text-muted-foreground" />
                     <div className="text-xs font-medium text-foreground">JSON Path Helpers</div>
                   </div>
-                  <Badge variant="outline" className="text-[10px] font-normal select-none bg-background/50">Top-level</Badge>
+                  <Badge variant="outline" className="
+                    bg-background/50 text-[10px] font-normal select-none
+                  ">Top-level</Badge>
                 </div>
                 {responseJson && typeof responseJson === 'object' && !hasItemsArray ? (
                   <div className="space-y-1">
                     {helperEntries.length === 0 ? (
-                      <p className="text-xs text-muted-foreground py-2 text-center">
+                      <p className="
+                        py-2 text-center text-xs text-muted-foreground
+                      ">
                         No scalar fields available to save.
                       </p>
                     ) : (
                       helperEntries.map(([key, value]) => {
                         const path = `$.${key}`;
                         return (
-                          <div key={key} className="flex items-center justify-between gap-2 text-xs group hover:bg-muted/40 p-1.5 rounded-sm transition-colors relative pl-2.5">
-                            <div className="absolute left-0 top-0 bottom-0 w-0.5 bg-primary opacity-0 group-hover:opacity-100 transition-opacity rounded-full my-1" />
-                            <span className="truncate text-foreground font-mono">{path}</span>
-                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <div key={key} className="
+                            group relative flex items-center justify-between
+                            gap-2 rounded-sm p-1.5 pl-2.5 text-xs
+                            transition-colors
+                            hover:bg-muted/40
+                          ">
+                            <div className="
+                              absolute top-0 bottom-0 left-0 my-1 w-0.5
+                              rounded-full bg-primary opacity-0
+                              transition-opacity
+                              group-hover:opacity-100
+                            " />
+                            <span className="truncate font-mono text-foreground">{path}</span>
+                            <div className="
+                              flex items-center gap-1 opacity-0
+                              transition-opacity
+                              group-hover:opacity-100
+                            ">
                               <Tooltip>
                                 <TooltipTrigger
                                   render={
@@ -278,7 +341,10 @@ export function ApiRightSidebar() {
                       })
                     )}
                     {helperEntries.length >= 50 && (
-                      <p className="text-[11px] text-muted-foreground pt-2 border-t border-border/40">
+                      <p className="
+                        border-t border-border/40 pt-2 text-[11px]
+                        text-muted-foreground
+                      ">
                         Showing first 50 fields. Use the response viewer for deeper inspection.
                       </p>
                     )}
@@ -286,7 +352,7 @@ export function ApiRightSidebar() {
                 ) : (
                   <Empty className="border-0 bg-transparent py-4">
                     <EmptyHeader>
-                      <EmptyMedia variant="icon" className="bg-muted/50 mb-2">
+                      <EmptyMedia variant="icon" className="mb-2 bg-muted/50">
                         <FileWarning className="size-4 text-muted-foreground/70" />
                       </EmptyMedia>
                       <EmptyTitle className="text-sm font-medium">No helpers available</EmptyTitle>

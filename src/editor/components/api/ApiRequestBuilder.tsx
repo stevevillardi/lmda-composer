@@ -141,15 +141,17 @@ export function ApiRequestBuilder() {
 
   if (!activeTab || activeTab.kind !== 'api') {
     return (
-      <div className="h-full flex items-center justify-center text-muted-foreground text-sm">
+      <div className="
+        flex h-full items-center justify-center text-sm text-muted-foreground
+      ">
         Select an API tab to begin.
       </div>
     );
   }
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="flex items-center gap-2 px-3 h-12 border-b border-border">
+    <div className="flex h-full flex-col">
+      <div className="flex h-12 items-center gap-2 border-b border-border px-3">
         <Select
           value={method}
           onValueChange={(value) => {
@@ -185,24 +187,36 @@ export function ApiRequestBuilder() {
 
       </div>
 
-      <div className="flex-1 min-h-0 grid grid-rows-[auto_1fr] bg-muted/5">
+      <div className="grid min-h-0 flex-1 grid-rows-[auto_1fr] bg-muted/5">
         <Tabs
           value={bodyMode}
           onValueChange={(value) => updateApiTabRequest(activeTab.id, { bodyMode: value as 'form' | 'raw' })}
-          className="h-full min-h-0 flex flex-col"
+          className="flex h-full min-h-0 flex-col"
         >
-          <div className="px-3 pt-2 shrink-0 bg-background border-b border-border">
-            <TabsList className="w-full h-8 bg-muted/50 p-0.5 mb-2" variant="default">
-              <TabsTrigger value="form" className="flex-1 text-xs h-7 data-[state=active]:bg-background data-[state=active]:shadow-sm">Form</TabsTrigger>
-              <TabsTrigger value="raw" className="flex-1 text-xs h-7 data-[state=active]:bg-background data-[state=active]:shadow-sm">Raw JSON</TabsTrigger>
+          <div className="
+            shrink-0 border-b border-border bg-background px-3 pt-2
+          ">
+            <TabsList className="mb-2 h-8 w-full bg-muted/50 p-0.5" variant="default">
+              <TabsTrigger value="form" className="
+                h-7 flex-1 text-xs
+                data-[state=active]:bg-background data-[state=active]:shadow-sm
+              ">Form</TabsTrigger>
+              <TabsTrigger value="raw" className="
+                h-7 flex-1 text-xs
+                data-[state=active]:bg-background data-[state=active]:shadow-sm
+              ">Raw JSON</TabsTrigger>
             </TabsList>
           </div>
 
-          <TabsContent value="form" className="flex-1 min-h-0 px-3 pb-3 flex flex-col pt-3">
-            <div className="flex-1 min-h-0 flex flex-col gap-4 overflow-y-auto pr-2">
+          <TabsContent value="form" className="flex min-h-0 flex-1 flex-col p-3">
+            <div className="
+              flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pr-2
+            ">
               <div className="grid grid-cols-2 gap-3">
                 <ApiKeyValueEditor
-                  className="bg-card/40 rounded-md border border-border/40 p-3 shadow-sm"
+                  className="
+                    rounded-md border border-border/40 bg-card/40 p-3 shadow-sm
+                  "
                   label={
                     <>
                       <SlidersHorizontal className="size-3.5" />
@@ -215,7 +229,9 @@ export function ApiRequestBuilder() {
                   suggestions={queryParamSuggestions}
                 />
                 <ApiKeyValueEditor
-                  className="bg-card/40 rounded-md border border-border/40 p-3 shadow-sm"
+                  className="
+                    rounded-md border border-border/40 bg-card/40 p-3 shadow-sm
+                  "
                   label={
                     <>
                       <KeyRound className="size-3.5" />
@@ -229,10 +245,20 @@ export function ApiRequestBuilder() {
                 />
               </div>
 
-              <div className="border border-border/60 rounded-md bg-card/40 shadow-sm backdrop-blur-sm">
-                <div className="flex items-center justify-between px-3 py-2 border-b border-border/60 bg-muted/20">
-                  <span className="text-xs font-medium text-muted-foreground select-none">JSON Body (form)</span>
-                  <Badge variant="outline" className="text-[10px] select-none h-5 px-1.5 font-normal">application/json</Badge>
+              <div className="
+                rounded-md border border-border/60 bg-card/40 shadow-sm
+                backdrop-blur-sm
+              ">
+                <div className="
+                  flex items-center justify-between border-b border-border/60
+                  bg-muted/20 px-3 py-2
+                ">
+                  <span className="
+                    text-xs font-medium text-muted-foreground select-none
+                  ">JSON Body (form)</span>
+                  <Badge variant="outline" className="
+                    h-5 px-1.5 text-[10px] font-normal select-none
+                  ">application/json</Badge>
                 </div>
                 <div className="p-3">
                   <ApiKeyValueEditor
@@ -251,11 +277,15 @@ export function ApiRequestBuilder() {
             </div>
           </TabsContent>
 
-          <TabsContent value="raw" className="flex-1 min-h-0 px-3 pb-3 flex flex-col pt-3">
-            <div className="flex-1 min-h-0 flex flex-col gap-4 overflow-y-auto pr-2">
+          <TabsContent value="raw" className="flex min-h-0 flex-1 flex-col p-3">
+            <div className="
+              flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto pr-2
+            ">
               <div className="grid grid-cols-2 gap-3">
                 <ApiKeyValueEditor
-                  className="bg-card/40 rounded-md border border-border/40 p-3 shadow-sm"
+                  className="
+                    rounded-md border border-border/40 bg-card/40 p-3 shadow-sm
+                  "
                   label={
                     <>
                       <SlidersHorizontal className="size-3.5" />
@@ -268,7 +298,9 @@ export function ApiRequestBuilder() {
                   suggestions={queryParamSuggestions}
                 />
                 <ApiKeyValueEditor
-                  className="bg-card/40 rounded-md border border-border/40 p-3 shadow-sm"
+                  className="
+                    rounded-md border border-border/40 bg-card/40 p-3 shadow-sm
+                  "
                   label={
                     <>
                       <KeyRound className="size-3.5" />
@@ -282,11 +314,17 @@ export function ApiRequestBuilder() {
                 />
               </div>
 
-              <div className="border border-border/60 rounded-md overflow-hidden flex flex-col flex-1 min-h-[260px] bg-background/50 shadow-sm">
-                <div className="px-3 py-2 border-b border-border/60 text-[11px] text-muted-foreground select-none bg-muted/20">
+              <div className="
+                flex min-h-[260px] flex-1 flex-col overflow-hidden rounded-md
+                border border-border/60 bg-background/50 shadow-sm
+              ">
+                <div className="
+                  border-b border-border/60 bg-muted/20 px-3 py-2 text-[11px]
+                  text-muted-foreground select-none
+                ">
                   Raw JSON overrides form input.
                 </div>
-                <div className="flex-1 min-h-0">
+                <div className="min-h-0 flex-1">
                   <Editor
                     height="100%"
                     language="json"

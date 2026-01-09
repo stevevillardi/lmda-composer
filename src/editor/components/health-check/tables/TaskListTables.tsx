@@ -19,8 +19,10 @@ import type { AplistItem, SplistItem, AdlistItem, TplistItem } from '../types';
 
 function EmptyTableState({ message }: { message: string }) {
   return (
-    <div className="flex items-center justify-center py-8 text-muted-foreground select-none">
-      <CheckCircle className="size-4 mr-2 text-teal-500" />
+    <div className="
+      flex items-center justify-center py-8 text-muted-foreground select-none
+    ">
+      <CheckCircle className="mr-2 size-4 text-teal-500" />
       <span className="text-sm">{message}</span>
     </div>
   );
@@ -32,7 +34,10 @@ function TruncatedCell({ value, className }: { value: string; className?: string
   
   return (
     <Tooltip>
-      <TooltipTrigger className={`block truncate cursor-default text-left ${className || ''}`}>
+      <TooltipTrigger className={`
+        block cursor-default truncate text-left
+        ${className || ''}
+      `}>
         {value}
       </TooltipTrigger>
       <TooltipContent side="top" className="max-w-lg">
@@ -55,8 +60,11 @@ export function TaskListTables({ aplist, splist, adlist, tplist }: TaskListTable
   if (!hasData) {
     return (
       <SectionCard title="Task Lists" icon={<ListTree className="size-4" />}>
-        <div className="flex items-center justify-center py-8 text-muted-foreground select-none">
-          <CheckCircle className="size-5 mr-2 text-teal-500" />
+        <div className="
+          flex items-center justify-center py-8 text-muted-foreground
+          select-none
+        ">
+          <CheckCircle className="mr-2 size-5 text-teal-500" />
           <span className="text-sm">All tasks completed successfully</span>
         </div>
       </SectionCard>
@@ -132,12 +140,14 @@ function AdlistTable({ data }: { data: AdlistItem[] }) {
               <TableCell className="font-mono text-sm">{item.hostname}</TableCell>
               <TableCell className="text-sm">{item.datasource}</TableCell>
               <TableCell>
-                <Badge variant={item.status === 'OK' ? 'default' : 'destructive'} className="select-none">
+                <Badge variant={item.status === 'OK' ? 'default' : 'destructive'} className="
+                  select-none
+                ">
                   {item.status}
                 </Badge>
               </TableCell>
               <TableCell className="text-right tabular-nums">{item.execTime}ms</TableCell>
-              <TableCell className="text-sm max-w-xs">
+              <TableCell className="max-w-xs text-sm">
                 <TruncatedCell value={item.message} />
               </TableCell>
             </TableRow>
@@ -170,7 +180,9 @@ function SplistTable({ data }: { data: SplistItem[] }) {
               <TableCell className="font-mono text-sm">{item.hostname}</TableCell>
               <TableCell className="text-sm">{item.propertySource}</TableCell>
               <TableCell>
-                <Badge variant={item.status === 'DONE' ? 'default' : 'destructive'} className="select-none">
+                <Badge variant={item.status === 'DONE' ? 'default' : 'destructive'} className="
+                  select-none
+                ">
                   {item.status}
                 </Badge>
               </TableCell>
@@ -206,12 +218,14 @@ function TplistTable({ data }: { data: TplistItem[] }) {
               <TableCell className="font-mono text-sm">{item.hostname}</TableCell>
               <TableCell className="text-sm">{item.datasource}</TableCell>
               <TableCell>
-                <Badge variant={item.status === 'OK' ? 'default' : 'destructive'} className="select-none">
+                <Badge variant={item.status === 'OK' ? 'default' : 'destructive'} className="
+                  select-none
+                ">
                   {item.status}
                 </Badge>
               </TableCell>
               <TableCell className="text-right tabular-nums">{item.execTime}ms</TableCell>
-              <TableCell className="text-sm max-w-xs">
+              <TableCell className="max-w-xs text-sm">
                 <TruncatedCell value={item.message} />
               </TableCell>
             </TableRow>
@@ -245,12 +259,14 @@ function AplistTable({ data }: { data: AplistItem[] }) {
               <TableCell className="font-mono text-sm">{item.host}</TableCell>
               <TableCell className="text-sm">{item.type}</TableCell>
               <TableCell>
-                <Badge variant={item.status === 'DONE' ? 'default' : 'destructive'} className="select-none">
+                <Badge variant={item.status === 'DONE' ? 'default' : 'destructive'} className="
+                  select-none
+                ">
                   {item.status}
                 </Badge>
               </TableCell>
               <TableCell className="text-right tabular-nums">{item.execMs}ms</TableCell>
-              <TableCell className="text-sm max-w-xs">
+              <TableCell className="max-w-xs text-sm">
                 <TruncatedCell value={item.message} />
               </TableCell>
             </TableRow>

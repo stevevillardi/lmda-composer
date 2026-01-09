@@ -108,22 +108,24 @@ export function ExecutionHistoryDetailsDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-5xl! h-[80vh] flex flex-col gap-0 p-0">
-        <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
+      <DialogContent className="flex h-[80vh] max-w-5xl! flex-col gap-0 p-0">
+        <DialogHeader className="shrink-0 border-b px-6 pt-6 pb-4">
           {entry?.moduleSource ? (
             <>
               {/* Module-bound script header */}
-              <DialogTitle className="text-base flex items-center gap-2">
+              <DialogTitle className="flex items-center gap-2 text-base">
                 {(() => {
                   const ModuleIcon = getModuleTypeIcon(entry.moduleSource.moduleType);
                   return <ModuleIcon className="size-5" />;
                 })()}
                 {entry.moduleSource.moduleName}
-                <Badge variant="outline" className="text-xs font-normal ml-1">
+                <Badge variant="outline" className="ml-1 text-xs font-normal">
                   {entry.moduleSource.scriptType === 'ad' ? 'Active Discovery' : 'Collection'}
                 </Badge>
               </DialogTitle>
-              <div className="text-xs text-muted-foreground flex flex-col gap-1 mt-2">
+              <div className="
+                mt-2 flex flex-col gap-1 text-xs text-muted-foreground
+              ">
                 <div className="flex items-center gap-1.5">
                   <Link className="size-3" />
                   <span>{entry.moduleSource.portalHostname}</span>
@@ -138,7 +140,7 @@ export function ExecutionHistoryDetailsDialog({
                   <Server className="size-3" />
                   <span>via {entry.collector}</span>
                 </div>
-                <div className="flex items-center gap-2 mt-1">
+                <div className="mt-1 flex items-center gap-2">
                   <span>{getModeLabel(entry.mode)}</span>
                   <span>•</span>
                   <span>{formatTimestamp(entry.timestamp)}</span>
@@ -154,7 +156,9 @@ export function ExecutionHistoryDetailsDialog({
                 {entry?.tabDisplayName || entry?.hostname || 'No hostname'}
               </DialogTitle>
               {entry && (
-                <div className="text-xs text-muted-foreground flex flex-col gap-1 mt-2">
+                <div className="
+                  mt-2 flex flex-col gap-1 text-xs text-muted-foreground
+                ">
                   <div className="flex items-center gap-1.5">
                     <TestTubeDiagonal className="size-3" />
                     <span>{entry.hostname || 'No hostname'}</span>
@@ -163,7 +167,7 @@ export function ExecutionHistoryDetailsDialog({
                     <Server className="size-3" />
                     <span>via {entry.collector}</span>
                   </div>
-                  <div className="flex items-center gap-2 mt-1">
+                  <div className="mt-1 flex items-center gap-2">
                     <span>{getModeLabel(entry.mode)}</span>
                     <span>•</span>
                     <span>{formatTimestamp(entry.timestamp)}</span>
@@ -177,19 +181,38 @@ export function ExecutionHistoryDetailsDialog({
         </DialogHeader>
 
         {entry && (
-          <div className="flex-1 min-h-0 p-6 pt-4 flex flex-col gap-3 bg-muted/5">
-            <Tabs defaultValue="script" className="flex-1 min-h-0 flex flex-col">
-              <div className="flex items-center justify-between gap-2 shrink-0">
-                <TabsList variant="line" className="h-8 bg-transparent p-0 gap-1 border-b border-border/40 w-full justify-start rounded-none">
+          <div className="
+            flex min-h-0 flex-1 flex-col gap-3 bg-muted/5 p-6 pt-4
+          ">
+            <Tabs defaultValue="script" className="flex min-h-0 flex-1 flex-col">
+              <div className="flex shrink-0 items-center justify-between gap-2">
+                <TabsList variant="line" className="
+                  h-8 w-full justify-start gap-1 rounded-none border-b
+                  border-border/40 bg-transparent p-0
+                ">
                   <TabsTrigger 
                     value="script" 
-                    className="h-8 text-xs px-3 data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none bg-transparent hover:bg-muted/30 transition-colors"
+                    className="
+                      h-8 rounded-none bg-transparent px-3 text-xs
+                      transition-colors
+                      hover:bg-muted/30
+                      data-[state=active]:border-b-2
+                      data-[state=active]:border-primary
+                      data-[state=active]:shadow-none
+                    "
                   >
                     Script
                   </TabsTrigger>
                   <TabsTrigger 
                     value="output" 
-                    className="h-8 text-xs px-3 data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none bg-transparent hover:bg-muted/30 transition-colors"
+                    className="
+                      h-8 rounded-none bg-transparent px-3 text-xs
+                      transition-colors
+                      hover:bg-muted/30
+                      data-[state=active]:border-b-2
+                      data-[state=active]:border-primary
+                      data-[state=active]:shadow-none
+                    "
                   >
                     Output
                   </TabsTrigger>
@@ -197,16 +220,19 @@ export function ExecutionHistoryDetailsDialog({
                 <Button
                   variant="default"
                   size="sm"
-                  className="h-7 text-xs px-3 ml-auto shrink-0"
+                  className="ml-auto h-7 shrink-0 px-3 text-xs"
                   onClick={() => onLoad(entry)}
                 >
-                  <Play className="size-3 mr-1.5" />
+                  <Play className="mr-1.5 size-3" />
                   Load Into Editor
                 </Button>
               </div>
               
-              <TabsContent value="script" className="mt-3 flex-1 min-h-0">
-                <div className="rounded-md border border-border bg-background/50 h-full overflow-hidden shadow-sm">
+              <TabsContent value="script" className="mt-3 min-h-0 flex-1">
+                <div className="
+                  h-full overflow-hidden rounded-md border border-border
+                  bg-background/50 shadow-sm
+                ">
                   <Editor
                     height="100%"
                     language={monacoLanguage}
@@ -214,16 +240,19 @@ export function ExecutionHistoryDetailsDialog({
                     value={entry.script}
                     options={scriptOptions}
                     loading={
-                      <div className="flex items-center justify-center h-full">
-                        <div className="text-muted-foreground text-xs">Loading...</div>
+                      <div className="flex h-full items-center justify-center">
+                        <div className="text-xs text-muted-foreground">Loading...</div>
                       </div>
                     }
                   />
                 </div>
               </TabsContent>
 
-              <TabsContent value="output" className="mt-3 flex-1 min-h-0">
-                <div className="rounded-md border border-border bg-background/50 h-full overflow-hidden shadow-sm">
+              <TabsContent value="output" className="mt-3 min-h-0 flex-1">
+                <div className="
+                  h-full overflow-hidden rounded-md border border-border
+                  bg-background/50 shadow-sm
+                ">
                   <Editor
                     height="100%"
                     language="plaintext"
@@ -231,8 +260,8 @@ export function ExecutionHistoryDetailsDialog({
                     value={entry.output || 'No output captured.'}
                     options={outputOptions}
                     loading={
-                      <div className="flex items-center justify-center h-full">
-                        <div className="text-muted-foreground text-xs">Loading...</div>
+                      <div className="flex h-full items-center justify-center">
+                        <div className="text-xs text-muted-foreground">Loading...</div>
                       </div>
                     }
                   />

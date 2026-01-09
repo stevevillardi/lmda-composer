@@ -32,7 +32,9 @@ export function ModuleDetailsOrganization({ tabId, moduleType }: ModuleDetailsOr
 
   if (!draft) {
     return (
-      <div className="flex items-center justify-center h-64 text-muted-foreground">
+      <div className="
+        flex h-64 items-center justify-center text-muted-foreground
+      ">
         Loading module details...
       </div>
     );
@@ -59,7 +61,10 @@ export function ModuleDetailsOrganization({ tabId, moduleType }: ModuleDetailsOr
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="
+            grid grid-cols-1 gap-4
+            md:grid-cols-2
+          ">
             {/* Group */}
             {schema.editableFields.includes('group') && (
               <div className="space-y-2">
@@ -98,11 +103,18 @@ export function ModuleDetailsOrganization({ tabId, moduleType }: ModuleDetailsOr
           {schema.editableFields.includes('technology') && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="module-technology" className="text-sm font-medium">
+                <Label htmlFor="module-technology" className="
+                  text-sm font-medium
+                ">
                   Technical Notes
                 </Label>
                 <div className="flex items-center gap-2">
-                  <span className={`text-xs ${(draftData.technology?.length || 0) > 4096 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                  <span className={`
+                    text-xs
+                    ${(draftData.technology?.length || 0) > 4096 ? `
+                      text-destructive
+                    ` : `text-muted-foreground`}
+                  `}>
                     {(draftData.technology?.length || 0)} / 4096
                   </span>
                   <Button
@@ -114,12 +126,12 @@ export function ModuleDetailsOrganization({ tabId, moduleType }: ModuleDetailsOr
                   >
                     {showMarkdownPreview ? (
                       <>
-                        <EyeOff className="size-3.5 mr-1.5" />
+                        <EyeOff className="mr-1.5 size-3.5" />
                         Hide Preview
                       </>
                     ) : (
                       <>
-                        <Eye className="size-3.5 mr-1.5" />
+                        <Eye className="mr-1.5 size-3.5" />
                         Show Preview
                       </>
                     )}
@@ -127,11 +139,16 @@ export function ModuleDetailsOrganization({ tabId, moduleType }: ModuleDetailsOr
                 </div>
               </div>
               {showMarkdownPreview ? (
-                <div className="min-h-[80px] max-h-[300px] overflow-y-auto p-3 rounded-md border border-input bg-muted/50 prose prose-sm dark:prose-invert max-w-none">
+                <div className="
+                  prose prose-sm
+                  dark:prose-invert
+                  max-h-[300px] min-h-[80px] max-w-none overflow-y-auto
+                  rounded-md border border-input bg-muted/50 p-3
+                ">
                   {draftData.technology ? (
                     <ReactMarkdown>{draftData.technology}</ReactMarkdown>
                   ) : (
-                    <p className="text-muted-foreground text-sm">No content to preview</p>
+                    <p className="text-sm text-muted-foreground">No content to preview</p>
                   )}
                 </div>
               ) : (

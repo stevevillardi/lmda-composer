@@ -41,7 +41,7 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<
   
   const data = payload[0].payload;
   return (
-    <div className="bg-popover border border-border rounded-md p-2 shadow-md">
+    <div className="rounded-md border border-border bg-popover p-2 shadow-md">
       <p className="text-sm font-medium text-popover-foreground">{data.device}</p>
       <p className="text-sm text-muted-foreground">{data.module}</p>
       <p className="text-sm text-muted-foreground">{data.type} - {data.timeFormatted}</p>
@@ -53,8 +53,11 @@ export function LongRunningChart({ data }: LongRunningChartProps) {
   if (!data || data.length === 0) {
     return (
       <SectionCard title="Long Running Tasks" icon={<Timer className="size-4" />}>
-        <div className="flex items-center justify-center py-8 text-muted-foreground select-none">
-          <CheckCircle className="size-5 mr-2 text-teal-500" />
+        <div className="
+          flex items-center justify-center py-8 text-muted-foreground
+          select-none
+        ">
+          <CheckCircle className="mr-2 size-5 text-teal-500" />
           <span className="text-sm">No long-running tasks detected</span>
         </div>
       </SectionCard>
@@ -72,7 +75,9 @@ export function LongRunningChart({ data }: LongRunningChartProps) {
   }));
 
   return (
-    <SectionCard title="Longest Running Collections" icon={<Timer className="size-4" />}>
+    <SectionCard title="Longest Running Collections" icon={<Timer className="
+      size-4
+    " />}>
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} layout="vertical" margin={{ left: 20, right: 20 }}>

@@ -29,8 +29,11 @@ export function ProcessListTable({ data }: ProcessListTableProps) {
   if (!data || data.length === 0) {
     return (
       <SectionCard title="Process List" icon={<Cpu className="size-4" />}>
-        <div className="flex items-center justify-center py-8 text-muted-foreground select-none">
-          <Info className="size-5 mr-2 opacity-50" />
+        <div className="
+          flex items-center justify-center py-8 text-muted-foreground
+          select-none
+        ">
+          <Info className="mr-2 size-5 opacity-50" />
           <span className="text-sm">No process data available</span>
         </div>
       </SectionCard>
@@ -86,9 +89,11 @@ export function ProcessListTable({ data }: ProcessListTableProps) {
                   <TableCell>{item.tty}</TableCell>
                   <TableCell>{item.stat}</TableCell>
                   <TableCell>{item.time}</TableCell>
-                  <TableCell className="font-mono text-sm max-w-xs">
+                  <TableCell className="max-w-xs font-mono text-sm">
                     <Tooltip>
-                      <TooltipTrigger className="block truncate cursor-default text-left">
+                      <TooltipTrigger className="
+                        block cursor-default truncate text-left
+                      ">
                         {item.command}
                       </TooltipTrigger>
                       <TooltipContent side="top" className="max-w-lg">

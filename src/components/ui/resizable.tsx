@@ -17,7 +17,10 @@ function ResizablePanelGroup({
     <ResizablePrimitive.Group
       data-slot="resizable-panel-group"
       className={cn(
-        "cn-resizable-panel-group flex h-full w-full data-[panel-group-direction=vertical]:flex-col",
+        `
+          cn-resizable-panel-group flex size-full
+          data-[panel-group-direction=vertical]:flex-col
+        `,
         className
       )}
       orientation={direction}
@@ -46,22 +49,45 @@ function ResizableHandle({
       data-slot="resizable-handle"
       className={cn(
         // Base styles
-        "relative flex items-center justify-center bg-border transition-colors hover:bg-primary/30 focus-visible:ring-1 focus-visible:ring-ring focus-visible:outline-hidden",
+        `
+          relative flex items-center justify-center bg-border transition-colors
+          hover:bg-primary/30
+          focus-visible:ring-1 focus-visible:ring-ring
+          focus-visible:outline-hidden
+        `,
         // Vertical direction (stacked panels) - thin horizontal line, full width
-        "data-[panel-group-direction=vertical]:h-[2px] data-[panel-group-direction=vertical]:w-full data-[panel-group-direction=vertical]:cursor-row-resize",
+        `
+          data-[panel-group-direction=vertical]:h-[2px]
+          data-[panel-group-direction=vertical]:w-full
+          data-[panel-group-direction=vertical]:cursor-row-resize
+        `,
         // Horizontal direction (side by side) - thin vertical line
-        "data-[panel-group-direction=horizontal]:h-full data-[panel-group-direction=horizontal]:w-[2px] data-[panel-group-direction=horizontal]:cursor-col-resize",
+        `
+          data-[panel-group-direction=horizontal]:h-full
+          data-[panel-group-direction=horizontal]:w-[2px]
+          data-[panel-group-direction=horizontal]:cursor-col-resize
+        `,
         className
       )}
       {...props}
     >
       {withHandle && (
-        <div className="absolute left-1/2 top-1/2 z-10 flex h-2 w-6 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-sm border bg-muted/80 hover:bg-muted transition-colors">
+        <div className="
+          absolute top-1/2 left-1/2 z-10 flex h-2 w-6 -translate-1/2
+          items-center justify-center rounded-sm border bg-muted/80
+          transition-colors
+          hover:bg-muted
+        ">
           <GripHorizontal className="size-2.5 text-muted-foreground" />
         </div>
       )}
       {withVerticalHandle && (
-        <div className="absolute left-1/2 top-1/2 z-10 flex h-6 w-2 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-sm border bg-muted/80 hover:bg-muted transition-colors">
+        <div className="
+          absolute top-1/2 left-1/2 z-10 flex h-6 w-2 -translate-1/2
+          items-center justify-center rounded-sm border bg-muted/80
+          transition-colors
+          hover:bg-muted
+        ">
           <GripVertical className="size-2.5 text-muted-foreground" />
         </div>
       )}

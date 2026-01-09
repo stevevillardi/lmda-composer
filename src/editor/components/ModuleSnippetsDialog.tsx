@@ -219,7 +219,7 @@ export function ModuleSnippetsDialog() {
     if (filteredSnippets.length === 0) {
       if (moduleSnippetsSearchQuery.trim()) {
         return (
-          <Empty className="border-none h-full py-8">
+          <Empty className="h-full border-none py-8">
             <EmptyHeader>
               <EmptyMedia variant="icon">
                 <Search className="size-5" />
@@ -236,7 +236,7 @@ export function ModuleSnippetsDialog() {
     }
 
     return (
-      <div className="p-3 space-y-2">
+      <div className="space-y-2 p-3">
         {categories.map((category) => {
           const snippets = groupedSnippets.get(category) || [];
           if (snippets.length === 0) return null;
@@ -250,7 +250,11 @@ export function ModuleSnippetsDialog() {
               open={!isCollapsed}
               onOpenChange={() => toggleCategory(category)}
             >
-              <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted/50">
+              <CollapsibleTrigger className="
+                flex w-full items-center justify-between rounded-md px-2 py-1.5
+                text-xs font-medium text-muted-foreground
+                hover:bg-muted/50
+              ">
                 <span className="flex items-center gap-2">
                   {isCollapsed ? (
                     <ChevronRight className="size-3.5" />
@@ -276,17 +280,25 @@ export function ModuleSnippetsDialog() {
                       type="button"
                       onClick={() => selectModuleSnippet(snippet.name, snippet.latestVersion)}
                       className={cn(
-                        'w-full text-left rounded-md border border-transparent px-3 py-2.5 transition-all duration-200',
+                        `
+                          w-full rounded-md border border-transparent px-3
+                          py-2.5 text-left transition-all duration-200
+                        `,
                         isSelected 
                           ? 'bg-accent text-accent-foreground shadow-sm' 
-                          : 'hover:bg-accent/50 text-foreground/80 hover:text-foreground'
+                          : `
+                            text-foreground/80
+                            hover:bg-accent/50 hover:text-foreground
+                          `
                       )}
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <span className={cn("text-sm truncate", isSelected ? "font-semibold" : "font-medium")}>
+                        <span className={cn("truncate text-sm", isSelected ? `
+                          font-semibold
+                        ` : `font-medium`)}>
                           {snippet.name}
                         </span>
-                        <div className="flex items-center gap-1.5 shrink-0">
+                        <div className="flex shrink-0 items-center gap-1.5">
                           {hasCachedVersion && (
                             <Tooltip>
                               <TooltipTrigger
@@ -300,8 +312,10 @@ export function ModuleSnippetsDialog() {
                           <Badge 
                             variant="secondary" 
                             className={cn(
-                              "text-[10px] h-4 px-1.5 font-normal",
-                              isSelected ? "bg-background/50" : "bg-muted text-muted-foreground"
+                              "h-4 px-1.5 text-[10px] font-normal",
+                              isSelected ? "bg-background/50" : `
+                                bg-muted text-muted-foreground
+                              `
                             )}
                           >
                             v{snippet.latestVersion}
@@ -310,8 +324,10 @@ export function ModuleSnippetsDialog() {
                       </div>
                       {snippet.description && (
                         <p className={cn(
-                          "text-xs mt-0.5 line-clamp-1",
-                          isSelected ? "text-accent-foreground/80" : "text-muted-foreground/80"
+                          "mt-0.5 line-clamp-1 text-xs",
+                          isSelected ? "text-accent-foreground/80" : `
+                            text-muted-foreground/80
+                          `
                         )}>
                           {snippet.description}
                         </p>
@@ -330,10 +346,15 @@ export function ModuleSnippetsDialog() {
   const renderPreviewPane = () => {
     if (!selectedModuleSnippet) {
       return (
-        <div className="flex flex-col items-center justify-center h-full p-8 text-center animate-in fade-in duration-300">
-          <Empty className="border-none bg-transparent shadow-none w-full max-w-sm">
+        <div className="
+          flex h-full animate-in flex-col items-center justify-center p-8
+          text-center duration-300 fade-in
+        ">
+          <Empty className="
+            w-full max-w-sm border-none bg-transparent shadow-none
+          ">
             <EmptyHeader>
-              <EmptyMedia variant="icon" className="mx-auto bg-muted/50 mb-4">
+              <EmptyMedia variant="icon" className="mx-auto mb-4 bg-muted/50">
                 <Puzzle className="size-5 text-muted-foreground/70" />
               </EmptyMedia>
               <EmptyTitle className="text-base font-medium">Select a module</EmptyTitle>
@@ -347,33 +368,40 @@ export function ModuleSnippetsDialog() {
     }
 
     return (
-      <div className="flex flex-col h-full">
+      <div className="flex h-full flex-col">
         {/* Header - Consolidated with Actions */}
-        <div className="px-6 py-3 border-b border-border bg-secondary/30 flex items-center justify-between gap-4">
+        <div className="
+          flex items-center justify-between gap-4 border-b border-border
+          bg-secondary/30 px-6 py-3
+        ">
           <div className="min-w-0 flex-1">
-            <h3 className="font-medium text-sm truncate flex items-center gap-2">
+            <h3 className="flex items-center gap-2 truncate text-sm font-medium">
               {selectedModuleSnippet.name}
               {selectedSnippetInfo && (
-                <Badge variant="outline" className="text-[10px] font-normal h-5">
+                <Badge variant="outline" className="h-5 text-[10px] font-normal">
                   {selectedSnippetInfo?.language || 'groovy'}
                 </Badge>
               )}
             </h3>
             {selectedSnippetInfo?.description && (
-              <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+              <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">
                 {selectedSnippetInfo.description}
               </p>
             )}
           </div>
           
-          <div className="flex items-center gap-3 shrink-0">
+          <div className="flex shrink-0 items-center gap-3">
             {/* Version Selector */}
             {selectedSnippetInfo && (
               <Select
                 value={selectedModuleSnippet.version}
                 onValueChange={handleVersionChange}
               >
-                <SelectTrigger className="h-7 w-auto gap-2 text-xs min-w-[90px] border-transparent bg-background/50 hover:bg-background/80 shadow-none">
+                <SelectTrigger className="
+                  h-7 w-auto min-w-[90px] gap-2 border-transparent
+                  bg-background/50 text-xs shadow-none
+                  hover:bg-background/80
+                ">
                   <div className="flex items-center gap-1.5">
                     {isCurrentVersionCached && (
                       <Database className="size-3 text-teal-500" />
@@ -394,12 +422,14 @@ export function ModuleSnippetsDialog() {
                           <div className="flex items-center gap-2">
                             <span>v{v}</span>
                             {isLatest && (
-                              <Badge variant="secondary" className="text-[9px] h-4 px-1">
+                              <Badge variant="secondary" className="
+                                h-4 px-1 text-[9px]
+                              ">
                                 latest
                               </Badge>
                             )}
                             {isCached && (
-                              <Database className="size-3 text-teal-500 ml-auto" />
+                              <Database className="ml-auto size-3 text-teal-500" />
                             )}
                           </div>
                         </SelectItem>
@@ -419,7 +449,7 @@ export function ModuleSnippetsDialog() {
                   text={moduleSnippetSource}
                   size="sm"
                   variant="ghost"
-                  className="h-7 w-7"
+                  className="size-7"
                   tooltip="Copy source code"
                 />
               )}
@@ -427,7 +457,7 @@ export function ModuleSnippetsDialog() {
                 size="sm"
                 variant="default"
                 onClick={handleInsertImport}
-                className="h-7 px-3 gap-1.5 text-xs shadow-sm"
+                className="h-7 gap-1.5 px-3 text-xs shadow-sm"
               >
                 <Plus className="size-3.5" />
                 Insert Import
@@ -437,7 +467,7 @@ export function ModuleSnippetsDialog() {
         </div>
 
         {/* Source content */}
-        <div className="flex-1 min-h-0">
+        <div className="min-h-0 flex-1">
           {moduleSnippetSourceLoading ? (
             <LoadingState
               title="Loading source..."
@@ -453,8 +483,8 @@ export function ModuleSnippetsDialog() {
               onMount={handleEditorMount}
               options={previewOptions}
               loading={
-                <div className="flex items-center justify-center h-full">
-                  <div className="text-muted-foreground text-xs">Loading editor...</div>
+                <div className="flex h-full items-center justify-center">
+                  <div className="text-xs text-muted-foreground">Loading editor...</div>
                 </div>
               }
             />
@@ -478,7 +508,9 @@ export function ModuleSnippetsDialog() {
 
   return (
     <Dialog open={moduleSnippetsDialogOpen} onOpenChange={setModuleSnippetsDialogOpen}>
-      <DialogContent className="w-[90vw]! max-w-[90vw]! h-[90vh] flex flex-col gap-4 p-0" showCloseButton>
+      <DialogContent className="
+        flex h-[90vh] w-[90vw]! max-w-[90vw]! flex-col gap-4 p-0
+      " showCloseButton>
         {/* Header */}
         <DialogHeader className="px-6 pt-6 pb-0">
           <DialogTitle className="flex items-center gap-2">
@@ -501,26 +533,35 @@ export function ModuleSnippetsDialog() {
             onFetch={fetchModuleSnippets}
           />
         ) : (
-          <div className="flex-1 flex min-h-0 border-t border-border">
+          <div className="flex min-h-0 flex-1 border-t border-border">
             {/* Left Panel - Snippet List */}
-            <div className="w-96 shrink-0 border-r border-border flex flex-col min-h-0">
+            <div className="
+              flex min-h-0 w-96 shrink-0 flex-col border-r border-border
+            ">
               {/* Search */}
-              <div className="p-3 border-b border-border">
+              <div className="border-b border-border p-3">
                 <div className="flex items-center gap-2">
                   <div className="relative flex-1">
-                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                    <Search className="
+                      absolute top-1/2 left-2.5 size-4 -translate-y-1/2
+                      text-muted-foreground
+                    " />
                     <Input
                       type="text"
                       placeholder="Search snippets..."
                       value={moduleSnippetsSearchQuery}
                       onChange={(e) => setModuleSnippetsSearchQuery(e.target.value)}
-                      className="pl-8 pr-7 h-8"
+                      className="h-8 pr-7 pl-8"
                     />
                     {moduleSnippetsSearchQuery.trim() && (
                       <button
                         type="button"
                         onClick={() => setModuleSnippetsSearchQuery('')}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        className="
+                          absolute top-1/2 right-2 -translate-y-1/2
+                          text-muted-foreground
+                          hover:text-foreground
+                        "
                         aria-label="Clear search"
                       >
                         ×
@@ -557,13 +598,18 @@ export function ModuleSnippetsDialog() {
               </div>
 
               {/* Results count */}
-              <div className="px-4 py-2 border-b border-border bg-secondary/20 text-xs text-muted-foreground flex items-center justify-between">
+              <div className="
+                flex items-center justify-between border-b border-border
+                bg-secondary/20 px-4 py-2 text-xs text-muted-foreground
+              ">
                 <span>
                   {filteredSnippets.length} module{filteredSnippets.length === 1 ? '' : 's'}
                   {categories.length > 0 && ` in ${categories.length} ${categories.length === 1 ? 'category' : 'categories'}`}
                 </span>
                 {moduleSnippetsCacheMeta && (
-                  <div className="flex items-center gap-1 text-muted-foreground/70">
+                  <div className="
+                    flex items-center gap-1 text-muted-foreground/70
+                  ">
                     <Clock className="size-3" />
                     <span>{formatRelativeTime(moduleSnippetsCacheMeta.fetchedAt)}</span>
                   </div>
@@ -577,7 +623,9 @@ export function ModuleSnippetsDialog() {
 
               {/* Footer with collector info */}
               {moduleSnippetsCacheMeta && (
-                <div className="p-3 border-t border-border text-xs text-muted-foreground">
+                <div className="
+                  border-t border-border p-3 text-xs text-muted-foreground
+                ">
                   <div className="flex items-center gap-1.5">
                     <Server className="size-3" />
                     <span className="truncate">
@@ -589,7 +637,7 @@ export function ModuleSnippetsDialog() {
             </div>
 
             {/* Right Panel - Preview */}
-            <div className="flex-1 min-w-0">
+            <div className="min-w-0 flex-1">
               {renderPreviewPane()}
             </div>
           </div>
@@ -615,19 +663,29 @@ function EmptyState({
   onFetch,
 }: EmptyStateProps) {
   return (
-    <div className="flex-1 flex items-center justify-center p-8 border-t border-border bg-muted/10">
-      <Empty className="border-border/50 bg-card/40 backdrop-blur-sm max-w-lg shadow-sm">
+    <div className="
+      flex flex-1 items-center justify-center border-t border-border bg-muted/10
+      p-8
+    ">
+      <Empty className="
+        max-w-lg border-border/50 bg-card/40 shadow-sm backdrop-blur-sm
+      ">
         <EmptyHeader>
-          <EmptyMedia variant="icon" className="bg-primary/10 text-primary mb-4">
+          <EmptyMedia variant="icon" className="mb-4 bg-primary/10 text-primary">
             <Puzzle className="size-6" />
           </EmptyMedia>
           <EmptyTitle className="text-xl font-semibold tracking-tight">Module Snippets Library</EmptyTitle>
-          <EmptyDescription className="text-sm leading-relaxed text-muted-foreground/90 mt-2">
+          <EmptyDescription className="
+            mt-2 text-sm/relaxed text-muted-foreground/90
+          ">
             LogicMonitor provides reusable code modules that you can import into your scripts.
             These include helper functions for common tasks like API calls, data emission,
             debugging, and vendor-specific integrations (Cisco, VMware, etc.).
           </EmptyDescription>
-          <EmptyDescription className="text-sm leading-relaxed mt-4 bg-accent/30 p-3 rounded-md border border-border/50">
+          <EmptyDescription className="
+            mt-4 rounded-md border border-border/50 bg-accent/30 p-3
+            text-sm/relaxed
+          ">
             Fetch the list of available modules from your portal via a collector to browse 
             their source code and easily add import boilerplate to your scripts.
           </EmptyDescription>
@@ -638,23 +696,29 @@ function EmptyState({
             size="lg"
             onClick={onFetch}
             disabled={!hasContext || isLoading}
-            className="min-w-[200px] shadow-md transition-all hover:scale-[1.02]"
+            className="
+              min-w-[200px] shadow-md transition-all
+              hover:scale-[1.02]
+            "
           >
             {isLoading ? (
               <>
-                <RefreshCw className="size-4 mr-2 animate-spin" />
+                <RefreshCw className="mr-2 size-4 animate-spin" />
                 Fetching from Collector...
               </>
             ) : (
               <>
-                <Download className="size-4 mr-2" />
+                <Download className="mr-2 size-4" />
                 Fetch Module Snippets
               </>
             )}
           </Button>
 
           {hasContext && collectorDescription ? (
-            <div className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 px-3 py-1.5 rounded-full border border-border/40">
+            <div className="
+              flex items-center gap-2 rounded-full border border-border/40
+              bg-muted/50 px-3 py-1.5 text-xs text-muted-foreground
+            ">
               <Server className="size-3" />
               <span>Using: <span className="font-medium text-foreground">{collectorDescription}</span> (#{collectorId})</span>
             </div>

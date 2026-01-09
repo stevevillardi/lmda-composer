@@ -152,7 +152,11 @@ export function StatusBar() {
                 <Button 
                   variant="ghost" 
                   size="sm"
-                  className="h-auto px-2 py-1 text-muted-foreground hover:text-foreground flex items-center gap-1.5"
+                  className="
+                    flex h-auto items-center gap-1.5 px-2 py-1
+                    text-muted-foreground
+                    hover:text-foreground
+                  "
                   aria-label="Keyboard shortcuts and version"
                 >
                   <HelpCircle className="size-3.5" />
@@ -164,23 +168,30 @@ export function StatusBar() {
         />
         <TooltipContent>Keyboard shortcuts</TooltipContent>
       </Tooltip>
-      <PopoverContent side="top" align="end" className="w-64 p-3 select-none gap-0">
+      <PopoverContent side="top" align="end" className="
+        w-64 gap-0 p-3 select-none
+      ">
         <PopoverHeader>
           <PopoverTitle className="text-sm">Keyboard Shortcuts</PopoverTitle>
         </PopoverHeader>
-        <div className="flex flex-col gap-0 mt-2">
+        <div className="mt-2 flex flex-col gap-0">
           {KEYBOARD_SHORTCUTS.map((section,) => (
             <div key={section.label} className="space-y-2">
-              <div className="relative flex items-center gap-2 my-2">
+              <div className="relative my-2 flex items-center gap-2">
                 <Separator className="flex-1" />
-                <span className="shrink-0 px-2 text-[10px] uppercase tracking-wide text-muted-foreground">
+                <span className="
+                  shrink-0 px-2 text-[10px] tracking-wide text-muted-foreground
+                  uppercase
+                ">
                   {section.label}
                 </span>
                 <Separator className="flex-1" />
               </div>
               <div className="flex flex-col gap-1.5">
                 {section.items.map((shortcut) => (
-                  <div key={shortcut.action} className="flex items-center justify-between text-xs">
+                  <div key={shortcut.action} className="
+                    flex items-center justify-between text-xs
+                  ">
                     <span className="text-muted-foreground">{shortcut.action}</span>
                     <div className="flex items-center gap-0.5">
                       {shortcut.keys.map((key, keyIdx) => (
@@ -193,7 +204,7 @@ export function StatusBar() {
             </div>
           ))}
         </div>
-        <div className="mt-3 pt-2 border-t border-border space-y-2">
+        <div className="mt-3 space-y-2 border-t border-border pt-2">
           <p className="text-[10px] text-muted-foreground/70">
             Use Ctrl/Alt instead of ⌘/⌥ on Windows/Linux
           </p>
@@ -201,7 +212,11 @@ export function StatusBar() {
             href="https://stevevillardi.github.io/lmda-composer/"
             target="_blank"
             rel="noreferrer"
-            className="flex items-center gap-1.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+            className="
+              flex items-center gap-1.5 text-[10px] text-muted-foreground
+              transition-colors
+              hover:text-foreground
+            "
           >
             <BookOpen className="size-3" />
             Full Documentation
@@ -230,7 +245,10 @@ export function StatusBar() {
 
     return (
       <div 
-        className="flex items-center justify-between px-3 py-1.5 bg-secondary/30 border-t border-border text-xs select-none"
+        className="
+          flex items-center justify-between border-t border-border
+          bg-secondary/30 px-3 py-1.5 text-xs select-none
+        "
         role="status"
         aria-label="API status bar"
       >
@@ -239,10 +257,13 @@ export function StatusBar() {
           {chordPending ? (
             <Badge 
               variant="default"
-              className="bg-primary text-primary-foreground animate-pulse"
+              className="animate-pulse bg-primary text-primary-foreground"
               aria-live="assertive"
             >
-              <Kbd className="bg-primary-foreground/20 text-primary-foreground border-primary-foreground/30">⌘K</Kbd>
+              <Kbd className="
+                border-primary-foreground/30 bg-primary-foreground/20
+                text-primary-foreground
+              ">⌘K</Kbd>
               <span className="ml-1.5">waiting...</span>
             </Badge>
           ) : (
@@ -262,7 +283,7 @@ export function StatusBar() {
           {selectedPortalId && (
             <>
               <Separator orientation="vertical" className="h-5" aria-hidden="true" />
-              <span className="text-muted-foreground flex items-center gap-1.5" aria-label="Portal status">
+              <span className="flex items-center gap-1.5 text-muted-foreground" aria-label="Portal status">
                 <span className="size-1.5 rounded-full bg-teal-500" aria-hidden="true" />
                 Connected to {selectedPortal?.hostname}
               </span>
@@ -297,7 +318,10 @@ export function StatusBar() {
 
   return (
     <div 
-      className="flex items-center justify-between px-3 py-1.5 bg-secondary/30 border-t border-border text-xs select-none"
+      className="
+        flex items-center justify-between border-t border-border bg-secondary/30
+        px-3 py-1.5 text-xs select-none
+      "
       role="status"
       aria-label="Editor status bar"
     >
@@ -307,10 +331,13 @@ export function StatusBar() {
         {chordPending && (
           <Badge 
             variant="default"
-            className="bg-primary text-primary-foreground animate-pulse"
+            className="animate-pulse bg-primary text-primary-foreground"
             aria-live="assertive"
           >
-            <Kbd className="bg-primary-foreground/20 text-primary-foreground border-primary-foreground/30">⌘K</Kbd>
+            <Kbd className="
+              border-primary-foreground/30 bg-primary-foreground/20
+              text-primary-foreground
+            ">⌘K</Kbd>
             <span className="ml-1.5">waiting...</span>
           </Badge>
         )}
@@ -333,8 +360,8 @@ export function StatusBar() {
         {selectedPortalId && selectedCollectorId && (
           <>
             <Separator orientation="vertical" className="h-5" aria-hidden="true" />
-            <span className="text-muted-foreground flex items-center gap-1.5" aria-label="Connection status">
-              <span className="size-1.5 rounded-full bg-teal-500 shrink-0" aria-hidden="true" />
+            <span className="flex items-center gap-1.5 text-muted-foreground" aria-label="Connection status">
+              <span className="size-1.5 shrink-0 rounded-full bg-teal-500" aria-hidden="true" />
               <span>
                 Connected to {selectedPortal?.hostname} via {selectedCollector?.description || selectedCollector?.hostname}
                 {deviceLabel ? (
@@ -363,12 +390,12 @@ export function StatusBar() {
         {tabs.length > 0 && (
           <>
             {/* Mode */}
-            <Badge variant="outline" className="capitalize font-normal" aria-label={`Script mode: ${mode}`}>
+            <Badge variant="outline" className="font-normal capitalize" aria-label={`Script mode: ${mode}`}>
               {mode}
             </Badge>
 
             {/* Language */}
-            <Badge variant="outline" className="capitalize font-normal" aria-label={`Script language: ${language}`}>
+            <Badge variant="outline" className="font-normal capitalize" aria-label={`Script language: ${language}`}>
               {language}
             </Badge>
 
@@ -386,7 +413,7 @@ export function StatusBar() {
                   render={
                     <span 
                       className={cn(
-                        'flex items-center gap-1 font-medium cursor-help',
+                        'flex cursor-help items-center gap-1 font-medium',
                         charCountStatus.color
                       )}
                       role="alert"

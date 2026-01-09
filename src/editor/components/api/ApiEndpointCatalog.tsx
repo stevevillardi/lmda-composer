@@ -90,46 +90,66 @@ export function ApiEndpointCatalog() {
   };
 
   return (
-    <div className="h-full min-h-0 flex flex-col border-r border-border bg-background">
-      <div className="h-12 px-3 border-b border-border flex items-center gap-2 bg-background">
-        <div className="relative flex-1 min-w-0">
-          <Search className="size-3.5 text-muted-foreground absolute left-2.5 top-1/2 -translate-y-1/2" />
+    <div className="
+      flex h-full min-h-0 flex-col border-r border-border bg-background
+    ">
+      <div className="
+        flex h-12 items-center gap-2 border-b border-border bg-background px-3
+      ">
+        <div className="relative min-w-0 flex-1">
+          <Search className="
+            absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2
+            text-muted-foreground
+          " />
           <Input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search endpoints..."
-            className="h-8 pl-8 pr-7 text-xs bg-muted/30 border-input shadow-sm focus-visible:bg-background transition-colors"
+            className="
+              h-8 border-input bg-muted/30 pr-7 pl-8 text-xs shadow-sm
+              transition-colors
+              focus-visible:bg-background
+            "
           />
           {query.trim() && (
             <button
               type="button"
               onClick={() => setQuery('')}
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              className="
+                absolute top-1/2 right-2 -translate-y-1/2 text-muted-foreground
+                hover:text-foreground
+              "
               aria-label="Clear search"
             >
               ×
             </button>
           )}
         </div>
-        <Badge variant="outline" className="text-[10px] font-normal flex items-center gap-1 select-none h-6 px-1.5 bg-muted/30">
+        <Badge variant="outline" className="
+          flex h-6 items-center gap-1 bg-muted/30 px-1.5 text-[10px] font-normal
+          select-none
+        ">
           <Plug className="size-3 text-muted-foreground" />
           {isLoading ? '...' : `${filteredCount}/${totalCount}`}
         </Badge>
       </div>
 
-      <ScrollArea className="flex-1 min-h-0 bg-muted/5">
-        <div className="p-2 space-y-4">
+      <ScrollArea className="min-h-0 flex-1 bg-muted/5">
+        <div className="space-y-4 p-2">
           {groups.length === 0 ? (
-            <div className="flex flex-col h-full">
-              <Empty className="border-0 bg-transparent flex-1 flex flex-col justify-center py-12">
+            <div className="flex h-full flex-col">
+              <Empty className="
+                flex flex-1 flex-col justify-center border-0 bg-transparent
+                py-12
+              ">
                 <EmptyHeader>
-                  <EmptyMedia variant="icon" className="bg-muted/50 mb-4">
+                  <EmptyMedia variant="icon" className="mb-4 bg-muted/50">
                     <ListX className="size-5 text-muted-foreground/70" />
                   </EmptyMedia>
                   <EmptyTitle className="text-base font-medium">
                     {error ? 'Failed to load schema' : 'No matching endpoints'}
                   </EmptyTitle>
-                  <EmptyDescription className="px-6 mt-1.5">
+                  <EmptyDescription className="mt-1.5 px-6">
                     {error
                       ? 'Please reopen the API Explorer to try again.'
                       : isLoading
@@ -150,9 +170,18 @@ export function ApiEndpointCatalog() {
             groups.map((group) => {
               const isCollapsed = collapsedTags[group.tag] ?? false;
               return (
-                <div key={group.tag} className="border border-border/40 rounded-md bg-card/20 overflow-hidden shadow-sm">
+                <div key={group.tag} className="
+                  overflow-hidden rounded-md border border-border/40 bg-card/20
+                  shadow-sm
+                ">
                   <button
-                    className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-muted-foreground bg-muted/30 hover:bg-muted/50 transition-colors select-none border-b border-transparent data-[state=open]:border-border/40"
+                    className="
+                      flex w-full items-center gap-2 border-b border-transparent
+                      bg-muted/30 px-3 py-2 text-xs font-medium
+                      text-muted-foreground transition-colors select-none
+                      hover:bg-muted/50
+                      data-[state=open]:border-border/40
+                    "
                     data-state={!isCollapsed ? 'open' : 'closed'}
                     onClick={() =>
                       setCollapsedTags((prev) => ({
@@ -161,9 +190,16 @@ export function ApiEndpointCatalog() {
                       }))
                     }
                   >
-                    {isCollapsed ? <ChevronRight className="size-3.5" /> : <ChevronDown className="size-3.5" />}
-                    <span className="flex-1 min-w-0 truncate text-left text-foreground/80">{group.tag}</span>
-                    <Badge variant="secondary" className="text-[10px] h-4 px-1.5 font-normal bg-background/50 border-border/50 text-muted-foreground">
+                    {isCollapsed ? <ChevronRight className="size-3.5" /> : <ChevronDown className="
+                      size-3.5
+                    " />}
+                    <span className="
+                      min-w-0 flex-1 truncate text-left text-foreground/80
+                    ">{group.tag}</span>
+                    <Badge variant="secondary" className="
+                      h-4 border-border/50 bg-background/50 px-1.5 text-[10px]
+                      font-normal text-muted-foreground
+                    ">
                       {group.endpoints.length}
                     </Badge>
                   </button>
@@ -184,65 +220,108 @@ export function ApiEndpointCatalog() {
                               render={
                                 <button
                                   className={cn(
-                                    "w-full px-3 py-2.5 text-left transition-all border-l-2 relative group hover:bg-muted/40",
-                                    "border-transparent hover:border-l-primary/50"
+                                    `
+                                      group relative w-full border-l-2 px-3
+                                      py-2.5 text-left transition-all
+                                      hover:bg-muted/40
+                                    `,
+                                    `
+                                      border-transparent
+                                      hover:border-l-primary/50
+                                    `
                                   )}
                                   onClick={() => handleSelectEndpoint(endpoint)}
                                 >
-                                  <div className="flex items-center gap-2.5 mb-1">
+                                  <div className="
+                                    mb-1 flex items-center gap-2.5
+                                  ">
                                     <span
                                       className={cn(
-                                        "text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 uppercase tracking-tight min-w-[36px] text-center",
+                                        `
+                                          min-w-[36px] shrink-0 rounded-sm
+                                          px-1.5 py-0.5 text-center text-[9px]
+                                          font-bold tracking-tight uppercase
+                                        `,
                                         methodStyle.bgSubtle,
                                         methodStyle.text
                                       )}
                                     >
                                       {endpoint.method}
                                     </span>
-                                    <span className="text-xs font-mono text-foreground/90 truncate flex-1">
+                                    <span className="
+                                      flex-1 truncate font-mono text-xs
+                                      text-foreground/90
+                                    ">
                                       {endpoint.path}
                                     </span>
                                   </div>
                                   {endpoint.summary && (
-                                    <div className="text-[11px] text-muted-foreground pl-[46px] truncate leading-tight">
+                                    <div className="
+                                      truncate pl-[46px] text-[11px]
+                                      leading-tight text-muted-foreground
+                                    ">
                                       {endpoint.summary}
                                     </div>
                                   )}
                                 </button>
                               }
                             />
-                            <TooltipContent side="right" className="max-w-xs bg-popover text-popover-foreground border border-border p-3">
+                            <TooltipContent side="right" className="
+                              max-w-xs border border-border bg-popover p-3
+                              text-popover-foreground
+                            ">
                               <div className="space-y-2">
                                 <div>
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <Badge variant="outline" className={cn("text-[9px] px-1 h-4", methodStyle.bgSubtle, methodStyle.text, "border-transparent")}>
+                                  <div className="mb-1 flex items-center gap-2">
+                                    <Badge variant="outline" className={cn(`
+                                      h-4 px-1 text-[9px]
+                                    `, methodStyle.bgSubtle, methodStyle.text, `
+                                      border-transparent
+                                    `)}>
                                       {endpoint.method}
                                     </Badge>
                                     <span className="font-mono text-xs">{endpoint.path}</span>
                                   </div>
                                   {endpoint.summary && (
-                                    <div className="text-xs text-muted-foreground">{endpoint.summary}</div>
+                                    <div className="
+                                      text-xs text-muted-foreground
+                                    ">{endpoint.summary}</div>
                                   )}
                                 </div>
                                 
                                 {(paramsByType.path?.length || paramsByType.query?.length || paramsByType.header?.length) ? (
-                                  <div className="text-[10px] space-y-1.5 pt-2 border-t border-border/50">
+                                  <div className="
+                                    space-y-1.5 border-t border-border/50 pt-2
+                                    text-[10px]
+                                  ">
                                     {paramsByType.path?.length ? (
                                       <div className="flex gap-1.5">
-                                        <span className="text-muted-foreground w-10 shrink-0">Path:</span>
-                                        <span className="font-mono text-foreground">{paramsByType.path.join(', ')}</span>
+                                        <span className="
+                                          w-10 shrink-0 text-muted-foreground
+                                        ">Path:</span>
+                                        <span className="
+                                          font-mono text-foreground
+                                        ">{paramsByType.path.join(', ')}</span>
                                       </div>
                                     ) : null}
                                     {paramsByType.query?.length ? (
                                       <div className="flex gap-1.5">
-                                        <span className="text-muted-foreground w-10 shrink-0">Query:</span>
-                                        <span className="font-mono text-foreground">{paramsByType.query.join(', ')}</span>
+                                        <span className="
+                                          w-10 shrink-0 text-muted-foreground
+                                        ">Query:</span>
+                                        <span className="
+                                          font-mono text-foreground
+                                        ">{paramsByType.query.join(', ')}</span>
                                       </div>
                                     ) : null}
                                     {paramsByType.header?.length ? (
                                       <div className="flex gap-1.5">
-                                        <span className="text-muted-foreground w-10 shrink-0">Header:</span>
-                                        <span className="font-mono text-foreground">{paramsByType.header.join(', ')}</span>
+                                        <span className="
+                                          w-10 shrink-0 text-muted-foreground
+                                        ">Header:</span>
+                                        <span className="
+                                          font-mono text-foreground
+                                        ">{paramsByType.header.join(', ')}</span>
                                       </div>
                                     ) : null}
                                   </div>

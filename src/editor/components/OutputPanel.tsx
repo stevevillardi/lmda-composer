@@ -99,12 +99,12 @@ export function OutputPanel() {
     
     return (
     <div className={cn(
-      "flex items-center justify-between px-2 py-1 border-b border-border",
+      "flex items-center justify-between border-b border-border px-2 py-1",
       isFullscreen ? "bg-card px-4 py-2" : "bg-secondary/30"
     )}>
       <div className="flex items-center gap-3">
         <div className={cn(
-          isFullscreen && "bg-muted/50 rounded-lg px-2 py-1"
+          isFullscreen && "rounded-lg bg-muted/50 px-2 py-1"
         )}>
           <TabsList variant="line">
           <TabsTrigger value="raw" id="output-tab-raw" aria-controls="output-panel-raw">Raw Output</TabsTrigger>
@@ -113,9 +113,16 @@ export function OutputPanel() {
               <TooltipTrigger
                 render={
                   <span
-                    className="px-2 py-1 text-sm font-medium text-muted-foreground/50 cursor-not-allowed"
+                    className="
+                      cursor-not-allowed rounded-sm px-2 py-1 text-sm
+                      font-medium text-muted-foreground/50
+                      focus-visible:ring-2 focus-visible:ring-ring
+                      focus-visible:ring-offset-2 focus-visible:outline-none
+                    "
                     tabIndex={0}
+                    role="tab"
                     aria-disabled="true"
+                    aria-selected="false"
                   >
                     Parsed
                   </span>
@@ -126,7 +133,9 @@ export function OutputPanel() {
               </TooltipContent>
             </Tooltip>
           ) : (
-            <TabsTrigger value="parsed" id="output-tab-parsed" aria-controls="output-panel-parsed" className="flex items-center">
+            <TabsTrigger value="parsed" id="output-tab-parsed" aria-controls="output-panel-parsed" className="
+              flex items-center
+            ">
               Parsed
               {getParsedTabIndicator(parsedOutput)}
             </TabsTrigger>
@@ -136,7 +145,12 @@ export function OutputPanel() {
               <TooltipTrigger
                 render={
                   <span
-                    className="px-2 py-1 text-sm font-medium text-muted-foreground/50 cursor-not-allowed"
+                    className="
+                      cursor-not-allowed rounded-sm px-2 py-1 text-sm
+                      font-medium text-muted-foreground/50
+                      focus-visible:ring-2 focus-visible:ring-ring
+                      focus-visible:ring-offset-2 focus-visible:outline-none
+                    "
                     tabIndex={0}
                     aria-disabled="true"
                     role="tab"
@@ -151,14 +165,18 @@ export function OutputPanel() {
               </TooltipContent>
             </Tooltip>
           ) : (
-            <TabsTrigger value="validation" id="output-tab-validation" aria-controls="output-panel-validation" className="flex items-center">
+            <TabsTrigger value="validation" id="output-tab-validation" aria-controls="output-panel-validation" className="
+              flex items-center
+            ">
               Validation
               {getValidationTabIndicator(parsedOutput)}
             </TabsTrigger>
           )}
           {/* Graph tab - only for topology results */}
           {isTopologyResult && (
-            <TabsTrigger value="graph" id="output-tab-graph" aria-controls="output-panel-graph" className="flex items-center gap-1">
+            <TabsTrigger value="graph" id="output-tab-graph" aria-controls="output-panel-graph" className="
+              flex items-center gap-1
+            ">
               <Network className="size-3.5" />
               Graph
             </TabsTrigger>
@@ -206,7 +224,7 @@ export function OutputPanel() {
           onClick={() => {
             clearOutput();
           }}
-          className="gap-1.5 h-7 px-2 text-xs"
+          className="h-7 gap-1.5 px-2 text-xs"
           aria-label="Clear output"
         >
           <Trash2 className="size-3.5" />
@@ -250,7 +268,7 @@ export function OutputPanel() {
         ) : currentExecution ? (
           <RawOutputContent execution={currentExecution} />
         ) : (
-          <Empty className="border-none h-full">
+          <Empty className="h-full border-none">
             <EmptyHeader>
               <EmptyMedia variant="icon">
                 <Play className="size-5" />
@@ -297,19 +315,22 @@ export function OutputPanel() {
   );
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full flex-col">
       <Tabs
         value={outputTab}
         onValueChange={(value) => setOutputTab(value as typeof outputTab)}
-        className="h-full flex flex-col"
+        className="flex h-full flex-col"
       >
         {fullscreenOpen ? (
           <Dialog open={fullscreenOpen} onOpenChange={setFullscreenOpen}>
             <DialogContent
-              className="max-w-none! w-[94vw]! h-[90vh]! min-h-0! flex! flex-col! overflow-hidden p-0"
+              className="
+                flex! h-[90vh]! min-h-0! w-[94vw]! max-w-none! flex-col!
+                overflow-hidden p-0
+              "
               showCloseButton={false}
             >
-              <div className="h-full min-h-0 flex flex-col">
+              <div className="flex h-full min-h-0 flex-col">
                 {renderHeader(false, true)}
                 {outputContent}
               </div>
@@ -354,7 +375,10 @@ function ExecutionStatus({ isExecuting, execution }: ExecutionStatusProps) {
         variant={isError ? 'destructive' : 'default'}
         className={cn(
           'gap-1.5',
-          !isError && 'bg-teal-600 hover:bg-teal-500'
+          !isError && `
+            bg-teal-600
+            hover:bg-teal-500
+          `
         )}
       >
         {isError ? (
@@ -365,7 +389,7 @@ function ExecutionStatus({ isExecuting, execution }: ExecutionStatusProps) {
         {isError ? 'Error' : 'Complete'}
       </Badge>
 
-      <span className="text-xs text-muted-foreground flex items-center gap-1">
+      <span className="flex items-center gap-1 text-xs text-muted-foreground">
         <Clock className="size-3" />
         {duration}
       </span>
@@ -395,8 +419,10 @@ function RawOutputContent({ execution }: RawOutputContentProps) {
           <span>{execution.error}</span>
         </div>
         {execution.rawOutput && (
-          <div className="pt-2 border-t border-border">
-            <pre className="whitespace-pre-wrap wrap-break-word text-muted-foreground">
+          <div className="border-t border-border pt-2">
+            <pre className="
+              wrap-break-word whitespace-pre-wrap text-muted-foreground
+            ">
               {execution.rawOutput}
             </pre>
           </div>
@@ -426,13 +452,13 @@ function RawOutputContent({ execution }: RawOutputContentProps) {
   return (
     <div className="space-y-2">
       {warningLines.length > 0 && (
-        <div className="text-yellow-500 text-xs mb-2">
+        <div className="mb-2 text-xs text-yellow-500">
           {warningLines.map((warning, i) => (
             <div key={i}>{warning}</div>
           ))}
         </div>
       )}
-      <pre className="whitespace-pre-wrap wrap-break-word">
+      <pre className="wrap-break-word whitespace-pre-wrap">
         {outputLines.join('\n') || 'No output'}
       </pre>
     </div>

@@ -75,7 +75,9 @@ export function ModuleDetailsAccess({ tabId, moduleType }: ModuleDetailsAccessPr
 
   if (!draft) {
     return (
-      <div className="flex items-center justify-center h-64 text-muted-foreground">
+      <div className="
+        flex h-64 items-center justify-center text-muted-foreground
+      ">
         Loading module details...
       </div>
     );
@@ -99,7 +101,9 @@ export function ModuleDetailsAccess({ tabId, moduleType }: ModuleDetailsAccessPr
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="module-access-groups" className="text-sm font-medium">
+            <Label htmlFor="module-access-groups" className="
+              text-sm font-medium
+            ">
               Access Groups
             </Label>
             <Combobox

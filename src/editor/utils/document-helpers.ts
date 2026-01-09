@@ -536,7 +536,7 @@ export function convertToLocalDocument(
  * @param scriptType - Whether to extract 'collection' or 'ad' script
  * @returns The script content, or empty string if not found
  */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+ 
 export function extractScriptFromModule(
   module: any, 
   moduleType: LogicModuleType, 

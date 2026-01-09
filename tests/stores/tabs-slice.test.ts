@@ -4,13 +4,10 @@
  * Tests tab management operations like open, close, and content updates.
  */
 import { describe, expect, it, beforeEach, afterEach } from 'vitest';
-import { useEditorStore } from '../../src/editor/stores/editor-store';
 import { 
   resetStore, 
   getStoreState, 
   setStoreState, 
-  createMockTab,
-  createMockPortal,
   resetCounters,
 } from '../helpers/store-helpers';
 

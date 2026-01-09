@@ -106,19 +106,21 @@ export function ModulePreview({ module }: ModulePreviewProps) {
   }), [preferences]);
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex h-full flex-col">
       {/* Module Header */}
-      <div className="px-4 py-3 border-b border-border bg-secondary/30">
+      <div className="border-b border-border bg-secondary/30 px-4 py-3">
         <div className="flex items-start justify-between gap-4">
           <div className="min-w-0 flex-1">
-            <h3 className="font-medium text-sm truncate">
+            <h3 className="truncate text-sm font-medium">
               {module.displayName || module.name}
             </h3>
-            <p className="text-xs text-muted-foreground font-mono truncate mt-0.5">
+            <p className="
+              mt-0.5 truncate font-mono text-xs text-muted-foreground
+            ">
               {module.name}
             </p>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex shrink-0 items-center gap-2">
             <Badge variant="outline" className="font-mono text-xs">
               {module.collectMethod}
             </Badge>
@@ -134,7 +136,7 @@ export function ModulePreview({ module }: ModulePreviewProps) {
                       size="sm"
                       variant="default"
                       onClick={handleLoadBoth}
-                      className="h-7 px-3 gap-1.5 text-xs"
+                      className="h-7 gap-1.5 px-3 text-xs"
                     >
                       <Layers className="size-3" />
                       Load Both
@@ -149,18 +151,27 @@ export function ModulePreview({ module }: ModulePreviewProps) {
           </div>
         </div>
         {module.appliesTo && (
-          <div className="mt-2 text-xs text-muted-foreground font-mono truncate">
+          <div className="mt-2 truncate font-mono text-xs text-muted-foreground">
             <span className="text-muted-foreground/50">appliesTo:</span> {module.appliesTo}
           </div>
         )}
       </div>
 
       {/* Script Previews */}
-      <div className={`flex-1 flex min-h-0 ${showDualPane ? 'flex-row' : 'flex-col'}`}>
+      <div className={`
+        flex min-h-0 flex-1
+        ${showDualPane ? 'flex-row' : `flex-col`}
+      `}>
         {/* AD Script Panel */}
         {hasADScript && (
-          <div className={`flex flex-col ${showDualPane ? 'w-1/2 min-w-0 border-r border-border' : 'flex-1'}`}>
-            <div className="px-3 py-2 border-b border-border bg-muted/30 flex items-center justify-between">
+          <div className={`
+            flex flex-col
+            ${showDualPane ? `w-1/2 min-w-0 border-r border-border` : `flex-1`}
+          `}>
+            <div className="
+              flex items-center justify-between border-b border-border
+              bg-muted/30 px-3 py-2
+            ">
               <div className="flex items-center gap-2">
                 <ActiveDiscoveryIcon className="size-4" />
                 <span className="text-xs font-medium">Active Discovery</span>
@@ -169,13 +180,13 @@ export function ModulePreview({ module }: ModulePreviewProps) {
                 size="sm"
                 variant="outline"
                 onClick={handleLoadAD}
-                className="h-7 px-2 gap-1.5 text-xs"
+                className="h-7 gap-1.5 px-2 text-xs"
               >
                 <Download className="size-3" />
                 Load
               </Button>
             </div>
-            <div className="flex-1 min-h-0">
+            <div className="min-h-0 flex-1">
               <Editor
                 height="100%"
                 language={monacoLanguage}
@@ -183,8 +194,8 @@ export function ModulePreview({ module }: ModulePreviewProps) {
                 value={module.adScript || '// No AD script'}
                 options={previewOptions}
                 loading={
-                  <div className="flex items-center justify-center h-full">
-                    <div className="text-muted-foreground text-xs">Loading...</div>
+                  <div className="flex h-full items-center justify-center">
+                    <div className="text-xs text-muted-foreground">Loading...</div>
                   </div>
                 }
               />
@@ -197,8 +208,14 @@ export function ModulePreview({ module }: ModulePreviewProps) {
 
         {/* Collection Script Panel */}
         {hasCollectionScript && (
-          <div className={`flex flex-col ${showDualPane ? 'w-1/2 min-w-0' : 'flex-1'}`}>
-            <div className="px-3 py-2 border-b border-border bg-muted/30 flex items-center justify-between">
+          <div className={`
+            flex flex-col
+            ${showDualPane ? 'w-1/2 min-w-0' : `flex-1`}
+          `}>
+            <div className="
+              flex items-center justify-between border-b border-border
+              bg-muted/30 px-3 py-2
+            ">
               <div className="flex items-center gap-2">
                 {module.collectMethod === 'batchscript' ? (
                   <BatchCollectionIcon className="size-4" />
@@ -213,13 +230,13 @@ export function ModulePreview({ module }: ModulePreviewProps) {
                 size="sm"
                 variant="outline"
                 onClick={handleLoadCollection}
-                className="h-7 px-2 gap-1.5 text-xs"
+                className="h-7 gap-1.5 px-2 text-xs"
               >
                 <Download className="size-3" />
                 Load
               </Button>
             </div>
-            <div className="flex-1 min-h-0">
+            <div className="min-h-0 flex-1">
               <Editor
                 height="100%"
                 language={monacoLanguage}
@@ -227,8 +244,8 @@ export function ModulePreview({ module }: ModulePreviewProps) {
                 value={module.collectionScript || '// No collection script'}
                 options={previewOptions}
                 loading={
-                  <div className="flex items-center justify-center h-full">
-                    <div className="text-muted-foreground text-xs">Loading...</div>
+                  <div className="flex h-full items-center justify-center">
+                    <div className="text-xs text-muted-foreground">Loading...</div>
                   </div>
                 }
               />
@@ -238,7 +255,10 @@ export function ModulePreview({ module }: ModulePreviewProps) {
 
         {/* No scripts available */}
         {!hasADScript && !hasCollectionScript && (
-          <div className="flex-1 flex items-center justify-center text-muted-foreground text-sm">
+          <div className="
+            flex flex-1 items-center justify-center text-sm
+            text-muted-foreground
+          ">
             <p>No scripts available for this module</p>
           </div>
         )}

@@ -55,7 +55,7 @@ function MetricCard({ label, value, icon, variant = 'default', subValue }: Metri
               <p className="text-xs text-muted-foreground select-none">{subValue}</p>
             )}
           </div>
-          <div className={cn('p-2 rounded-lg bg-muted/50 select-none', iconStyles[variant])}>
+          <div className={cn('rounded-lg bg-muted/50 p-2 select-none', iconStyles[variant])}>
             {icon}
           </div>
         </div>
@@ -97,7 +97,7 @@ export function HealthCheckSummaryCards({ data }: HealthCheckSummaryCardsProps) 
   return (
     <div className="space-y-4">
       {/* Collector info row */}
-      <div className="flex items-center gap-3 flex-wrap">
+      <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-2">
           <Server className="size-5 text-muted-foreground" />
           <span className="font-semibold">{collectorInfo.description || collectorInfo.hostname}</span>
@@ -117,7 +117,11 @@ export function HealthCheckSummaryCards({ data }: HealthCheckSummaryCardsProps) 
       </div>
 
       {/* Metric cards grid */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="
+        grid grid-cols-2 gap-4
+        md:grid-cols-3
+        lg:grid-cols-5
+      ">
         <MetricCard
           label="Failing Threads"
           value={totalFailingThreads}

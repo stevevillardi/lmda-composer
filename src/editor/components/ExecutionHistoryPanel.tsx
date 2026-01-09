@@ -80,84 +80,124 @@ function HistoryItem({ entry, onReload, onView }: HistoryItemProps) {
   return (
     <div 
       className={cn(
-        "group p-3 rounded-lg border transition-all duration-200 select-none relative overflow-hidden",
-        "bg-card/40 backdrop-blur-sm hover:shadow-sm",
+        `
+          group relative overflow-hidden rounded-lg border p-3 transition-all
+          duration-200 select-none
+        `,
+        `
+          bg-card/40 backdrop-blur-sm
+          hover:shadow-sm
+        `,
         isSuccess 
-          ? "border-border/50 hover:border-teal-500/30" 
-          : "border-destructive/20 hover:border-destructive/40 bg-destructive/5"
+          ? `
+            border-border/50
+            hover:border-teal-500/30
+          ` 
+          : `
+            border-destructive/20 bg-destructive/5
+            hover:border-destructive/40
+          `
       )}
     >
       {/* Status Indicator Bar */}
       <div className={cn(
-        "absolute left-0 top-0 bottom-0 w-1 transition-colors",
-        isSuccess ? "bg-teal-500/50 group-hover:bg-teal-500" : "bg-destructive/50 group-hover:bg-destructive"
+        "absolute top-0 bottom-0 left-0 w-1 transition-colors",
+        isSuccess ? `
+          bg-teal-500/50
+          group-hover:bg-teal-500
+        ` : `
+          bg-destructive/50
+          group-hover:bg-destructive
+        `
       )} />
 
       {/* Row 1: Primary identifier + actions */}
       <div className="flex items-start justify-between gap-2 pl-2">
-        <div className="flex items-center gap-2 min-w-0">
+        <div className="flex min-w-0 items-center gap-2">
           {isModuleBound && ModuleIcon ? (
             <ModuleIcon className="size-4 shrink-0 text-muted-foreground" />
           ) : (
-            <SquareTerminal className="size-4 text-muted-foreground shrink-0" />
+            <SquareTerminal className="size-4 shrink-0 text-muted-foreground" />
           )}
-          <span className="font-medium text-xs truncate text-foreground">
+          <span className="truncate text-xs font-medium text-foreground">
             {primaryName}
           </span>
         </div>
         
-        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+        <div className="
+          flex shrink-0 items-center gap-1 opacity-0 transition-opacity
+          group-hover:opacity-100
+        ">
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 px-2 text-[10px] hover:bg-background/80"
+            className="
+              h-6 px-2 text-[10px]
+              hover:bg-background/80
+            "
             onClick={onView}
           >
-            <Eye className="size-3 mr-1" />
+            <Eye className="mr-1 size-3" />
             View
           </Button>
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 px-2 text-[10px] hover:bg-background/80"
+            className="
+              h-6 px-2 text-[10px]
+              hover:bg-background/80
+            "
             onClick={onReload}
           >
-            <Play className="size-3 mr-1" />
+            <Play className="mr-1 size-3" />
             Load
           </Button>
         </div>
       </div>
 
       {/* Row 2: Execution context (hostname) */}
-      <div className="flex items-center gap-1.5 mt-1.5 pl-2 text-[10px] text-muted-foreground">
+      <div className="
+        mt-1.5 flex items-center gap-1.5 pl-2 text-[10px] text-muted-foreground
+      ">
         <TestTubeDiagonal className="size-3 shrink-0 opacity-70" />
         <span className="truncate font-mono">{entry.hostname || 'No hostname'}</span>
       </div>
 
       {/* Row 3: Collector */}
-      <div className="flex items-center gap-1.5 mt-0.5 pl-2 text-[10px] text-muted-foreground">
+      <div className="
+        mt-0.5 flex items-center gap-1.5 pl-2 text-[10px] text-muted-foreground
+      ">
         <Server className="size-3 shrink-0 opacity-70" />
         <span className="truncate">via {entry.collector}</span>
       </div>
 
       {/* Row 4: Metadata badges */}
-      <div className="flex items-center gap-1.5 mt-2 pl-2 flex-wrap">
+      <div className="mt-2 flex flex-wrap items-center gap-1.5 pl-2">
         {isModuleBound && (
-          <Badge variant="outline" className="text-[10px] h-4 px-1 gap-1 font-normal bg-background/50">
+          <Badge variant="outline" className="
+            h-4 gap-1 bg-background/50 px-1 text-[10px] font-normal
+          ">
             <Link className="size-2.5 opacity-70" />
             {entry.moduleSource!.portalHostname}
           </Badge>
         )}
-        <Badge variant="secondary" className="text-[10px] h-4 px-1.5 font-normal">
+        <Badge variant="secondary" className="
+          h-4 px-1.5 text-[10px] font-normal
+        ">
           {entry.language === 'groovy' ? 'Groovy' : 'PS'}
         </Badge>
-        <Badge variant="outline" className="text-[10px] h-4 px-1.5 font-normal bg-background/50">
+        <Badge variant="outline" className="
+          h-4 bg-background/50 px-1.5 text-[10px] font-normal
+        ">
           {getModeLabel(entry.mode)}
         </Badge>
       </div>
 
       {/* Row 5: Timestamp & Status */}
-      <div className="flex items-center justify-between mt-2 pl-2 text-[10px] text-muted-foreground border-t border-border/30 pt-2">
+      <div className="
+        mt-2 flex items-center justify-between border-t border-border/30 pt-2
+        pl-2 text-[10px] text-muted-foreground
+      ">
         <div className="flex items-center gap-1">
           <Clock className="size-3 opacity-70" />
           <span>{formatTimestamp(entry.timestamp)}</span>
@@ -173,8 +213,11 @@ function HistoryItem({ entry, onReload, onView }: HistoryItemProps) {
       </div>
 
       {entry.output && (
-        <div className="mt-2 ml-2 p-2 rounded-md bg-muted/40 font-mono text-[10px] text-muted-foreground max-h-16 overflow-hidden border border-border/20">
-          <pre className="whitespace-pre-wrap break-all line-clamp-3">
+        <div className="
+          mt-2 ml-2 max-h-16 overflow-hidden rounded-md border border-border/20
+          bg-muted/40 p-2 font-mono text-[10px] text-muted-foreground
+        ">
+          <pre className="line-clamp-3 break-all whitespace-pre-wrap">
             {entry.output.slice(0, 150)}
             {entry.output.length > 150 && '...'}
           </pre>
@@ -250,9 +293,11 @@ export function ExecutionHistoryPanel() {
   // Empty state
   if (executionHistory.length === 0) {
     return (
-      <div className="flex flex-col h-full bg-muted/5">
-        <Empty className="h-full border-0 bg-transparent flex flex-col justify-center">
-          <EmptyMedia variant="icon" className="bg-muted/50 mb-4">
+      <div className="flex h-full flex-col bg-muted/5">
+        <Empty className="
+          flex h-full flex-col justify-center border-0 bg-transparent
+        ">
+          <EmptyMedia variant="icon" className="mb-4 bg-muted/50">
             <Clock className="size-5 text-muted-foreground/70" />
           </EmptyMedia>
           <EmptyHeader>
@@ -267,25 +312,31 @@ export function ExecutionHistoryPanel() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-muted/5">
+    <div className="flex h-full flex-col bg-muted/5">
       {/* Header with count and clear button */}
-      <div className="flex items-center justify-between p-3 border-b border-border bg-background shrink-0">
-        <span className="text-xs text-muted-foreground font-medium">
+      <div className="
+        flex shrink-0 items-center justify-between border-b border-border
+        bg-background p-3
+      ">
+        <span className="text-xs font-medium text-muted-foreground">
           {executionHistory.length} execution{executionHistory.length !== 1 ? 's' : ''}
         </span>
         <Button
           variant="ghost"
           size="sm"
           onClick={clearHistory}
-          className="text-destructive hover:text-destructive hover:bg-destructive/10 h-7 px-2.5 text-xs"
+          className="
+            h-7 px-2.5 text-xs text-destructive
+            hover:bg-destructive/10 hover:text-destructive
+          "
         >
-          <Trash2 className="size-3.5 mr-1.5" />
+          <Trash2 className="mr-1.5 size-3.5" />
           Clear
         </Button>
       </div>
 
       {/* History list - scrollable */}
-      <div className="flex-1 min-h-0 overflow-auto bg-muted/5">
+      <div className="min-h-0 flex-1 overflow-auto bg-muted/5">
         <div className="flex flex-col gap-2 p-2">
           {executionHistory.map((entry) => (
             <HistoryItem 
@@ -328,7 +379,9 @@ export function ExecutionHistoryPanel() {
                 Switch Portal
               </AlertDialogAction>
             )}
-            <AlertDialogAction onClick={handleLoadWithoutBinding} variant="secondary" className="gap-2">
+            <AlertDialogAction onClick={handleLoadWithoutBinding} variant="secondary" className="
+              gap-2
+            ">
               <FileCode className="size-4" />
               Load as Local
             </AlertDialogAction>

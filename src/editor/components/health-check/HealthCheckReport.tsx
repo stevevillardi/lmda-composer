@@ -24,14 +24,17 @@ interface HealthCheckReportProps {
 export function HealthCheckReport({ data }: HealthCheckReportProps) {
   return (
     <div className="h-full overflow-auto">
-      <div className="p-6 space-y-6">
+      <div className="space-y-6 p-6">
           {/* Summary Cards */}
           <HealthCheckSummaryCards data={data} />
 
           <Separator />
 
           {/* Charts Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="
+            grid grid-cols-1 gap-6
+            lg:grid-cols-3
+          ">
             <CollectionSummaryChart data={data.collectionSummary} />
             <TopModulesChart data={data.topModules} />
             <LongRunningChart data={data.longRunning} />
@@ -40,13 +43,19 @@ export function HealthCheckReport({ data }: HealthCheckReportProps) {
           <Separator />
 
           {/* Collector Info & Configuration */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="
+            grid grid-cols-1 gap-6
+            lg:grid-cols-2
+          ">
             <CollectorInfoCard data={data.collectorInfo} />
             <AppliesToQueries queries={data.appliesToQueries} />
           </div>
 
           {/* Tables */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="
+            grid grid-cols-1 gap-6
+            lg:grid-cols-2
+          ">
             <HostStatsTable data={data.hostStats} />
             <TlistSummaryTable 
               data={data.tlistSummary} 

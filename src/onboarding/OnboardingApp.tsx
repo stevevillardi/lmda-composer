@@ -66,31 +66,58 @@ export function OnboardingApp() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
         {/* Purple accent glow - top right */}
-        <div className="absolute -top-24 -right-24 h-64 w-64 rounded-full bg-purple-400/25 blur-3xl dark:bg-purple-500/15" />
+        <div className="
+          absolute -top-24 -right-24 size-64 rounded-full bg-purple-400/25
+          blur-3xl
+          dark:bg-purple-500/15
+        " />
         {/* Teal accent glow - left side */}
-        <div className="absolute top-40 -left-24 h-72 w-72 rounded-full bg-teal-400/25 blur-3xl dark:bg-teal-500/15" />
+        <div className="
+          absolute top-40 -left-24 size-72 rounded-full bg-teal-400/25 blur-3xl
+          dark:bg-teal-500/15
+        " />
         {/* Cyan accent glow - bottom */}
-        <div className="absolute bottom-0 right-1/3 h-48 w-48 rounded-full bg-cyan-400/20 blur-3xl dark:bg-cyan-500/10" />
+        <div className="
+          absolute right-1/3 bottom-0 size-48 rounded-full bg-cyan-400/20
+          blur-3xl
+          dark:bg-cyan-500/10
+        " />
       </div>
 
       <div className="relative mx-auto max-w-7xl px-6 py-4">
-        <div className="fixed right-40 top-3 z-10 hidden sm:block">
-          <div className="relative animate-[pulse_2.4s_ease-in-out_infinite] rounded-xl border border-border bg-card/90 px-3 py-2 text-xs text-muted-foreground shadow-sm">
+        <div className="
+          fixed top-3 right-40 z-10 hidden
+          sm:block
+        ">
+          <div className="
+            relative animate-[pulse_2.4s_ease-in-out_infinite] rounded-xl border
+            border-border bg-card/90 px-3 py-2 text-xs text-muted-foreground
+            shadow-sm
+          ">
             <span className="flex items-center gap-2">
               <Puzzle className="size-3.5 text-foreground" />
               Pin the composer, to quickly launch it
               <Pin className="size-3.5 text-foreground" />
             </span>
-            <span className="absolute right-6 -top-2 h-3 w-3 rotate-45 border-l border-t border-border bg-card/90" />
+            <span className="
+              absolute -top-2 right-6 size-3 rotate-45 border-t border-l
+              border-border bg-card/90
+            " />
           </div>
         </div>
         {showPsPromo && (
-          <div className="fixed bottom-4 right-4 z-20 max-w-xs animate-in slide-in-from-bottom-4 fade-in duration-300">
+          <div className="
+            fixed right-4 bottom-4 z-20 max-w-xs animate-in duration-300 fade-in
+            slide-in-from-bottom-4
+          ">
             <div className="rounded-xl border border-border bg-card shadow-lg">
               <div className="flex items-start gap-3 p-4">
-                <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-cyan-500/10 text-cyan-500">
+                <span className="
+                  mt-0.5 inline-flex size-8 shrink-0 items-center justify-center
+                  rounded-lg bg-cyan-500/10 text-cyan-500
+                ">
                   <Terminal className="size-4" />
                 </span>
                 <div className="flex-1 space-y-1">
@@ -102,7 +129,11 @@ export function OnboardingApp() {
                     href="https://logicmonitor.github.io/lm-powershell-module-docs/"
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-xs font-medium text-cyan-500 hover:text-cyan-400 transition-colors"
+                    className="
+                      inline-flex items-center gap-1 text-xs font-medium
+                      text-cyan-500 transition-colors
+                      hover:text-cyan-400
+                    "
                   >
                     Learn more
                     <ExternalLink className="size-3" />
@@ -110,7 +141,11 @@ export function OnboardingApp() {
                 </div>
                 <button
                   onClick={() => setShowPsPromo(false)}
-                  className="shrink-0 rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+                  className="
+                    shrink-0 rounded-md p-1 text-muted-foreground
+                    transition-colors
+                    hover:bg-secondary hover:text-foreground
+                  "
                   aria-label="Dismiss"
                 >
                   <X className="size-4" />
@@ -119,11 +154,20 @@ export function OnboardingApp() {
             </div>
           </div>
         )}
-        <header className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+        <header className="
+          flex flex-col gap-6
+          md:flex-row md:items-end md:justify-between
+        ">
           <div className="space-y-4">
-            <h1 className="text-4xl font-semibold tracking-tight md:text-5xl">
+            <h1 className="
+              text-4xl font-semibold tracking-tight
+              md:text-5xl
+            ">
               LMDA Composer
-              <span className="block text-xl text-muted-foreground md:text-2xl">
+              <span className="
+                block text-xl text-muted-foreground
+                md:text-2xl
+              ">
                 A focused workspace for LogicMonitor scripting.
               </span>
             </h1>
@@ -136,7 +180,11 @@ export function OnboardingApp() {
           <div className="flex flex-wrap gap-3">
             <button
               onClick={launchEditor}
-              className="rounded-md bg-foreground px-5 py-3 text-sm font-medium text-background shadow-sm hover:bg-foreground/90"
+              className="
+                rounded-md bg-foreground px-5 py-3 text-sm font-medium
+                text-background shadow-sm
+                hover:bg-foreground/90
+              "
             >
               Open Composer
             </button>
@@ -144,18 +192,30 @@ export function OnboardingApp() {
               href="https://www.logicmonitor.com/"
               target="_blank"
               rel="noreferrer"
-              className="rounded-md border border-border bg-card/70 px-5 py-3 text-sm font-medium text-foreground hover:border-border/70"
+              className="
+                rounded-md border border-border bg-card/70 px-5 py-3 text-sm
+                font-medium text-foreground
+                hover:border-border/70
+              "
             >
               Go to LogicMonitor
             </a>
           </div>
         </header>
 
-        <section className="mt-8 grid gap-4 md:grid-cols-3">
+        <section className="
+          mt-8 grid gap-4
+          md:grid-cols-3
+        ">
           {steps.map((step) => (
-            <div key={step.title} className="rounded-xl border border-border bg-card/80 p-4 shadow-sm">
+            <div key={step.title} className="
+              rounded-xl border border-border bg-card/80 p-4 shadow-sm
+            ">
               <div className="flex items-center gap-2 text-foreground">
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-secondary text-foreground">
+                <span className="
+                  inline-flex size-8 items-center justify-center rounded-lg
+                  bg-secondary text-foreground
+                ">
                   <step.icon className="size-4" />
                 </span>
                 <h3 className="text-lg font-semibold">{step.title}</h3>
@@ -165,8 +225,13 @@ export function OnboardingApp() {
           ))}
         </section>
 
-        <section className="mt-8 grid gap-6 md:grid-cols-2">
-          <div className="rounded-2xl border border-border bg-card/80 p-5 shadow-sm">
+        <section className="
+          mt-8 grid gap-6
+          md:grid-cols-2
+        ">
+          <div className="
+            rounded-2xl border border-border bg-card/80 p-5 shadow-sm
+          ">
             <h2 className="text-xl font-semibold">Before You Run</h2>
             <div className="mt-4 space-y-3 text-sm text-muted-foreground">
               <p>
@@ -187,12 +252,17 @@ export function OnboardingApp() {
             </div>
           </div>
 
-          <div className="rounded-2xl border border-border bg-card/80 p-5 shadow-sm">
+          <div className="
+            rounded-2xl border border-border bg-card/80 p-5 shadow-sm
+          ">
             <h2 className="text-xl font-semibold">What You Can Do</h2>
             <ul className="mt-4 grid gap-2 text-sm text-muted-foreground">
               {features.map((feature) => (
                 <li key={feature.label} className="flex items-start gap-2">
-                  <span className="mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-md bg-secondary text-foreground">
+                  <span className="
+                    mt-0.5 inline-flex size-6 items-center justify-center
+                    rounded-md bg-secondary text-foreground
+                  ">
                     <feature.icon className="size-3.5" />
                   </span>
                   <span>{feature.label}</span>
@@ -202,8 +272,14 @@ export function OnboardingApp() {
           </div>
         </section>
 
-        <section className="mt-8 rounded-2xl border border-border bg-foreground p-5 text-background shadow-sm">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <section className="
+          mt-8 rounded-2xl border border-border bg-foreground p-5
+          text-background shadow-sm
+        ">
+          <div className="
+            flex flex-col gap-3
+            md:flex-row md:items-center md:justify-between
+          ">
             <div>
               <h2 className="text-xl font-semibold">Launch from LogicMonitor</h2>
               <p className="mt-1 text-sm text-background/80">
@@ -213,7 +289,11 @@ export function OnboardingApp() {
             </div>
             <button
               onClick={launchEditor}
-              className="rounded-md bg-background px-5 py-3 text-sm font-medium text-foreground hover:bg-background/90"
+              className="
+                rounded-md bg-background px-5 py-3 text-sm font-medium
+                text-foreground
+                hover:bg-background/90
+              "
             >
               Start Editing
             </button>
@@ -221,13 +301,21 @@ export function OnboardingApp() {
         </section>
 
         <footer className="mt-6 space-y-3">
-          <div className="rounded-lg border border-border/50 bg-card/50 p-3 text-xs text-muted-foreground">
+          <div className="
+            rounded-lg border border-border/50 bg-card/50 p-3 text-xs
+            text-muted-foreground
+          ">
             <p>
-              <span className="font-semibold text-yellow-600 dark:text-yellow-500">Independent Project:</span>{' '}
+              <span className="
+                font-semibold text-yellow-600
+                dark:text-yellow-500
+              ">Independent Project:</span>{' '}
               LMDA Composer is an independent project created and maintained by LogicMonitor users. While not an official LogicMonitor product, it&apos;s designed by people who use and understand the platform. We hope you find this tool valuable for your LogicMonitor scripting workflows!
             </p>
           </div>
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <div className="
+            flex items-center justify-between text-xs text-muted-foreground
+          ">
             <p>
               This page shows on first install only. You can always reopen the composer from the extension icon.
             </p>
@@ -235,7 +323,11 @@ export function OnboardingApp() {
               href="https://stevevillardi.github.io/lmda-composer/"
               target="_blank"
               rel="noreferrer"
-              className="flex items-center gap-1.5 text-muted-foreground hover:text-foreground transition-colors"
+              className="
+                flex items-center gap-1.5 text-muted-foreground
+                transition-colors
+                hover:text-foreground
+              "
             >
               <BookOpen className="size-3.5" />
               Documentation

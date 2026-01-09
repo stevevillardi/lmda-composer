@@ -341,14 +341,16 @@ export function OpenModuleDirectoryDialog() {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="py-4 space-y-4">
+        <div className="space-y-4 py-4">
           {isLoading ? (
-            <div className="flex items-center justify-center py-8 text-muted-foreground">
-              <Loader2 className="size-5 animate-spin mr-2" />
+            <div className="
+              flex items-center justify-center py-8 text-muted-foreground
+            ">
+              <Loader2 className="mr-2 size-5 animate-spin" />
               <span className="text-sm">Loading module configuration...</span>
             </div>
           ) : error ? (
-            <div className="text-center py-8">
+            <div className="py-8 text-center">
               <p className="text-sm text-destructive">{error}</p>
             </div>
           ) : config ? (
@@ -358,7 +360,9 @@ export function OpenModuleDirectoryDialog() {
                 <div className="text-sm font-medium text-foreground">
                   {config.portalBinding.moduleName}
                 </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <div className="
+                  flex items-center gap-2 text-xs text-muted-foreground
+                ">
                   <Badge variant="secondary" className="text-xs">
                     {config.portalBinding.moduleType}
                   </Badge>
@@ -372,14 +376,19 @@ export function OpenModuleDirectoryDialog() {
               {/* Script selection */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  <div className="
+                    text-xs font-medium tracking-wide text-muted-foreground
+                    uppercase
+                  ">
                     Scripts to Open
                   </div>
                   {hasAnyMissingScripts && !canReExportMissing && (
                     <Tooltip>
                       <TooltipTrigger>
-                        <Badge variant="outline" className="text-xs text-yellow-600 border-amber-600/50">
-                          <AlertTriangle className="size-3 mr-1" />
+                        <Badge variant="outline" className="
+                          border-amber-600/50 text-xs text-yellow-600
+                        ">
+                          <AlertTriangle className="mr-1 size-3" />
                           Missing files
                         </Badge>
                       </TooltipTrigger>
@@ -404,11 +413,14 @@ export function OpenModuleDirectoryDialog() {
                       return (
                         <div 
                           key={scriptType}
-                          className={`flex items-center gap-3 p-3 rounded-md border ${
+                          className={`
+                            flex items-center gap-3 rounded-md border p-3
+                            ${
                             isMissing 
                               ? 'border-amber-600/50 bg-yellow-500/5' 
                               : 'border-border/70 bg-card/30'
-                          }`}
+                          }
+                          `}
                         >
                           <Checkbox
                             id={`script-${scriptType}`}
@@ -418,22 +430,32 @@ export function OpenModuleDirectoryDialog() {
                           />
                           <Label 
                             htmlFor={`script-${scriptType}`}
-                            className={`flex-1 flex items-center gap-2 ${isMissing ? 'opacity-60' : 'cursor-pointer'}`}
+                            className={`
+                              flex flex-1 items-center gap-2
+                              ${isMissing ? `opacity-60` : `cursor-pointer`}
+                            `}
                           >
                             <FileCode className="size-4 text-muted-foreground" />
                             <div className="flex-1">
-                              <div className="text-sm font-medium capitalize flex items-center gap-2">
+                              <div className="
+                                flex items-center gap-2 text-sm font-medium
+                                capitalize
+                              ">
                                 {scriptType === 'collection' ? 'Collection' : 'Active Discovery'}
                                 {isMissing && (
-                                  <Badge variant="outline" className="text-xs text-yellow-600 border-amber-600/50">
-                                    <AlertTriangle className="size-3 mr-1" />
+                                  <Badge variant="outline" className="
+                                    border-amber-600/50 text-xs text-yellow-600
+                                  ">
+                                    <AlertTriangle className="mr-1 size-3" />
                                     Missing
                                   </Badge>
                                 )}
                                 {!isMissing && isModified && (
                                   <Tooltip>
                                     <TooltipTrigger>
-                                      <Badge variant="outline" className="text-xs text-cyan-600 border-blue-600/50">
+                                      <Badge variant="outline" className="
+                                        border-blue-600/50 text-xs text-cyan-600
+                                      ">
                                         Modified
                                       </Badge>
                                     </TooltipTrigger>
@@ -465,7 +487,7 @@ export function OpenModuleDirectoryDialog() {
                                     <Loader2 className="size-3 animate-spin" />
                                   ) : (
                                     <>
-                                      <Download className="size-3 mr-1" />
+                                      <Download className="mr-1 size-3" />
                                       Re-export
                                     </>
                                   )}
@@ -500,12 +522,12 @@ export function OpenModuleDirectoryDialog() {
           >
             {isOpening ? (
               <>
-                <Loader2 className="size-4 mr-2 animate-spin" />
+                <Loader2 className="mr-2 size-4 animate-spin" />
                 Opening...
               </>
             ) : (
               <>
-                <FolderOpen className="size-4 mr-2" />
+                <FolderOpen className="mr-2 size-4" />
                 Open Selected
               </>
             )}

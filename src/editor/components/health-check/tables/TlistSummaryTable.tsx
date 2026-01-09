@@ -21,8 +21,11 @@ export function TlistSummaryTable({ data, totalInstances, suggestedCollectors }:
   if (!data || data.length === 0) {
     return (
       <SectionCard title="Collection Summary" icon={<Activity className="size-4" />}>
-        <div className="flex items-center justify-center py-8 text-muted-foreground select-none">
-          <Info className="size-5 mr-2 opacity-50" />
+        <div className="
+          flex items-center justify-center py-8 text-muted-foreground
+          select-none
+        ">
+          <Info className="mr-2 size-5 opacity-50" />
           <span className="text-sm">No collection summary available</span>
         </div>
       </SectionCard>
@@ -67,9 +70,9 @@ export function TlistSummaryTable({ data, totalInstances, suggestedCollectors }:
         </div>
 
         {suggestedCollectors && (
-          <div className="p-3 bg-muted/50 rounded-lg">
-            <p className="text-sm font-medium mb-2 select-none">Suggested Collector Count for {totalInstances.toLocaleString()} Instances:</p>
-            <div className="flex gap-3 flex-wrap">
+          <div className="rounded-lg bg-muted/50 p-3">
+            <p className="mb-2 text-sm font-medium select-none">Suggested Collector Count for {totalInstances.toLocaleString()} Instances:</p>
+            <div className="flex flex-wrap gap-3">
               <Badge variant="outline" className="select-none">M: {suggestedCollectors.M}</Badge>
               <Badge variant="outline" className="select-none">L: {suggestedCollectors.L}</Badge>
               <Badge variant="outline" className="select-none">XL: {suggestedCollectors.XL}</Badge>

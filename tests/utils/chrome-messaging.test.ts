@@ -3,7 +3,7 @@
  * 
  * Tests type guards, message sending, and response validation.
  */
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach } from 'vitest';
 import { 
   sendMessage,
   sendMessageOrThrow,

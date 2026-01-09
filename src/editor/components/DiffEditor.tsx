@@ -63,7 +63,10 @@ export function DiffEditor({
       }}
       loading={
         <div 
-          className="flex items-center justify-center h-full text-muted-foreground text-sm" 
+          className="
+            flex h-full items-center justify-center text-sm
+            text-muted-foreground
+          " 
           role="status" 
           aria-label="Loading diff editor"
         >

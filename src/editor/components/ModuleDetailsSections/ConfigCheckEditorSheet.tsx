@@ -30,11 +30,21 @@ interface ConfigCheckEditorSheetProps {
 
 // Config check type options
 const CONFIG_CHECK_TYPE_OPTIONS: { label: string; value: ConfigCheckType; description: string; icon: React.ReactNode }[] = [
-  { label: 'Any Change', value: 'ignore', description: 'Alert when config changes (with exclusions)', icon: <GitCompare className="size-4 text-muted-foreground" /> },
-  { label: 'Groovy Script', value: 'groovy', description: 'Use custom Groovy logic', icon: <FileCode className="size-4 text-muted-foreground" /> },
-  { label: 'Config Retrieval', value: 'fetch', description: 'Alert when config cannot be retrieved', icon: <Download className="size-4 text-muted-foreground" /> },
-  { label: 'Missing Field', value: 'missing', description: 'Alert when a field is missing', icon: <Variable className="size-4 text-muted-foreground" /> },
-  { label: 'Value Check', value: 'value', description: 'Check field value conditions', icon: <Filter className="size-4 text-muted-foreground" /> },
+  { label: 'Any Change', value: 'ignore', description: 'Alert when config changes (with exclusions)', icon: <GitCompare className="
+    size-4 text-muted-foreground
+  " /> },
+  { label: 'Groovy Script', value: 'groovy', description: 'Use custom Groovy logic', icon: <FileCode className="
+    size-4 text-muted-foreground
+  " /> },
+  { label: 'Config Retrieval', value: 'fetch', description: 'Alert when config cannot be retrieved', icon: <Download className="
+    size-4 text-muted-foreground
+  " /> },
+  { label: 'Missing Field', value: 'missing', description: 'Alert when a field is missing', icon: <Variable className="
+    size-4 text-muted-foreground
+  " /> },
+  { label: 'Value Check', value: 'value', description: 'Check field value conditions', icon: <Filter className="
+    size-4 text-muted-foreground
+  " /> },
 ];
 
 // Alert level options
@@ -66,12 +76,15 @@ interface SectionProps {
 
 function Section({ icon, title, children, className = '' }: SectionProps) {
   return (
-    <div className={`rounded-lg border bg-card ${className}`}>
+    <div className={`
+      rounded-lg border bg-card
+      ${className}
+    `}>
       <div className="flex items-center gap-2 border-b bg-muted/30 px-4 py-2.5">
         {icon}
         <h3 className="text-sm font-semibold text-foreground">{title}</h3>
       </div>
-      <div className="p-4 space-y-4">
+      <div className="space-y-4 p-4">
         {children}
       </div>
     </div>
@@ -87,8 +100,12 @@ interface InfoBoxProps {
 
 function InfoBox({ icon = <Info className="size-4" />, children, className = '' }: InfoBoxProps) {
   return (
-    <div className={`flex gap-2 p-3 rounded-md bg-cyan-500/5 border-l-2 border-cyan-500/50 text-sm text-muted-foreground ${className}`}>
-      <div className="shrink-0 mt-0.5">{icon}</div>
+    <div className={`
+      flex gap-2 rounded-md border-l-2 border-cyan-500/50 bg-cyan-500/5 p-3
+      text-sm text-muted-foreground
+      ${className}
+    `}>
+      <div className="mt-0.5 shrink-0">{icon}</div>
       <div>{children}</div>
     </div>
   );
@@ -135,13 +152,19 @@ function MultiValueInput({ label, values, onChange, placeholder, description }: 
           {values.map((value, index) => (
             <div
               key={`${value}-${index}`}
-              className="flex items-center gap-1 px-2 py-1 bg-muted rounded-md text-xs font-mono"
+              className="
+                flex items-center gap-1 rounded-md bg-muted px-2 py-1 font-mono
+                text-xs
+              "
             >
               <span className="max-w-[200px] truncate">{value}</span>
               <button
                 type="button"
                 onClick={() => handleRemove(index)}
-                className="text-muted-foreground hover:text-destructive transition-colors"
+                className="
+                  text-muted-foreground transition-colors
+                  hover:text-destructive
+                "
                 aria-label={`Remove ${value}`}
               >
                 <X className="size-3" />
@@ -458,7 +481,7 @@ export function ConfigCheckEditorSheet({
     if (!validate()) return;
 
     // Build final script based on type
-    let script: ConfigCheckScript = { format: 'arbitrary' };
+    const script: ConfigCheckScript = { format: 'arbitrary' };
 
     switch (formData.type) {
       case 'ignore': {
@@ -524,8 +547,8 @@ export function ConfigCheckEditorSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="w-[500px] max-w-[500px] flex flex-col p-0 gap-0">
-        <SheetHeader className="px-6 pt-6 pb-4 border-b shrink-0">
+      <SheetContent className="flex w-[500px] max-w-[500px] flex-col gap-0 p-0">
+        <SheetHeader className="shrink-0 border-b px-6 pt-6 pb-4">
           <SheetTitle className="flex items-center gap-2">
             <FileCheck className="size-5" />
             {isNew ? 'Add Config Check' : 'Edit Config Check'}
@@ -535,7 +558,7 @@ export function ConfigCheckEditorSheet({
           </SheetDescription>
         </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+        <div className="flex-1 space-y-4 overflow-y-auto px-6 py-4">
           {/* Basic Info Section */}
           <Section icon={<Info className="size-4 text-muted-foreground" />} title="Basic Information">
             <div className="space-y-4">
@@ -551,7 +574,9 @@ export function ConfigCheckEditorSheet({
                   className={errors.name ? 'border-destructive' : ''}
                 />
                 {errors.name && (
-                  <p className="text-sm text-destructive flex items-center gap-1">
+                  <p className="
+                    flex items-center gap-1 text-sm text-destructive
+                  ">
                     <AlertCircle className="size-3" />
                     {errors.name}
                   </p>
@@ -635,7 +660,7 @@ export function ConfigCheckEditorSheet({
                   description="Add strings to exclude lines containing them"
                 />
 
-                <div className="border-t pt-4 space-y-3">
+                <div className="space-y-3 border-t pt-4">
                   <div className="flex items-center justify-between">
                     <div>
                       <Label>Ignore blank lines</Label>
@@ -666,11 +691,19 @@ export function ConfigCheckEditorSheet({
             <Section icon={<FileCode className="size-4 text-muted-foreground" />} title="Groovy Script">
               <div className="space-y-4">
                 <InfoBox icon={<FileCode className="size-4" />}>
-                  The <code className="font-mono text-xs bg-muted px-1 rounded">config</code> variable contains the configuration content. Return <code className="font-mono text-xs bg-muted px-1 rounded">1</code> to trigger alert, <code className="font-mono text-xs bg-muted px-1 rounded">0</code> for no alert.
+                  The <code className="
+                    rounded-sm bg-muted px-1 font-mono text-xs
+                  ">config</code> variable contains the configuration content. Return <code className="
+                    rounded-sm bg-muted px-1 font-mono text-xs
+                  ">1</code> to trigger alert, <code className="
+                    rounded-sm bg-muted px-1 font-mono text-xs
+                  ">0</code> for no alert.
                 </InfoBox>
 
                 <div className="space-y-2">
-                  <Label htmlFor="groovyScript" className="flex items-center gap-1">
+                  <Label htmlFor="groovyScript" className="
+                    flex items-center gap-1
+                  ">
                     Script <span className="text-destructive">*</span>
                   </Label>
                   <Textarea
@@ -679,10 +712,15 @@ export function ConfigCheckEditorSheet({
                     onChange={(e) => handleScriptChange(e.target.value)}
                     placeholder={`if (config.contains("error")) {\n    println config;\n    return 1;\n} else {\n    return 0;\n}`}
                     rows={10}
-                    className={`font-mono text-sm ${errors.groovy ? 'border-destructive' : ''}`}
+                    className={`
+                      font-mono text-sm
+                      ${errors.groovy ? `border-destructive` : ''}
+                    `}
                   />
                   {errors.groovy && (
-                    <p className="text-sm text-destructive flex items-center gap-1">
+                    <p className="
+                      flex items-center gap-1 text-sm text-destructive
+                    ">
                       <AlertCircle className="size-3" />
                       {errors.groovy}
                     </p>
@@ -720,7 +758,9 @@ export function ConfigCheckEditorSheet({
                     className={errors.variable ? 'border-destructive' : ''}
                   />
                   {errors.variable && (
-                    <p className="text-sm text-destructive flex items-center gap-1">
+                    <p className="
+                      flex items-center gap-1 text-sm text-destructive
+                    ">
                       <AlertCircle className="size-3" />
                       {errors.variable}
                     </p>
@@ -749,7 +789,9 @@ export function ConfigCheckEditorSheet({
                     className={errors.variable ? 'border-destructive' : ''}
                   />
                   {errors.variable && (
-                    <p className="text-sm text-destructive flex items-center gap-1">
+                    <p className="
+                      flex items-center gap-1 text-sm text-destructive
+                    ">
                       <AlertCircle className="size-3" />
                       {errors.variable}
                     </p>
@@ -779,7 +821,9 @@ export function ConfigCheckEditorSheet({
 
                 {isRangeCondition && (
                   <div className="space-y-2">
-                    <Label htmlFor="conditionValue" className="flex items-center gap-1">
+                    <Label htmlFor="conditionValue" className="
+                      flex items-center gap-1
+                    ">
                       Value <span className="text-destructive">*</span>
                     </Label>
                     <Input
@@ -793,7 +837,9 @@ export function ConfigCheckEditorSheet({
                       className={errors.conditionValue ? 'border-destructive' : ''}
                     />
                     {errors.conditionValue && (
-                      <p className="text-sm text-destructive flex items-center gap-1">
+                      <p className="
+                        flex items-center gap-1 text-sm text-destructive
+                      ">
                         <AlertCircle className="size-3" />
                         {errors.conditionValue}
                       </p>
@@ -822,9 +868,13 @@ export function ConfigCheckEditorSheet({
                     {ALERT_LEVEL_OPTIONS.map((opt) => (
                       <SelectItem key={opt.value} value={String(opt.value)}>
                         <div className="flex items-center gap-2">
-                          {opt.value === 2 && <WarningAlertIcon className="size-4" />}
+                          {opt.value === 2 && <WarningAlertIcon className="
+                            size-4
+                          " />}
                           {opt.value === 3 && <ErrorAlertIcon className="size-4" />}
-                          {opt.value === 4 && <CriticalAlertIcon className="size-4" />}
+                          {opt.value === 4 && <CriticalAlertIcon className="
+                            size-4
+                          " />}
                           <span>{opt.label}</span>
                         </div>
                       </SelectItem>
@@ -867,7 +917,7 @@ export function ConfigCheckEditorSheet({
           </InfoBox>
         </div>
 
-        <SheetFooter className="px-6 py-4 border-t shrink-0">
+        <SheetFooter className="shrink-0 border-t px-6 py-4">
           <Button variant="ghost" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>

@@ -74,8 +74,8 @@ export function ExecutionContextDialog() {
         <DialogContent className="sm:max-w-[525px]">
           <form onSubmit={handleSubmit}>
             <DialogHeader>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 rounded-lg bg-primary/10">
+              <div className="mb-2 flex items-center gap-3">
+                <div className="rounded-lg bg-primary/10 p-2">
                   <Activity className="size-5 text-primary" />
                 </div>
                 <DialogTitle>Collection Script</DialogTitle>
@@ -98,8 +98,10 @@ export function ExecutionContextDialog() {
                   autoFocus
                 />
                 <p className="text-xs text-muted-foreground">
-                  This value will be available as <code className="bg-muted px-1 rounded">##WILDVALUE##</code> in 
-                  your script and as <code className="bg-muted px-1 rounded">instanceProps["wildvalue"]</code> in Groovy.
+                  This value will be available as <code className="
+                    rounded-sm bg-muted px-1
+                  ">##WILDVALUE##</code> in 
+                  your script and as <code className="rounded-sm bg-muted px-1">instanceProps["wildvalue"]</code> in Groovy.
                 </p>
               </div>
             </div>
@@ -133,8 +135,8 @@ export function ExecutionContextDialog() {
         <DialogContent className="sm:max-w-[525px]">
           <form onSubmit={handleSubmit}>
             <DialogHeader>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2 rounded-lg bg-primary/10">
+              <div className="mb-2 flex items-center gap-3">
+                <div className="rounded-lg bg-primary/10 p-2">
                   <Database className="size-5 text-primary" />
                 </div>
                 <DialogTitle>Batch Collection Script</DialogTitle>
@@ -157,8 +159,12 @@ export function ExecutionContextDialog() {
                   autoFocus
                 />
                 <p className="text-xs text-muted-foreground">
-                  Enter the datasource name (e.g., <code className="bg-muted px-1 rounded">snmp64_If-</code>) or 
-                  numeric ID. This is used to fetch <code className="bg-muted px-1 rounded">datasourceinstanceProps</code> from 
+                  Enter the datasource name (e.g., <code className="
+                    rounded-sm bg-muted px-1
+                  ">snmp64_If-</code>) or 
+                  numeric ID. This is used to fetch <code className="
+                    rounded-sm bg-muted px-1
+                  ">datasourceinstanceProps</code> from 
                   the collector's cache.
                 </p>
               </div>

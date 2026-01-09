@@ -3,7 +3,7 @@
  * 
  * Tests rate limit detection, state management, and wait time calculations.
  */
-import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
+import { describe, expect, it, beforeEach, afterEach } from 'vitest';
 import {
   updateRateLimitState,
   getRateLimitState,

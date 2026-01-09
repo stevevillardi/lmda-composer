@@ -83,7 +83,7 @@ export function DevicePropertiesPanel() {
       toast.success('Property value copied', {
         description: propertyName,
       });
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to copy', {
         description: 'Could not copy property value to clipboard',
       });
@@ -119,14 +119,16 @@ export function DevicePropertiesPanel() {
   // Empty state - no device selected
   if (!hostname) {
     return (
-      <div className="flex flex-col h-full bg-muted/5">
-        <Empty className="h-full border-0 bg-transparent flex flex-col justify-center">
-          <EmptyMedia variant="icon" className="bg-muted/50 mb-4">
+      <div className="flex h-full flex-col bg-muted/5">
+        <Empty className="
+          flex h-full flex-col justify-center border-0 bg-transparent
+        ">
+          <EmptyMedia variant="icon" className="mb-4 bg-muted/50">
             <ServerOff className="size-5 text-muted-foreground/70" />
           </EmptyMedia>
           <EmptyHeader>
             <EmptyTitle className="text-base font-medium">No Device Selected</EmptyTitle>
-            <EmptyDescription className="px-6 mt-1.5">
+            <EmptyDescription className="mt-1.5 px-6">
               Select a device from the dropdown above to view its properties
             </EmptyDescription>
           </EmptyHeader>
@@ -136,17 +138,19 @@ export function DevicePropertiesPanel() {
   }
 
   return (
-    <div className="flex flex-col h-full bg-muted/5">
+    <div className="flex h-full flex-col bg-muted/5">
       {/* Device Info Header */}
       {selectedDevice && (
-        <div className="px-3 py-2 border-b border-border bg-background shrink-0">
+        <div className="shrink-0 border-b border-border bg-background px-3 py-2">
           <div className="flex items-center gap-2">
-            <div className="bg-primary/10 p-1.5 rounded-md text-primary">
+            <div className="rounded-md bg-primary/10 p-1.5 text-primary">
               <Monitor className="size-3.5" />
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs font-medium truncate text-foreground">{selectedDevice.displayName}</p>
-              <p className="text-[10px] text-muted-foreground truncate font-mono mt-0.5">{hostname}</p>
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xs font-medium text-foreground">{selectedDevice.displayName}</p>
+              <p className="
+                mt-0.5 truncate font-mono text-[10px] text-muted-foreground
+              ">{hostname}</p>
             </div>
             <Tooltip>
               <TooltipTrigger
@@ -157,7 +161,10 @@ export function DevicePropertiesPanel() {
                     onClick={() => fetchDeviceProperties(selectedDevice.id)}
                     disabled={isFetchingProperties}
                     className={cn(
-                      "size-7 transition-all duration-200 hover:bg-muted",
+                      `
+                        size-7 transition-all duration-200
+                        hover:bg-muted
+                      `,
                       isFetchingProperties && "opacity-70"
                     )}
                   >
@@ -179,7 +186,7 @@ export function DevicePropertiesPanel() {
       )}
 
       {isFetchingProperties ? (
-        <div className="flex-1 min-h-0 bg-background/50">
+        <div className="min-h-0 flex-1 bg-background/50">
           <LoadingState 
             title="Loading Properties"
             description="Fetching device properties..."
@@ -187,8 +194,10 @@ export function DevicePropertiesPanel() {
           />
         </div>
       ) : deviceProperties.length === 0 ? (
-        <Empty className="h-full border-0 bg-transparent flex flex-col justify-center">
-          <EmptyMedia variant="icon" className="bg-muted/50 mb-4">
+        <Empty className="
+          flex h-full flex-col justify-center border-0 bg-transparent
+        ">
+          <EmptyMedia variant="icon" className="mb-4 bg-muted/50">
             <ServerOff className="size-5 text-muted-foreground/70" />
           </EmptyMedia>
           <EmptyHeader>
@@ -201,25 +210,35 @@ export function DevicePropertiesPanel() {
       ) : (
         <>
           {/* Search */}
-          <div className="p-3 border-b border-border shrink-0 bg-background">
+          <div className="shrink-0 border-b border-border bg-background p-3">
             <div className="relative">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+              <Search className="
+                absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2
+                text-muted-foreground
+              " />
               <Input
                 placeholder="Filter properties..."
                 value={propertiesSearchQuery}
                 onChange={(e) => setPropertiesSearchQuery(e.target.value)}
-                className="pl-8 h-8 text-xs bg-muted/30 border-input shadow-sm focus-visible:bg-background transition-colors"
+                className="
+                  h-8 border-input bg-muted/30 pl-8 text-xs shadow-sm
+                  transition-colors
+                  focus-visible:bg-background
+                "
               />
             </div>
-            <p className="text-[10px] text-muted-foreground mt-2 px-1 flex items-center justify-between">
+            <p className="
+              mt-2 flex items-center justify-between px-1 text-[10px]
+              text-muted-foreground
+            ">
               <span>Showing {filteredProperties.length} properties</span>
               <span className="text-muted-foreground/50">Total: {deviceProperties.length}</span>
             </p>
           </div>
 
           {/* Properties list - scrollable */}
-          <div className="flex-1 min-h-0 overflow-auto bg-muted/5">
-            <div className="p-2 space-y-3">
+          <div className="min-h-0 flex-1 overflow-auto bg-muted/5">
+            <div className="space-y-3 p-2">
               {Object.entries(groupedProperties).map(([type, props]) => {
                 if (props.length === 0) return null;
                 return (
@@ -227,18 +246,33 @@ export function DevicePropertiesPanel() {
                     key={type}
                     open={expandedGroups[type]}
                     onOpenChange={() => toggleGroup(type)}
-                    className="border border-border/40 rounded-md bg-card/40 overflow-hidden shadow-sm"
+                    className="
+                      overflow-hidden rounded-md border border-border/40
+                      bg-card/40 shadow-sm
+                    "
                   >
-                    <CollapsibleTrigger className="flex items-center gap-2 w-full px-3 py-2 hover:bg-muted/50 transition-colors border-b border-transparent data-[state=open]:border-border/40">
+                    <CollapsibleTrigger className="
+                      flex w-full items-center gap-2 border-b border-transparent
+                      px-3 py-2 transition-colors
+                      hover:bg-muted/50
+                      data-[state=open]:border-border/40
+                    ">
                       {expandedGroups[type] ? (
-                        <ChevronDown className="size-3 text-muted-foreground shrink-0" />
+                        <ChevronDown className="
+                          size-3 shrink-0 text-muted-foreground
+                        " />
                       ) : (
-                        <ChevronRight className="size-3 text-muted-foreground shrink-0" />
+                        <ChevronRight className="
+                          size-3 shrink-0 text-muted-foreground
+                        " />
                       )}
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                      <div className="flex min-w-0 flex-1 items-center gap-2">
                         <Badge
                           variant="outline"
-                          className={cn('text-[10px] capitalize h-5 px-1.5 font-normal bg-opacity-10 border-opacity-20', TYPE_COLORS[type])}
+                          className={cn(`
+                            bg-opacity-10 border-opacity-20 h-5 px-1.5
+                            text-[10px] font-normal capitalize
+                          `, TYPE_COLORS[type])}
                         >
                           {type}
                         </Badge>
@@ -252,44 +286,76 @@ export function DevicePropertiesPanel() {
                         {props.map((prop) => (
                           <div
                             key={prop.name}
-                            className="group relative flex items-start gap-3 px-3 py-2 hover:bg-muted/40 transition-colors"
+                            className="
+                              group relative flex items-start gap-3 px-3 py-2
+                              transition-colors
+                              hover:bg-muted/40
+                            "
                           >
                             {/* Hover Indicator */}
-                            <div className="absolute left-0 top-0 bottom-0 w-[2px] bg-primary opacity-0 group-hover:opacity-100 transition-opacity" />
+                            <div className="
+                              absolute top-0 bottom-0 left-0 w-[2px] bg-primary
+                              opacity-0 transition-opacity
+                              group-hover:opacity-100
+                            " />
                             
-                            <div className="flex-1 min-w-0">
+                            <div className="min-w-0 flex-1">
                               <Tooltip>
                                 <TooltipTrigger
                                   render={
                                     <button
-                                      className="text-xs font-mono text-left text-foreground/90 hover:text-primary transition-colors truncate block w-full cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 rounded-sm select-text"
+                                      className="
+                                        block w-full truncate rounded-sm
+                                        text-left font-mono text-xs
+                                        text-foreground/90 transition-colors
+                                        select-text
+                                        hover:text-primary
+                                        focus-visible:ring-2
+                                        focus-visible:ring-ring
+                                        focus-visible:ring-offset-2
+                                        focus-visible:outline-none
+                                      "
                                       onClick={() => handleInsert(prop.name)}
                                       onKeyDown={(e) => handlePropertyKeyDown(e, prop.name)}
-                                      tabIndex={0}
                                       aria-label={`Insert property access for ${prop.name}`}
                                     >
                                       {prop.name}
                                     </button>
                                   }
                                 />
-                                <TooltipContent side="left" className="max-w-xs break-all">
-                                  <code className="text-xs block mb-1.5 bg-muted/30 p-1 rounded">
+                                <TooltipContent side="left" className="
+                                  max-w-xs break-all
+                                ">
+                                  <code className="
+                                    mb-1.5 block rounded-sm bg-muted/30 p-1
+                                    text-xs
+                                  ">
                                     {language === 'groovy'
                                       ? `hostProps.get("${prop.name}")`
                                       : `$${toPowerShellVariable(prop.name)} = "##${prop.name.toUpperCase()}##"`}
                                   </code>
-                                  <div className="text-[10px] text-muted-foreground">Click to insert into editor</div>
+                                  <div className="
+                                    text-[10px] text-muted-foreground
+                                  ">Click to insert into editor</div>
                                 </TooltipContent>
                               </Tooltip>
-                              <p className="text-[10px] text-muted-foreground truncate mt-1 font-mono select-all">
-                                {prop.value || <span className="italic text-muted-foreground/50">(empty)</span>}
+                              <p className="
+                                mt-1 truncate font-mono text-[10px]
+                                text-muted-foreground select-all
+                              ">
+                                {prop.value || <span className="
+                                  text-muted-foreground/50 italic
+                                ">(empty)</span>}
                               </p>
                             </div>
                             <CopyButton
                               text={prop.value}
                               size="sm"
                               variant="ghost"
-                              className="size-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                              className="
+                                size-6 opacity-0 transition-opacity
+                                group-hover:opacity-100
+                              "
                               onCopy={() => handleCopy(prop.value, prop.name)}
                               tooltip="Copy value"
                             />

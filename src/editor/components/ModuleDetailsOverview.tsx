@@ -176,25 +176,33 @@ export function ModuleDetailsOverview({ tabId, moduleType }: ModuleDetailsOvervi
 
   if (!draft) {
     return (
-      <div className="flex items-center justify-center h-64 text-muted-foreground">
+      <div className="
+        flex h-64 items-center justify-center text-muted-foreground
+      ">
         Loading module details...
       </div>
     );
   }
 
   return (
-    <div className="p-6 pb-8 w-full">
+    <div className="w-full p-6 pb-8">
       <div className="space-y-8">
         {/* Basic Information Section */}
         <div className="space-y-4">
           <div className="border-b border-border pb-2">
             <h3 className="text-base font-semibold">Basic Information</h3>
-            <p className="text-xs text-muted-foreground mt-1">Core module identification and metadata</p>
+            <p className="mt-1 text-xs text-muted-foreground">Core module identification and metadata</p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="
+            grid grid-cols-1 gap-4
+            md:grid-cols-2
+          ">
             {/* Name */}
-            <div className="space-y-2 md:col-span-2">
+            <div className="
+              space-y-2
+              md:col-span-2
+            ">
               <Label htmlFor="module-name" className="text-sm font-medium">
                 Name <span className="text-destructive">*</span>
               </Label>
@@ -207,7 +215,7 @@ export function ModuleDetailsOverview({ tabId, moduleType }: ModuleDetailsOvervi
                 className={validationErrors.name ? 'border-destructive' : ''}
               />
               {validationErrors.name && (
-                <p className="text-xs text-destructive flex items-center gap-1">
+                <p className="flex items-center gap-1 text-xs text-destructive">
                   <AlertCircle className="size-3" />
                   {validationErrors.name}
                 </p>
@@ -217,7 +225,9 @@ export function ModuleDetailsOverview({ tabId, moduleType }: ModuleDetailsOvervi
             {/* Display Name */}
             {schema.editableFields.includes('displayName') && (
               <div className="space-y-2">
-                <Label htmlFor="module-display-name" className="text-sm font-medium">
+                <Label htmlFor="module-display-name" className="
+                  text-sm font-medium
+                ">
                   Resource Label
                 </Label>
                 <Input
@@ -229,7 +239,9 @@ export function ModuleDetailsOverview({ tabId, moduleType }: ModuleDetailsOvervi
                   className={validationErrors.displayName ? 'border-destructive' : ''}
                 />
                 {validationErrors.displayName && (
-                  <p className="text-xs text-destructive flex items-center gap-1">
+                  <p className="
+                    flex items-center gap-1 text-xs text-destructive
+                  ">
                     <AlertCircle className="size-3" />
                     {validationErrors.displayName}
                   </p>
@@ -240,7 +252,9 @@ export function ModuleDetailsOverview({ tabId, moduleType }: ModuleDetailsOvervi
             {/* Collect Interval */}
             {schema.editableFields.includes('collectInterval') && (
               <div className="space-y-2">
-                <Label htmlFor="module-collect-interval" className="text-sm font-medium">
+                <Label htmlFor="module-collect-interval" className="
+                  text-sm font-medium
+                ">
                   Collect Interval <span className="text-destructive">*</span>
                 </Label>
               {collectIntervalOptions.length > 0 ? (
@@ -253,7 +267,9 @@ export function ModuleDetailsOverview({ tabId, moduleType }: ModuleDetailsOvervi
                     }
                   }}
                 >
-                    <SelectTrigger id="module-collect-interval" className={validationErrors.collectInterval ? 'border-destructive' : ''}>
+                    <SelectTrigger id="module-collect-interval" className={validationErrors.collectInterval ? `
+                      border-destructive
+                    ` : ''}>
                       <SelectValue>
                         {selectedCollectIntervalLabel || 'Select collect interval'}
                       </SelectValue>
@@ -275,11 +291,15 @@ export function ModuleDetailsOverview({ tabId, moduleType }: ModuleDetailsOvervi
                     onChange={(e) => handleFieldChange('collectInterval', parseInt(e.target.value, 10) || 0)}
                     placeholder="300"
                     aria-invalid={!!validationErrors.collectInterval}
-                    className={validationErrors.collectInterval ? 'border-destructive' : ''}
+                    className={validationErrors.collectInterval ? `
+                      border-destructive
+                    ` : ''}
                   />
                 )}
                 {validationErrors.collectInterval && (
-                  <p className="text-xs text-destructive flex items-center gap-1">
+                  <p className="
+                    flex items-center gap-1 text-xs text-destructive
+                  ">
                     <AlertCircle className="size-3" />
                     {validationErrors.collectInterval}
                   </p>
@@ -292,10 +312,17 @@ export function ModuleDetailsOverview({ tabId, moduleType }: ModuleDetailsOvervi
           {schema.editableFields.includes('description') && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="module-description" className="text-sm font-medium">
+                <Label htmlFor="module-description" className="
+                  text-sm font-medium
+                ">
                   Description
                 </Label>
-                <span className={`text-xs ${(draftData.description?.length || 0) > 1024 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                <span className={`
+                  text-xs
+                  ${(draftData.description?.length || 0) > 1024 ? `
+                    text-destructive
+                  ` : `text-muted-foreground`}
+                `}>
                   {(draftData.description?.length || 0)} / 1024
                 </span>
               </div>
@@ -314,7 +341,7 @@ export function ModuleDetailsOverview({ tabId, moduleType }: ModuleDetailsOvervi
                 aria-invalid={!!validationErrors.description}
               />
               {validationErrors.description && (
-                <p className="text-xs text-destructive flex items-center gap-1">
+                <p className="flex items-center gap-1 text-xs text-destructive">
                   <AlertCircle className="size-3" />
                   {validationErrors.description}
                 </p>
@@ -328,7 +355,7 @@ export function ModuleDetailsOverview({ tabId, moduleType }: ModuleDetailsOvervi
           <div className="space-y-4">
             <div className="border-b border-border pb-2">
               <h3 className="text-base font-semibold">Applies To</h3>
-              <p className="text-xs text-muted-foreground mt-1">Define which devices this module applies to</p>
+              <p className="mt-1 text-xs text-muted-foreground">Define which devices this module applies to</p>
             </div>
             <AppliesToEditorSlim
               value={draftData.appliesTo || ''}
@@ -354,10 +381,13 @@ export function ModuleDetailsOverview({ tabId, moduleType }: ModuleDetailsOvervi
           <div className="space-y-4">
             <div className="border-b border-border pb-2">
               <h3 className="text-base font-semibold">Organization</h3>
-              <p className="text-xs text-muted-foreground mt-1">Categorization and tagging</p>
+              <p className="mt-1 text-xs text-muted-foreground">Categorization and tagging</p>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="
+              grid grid-cols-1 gap-4
+              md:grid-cols-2
+            ">
               {/* Group */}
               {schema.editableFields.includes('group') && (
                 <div className="space-y-2">
@@ -395,7 +425,9 @@ export function ModuleDetailsOverview({ tabId, moduleType }: ModuleDetailsOvervi
             {/* Technology */}
             {schema.editableFields.includes('technology') && (
               <div className="space-y-2">
-                <Label htmlFor="module-technology" className="text-sm font-medium">
+                <Label htmlFor="module-technology" className="
+                  text-sm font-medium
+                ">
                   Technical Notes
                 </Label>
                 <Textarea
@@ -416,13 +448,18 @@ export function ModuleDetailsOverview({ tabId, moduleType }: ModuleDetailsOvervi
           <div className="space-y-4">
             <div className="border-b border-border pb-2">
               <h3 className="text-base font-semibold">Auto Discovery Configuration</h3>
-              <p className="text-xs text-muted-foreground mt-1">Configure automatic instance discovery</p>
+              <p className="mt-1 text-xs text-muted-foreground">Configure automatic instance discovery</p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="
+              grid grid-cols-1 gap-4
+              md:grid-cols-2
+            ">
               {/* Schedule Interval */}
               <div className="space-y-2">
-                <Label htmlFor="ad-schedule-interval" className="text-sm font-medium">
+                <Label htmlFor="ad-schedule-interval" className="
+                  text-sm font-medium
+                ">
                   Schedule Interval
                 </Label>
                 <Select
@@ -449,7 +486,9 @@ export function ModuleDetailsOverview({ tabId, moduleType }: ModuleDetailsOvervi
               {/* Delete Inactive Instance */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="ad-delete-inactive" className="text-sm font-medium">
+                  <Label htmlFor="ad-delete-inactive" className="
+                    text-sm font-medium
+                  ">
                     Delete Inactive Instance
                   </Label>
                   <Switch
@@ -468,7 +507,9 @@ export function ModuleDetailsOverview({ tabId, moduleType }: ModuleDetailsOvervi
               {/* Show Deleted Instance Days */}
               {deleteInactiveInstance && (
                 <div className="space-y-2">
-                  <Label htmlFor="ad-show-deleted-days" className="text-sm font-medium">
+                  <Label htmlFor="ad-show-deleted-days" className="
+                    text-sm font-medium
+                  ">
                     Show Deleted Instance Days
                   </Label>
                   <Select
@@ -493,7 +534,9 @@ export function ModuleDetailsOverview({ tabId, moduleType }: ModuleDetailsOvervi
               {/* Disable Instance */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="ad-disable-instance" className="text-sm font-medium">
+                  <Label htmlFor="ad-disable-instance" className="
+                    text-sm font-medium
+                  ">
                     Disable Instance
                   </Label>
                   <Switch
@@ -505,8 +548,13 @@ export function ModuleDetailsOverview({ tabId, moduleType }: ModuleDetailsOvervi
               </div>
 
               {/* Instance Auto Group Method */}
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="ad-auto-group-method" className="text-sm font-medium">
+              <div className="
+                space-y-2
+                md:col-span-2
+              ">
+                <Label htmlFor="ad-auto-group-method" className="
+                  text-sm font-medium
+                ">
                   Instance Auto Group Method
                 </Label>
                 <Select
@@ -528,8 +576,13 @@ export function ModuleDetailsOverview({ tabId, moduleType }: ModuleDetailsOvervi
 
               {/* Instance Auto Group Method Params */}
               {adConfig.instanceAutoGroupMethod && adConfig.instanceAutoGroupMethod !== 'none' && (
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="ad-auto-group-params" className="text-sm font-medium">
+                <div className="
+                  space-y-2
+                  md:col-span-2
+                ">
+                  <Label htmlFor="ad-auto-group-params" className="
+                    text-sm font-medium
+                  ">
                     Instance Auto Group Method Parameters
                   </Label>
                   <Input
@@ -562,10 +615,12 @@ export function ModuleDetailsOverview({ tabId, moduleType }: ModuleDetailsOvervi
           <div className="space-y-4">
             <div className="border-b border-border pb-2">
               <h3 className="text-base font-semibold">Access Control</h3>
-              <p className="text-xs text-muted-foreground mt-1">Control who can access this module</p>
+              <p className="mt-1 text-xs text-muted-foreground">Control who can access this module</p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="module-access-groups" className="text-sm font-medium">
+              <Label htmlFor="module-access-groups" className="
+                text-sm font-medium
+              ">
                 Access Groups
               </Label>
               <Combobox

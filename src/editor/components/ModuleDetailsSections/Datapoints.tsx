@@ -229,20 +229,20 @@ export function ModuleDetailsDatapoints({ tabId, moduleId, moduleType }: ModuleD
                     <Button size="sm" className="gap-1.5">
                       <Plus className="size-4" />
                       Add Datapoint
-                      <ChevronDown className="size-3 ml-1" />
+                      <ChevronDown className="ml-1 size-3" />
                     </Button>
                   }
                 />
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={() => handleAddDatapoint('normal')}>
-                    <OutputIcon className="size-4 mr-2" />
+                    <OutputIcon className="mr-2 size-4" />
                     <div className="flex flex-col">
                       <span>Normal Datapoint</span>
                       <span className="text-xs text-muted-foreground">From script output, exit code, or response time</span>
                     </div>
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleAddDatapoint('complex')}>
-                    <ExpressionIcon className="size-4 mr-2" />
+                    <ExpressionIcon className="mr-2 size-4" />
                     <div className="flex flex-col">
                       <span>Complex Datapoint</span>
                       <span className="text-xs text-muted-foreground">Calculated expression using other datapoints</span>
@@ -285,7 +285,7 @@ export function ModuleDetailsDatapoints({ tabId, moduleId, moduleType }: ModuleD
                 {datapoints.length} datapoint{datapoints.length !== 1 ? 's' : ''} configured
               </p>
               
-              <div className="border rounded-md overflow-hidden">
+              <div className="overflow-hidden rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -324,7 +324,10 @@ export function ModuleDetailsDatapoints({ tabId, moduleId, moduleType }: ModuleD
                           <TableRow 
                             className={cn(
                               'transition-colors',
-                              hasExpandableContent && 'cursor-pointer hover:bg-muted/50',
+                              hasExpandableContent && `
+                                cursor-pointer
+                                hover:bg-muted/50
+                              `,
                               isExpanded && 'bg-muted/30'
                             )}
                             onClick={() => hasExpandableContent && toggleRowExpanded(index)}
@@ -370,34 +373,46 @@ export function ModuleDetailsDatapoints({ tabId, moduleId, moduleType }: ModuleD
                                   <Tooltip>
                                     <TooltipTrigger
                                       render={
-                                        <span className="font-mono text-xs text-muted-foreground cursor-help">
+                                        <span className="
+                                          cursor-help font-mono text-xs
+                                          text-muted-foreground
+                                        ">
                                           {truncatedParam}
                                         </span>
                                       }
                                     />
-                                    <TooltipContent className="max-w-md font-mono text-xs whitespace-pre-wrap">
+                                    <TooltipContent className="
+                                      max-w-md font-mono text-xs
+                                      whitespace-pre-wrap
+                                    ">
                                       {paramDisplay}
                                     </TooltipContent>
                                   </Tooltip>
                                 ) : (
-                                  <span className="font-mono text-xs text-muted-foreground">
+                                  <span className="
+                                    font-mono text-xs text-muted-foreground
+                                  ">
                                     {paramDisplay}
                                   </span>
                                 )
                               ) : (
-                                <span className="text-xs text-muted-foreground/50">—</span>
+                                <span className="
+                                  text-xs text-muted-foreground/50
+                                ">—</span>
                               )}
                             </TableCell>
                             <TableCell>
                               {thresholds && thresholds.length > 0 ? (
-                                <div className="flex items-center gap-1 flex-wrap">
+                                <div className="
+                                  flex flex-wrap items-center gap-1
+                                ">
                                   {thresholds.map((t) => {
                                     const AlertIcon = ALERT_LEVEL_ICONS[t.level];
                                     return (
                                       <Badge
                                         key={`${t.level}-${t.value}`}
                                         variant="outline"
-                                        className={cn('text-xs font-mono gap-1', ALERT_LEVEL_BG_STYLES[t.level])}
+                                        className={cn('gap-1 font-mono text-xs', ALERT_LEVEL_BG_STYLES[t.level])}
                                       >
                                         <AlertIcon className="size-3" />
                                         {t.operator}{t.value}
@@ -410,14 +425,19 @@ export function ModuleDetailsDatapoints({ tabId, moduleId, moduleType }: ModuleD
                               )}
                             </TableCell>
                             <TableCell className="text-right">
-                              <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                              <div className="
+                                flex items-center justify-end gap-1
+                              ">
                                 <Tooltip>
                                   <TooltipTrigger
                                     render={
                                       <Button
                                         variant="ghost"
                                         size="icon-sm"
-                                        onClick={() => handleEditDatapoint(index)}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleEditDatapoint(index);
+                                        }}
                                         aria-label={`Edit ${dp.name}`}
                                       >
                                         <Pencil className="size-3.5" />
@@ -432,9 +452,15 @@ export function ModuleDetailsDatapoints({ tabId, moduleId, moduleType }: ModuleD
                                       <Button
                                         variant="ghost"
                                         size="icon-sm"
-                                        onClick={() => handleDeleteClick(index)}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleDeleteClick(index);
+                                        }}
                                         aria-label={`Delete ${dp.name}`}
-                                        className="text-destructive hover:text-destructive"
+                                        className="
+                                          text-destructive
+                                          hover:text-destructive
+                                        "
                                       >
                                         <Trash2 className="size-3.5" />
                                       </Button>
@@ -447,29 +473,52 @@ export function ModuleDetailsDatapoints({ tabId, moduleId, moduleType }: ModuleD
                           </TableRow>
                           {/* Expandable content row */}
                           {isExpanded && hasExpandableContent && (
-                            <TableRow className="bg-muted/20 hover:bg-muted/20">
+                            <TableRow className="
+                              bg-muted/20
+                              hover:bg-muted/20
+                            ">
                               <TableCell colSpan={7} className="py-3">
-                                <div className="pl-10 space-y-3 text-sm max-w-full overflow-hidden">
+                                <div className="
+                                  max-w-full space-y-3 overflow-hidden pl-10
+                                  text-sm
+                                ">
                                   {/* Description */}
                                   {hasDescription && (
                                     <div className="space-y-1">
-                                      <span className="text-muted-foreground font-medium text-xs uppercase tracking-wide">Description</span>
-                                      <p className="text-foreground whitespace-pre-wrap break-words">{dp.description}</p>
+                                      <span className="
+                                        text-xs font-medium tracking-wide
+                                        text-muted-foreground uppercase
+                                      ">Description</span>
+                                      <p className="
+                                        wrap-break-word whitespace-pre-wrap
+                                        text-foreground
+                                      ">{dp.description}</p>
                                     </div>
                                   )}
                                   
                                   {/* Alert Settings */}
                                   {hasAlertSettings && (
                                     <div className="space-y-1">
-                                      <span className="text-muted-foreground font-medium text-xs uppercase tracking-wide">Alert Settings</span>
-                                      <div className="flex items-center gap-4 flex-wrap">
+                                      <span className="
+                                        text-xs font-medium tracking-wide
+                                        text-muted-foreground uppercase
+                                      ">Alert Settings</span>
+                                      <div className="
+                                        flex flex-wrap items-center gap-4
+                                      ">
                                         <div className="flex items-center gap-2">
                                           {dp.alertForNoData === 1 ? (
-                                            <BellOff className="size-3.5 text-muted-foreground" />
+                                            <BellOff className="
+                                              size-3.5 text-muted-foreground
+                                            " />
                                           ) : (
-                                            <Bell className="size-3.5 text-yellow-500" />
+                                            <Bell className="
+                                              size-3.5 text-yellow-500
+                                            " />
                                           )}
-                                          <span className="text-muted-foreground">No Data:</span>
+                                          <span className="
+                                            text-muted-foreground
+                                          ">No Data:</span>
                                           <span className={cn(
                                             hasNoDataAlert && 'text-yellow-500'
                                           )}>
@@ -477,7 +526,9 @@ export function ModuleDetailsDatapoints({ tabId, moduleId, moduleType }: ModuleD
                                           </span>
                                         </div>
                                         <div className="flex items-center gap-1">
-                                          <span className="text-muted-foreground">Trigger:</span>
+                                          <span className="
+                                            text-muted-foreground
+                                          ">Trigger:</span>
                                           <span>
                                             {dp.alertTransitionInterval === 0 || dp.alertTransitionInterval === undefined
                                               ? 'Immediately'
@@ -486,7 +537,9 @@ export function ModuleDetailsDatapoints({ tabId, moduleId, moduleType }: ModuleD
                                           </span>
                                         </div>
                                         <div className="flex items-center gap-1">
-                                          <span className="text-muted-foreground">Clear:</span>
+                                          <span className="
+                                            text-muted-foreground
+                                          ">Clear:</span>
                                           <span>
                                             {dp.alertClearTransitionInterval === 0 || dp.alertClearTransitionInterval === undefined
                                               ? 'Immediately'
@@ -501,11 +554,19 @@ export function ModuleDetailsDatapoints({ tabId, moduleId, moduleType }: ModuleD
                                   {/* Custom Alert Subject */}
                                   {hasAlertSubject && (
                                     <div className="space-y-1">
-                                      <div className="flex items-center gap-1.5 text-muted-foreground font-medium text-xs uppercase tracking-wide">
+                                      <div className="
+                                        flex items-center gap-1.5 text-xs
+                                        font-medium tracking-wide
+                                        text-muted-foreground uppercase
+                                      ">
                                         <Mail className="size-3" />
                                         Alert Subject
                                       </div>
-                                      <p className="text-foreground font-mono text-xs bg-muted/50 px-2 py-1 rounded whitespace-pre-wrap break-words">
+                                      <p className="
+                                        rounded-sm bg-muted/50 px-2 py-1
+                                        font-mono text-xs wrap-break-word
+                                        whitespace-pre-wrap text-foreground
+                                      ">
                                         {dp.alertSubject}
                                       </p>
                                     </div>
@@ -514,11 +575,20 @@ export function ModuleDetailsDatapoints({ tabId, moduleId, moduleType }: ModuleD
                                   {/* Custom Alert Body */}
                                   {hasAlertBody && (
                                     <div className="space-y-1">
-                                      <div className="flex items-center gap-1.5 text-muted-foreground font-medium text-xs uppercase tracking-wide">
+                                      <div className="
+                                        flex items-center gap-1.5 text-xs
+                                        font-medium tracking-wide
+                                        text-muted-foreground uppercase
+                                      ">
                                         <MessageSquare className="size-3" />
                                         Alert Body
                                       </div>
-                                      <p className="text-foreground font-mono text-xs bg-muted/50 px-2 py-1.5 rounded whitespace-pre-wrap break-words max-h-32 overflow-y-auto">
+                                      <p className="
+                                        max-h-32 overflow-y-auto rounded-sm
+                                        bg-muted/50 px-2 py-1.5 font-mono
+                                        text-xs wrap-break-word
+                                        whitespace-pre-wrap text-foreground
+                                      ">
                                         {dp.alertBody}
                                       </p>
                                     </div>

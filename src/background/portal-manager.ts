@@ -144,7 +144,7 @@ export class PortalManager {
 
     const candidates: Candidate[] = [];
     const validTabIds: number[] = [];
-
+    
     for (const tabId of portal.tabIds) {
       try {
         const tab = await chrome.tabs.get(tabId);
@@ -153,7 +153,7 @@ export class PortalManager {
         const hostname = new URL(tab.url).hostname;
         if (!hostname.endsWith('.logicmonitor.com')) continue;
 
-        validTabIds.push(tabId);
+          validTabIds.push(tabId);
 
         const isUsable =
           tab.status === 'complete' &&
@@ -170,10 +170,10 @@ export class PortalManager {
         // Tab no longer exists, skip it
       }
     }
-
+    
     // Atomic update - replace the entire array at once
     portal.tabIds = validTabIds;
-
+    
     // We must be able to inject scripts into the tab. If no loaded/usable tab exists,
     // treat this as no valid tab rather than returning an unloaded/discarded tab ID.
     const best = candidates
@@ -282,7 +282,7 @@ export class PortalManager {
       
       for (const tab of tabs) {
         if (!tab.url || !tab.id) continue;
-
+        
         const url = new URL(tab.url);
         const hostname = url.hostname;
         const isLikelyPortal = isLikelyPortalHostname(hostname);
@@ -303,13 +303,13 @@ export class PortalManager {
         } else {
           portalHasCompleteTab.set(hostname, true);
           const isLMPortal = await this.verifyLogicMonitorPortal(tab.id);
-          if (isLMPortal) {
-            verifiedPortals += 1;
+        if (isLMPortal) {
+          verifiedPortals += 1;
             portalHasActiveSession.set(hostname, true);
           } else {
             // Heuristic fallback: hostname looks like a portal, but LM app didn't expose LMGlobalData
             // (often due to login page / expired session / alternate LM page).
-            fallbackPortals += 1;
+          fallbackPortals += 1;
           }
         }
         
@@ -448,7 +448,7 @@ export class PortalManager {
           const result = results?.[0]?.result as
             | { hasLMGlobalData: boolean; isPopulated: boolean }
             | undefined;
-
+          
           if (result?.hasLMGlobalData && result.isPopulated) return true;
 
           // If LMGlobalData exists but is empty, it may still be initializing, but it's also the
@@ -571,17 +571,17 @@ export class PortalManager {
           continue;
         }
 
-        // Execute in content script context to fetch CSRF token
-        const results = await chrome.scripting.executeScript({
-          target: { tabId },
-          func: fetchCsrfToken,
-        });
+      // Execute in content script context to fetch CSRF token
+      const results = await chrome.scripting.executeScript({
+        target: { tabId },
+        func: fetchCsrfToken,
+      });
 
-        const token = results?.[0]?.result ?? null;
-        if (token) {
+      const token = results?.[0]?.result ?? null;
+      if (token) {
           this.setActiveCsrfToken(portal.id, token);
-          return;
-        }
+        return;
+      }
       }
 
       portal.csrfToken = null;
@@ -606,8 +606,8 @@ export class PortalManager {
     const portal = this.portals.get(portalId);
     if (!portal) return;
 
-    portal.csrfToken = token;
-    portal.csrfTokenTimestamp = Date.now();
+      portal.csrfToken = token;
+      portal.csrfTokenTimestamp = Date.now();
 
     // Only mark active if we can confirm an active session from a usable portal tab.
     const candidates = await this.getUsableTabCandidates(portal);
@@ -615,15 +615,15 @@ export class PortalManager {
     if (bestTabId) {
       const hasActiveSession = await this.hasActiveSessionForTab(bestTabId);
       if (hasActiveSession) {
-        portal.status = 'active';
+      portal.status = 'active';
       } else {
         // Keep non-green; discovery will set expired if it sees a loaded login page.
         if (portal.status === 'active') portal.status = 'unknown';
       }
     }
 
-    this.persistState();
-  }
+      this.persistState();
+    }
 
   /**
    * Internal helper for when we already know a request succeeded under an active session.

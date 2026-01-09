@@ -19,7 +19,10 @@ export function CollectorInfoCard({ data }: CollectorInfoCardProps) {
   return (
     <SectionCard title="Collector Details" icon={<Server className="size-4" />}>
       <div className="space-y-4">
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
+        <div className="
+          grid grid-cols-2 gap-4 text-sm
+          md:grid-cols-3
+        ">
           <div>
             <p className="text-muted-foreground select-none">Collector ID</p>
             <p className="font-mono font-medium">{data.id || 'N/A'}</p>
@@ -47,44 +50,72 @@ export function CollectorInfoCard({ data }: CollectorInfoCardProps) {
         </div>
 
         {links && (
-          <div className="pt-3 border-t">
-            <p className="text-sm text-muted-foreground mb-2 select-none">Portal Links</p>
+          <div className="border-t pt-3">
+            <p className="mb-2 text-sm text-muted-foreground select-none">Portal Links</p>
             <div className="flex flex-wrap gap-2">
               <a 
                 href={links.configuration} 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className="
+                  inline-flex items-center justify-center rounded-md border
+                  border-input bg-background px-3 py-1.5 text-sm font-medium
+                  ring-offset-background transition-colors
+                  hover:bg-accent hover:text-accent-foreground
+                  focus-visible:ring-2 focus-visible:ring-ring
+                  focus-visible:ring-offset-2 focus-visible:outline-none
+                "
               >
                 Configuration
-                <ExternalLink className="size-3 ml-1" />
+                <ExternalLink className="ml-1 size-3" />
               </a>
               <a 
                 href={links.events} 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className="
+                  inline-flex items-center justify-center rounded-md border
+                  border-input bg-background px-3 py-1.5 text-sm font-medium
+                  ring-offset-background transition-colors
+                  hover:bg-accent hover:text-accent-foreground
+                  focus-visible:ring-2 focus-visible:ring-ring
+                  focus-visible:ring-offset-2 focus-visible:outline-none
+                "
               >
                 Events
-                <ExternalLink className="size-3 ml-1" />
+                <ExternalLink className="ml-1 size-3" />
               </a>
               <a 
                 href={links.logLevels} 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className="
+                  inline-flex items-center justify-center rounded-md border
+                  border-input bg-background px-3 py-1.5 text-sm font-medium
+                  ring-offset-background transition-colors
+                  hover:bg-accent hover:text-accent-foreground
+                  focus-visible:ring-2 focus-visible:ring-ring
+                  focus-visible:ring-offset-2 focus-visible:outline-none
+                "
               >
                 Log Levels
-                <ExternalLink className="size-3 ml-1" />
+                <ExternalLink className="ml-1 size-3" />
               </a>
               <a 
                 href={links.status} 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center rounded-md border border-input bg-background px-3 py-1.5 text-sm font-medium ring-offset-background transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className="
+                  inline-flex items-center justify-center rounded-md border
+                  border-input bg-background px-3 py-1.5 text-sm font-medium
+                  ring-offset-background transition-colors
+                  hover:bg-accent hover:text-accent-foreground
+                  focus-visible:ring-2 focus-visible:ring-ring
+                  focus-visible:ring-offset-2 focus-visible:outline-none
+                "
               >
                 Status
-                <ExternalLink className="size-3 ml-1" />
+                <ExternalLink className="ml-1 size-3" />
               </a>
             </div>
           </div>

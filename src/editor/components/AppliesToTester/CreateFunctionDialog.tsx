@@ -172,7 +172,7 @@ export function CreateFunctionDialog({
               onChange={(e) => handleCodeChange(e.target.value)}
               placeholder='hasCategory("Linux") && isDevice()'
               className={cn(
-                'font-mono text-sm min-h-[120px]',
+                'min-h-[120px] font-mono text-sm',
                 codeError && 'border-destructive'
               )}
               disabled={isSaving}
@@ -203,7 +203,9 @@ export function CreateFunctionDialog({
 
           {/* Save error */}
           {saveError && (
-            <div className="rounded-md bg-destructive/10 border border-destructive/20 p-3">
+            <div className="
+              rounded-md border border-destructive/20 bg-destructive/10 p-3
+            ">
               <p className="text-sm text-destructive">{saveError}</p>
             </div>
           )}
@@ -215,14 +217,14 @@ export function CreateFunctionDialog({
             onClick={handleCancel}
             disabled={isSaving}
           >
-            <X className="size-4 mr-2" />
+            <X className="mr-2 size-4" />
             Cancel
           </Button>
           <Button
             onClick={handleSave}
             disabled={isSaving || !!nameError || !!codeError || !name.trim() || !code.trim()}
           >
-            <Save className="size-4 mr-2" />
+            <Save className="mr-2 size-4" />
             {isSaving ? 'Saving...' : editingFunction ? 'Update' : 'Create'}
           </Button>
         </DialogFooter>

@@ -40,9 +40,14 @@ export function AgentConfigTable({ currentConfig, defaultConfig, collectorSize }
 
   if (!currentConfig || currentConfig.length === 0) {
     return (
-      <SectionCard title="Agent Configuration" icon={<Settings className="size-4" />}>
-        <div className="flex items-center justify-center py-8 text-muted-foreground select-none">
-          <Info className="size-5 mr-2 opacity-50" />
+      <SectionCard title="Agent Configuration" icon={<Settings className="
+        size-4
+      " />}>
+        <div className="
+          flex items-center justify-center py-8 text-muted-foreground
+          select-none
+        ">
+          <Info className="mr-2 size-5 opacity-50" />
           <span className="text-sm">No configuration data available</span>
         </div>
       </SectionCard>
@@ -80,20 +85,24 @@ export function AgentConfigTable({ currentConfig, defaultConfig, collectorSize }
                   <TableCell className="font-mono text-sm">{item.param}</TableCell>
                   <TableCell className={cn(
                     "text-right tabular-nums",
-                    tpDiff && "text-yellow-600 font-medium"
+                    tpDiff && "font-medium text-yellow-600"
                   )}>
                     {item.threadpool ?? '—'}
                   </TableCell>
                   <TableCell className={cn(
                     "text-right tabular-nums",
-                    toDiff && "text-yellow-600 font-medium"
+                    toDiff && "font-medium text-yellow-600"
                   )}>
                     {item.timeout ?? '—'}
                   </TableCell>
-                  <TableCell className="text-right tabular-nums text-muted-foreground">
+                  <TableCell className="
+                    text-right text-muted-foreground tabular-nums
+                  ">
                     {defaults?.threadpool ?? '—'}
                   </TableCell>
-                  <TableCell className="text-right tabular-nums text-muted-foreground">
+                  <TableCell className="
+                    text-right text-muted-foreground tabular-nums
+                  ">
                     {defaults?.timeout ?? '—'}
                   </TableCell>
                 </TableRow>
@@ -102,7 +111,7 @@ export function AgentConfigTable({ currentConfig, defaultConfig, collectorSize }
           </TableBody>
         </Table>
       </div>
-      <p className="text-xs text-muted-foreground mt-2">
+      <p className="mt-2 text-xs text-muted-foreground">
         Yellow values indicate configuration differs from defaults for {collectorSize} collector.
       </p>
     </SectionCard>

@@ -105,7 +105,7 @@ export function CapacityLimitsTable({ data }: CapacityLimitsTableProps) {
           </TableBody>
         </Table>
       </div>
-      <p className="text-xs text-muted-foreground mt-2">
+      <p className="mt-2 text-xs text-muted-foreground">
         Format: Devices / Instances / Requests Per Second
       </p>
     </SectionCard>

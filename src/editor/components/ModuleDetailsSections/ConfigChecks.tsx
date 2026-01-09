@@ -215,41 +215,41 @@ export function ModuleDetailsConfigChecks({ tabId, moduleId, moduleType }: Modul
                     <Button size="sm" className="gap-1.5">
                       <Plus className="size-4" />
                       Add Check
-                      <ChevronDown className="size-3 ml-1" />
+                      <ChevronDown className="ml-1 size-3" />
                     </Button>
                   }
                 />
                 <DropdownMenuContent align="end" className="w-64">
                   <DropdownMenuItem onClick={() => handleAddCheck('ignore')}>
-                    <GitCompare className="size-4 mr-2 text-muted-foreground" />
+                    <GitCompare className="mr-2 size-4 text-muted-foreground" />
                     <div className="flex flex-col">
                       <span>Any Change</span>
                       <span className="text-xs text-muted-foreground">Alert when config changes</span>
                     </div>
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleAddCheck('groovy')}>
-                    <FileCode className="size-4 mr-2 text-muted-foreground" />
+                    <FileCode className="mr-2 size-4 text-muted-foreground" />
                     <div className="flex flex-col">
                       <span>Groovy Script</span>
                       <span className="text-xs text-muted-foreground">Custom check logic</span>
                     </div>
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleAddCheck('fetch')}>
-                    <Download className="size-4 mr-2 text-muted-foreground" />
+                    <Download className="mr-2 size-4 text-muted-foreground" />
                     <div className="flex flex-col">
                       <span>Config Retrieval</span>
                       <span className="text-xs text-muted-foreground">Alert if retrieval fails</span>
                     </div>
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleAddCheck('missing')}>
-                    <Variable className="size-4 mr-2 text-muted-foreground" />
+                    <Variable className="mr-2 size-4 text-muted-foreground" />
                     <div className="flex flex-col">
                       <span>Missing Field</span>
                       <span className="text-xs text-muted-foreground">Alert when field is absent</span>
                     </div>
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => handleAddCheck('value')}>
-                    <Filter className="size-4 mr-2 text-muted-foreground" />
+                    <Filter className="mr-2 size-4 text-muted-foreground" />
                     <div className="flex flex-col">
                       <span>Value Check</span>
                       <span className="text-xs text-muted-foreground">Check field value conditions</span>
@@ -292,7 +292,7 @@ export function ModuleDetailsConfigChecks({ tabId, moduleId, moduleType }: Modul
                 {configChecks.length} config check{configChecks.length !== 1 ? 's' : ''} configured
               </p>
 
-              <div className="border rounded-md overflow-hidden">
+              <div className="overflow-hidden rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -324,7 +324,10 @@ export function ModuleDetailsConfigChecks({ tabId, moduleId, moduleType }: Modul
                           <TableRow
                             className={cn(
                               'transition-colors',
-                              hasExpandableContent && 'cursor-pointer hover:bg-muted/50',
+                              hasExpandableContent && `
+                                cursor-pointer
+                                hover:bg-muted/50
+                              `,
                               isExpanded && 'bg-muted/30'
                             )}
                             onClick={() => hasExpandableContent && toggleRowExpanded(index)}
@@ -353,7 +356,9 @@ export function ModuleDetailsConfigChecks({ tabId, moduleId, moduleType }: Modul
                             <TableCell className="font-medium">{check.name}</TableCell>
                             <TableCell>
                               <div className="flex items-center gap-1.5">
-                                <TypeIcon className="size-4 text-muted-foreground" />
+                                <TypeIcon className="
+                                  size-4 text-muted-foreground
+                                " />
                                 <span className="text-sm text-muted-foreground">
                                   {typeConfig.label}
                                 </span>
@@ -363,7 +368,7 @@ export function ModuleDetailsConfigChecks({ tabId, moduleId, moduleType }: Modul
                               {alertConfig.Icon ? (
                                 <Badge
                                   variant="outline"
-                                  className={cn('text-xs font-medium gap-1', alertConfig.bgStyle)}
+                                  className={cn('gap-1 text-xs font-medium', alertConfig.bgStyle)}
                                 >
                                   <alertConfig.Icon className="size-3" />
                                   {alertConfig.shortLabel}
@@ -383,14 +388,19 @@ export function ModuleDetailsConfigChecks({ tabId, moduleId, moduleType }: Modul
                               </span>
                             </TableCell>
                             <TableCell className="text-right">
-                              <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
+                              <div className="
+                                flex items-center justify-end gap-1
+                              ">
                                 <Tooltip>
                                   <TooltipTrigger
                                     render={
                                       <Button
                                         variant="ghost"
                                         size="icon-sm"
-                                        onClick={() => handleEditCheck(index)}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleEditCheck(index);
+                                        }}
                                         aria-label={`Edit ${check.name}`}
                                       >
                                         <Pencil className="size-3.5" />
@@ -405,9 +415,15 @@ export function ModuleDetailsConfigChecks({ tabId, moduleId, moduleType }: Modul
                                       <Button
                                         variant="ghost"
                                         size="icon-sm"
-                                        onClick={() => handleDeleteClick(index)}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleDeleteClick(index);
+                                        }}
                                         aria-label={`Delete ${check.name}`}
-                                        className="text-destructive hover:text-destructive"
+                                        className="
+                                          text-destructive
+                                          hover:text-destructive
+                                        "
                                       >
                                         <Trash2 className="size-3.5" />
                                       </Button>
@@ -420,23 +436,40 @@ export function ModuleDetailsConfigChecks({ tabId, moduleId, moduleType }: Modul
                           </TableRow>
                           {/* Expandable content row */}
                           {isExpanded && hasExpandableContent && (
-                            <TableRow className="bg-muted/20 hover:bg-muted/20">
+                            <TableRow className="
+                              bg-muted/20
+                              hover:bg-muted/20
+                            ">
                               <TableCell colSpan={7} className="py-3">
-                                <div className="pl-10 space-y-3 text-sm max-w-full overflow-hidden">
+                                <div className="
+                                  max-w-full space-y-3 overflow-hidden pl-10
+                                  text-sm
+                                ">
                                   {/* Description */}
                                   {hasDescription && (
                                     <div className="space-y-1">
-                                      <span className="text-muted-foreground font-medium text-xs uppercase tracking-wide">Description</span>
-                                      <p className="text-foreground whitespace-pre-wrap break-words">{check.description}</p>
+                                      <span className="
+                                        text-xs font-medium tracking-wide
+                                        text-muted-foreground uppercase
+                                      ">Description</span>
+                                      <p className="
+                                        wrap-break-word whitespace-pre-wrap
+                                        text-foreground
+                                      ">{check.description}</p>
                                     </div>
                                   )}
 
                                   {/* Clear After */}
                                   {hasClearAfter && (
                                     <div className="space-y-1">
-                                      <span className="text-muted-foreground font-medium text-xs uppercase tracking-wide">Auto Clear</span>
+                                      <span className="
+                                        text-xs font-medium tracking-wide
+                                        text-muted-foreground uppercase
+                                      ">Auto Clear</span>
                                       <div className="flex items-center gap-2">
-                                        <Bell className="size-3.5 text-muted-foreground" />
+                                        <Bell className="
+                                          size-3.5 text-muted-foreground
+                                        " />
                                         <span>After {check.alertEffectiveIval} minute{check.alertEffectiveIval !== 1 ? 's' : ''}</span>
                                       </div>
                                     </div>
@@ -445,8 +478,16 @@ export function ModuleDetailsConfigChecks({ tabId, moduleId, moduleType }: Modul
                                   {/* Groovy Script Preview */}
                                   {hasGroovyScript && (
                                     <div className="space-y-1">
-                                      <span className="text-muted-foreground font-medium text-xs uppercase tracking-wide">Groovy Script</span>
-                                      <pre className="text-foreground font-mono text-xs bg-muted/50 px-3 py-2 rounded max-h-32 overflow-auto whitespace-pre-wrap break-words">
+                                      <span className="
+                                        text-xs font-medium tracking-wide
+                                        text-muted-foreground uppercase
+                                      ">Groovy Script</span>
+                                      <pre className="
+                                        max-h-32 overflow-auto rounded-sm
+                                        bg-muted/50 px-3 py-2 font-mono text-xs
+                                        wrap-break-word whitespace-pre-wrap
+                                        text-foreground
+                                      ">
                                         {check.script?.groovy}
                                       </pre>
                                     </div>

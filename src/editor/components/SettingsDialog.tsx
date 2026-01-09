@@ -33,7 +33,10 @@ interface SettingRowProps {
 
 function SettingRow({ label, description, children }: SettingRowProps) {
   return (
-    <div className="flex items-center justify-between gap-6 py-3 border-b border-border/50 last:border-b-0">
+    <div className="
+      flex items-center justify-between gap-6 border-b border-border/50 py-3
+      last:border-b-0
+    ">
       <div className="flex-1 space-y-0.5">
         <Label className="text-sm font-medium">{label}</Label>
         {description && (
@@ -169,7 +172,7 @@ export function SettingsDialog() {
                 onValueChange={(value) => setPreferences({ theme: value as UserPreferences['theme'] })}
                 items={themeItems}
               >
-                <SelectTrigger className="w-[140px] h-8">
+                <SelectTrigger className="h-8 w-[140px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -188,7 +191,7 @@ export function SettingsDialog() {
                 onValueChange={(value) => setPreferences({ defaultLanguage: value as ScriptLanguage })}
                 items={languageItems}
               >
-                <SelectTrigger className="w-[140px] h-8">
+                <SelectTrigger className="h-8 w-[140px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -207,7 +210,7 @@ export function SettingsDialog() {
                 onValueChange={(value) => setPreferences({ defaultMode: value as ScriptMode })}
                 items={modeItems}
               >
-                <SelectTrigger className="w-[160px] h-8">
+                <SelectTrigger className="h-8 w-[160px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -279,7 +282,7 @@ export function SettingsDialog() {
                 onChange={(value) => setPreferences({ apiHistoryLimit: value })}
                 min={1}
                 max={50}
-                className="w-[80px] h-8 text-center"
+                className="h-8 w-[80px] text-center"
               />
             </SettingRow>
 
@@ -289,7 +292,7 @@ export function SettingsDialog() {
                 onChange={(value) => setPreferences({ apiResponseSizeLimit: value * 1024 })}
                 min={32}
                 max={1024}
-                className="w-[80px] h-8 text-center"
+                className="h-8 w-[80px] text-center"
               />
             </SettingRow>
           </TabsContent>

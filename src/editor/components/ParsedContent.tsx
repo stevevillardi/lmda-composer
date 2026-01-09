@@ -45,7 +45,7 @@ export function ParsedContent() {
   // No execution yet
   if (!currentExecution) {
     return (
-      <Empty className="border-none h-full">
+      <Empty className="h-full border-none">
         <EmptyHeader>
           <EmptyMedia variant="icon">
             <Play className="size-5" />
@@ -62,7 +62,7 @@ export function ParsedContent() {
   // Execution failed
   if (currentExecution.status === 'error') {
     return (
-      <Empty className="border-none h-full">
+      <Empty className="h-full border-none">
         <EmptyHeader>
           <EmptyMedia variant="icon">
             <ErrorIcon className="size-5" />
@@ -79,7 +79,7 @@ export function ParsedContent() {
   // No parsed output available
   if (!parsedOutput) {
     return (
-      <Empty className="border-none h-full">
+      <Empty className="h-full border-none">
         <EmptyHeader>
           <EmptyMedia variant="icon">
             <Terminal className="size-5" />
@@ -139,7 +139,10 @@ function ScriptErrorView({ result }: ScriptErrorViewProps) {
   return (
     <div className="space-y-4 p-4">
       {/* Error Header */}
-      <div className="flex items-center gap-3 p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
+      <div className="
+        flex items-center gap-3 rounded-lg border border-red-500/30
+        bg-red-500/10 p-4
+      ">
         <ErrorIcon className="size-6 shrink-0" />
         <div className="space-y-1">
           <div className="font-medium text-red-500">Script Execution Failed</div>
@@ -160,8 +163,8 @@ function ScriptErrorView({ result }: ScriptErrorViewProps) {
       {output && (
         <div className="space-y-2">
           <h4 className="text-sm font-medium text-muted-foreground">Script Output</h4>
-          <div className="bg-muted/30 rounded-md p-4 max-h-64 overflow-auto">
-            <pre className="text-xs font-mono whitespace-pre-wrap break-all">
+          <div className="max-h-64 overflow-auto rounded-md bg-muted/30 p-4">
+            <pre className="font-mono text-xs break-all whitespace-pre-wrap">
               {output}
             </pre>
           </div>
@@ -184,7 +187,7 @@ function ADParseResultTable({ result }: ADParseResultTableProps) {
 
   if (instances.length === 0 && unparsedLines.length === 0) {
     return (
-      <Empty className="border-none h-full py-8">
+      <Empty className="h-full border-none py-8">
         <EmptyHeader>
           <EmptyMedia variant="icon">
             <ListX className="size-5" />
@@ -206,19 +209,25 @@ function ADParseResultTable({ result }: ADParseResultTableProps) {
           {summary.total} instance{summary.total !== 1 ? 's' : ''} found
         </span>
         {summary.valid > 0 && (
-          <Badge variant="outline" className="gap-1 text-teal-600 border-green-600/30">
+          <Badge variant="outline" className="
+            gap-1 border-green-600/30 text-teal-600
+          ">
             <SuccessIcon className="size-3" />
             {summary.valid} valid
           </Badge>
         )}
         {summary.errors > 0 && (
-          <Badge variant="outline" className="gap-1 text-red-500 border-red-500/30">
+          <Badge variant="outline" className="
+            gap-1 border-red-500/30 text-red-500
+          ">
             <ErrorIcon className="size-3" />
             {summary.errors} error{summary.errors !== 1 ? 's' : ''}
           </Badge>
         )}
         {summary.warnings > 0 && (
-          <Badge variant="outline" className="gap-1 text-yellow-500 border-yellow-500/30">
+          <Badge variant="outline" className="
+            gap-1 border-yellow-500/30 text-yellow-500
+          ">
             <WarningIcon className="size-3" />
             {summary.warnings} warning{summary.warnings !== 1 ? 's' : ''}
           </Badge>
@@ -247,16 +256,20 @@ function ADParseResultTable({ result }: ADParseResultTableProps) {
       {/* Unparsed Lines */}
       {unparsedLines.length > 0 && (
         <div className="mt-4">
-          <div className="text-sm text-muted-foreground mb-2 flex items-center gap-2">
+          <div className="
+            mb-2 flex items-center gap-2 text-sm text-muted-foreground
+          ">
             <Info className="size-4" />
             {unparsedLines.length} line{unparsedLines.length !== 1 ? 's' : ''} not parsed
           </div>
-          <div className="bg-muted/30 rounded-md p-3 text-xs font-mono max-h-32 overflow-auto">
+          <div className="
+            max-h-32 overflow-auto rounded-md bg-muted/30 p-3 font-mono text-xs
+          ">
             {unparsedLines.map((line, idx) => (
               <div key={idx} className="text-muted-foreground">
-                <span className="text-muted-foreground/50 mr-2">L{line.lineNumber}:</span>
+                <span className="mr-2 text-muted-foreground/50">L{line.lineNumber}:</span>
                 <span>{line.content || '(empty)'}</span>
-                <span className="text-muted-foreground/50 ml-2">— {line.reason}</span>
+                <span className="ml-2 text-muted-foreground/50">— {line.reason}</span>
               </div>
             ))}
           </div>
@@ -299,17 +312,19 @@ function ADInstanceRow({ instance }: ADInstanceRowProps) {
             <Button
               variant="ghost"
               size="sm"
-              className="h-6 px-2 text-xs gap-1"
+              className="h-6 gap-1 px-2 text-xs"
               onClick={() => setExpanded(!expanded)}
             >
-              {expanded ? <ChevronDown className="size-3" /> : <ChevronRight className="size-3" />}
+              {expanded ? <ChevronDown className="size-3" /> : <ChevronRight className="
+                size-3
+              " />}
               {Object.keys(instance.properties!).length} prop{Object.keys(instance.properties!).length !== 1 ? 's' : ''}
             </Button>
           ) : (
             <span className="text-muted-foreground">—</span>
           )}
         </TableCell>
-        <TableCell className="text-muted-foreground text-xs">
+        <TableCell className="text-xs text-muted-foreground">
           {instance.lineNumber}
         </TableCell>
       </TableRow>
@@ -320,7 +335,9 @@ function ADInstanceRow({ instance }: ADInstanceRowProps) {
           <TableCell colSpan={6} className="py-2">
             <div className="flex flex-wrap gap-2 pl-8">
               {Object.entries(instance.properties!).map(([key, value]) => (
-                <Badge key={key} variant="secondary" className="font-mono text-xs">
+                <Badge key={key} variant="secondary" className="
+                  font-mono text-xs
+                ">
                   {key}={value}
                 </Badge>
               ))}
@@ -359,7 +376,7 @@ function CollectionParseResultTable({ result }: CollectionParseResultTableProps)
 
   if (datapoints.length === 0 && unparsedLines.length === 0) {
     return (
-      <Empty className="border-none h-full py-8">
+      <Empty className="h-full border-none py-8">
         <EmptyHeader>
           <EmptyMedia variant="icon">
             <ListX className="size-5" />
@@ -390,19 +407,25 @@ function CollectionParseResultTable({ result }: CollectionParseResultTableProps)
           <Badge variant="outline" className="text-xs">JSON format</Badge>
         )}
         {summary.valid > 0 && (
-          <Badge variant="outline" className="gap-1 text-teal-600 border-green-600/30">
+          <Badge variant="outline" className="
+            gap-1 border-green-600/30 text-teal-600
+          ">
             <SuccessIcon className="size-3" />
             {summary.valid} valid
           </Badge>
         )}
         {summary.errors > 0 && (
-          <Badge variant="outline" className="gap-1 text-red-500 border-red-500/30">
+          <Badge variant="outline" className="
+            gap-1 border-red-500/30 text-red-500
+          ">
             <ErrorIcon className="size-3" />
             {summary.errors} error{summary.errors !== 1 ? 's' : ''}
           </Badge>
         )}
         {summary.warnings > 0 && (
-          <Badge variant="outline" className="gap-1 text-yellow-500 border-yellow-500/30">
+          <Badge variant="outline" className="
+            gap-1 border-yellow-500/30 text-yellow-500
+          ">
             <WarningIcon className="size-3" />
             {summary.warnings} warning{summary.warnings !== 1 ? 's' : ''}
           </Badge>
@@ -413,7 +436,9 @@ function CollectionParseResultTable({ result }: CollectionParseResultTableProps)
       {Object.entries(groupedDatapoints).map(([wildvalue, points]) => (
         <div key={wildvalue || 'default'} className="space-y-2">
           {isBatchMode && wildvalue && (
-            <div className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+            <div className="
+              flex items-center gap-2 text-sm font-medium text-muted-foreground
+            ">
               <Badge variant="outline">{wildvalue}</Badge>
               <span className="text-xs">({points.length} datapoint{points.length !== 1 ? 's' : ''})</span>
             </div>
@@ -444,16 +469,20 @@ function CollectionParseResultTable({ result }: CollectionParseResultTableProps)
       {/* Unparsed Lines */}
       {unparsedLines.length > 0 && (
         <div className="mt-4">
-          <div className="text-sm text-muted-foreground mb-2 flex items-center gap-2">
+          <div className="
+            mb-2 flex items-center gap-2 text-sm text-muted-foreground
+          ">
             <Info className="size-4" />
             {unparsedLines.length} line{unparsedLines.length !== 1 ? 's' : ''} not parsed
           </div>
-          <div className="bg-muted/30 rounded-md p-3 text-xs font-mono max-h-32 overflow-auto">
+          <div className="
+            max-h-32 overflow-auto rounded-md bg-muted/30 p-3 font-mono text-xs
+          ">
             {unparsedLines.map((line, idx) => (
               <div key={idx} className="text-muted-foreground">
-                <span className="text-muted-foreground/50 mr-2">L{line.lineNumber}:</span>
+                <span className="mr-2 text-muted-foreground/50">L{line.lineNumber}:</span>
                 <span>{line.content || '(empty)'}</span>
-                <span className="text-muted-foreground/50 ml-2">— {line.reason}</span>
+                <span className="ml-2 text-muted-foreground/50">— {line.reason}</span>
               </div>
             ))}
           </div>
@@ -488,13 +517,15 @@ function CollectionDatapointRow({ datapoint, showWildvalue }: CollectionDatapoin
         </TableCell>
         {showWildvalue && (
           <TableCell className="font-mono text-sm">
-            {datapoint.wildvalue || <span className="text-muted-foreground italic">missing</span>}
+            {datapoint.wildvalue || <span className="
+              text-muted-foreground italic
+            ">missing</span>}
           </TableCell>
         )}
         <TableCell className="font-mono text-sm">{datapoint.name}</TableCell>
         <TableCell className="font-mono">
           {isConfigValue ? (
-            <span className="text-muted-foreground max-w-[200px] truncate block" title={datapoint.rawValue}>
+            <span className="block max-w-[200px] truncate text-muted-foreground" title={datapoint.rawValue}>
               {datapoint.rawValue.length > 50 ? datapoint.rawValue.substring(0, 50) + '...' : datapoint.rawValue}
             </span>
           ) : datapoint.value !== null ? (
@@ -503,7 +534,7 @@ function CollectionDatapointRow({ datapoint, showWildvalue }: CollectionDatapoin
             <span className="text-red-500">{datapoint.rawValue}</span>
           )}
         </TableCell>
-        <TableCell className="text-muted-foreground text-xs">
+        <TableCell className="text-xs text-muted-foreground">
           {datapoint.lineNumber}
         </TableCell>
       </TableRow>
@@ -603,7 +634,7 @@ function TopologyParseResultView({ result }: TopologyParseResultViewProps) {
 
   if (vertices.length === 0 && edges.length === 0 && unparsedLines.length === 0) {
     return (
-      <Empty className="border-none h-full py-8">
+      <Empty className="h-full border-none py-8">
         <EmptyHeader>
           <EmptyMedia variant="icon">
             <ListX className="size-5" />
@@ -625,13 +656,17 @@ function TopologyParseResultView({ result }: TopologyParseResultViewProps) {
           {vertices.length} vertices, {edges.length} edges
         </span>
         {summary.errors > 0 && (
-          <Badge variant="outline" className="gap-1 text-red-500 border-red-500/30">
+          <Badge variant="outline" className="
+            gap-1 border-red-500/30 text-red-500
+          ">
             <ErrorIcon className="size-3" />
             {summary.errors} error{summary.errors !== 1 ? 's' : ''}
           </Badge>
         )}
         {summary.warnings > 0 && (
-          <Badge variant="outline" className="gap-1 text-yellow-500 border-yellow-500/30">
+          <Badge variant="outline" className="
+            gap-1 border-yellow-500/30 text-yellow-500
+          ">
             <WarningIcon className="size-3" />
             {summary.warnings} warning{summary.warnings !== 1 ? 's' : ''}
           </Badge>
@@ -696,7 +731,9 @@ function TopologyVertexRow({ vertex }: { vertex: TopologyVertex }) {
 
   return (
     <>
-      <TableRow className={cn(hasErrors && 'bg-red-500/5', hasWarnings && !hasErrors && 'bg-yellow-500/5')}>
+      <TableRow className={cn(hasErrors && 'bg-red-500/5', hasWarnings && !hasErrors && `
+        bg-yellow-500/5
+      `)}>
         <TableCell><StatusIcon issues={vertex.issues} /></TableCell>
         <TableCell className="font-mono text-sm">{vertex.id}</TableCell>
         <TableCell>{vertex.name || <span className="text-muted-foreground">—</span>}</TableCell>
@@ -721,11 +758,19 @@ function TopologyEdgeRow({ edge }: { edge: TopologyEdge }) {
 
   return (
     <>
-      <TableRow className={cn(hasErrors && 'bg-red-500/5', hasWarnings && !hasErrors && 'bg-yellow-500/5')}>
+      <TableRow className={cn(hasErrors && 'bg-red-500/5', hasWarnings && !hasErrors && `
+        bg-yellow-500/5
+      `)}>
         <TableCell><StatusIcon issues={edge.issues} /></TableCell>
-        <TableCell className="font-mono text-sm">{edge.from || <span className="text-red-500 italic">missing</span>}</TableCell>
-        <TableCell className="font-mono text-sm">{edge.to || <span className="text-red-500 italic">missing</span>}</TableCell>
-        <TableCell>{edge.type || edge.displayType || <span className="text-muted-foreground">—</span>}</TableCell>
+        <TableCell className="font-mono text-sm">{edge.from || <span className="
+          text-red-500 italic
+        ">missing</span>}</TableCell>
+        <TableCell className="font-mono text-sm">{edge.to || <span className="
+          text-red-500 italic
+        ">missing</span>}</TableCell>
+        <TableCell>{edge.type || edge.displayType || <span className="
+          text-muted-foreground
+        ">—</span>}</TableCell>
       </TableRow>
       {edge.issues.length > 0 && (
         <TableRow className="bg-muted/10">
@@ -753,7 +798,7 @@ function EventParseResultTable({ result }: EventParseResultTableProps) {
 
   if (events.length === 0 && unparsedLines.length === 0) {
     return (
-      <Empty className="border-none h-full py-8">
+      <Empty className="h-full border-none py-8">
         <EmptyHeader>
           <EmptyMedia variant="icon">
             <ListX className="size-5" />
@@ -775,19 +820,25 @@ function EventParseResultTable({ result }: EventParseResultTableProps) {
           {summary.total} event{summary.total !== 1 ? 's' : ''} found
         </span>
         {summary.valid > 0 && (
-          <Badge variant="outline" className="gap-1 text-teal-600 border-green-600/30">
+          <Badge variant="outline" className="
+            gap-1 border-green-600/30 text-teal-600
+          ">
             <SuccessIcon className="size-3" />
             {summary.valid} valid
           </Badge>
         )}
         {summary.errors > 0 && (
-          <Badge variant="outline" className="gap-1 text-red-500 border-red-500/30">
+          <Badge variant="outline" className="
+            gap-1 border-red-500/30 text-red-500
+          ">
             <ErrorIcon className="size-3" />
             {summary.errors} error{summary.errors !== 1 ? 's' : ''}
           </Badge>
         )}
         {summary.warnings > 0 && (
-          <Badge variant="outline" className="gap-1 text-yellow-500 border-yellow-500/30">
+          <Badge variant="outline" className="
+            gap-1 border-yellow-500/30 text-yellow-500
+          ">
             <WarningIcon className="size-3" />
             {summary.warnings} warning{summary.warnings !== 1 ? 's' : ''}
           </Badge>
@@ -832,9 +883,13 @@ function EventEntryRow({ event }: { event: EventEntry }) {
 
   return (
     <>
-      <TableRow className={cn(hasErrors && 'bg-red-500/5', hasWarnings && !hasErrors && 'bg-yellow-500/5')}>
+      <TableRow className={cn(hasErrors && 'bg-red-500/5', hasWarnings && !hasErrors && `
+        bg-yellow-500/5
+      `)}>
         <TableCell><StatusIcon issues={event.issues} /></TableCell>
-        <TableCell className="font-mono text-xs">{event.happenedOn || <span className="text-muted-foreground">—</span>}</TableCell>
+        <TableCell className="font-mono text-xs">{event.happenedOn || <span className="
+          text-muted-foreground
+        ">—</span>}</TableCell>
         <TableCell>
           {event.severity ? (
             <Badge className={cn('text-xs', severityColors[event.severity.toLowerCase()] || '')}>
@@ -875,7 +930,7 @@ function PropertyParseResultTable({ result }: PropertyParseResultTableProps) {
 
   if (properties.length === 0 && unparsedLines.length === 0) {
     return (
-      <Empty className="border-none h-full py-8">
+      <Empty className="h-full border-none py-8">
         <EmptyHeader>
           <EmptyMedia variant="icon">
             <ListX className="size-5" />
@@ -897,19 +952,25 @@ function PropertyParseResultTable({ result }: PropertyParseResultTableProps) {
           {summary.total} propert{summary.total !== 1 ? 'ies' : 'y'} found
         </span>
         {summary.valid > 0 && (
-          <Badge variant="outline" className="gap-1 text-teal-600 border-green-600/30">
+          <Badge variant="outline" className="
+            gap-1 border-green-600/30 text-teal-600
+          ">
             <SuccessIcon className="size-3" />
             {summary.valid} valid
           </Badge>
         )}
         {summary.errors > 0 && (
-          <Badge variant="outline" className="gap-1 text-red-500 border-red-500/30">
+          <Badge variant="outline" className="
+            gap-1 border-red-500/30 text-red-500
+          ">
             <ErrorIcon className="size-3" />
             {summary.errors} error{summary.errors !== 1 ? 's' : ''}
           </Badge>
         )}
         {summary.warnings > 0 && (
-          <Badge variant="outline" className="gap-1 text-yellow-500 border-yellow-500/30">
+          <Badge variant="outline" className="
+            gap-1 border-yellow-500/30 text-yellow-500
+          ">
             <WarningIcon className="size-3" />
             {summary.warnings} warning{summary.warnings !== 1 ? 's' : ''}
           </Badge>
@@ -944,13 +1005,15 @@ function PropertyEntryRow({ property }: { property: PropertyEntry }) {
 
   return (
     <>
-      <TableRow className={cn(hasErrors && 'bg-red-500/5', hasWarnings && !hasErrors && 'bg-yellow-500/5')}>
+      <TableRow className={cn(hasErrors && 'bg-red-500/5', hasWarnings && !hasErrors && `
+        bg-yellow-500/5
+      `)}>
         <TableCell><StatusIcon issues={property.issues} /></TableCell>
         <TableCell className="font-mono text-sm">{property.name}</TableCell>
-        <TableCell className="font-mono text-sm max-w-[300px] truncate" title={property.value}>
+        <TableCell className="max-w-[300px] truncate font-mono text-sm" title={property.value}>
           {property.value || <span className="text-muted-foreground italic">empty</span>}
         </TableCell>
-        <TableCell className="text-muted-foreground text-xs">{property.lineNumber}</TableCell>
+        <TableCell className="text-xs text-muted-foreground">{property.lineNumber}</TableCell>
       </TableRow>
       {property.issues.length > 0 && (
         <TableRow className="bg-muted/10">
@@ -978,7 +1041,7 @@ function LogParseResultTable({ result }: LogParseResultTableProps) {
 
   if (entries.length === 0 && unparsedLines.length === 0) {
     return (
-      <Empty className="border-none h-full py-8">
+      <Empty className="h-full border-none py-8">
         <EmptyHeader>
           <EmptyMedia variant="icon">
             <ListX className="size-5" />
@@ -1000,13 +1063,17 @@ function LogParseResultTable({ result }: LogParseResultTableProps) {
           {summary.total} log entr{summary.total !== 1 ? 'ies' : 'y'} found
         </span>
         {summary.valid > 0 && (
-          <Badge variant="outline" className="gap-1 text-teal-600 border-green-600/30">
+          <Badge variant="outline" className="
+            gap-1 border-green-600/30 text-teal-600
+          ">
             <SuccessIcon className="size-3" />
             {summary.valid} valid
           </Badge>
         )}
         {summary.warnings > 0 && (
-          <Badge variant="outline" className="gap-1 text-yellow-500 border-yellow-500/30">
+          <Badge variant="outline" className="
+            gap-1 border-yellow-500/30 text-yellow-500
+          ">
             <WarningIcon className="size-3" />
             {summary.warnings} warning{summary.warnings !== 1 ? 's' : ''}
           </Badge>
@@ -1041,15 +1108,17 @@ function LogEntryRow({ entry }: { entry: LogEntry }) {
 
   return (
     <>
-      <TableRow className={cn(hasErrors && 'bg-red-500/5', hasWarnings && !hasErrors && 'bg-yellow-500/5')}>
+      <TableRow className={cn(hasErrors && 'bg-red-500/5', hasWarnings && !hasErrors && `
+        bg-yellow-500/5
+      `)}>
         <TableCell><StatusIcon issues={entry.issues} /></TableCell>
         <TableCell className="font-mono text-xs whitespace-nowrap">
           {entry.timestamp || <span className="text-muted-foreground">—</span>}
         </TableCell>
-        <TableCell className="font-mono text-xs max-w-[400px] truncate" title={entry.message}>
+        <TableCell className="max-w-[400px] truncate font-mono text-xs" title={entry.message}>
           {entry.message}
         </TableCell>
-        <TableCell className="text-muted-foreground text-xs">{entry.lineNumber}</TableCell>
+        <TableCell className="text-xs text-muted-foreground">{entry.lineNumber}</TableCell>
       </TableRow>
       {entry.issues.length > 0 && (
         <TableRow className="bg-muted/10">
@@ -1083,19 +1152,25 @@ function ConfigParseResultView({ result }: ConfigParseResultViewProps) {
           Configuration output ({content.length} characters)
         </span>
         {summary.errors === 0 && summary.warnings === 0 && (
-          <Badge variant="outline" className="gap-1 text-teal-600 border-green-600/30">
+          <Badge variant="outline" className="
+            gap-1 border-green-600/30 text-teal-600
+          ">
             <SuccessIcon className="size-3" />
             Valid
           </Badge>
         )}
         {summary.errors > 0 && (
-          <Badge variant="outline" className="gap-1 text-red-500 border-red-500/30">
+          <Badge variant="outline" className="
+            gap-1 border-red-500/30 text-red-500
+          ">
             <ErrorIcon className="size-3" />
             {summary.errors} error{summary.errors !== 1 ? 's' : ''}
           </Badge>
         )}
         {summary.warnings > 0 && (
-          <Badge variant="outline" className="gap-1 text-yellow-500 border-yellow-500/30">
+          <Badge variant="outline" className="
+            gap-1 border-yellow-500/30 text-yellow-500
+          ">
             <WarningIcon className="size-3" />
             {summary.warnings} warning{summary.warnings !== 1 ? 's' : ''}
           </Badge>
@@ -1110,8 +1185,8 @@ function ConfigParseResultView({ result }: ConfigParseResultViewProps) {
       )}
 
       {/* Configuration Content */}
-      <div className="bg-muted/30 rounded-md p-4 max-h-96 overflow-auto">
-        <pre className="text-xs font-mono whitespace-pre-wrap break-all">
+      <div className="max-h-96 overflow-auto rounded-md bg-muted/30 p-4">
+        <pre className="font-mono text-xs break-all whitespace-pre-wrap">
           {content || <span className="text-muted-foreground italic">Empty configuration</span>}
         </pre>
       </div>
@@ -1130,16 +1205,20 @@ interface UnparsedLinesDisplayProps {
 function UnparsedLinesDisplay({ lines }: UnparsedLinesDisplayProps) {
   return (
     <div className="mt-4">
-      <div className="text-sm text-muted-foreground mb-2 flex items-center gap-2">
+      <div className="
+        mb-2 flex items-center gap-2 text-sm text-muted-foreground
+      ">
         <Info className="size-4" />
         {lines.length} line{lines.length !== 1 ? 's' : ''} not parsed
       </div>
-      <div className="bg-muted/30 rounded-md p-3 text-xs font-mono max-h-32 overflow-auto">
+      <div className="
+        max-h-32 overflow-auto rounded-md bg-muted/30 p-3 font-mono text-xs
+      ">
         {lines.map((line, idx) => (
           <div key={idx} className="text-muted-foreground">
-            <span className="text-muted-foreground/50 mr-2">L{line.lineNumber}:</span>
+            <span className="mr-2 text-muted-foreground/50">L{line.lineNumber}:</span>
             <span>{line.content || '(empty)'}</span>
-            <span className="text-muted-foreground/50 ml-2">— {line.reason}</span>
+            <span className="ml-2 text-muted-foreground/50">— {line.reason}</span>
           </div>
         ))}
       </div>

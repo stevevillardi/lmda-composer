@@ -152,7 +152,9 @@ export function ModuleDetailsActiveDiscovery({ tabId, moduleType }: ModuleDetail
 
   if (!draft) {
     return (
-      <div className="flex items-center justify-center h-64 text-muted-foreground">
+      <div className="
+        flex h-64 items-center justify-center text-muted-foreground
+      ">
         Loading module details...
       </div>
     );
@@ -175,11 +177,16 @@ export function ModuleDetailsActiveDiscovery({ tabId, moduleType }: ModuleDetail
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="
+            grid grid-cols-1 gap-4
+            md:grid-cols-2
+          ">
             {/* Schedule Interval */}
             {isEditable('scheduleInterval') && (
               <div className="space-y-2">
-                <Label htmlFor="ad-schedule-interval" className="text-sm font-medium">
+                <Label htmlFor="ad-schedule-interval" className="
+                  text-sm font-medium
+                ">
                   Schedule Interval
                 </Label>
                 <Select
@@ -210,7 +217,9 @@ export function ModuleDetailsActiveDiscovery({ tabId, moduleType }: ModuleDetail
             {isEditable('deleteInactiveInstance') && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="ad-delete-inactive" className="text-sm font-medium">
+                  <Label htmlFor="ad-delete-inactive" className="
+                    text-sm font-medium
+                  ">
                     Delete Inactive Instance
                   </Label>
                   <Switch
@@ -229,7 +238,9 @@ export function ModuleDetailsActiveDiscovery({ tabId, moduleType }: ModuleDetail
             {isEditable('persistentInstance') && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="ad-persistent-instance" className="text-sm font-medium">
+                  <Label htmlFor="ad-persistent-instance" className="
+                    text-sm font-medium
+                  ">
                     Persistent Instance
                   </Label>
                   <Switch
@@ -247,7 +258,9 @@ export function ModuleDetailsActiveDiscovery({ tabId, moduleType }: ModuleDetail
             {/* Show Deleted Instance Days */}
             {isEditable('showDeletedInstanceDays') && deleteInactiveInstance && (
               <div className="space-y-2">
-                <Label htmlFor="ad-show-deleted-days" className="text-sm font-medium">
+                <Label htmlFor="ad-show-deleted-days" className="
+                  text-sm font-medium
+                ">
                   Show Deleted Instance Days
                 </Label>
                 <Select
@@ -275,7 +288,9 @@ export function ModuleDetailsActiveDiscovery({ tabId, moduleType }: ModuleDetail
             {isEditable('disableInstance') && (
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="ad-disable-instance" className="text-sm font-medium">
+                  <Label htmlFor="ad-disable-instance" className="
+                    text-sm font-medium
+                  ">
                     Disable Instance
                   </Label>
                   <Switch
@@ -292,8 +307,13 @@ export function ModuleDetailsActiveDiscovery({ tabId, moduleType }: ModuleDetail
 
             {/* Instance Auto Group Method */}
             {isEditable('instanceAutoGroupMethod') && (
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="ad-auto-group-method" className="text-sm font-medium">
+              <div className="
+                space-y-2
+                md:col-span-2
+              ">
+                <Label htmlFor="ad-auto-group-method" className="
+                  text-sm font-medium
+                ">
                   Instance Auto Group Method
                 </Label>
                 <Select
@@ -318,8 +338,13 @@ export function ModuleDetailsActiveDiscovery({ tabId, moduleType }: ModuleDetail
 
             {/* Instance Auto Group Method Params */}
             {isEditable('instanceAutoGroupMethodParams') && adConfig.instanceAutoGroupMethod && adConfig.instanceAutoGroupMethod !== 'none' && (
-              <div className="space-y-2 md:col-span-2">
-                <Label htmlFor="ad-auto-group-params" className="text-sm font-medium">
+              <div className="
+                space-y-2
+                md:col-span-2
+              ">
+                <Label htmlFor="ad-auto-group-params" className="
+                  text-sm font-medium
+                ">
                   Instance Auto Group Method Parameters
                 </Label>
                 <Input
@@ -334,11 +359,11 @@ export function ModuleDetailsActiveDiscovery({ tabId, moduleType }: ModuleDetail
 
           {/* Filters */}
           {isEditable('filters') && (
-            <div className="space-y-3 pt-2 border-t border-border">
+            <div className="space-y-3 border-t border-border pt-2">
             <div className="flex items-center justify-between">
               <div>
                 <Label className="text-sm font-medium">Filters</Label>
-                <p className="text-xs text-muted-foreground mt-0.5">
+                <p className="mt-0.5 text-xs text-muted-foreground">
                   Filter instances discovered by auto discovery
                 </p>
               </div>
@@ -355,11 +380,14 @@ export function ModuleDetailsActiveDiscovery({ tabId, moduleType }: ModuleDetail
             </div>
 
             {filters.length === 0 ? (
-              <div className="text-xs text-muted-foreground py-4 text-center border border-dashed border-border rounded-md bg-muted/20">
+              <div className="
+                rounded-md border border-dashed border-border bg-muted/20 py-4
+                text-center text-xs text-muted-foreground
+              ">
                 No filters configured. Click "Add Filter" to create one.
               </div>
             ) : (
-              <div className="border rounded-md overflow-hidden">
+              <div className="overflow-hidden rounded-md border">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -461,7 +489,7 @@ export function ModuleDetailsActiveDiscovery({ tabId, moduleType }: ModuleDetail
                               variant="ghost"
                               size="icon-sm"
                               onClick={() => handleRemoveFilter(index)}
-                              className="h-8 w-8"
+                              className="size-8"
                             >
                               <Trash2 className="size-3.5" />
                             </Button>

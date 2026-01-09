@@ -1960,7 +1960,7 @@ export const createTabsSlice: StateCreator<
       // Pre-populate module details draft from module.json if available
       // Uses portalBaseline as original and localDraft (if exists) as current draft
       // This mirrors how scripts use portalChecksum vs diskChecksum
-      let updatedModuleDetailsDrafts = { ...get().moduleDetailsDraftByTabId };
+      const updatedModuleDetailsDrafts = { ...get().moduleDetailsDraftByTabId };
       if (config.moduleDetails?.portalBaseline) {
         const portalBaseline = config.moduleDetails.portalBaseline as Partial<ModuleDetailsDraft['draft']>;
         // Use localDraft if available, otherwise fall back to portalBaseline

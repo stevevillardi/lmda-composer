@@ -1853,7 +1853,7 @@ export const createModuleSlice: StateCreator<
       }
       
       // Update module details drafts if pulling details
-      let updatedModuleDetailsDrafts = { ...moduleDetailsDraftByTabId };
+      const updatedModuleDetailsDrafts = { ...moduleDetailsDraftByTabId };
       if (includeDetailsInPull && moduleDetailsForPull) {
         const relatedTabIds = relatedTabs.map(t => t.id);
         for (const relatedTabId of relatedTabIds) {

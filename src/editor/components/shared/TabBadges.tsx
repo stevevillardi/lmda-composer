@@ -22,7 +22,7 @@ export function LanguageBadge({
 }: BadgeBaseProps & { language: ScriptLanguage }) {
   return (
     <span className={cn(
-      "text-[10px] font-mono font-medium px-1 py-0.5 rounded",
+      "rounded-sm px-1 py-0.5 font-mono text-[10px] font-medium",
       language === 'groovy' 
         ? "bg-cyan-500/20 text-cyan-400" 
         : "bg-cyan-500/20 text-cyan-400",
@@ -39,7 +39,10 @@ export function LanguageBadge({
 export function ApiBadge({ className }: BadgeBaseProps) {
   return (
     <span className={cn(
-      "text-[10px] font-medium px-1 py-0.5 rounded bg-teal-500/20 text-teal-400",
+      `
+        rounded-sm bg-teal-500/20 px-1 py-0.5 text-[10px] font-medium
+        text-teal-400
+      `,
       className
     )}>
       API
@@ -60,7 +63,7 @@ export function ModeBadge({
   
   return (
     <span className={cn(
-      "text-[10px] font-medium px-1 py-0.5 rounded",
+      "rounded-sm px-1 py-0.5 text-[10px] font-medium",
       config.bgColor,
       config.textColor,
       className
@@ -87,7 +90,7 @@ export function HttpMethodBadge({
   
   return (
     <span className={cn(
-      "text-[10px] font-mono font-semibold px-1.5 py-0.5 rounded uppercase",
+      "rounded-sm px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase",
       methodColors[method.toUpperCase()] ?? 'bg-gray-500/15 text-gray-400',
       className
     )}>

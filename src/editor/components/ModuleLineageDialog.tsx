@@ -104,8 +104,12 @@ export function ModuleLineageDialog({ activeTab }: ModuleLineageDialogProps) {
 
   return (
     <Dialog open={moduleLineageDialogOpen} onOpenChange={setModuleLineageDialogOpen}>
-      <DialogContent className="max-w-[95vw]! sm:max-w-[1500px]! max-h-[90vh] flex flex-col gap-0 p-0 rounded-xl overflow-hidden" showCloseButton>
-        <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0 bg-background">
+      <DialogContent className="
+        flex max-h-[90vh] max-w-[95vw]! flex-col gap-0 overflow-hidden
+        rounded-xl p-0
+        sm:max-w-[1500px]!
+      " showCloseButton>
+        <DialogHeader className="shrink-0 border-b bg-background px-6 pt-6 pb-4">
           <DialogTitle className="flex items-center gap-2">
             <History className="size-5" />
             View Lineage
@@ -115,11 +119,13 @@ export function ModuleLineageDialog({ activeTab }: ModuleLineageDialogProps) {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto px-6 py-4 min-h-0 bg-muted/5">
+        <div className="min-h-0 flex-1 overflow-y-auto bg-muted/5 px-6 py-4">
           <div className="space-y-4">
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex flex-wrap items-center gap-2">
               <Label className="text-sm font-medium">Module:</Label>
-              <Badge variant="outline" className="bg-background/50 backdrop-blur-sm">{moduleName}</Badge>
+              <Badge variant="outline" className="
+                bg-background/50 backdrop-blur-sm
+              ">{moduleName}</Badge>
               {moduleType && <Badge variant="secondary">{MODULE_TYPE_LABELS[moduleType]}</Badge>}
               <Badge variant="default">{scriptTypeLabel}</Badge>
             </div>
@@ -153,15 +159,22 @@ export function ModuleLineageDialog({ activeTab }: ModuleLineageDialogProps) {
                         <span className="font-mono text-xs">
                           {formatVersionLabel(version)}
                         </span>
-                        {version.isLatest && <Badge variant="secondary" className="h-4 px-1 text-[10px]">Latest</Badge>}
+                        {version.isLatest && <Badge variant="secondary" className="
+                          h-4 px-1 text-[10px]
+                        ">Latest</Badge>}
                       </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               {selectedVersion && (
-                <div className="p-3 rounded-md border border-border/40 bg-card/40 backdrop-blur-sm">
-                  <div className="text-xs text-muted-foreground flex items-center gap-2 mb-1.5">
+                <div className="
+                  rounded-md border border-border/40 bg-card/40 p-3
+                  backdrop-blur-sm
+                ">
+                  <div className="
+                    mb-1.5 flex items-center gap-2 text-xs text-muted-foreground
+                  ">
                     <Clock className="size-3.5" />
                     <span>
                       {formattedUpdatedAt || 'Unknown update time'}
@@ -169,7 +182,7 @@ export function ModuleLineageDialog({ activeTab }: ModuleLineageDialogProps) {
                     </span>
                   </div>
                   {selectedVersion.commitMessage && (
-                    <div className="text-xs text-foreground/90 font-medium">
+                    <div className="text-xs font-medium text-foreground/90">
                       {selectedVersion.commitMessage}
                     </div>
                   )}
@@ -180,12 +193,22 @@ export function ModuleLineageDialog({ activeTab }: ModuleLineageDialogProps) {
             <div className="space-y-2">
               <Label className="text-sm font-medium">Script Comparison</Label>
               {selectedVersion ? (
-                <div className="border border-border/60 rounded-md overflow-hidden bg-card/40 backdrop-blur-sm shadow-sm">
-                  <div className="grid grid-cols-2 border-b border-border/60 bg-muted/20">
-                    <div className="px-4 py-2 text-xs font-medium text-muted-foreground border-r border-border/60">
+                <div className="
+                  overflow-hidden rounded-md border border-border/60 bg-card/40
+                  shadow-sm backdrop-blur-sm
+                ">
+                  <div className="
+                    grid grid-cols-2 border-b border-border/60 bg-muted/20
+                  ">
+                    <div className="
+                      border-r border-border/60 px-4 py-2 text-xs font-medium
+                      text-muted-foreground
+                    ">
                       Current
                     </div>
-                    <div className="px-4 py-2 text-xs font-medium text-muted-foreground">
+                    <div className="
+                      px-4 py-2 text-xs font-medium text-muted-foreground
+                    ">
                       Selected Version{selectedVersion ? ` (${selectedVersion.version || 'unknown'})` : ''}
                     </div>
                   </div>
@@ -199,7 +222,10 @@ export function ModuleLineageDialog({ activeTab }: ModuleLineageDialogProps) {
                   />
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center p-8 border border-dashed border-border/60 rounded-md bg-muted/5">
+                <div className="
+                  flex flex-col items-center justify-center rounded-md border
+                  border-dashed border-border/60 bg-muted/5 p-8
+                ">
                   <p className="text-xs text-muted-foreground">
                     {isFetchingLineage ? 'Loading versions...' : 'Select a version to compare.'}
                   </p>
@@ -209,7 +235,10 @@ export function ModuleLineageDialog({ activeTab }: ModuleLineageDialogProps) {
           </div>
         </div>
 
-        <DialogFooter className="px-6 pb-6 pt-4 border-t border-border/60 shrink-0 bg-background/50 backdrop-blur-sm">
+        <DialogFooter className="
+          shrink-0 border-t border-border/60 bg-background/50 px-6 pt-4 pb-6
+          backdrop-blur-sm
+        ">
           <Button type="button" variant="ghost" onClick={() => setModuleLineageDialogOpen(false)}>
             Close
           </Button>

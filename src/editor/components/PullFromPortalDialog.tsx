@@ -147,8 +147,11 @@ export function PullFromPortalDialog({
 
   return (
     <Dialog open={pullLatestDialogOpen} onOpenChange={setPullLatestDialogOpen}>
-      <DialogContent className="max-w-[95vw]! sm:max-w-[1200px]! max-h-[90vh] flex flex-col gap-0 p-0">
-        <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
+      <DialogContent className="
+        flex max-h-[90vh] max-w-[95vw]! flex-col gap-0 p-0
+        sm:max-w-[1200px]!
+      ">
+        <DialogHeader className="shrink-0 border-b px-6 pt-6 pb-4">
           <DialogTitle className="flex items-center gap-2">
             <Download className="size-5" />
             Pull from Portal
@@ -158,10 +161,10 @@ export function PullFromPortalDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto px-6 py-4 min-h-0">
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
           <div className="space-y-4">
             {/* Module info */}
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex flex-wrap items-center gap-2">
               <Label className="text-sm font-medium">Module:</Label>
               <Badge variant="outline">{moduleName}</Badge>
               <Badge variant="secondary">{MODULE_TYPE_LABELS[moduleType]}</Badge>
@@ -173,7 +176,10 @@ export function PullFromPortalDialog({
               <AlertDescription>
                 Pulling will overwrite your local content with the version from the portal.
                 {scriptsForPull?.some(s => s.hasChanges) && (
-                  <span className="block mt-1 text-yellow-600 dark:text-yellow-400">
+                  <span className="
+                    mt-1 block text-yellow-600
+                    dark:text-yellow-400
+                  ">
                     You have local changes that will be lost if you proceed.
                   </span>
                 )}
@@ -182,8 +188,10 @@ export function PullFromPortalDialog({
 
             {/* Loading state */}
             {isLoading && (
-              <div className="flex items-center justify-center py-12 text-muted-foreground">
-                <Loader2 className="size-5 animate-spin mr-2" />
+              <div className="
+                flex items-center justify-center py-12 text-muted-foreground
+              ">
+                <Loader2 className="mr-2 size-5 animate-spin" />
                 <span className="text-sm">Fetching module from portal...</span>
               </div>
             )}
@@ -208,18 +216,24 @@ export function PullFromPortalDialog({
                     </Badge>
                   )}
                 </div>
-                <div className="border border-border rounded-md divide-y divide-border">
+                <div className="
+                  divide-y divide-border rounded-md border border-border
+                ">
                   {scriptsForPull.map((script) => (
                     <label
                       key={script.scriptType}
-                      className="flex items-center gap-3 p-3 hover:bg-muted/40 cursor-pointer transition-colors"
+                      className="
+                        flex cursor-pointer items-center gap-3 p-3
+                        transition-colors
+                        hover:bg-muted/40
+                      "
                     >
                       <Checkbox
                         checked={selectedScriptsForPull.has(script.scriptType)}
                         onCheckedChange={() => toggleScriptForPull(script.scriptType)}
                         aria-label={`Include ${script.scriptType === 'ad' ? 'Active Discovery' : 'Collection'} script`}
                       />
-                      <div className="flex items-center gap-2 flex-1">
+                      <div className="flex flex-1 items-center gap-2">
                         <FileCode className="size-4 text-muted-foreground" />
                         <div className="flex flex-col">
                           <span className="text-sm font-medium">
@@ -231,15 +245,21 @@ export function PullFromPortalDialog({
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Badge variant={script.language === 'powershell' ? 'default' : 'secondary'} className="text-xs">
+                        <Badge variant={script.language === 'powershell' ? 'default' : 'secondary'} className="
+                          text-xs
+                        ">
                           {script.language === 'powershell' ? 'PowerShell' : 'Groovy'}
                         </Badge>
                         {script.hasChanges ? (
-                          <Badge variant="outline" className="text-xs text-yellow-600 border-amber-600/50">
+                          <Badge variant="outline" className="
+                            border-amber-600/50 text-xs text-yellow-600
+                          ">
                             Local changes
                           </Badge>
                         ) : (
-                          <Badge variant="outline" className="text-xs text-teal-600 border-green-600/50">
+                          <Badge variant="outline" className="
+                            border-green-600/50 text-xs text-teal-600
+                          ">
                             In sync
                           </Badge>
                         )}
@@ -254,12 +274,16 @@ export function PullFromPortalDialog({
             {!isLoading && scriptsForPull && selectedScriptsForPull.size > 0 && (
               <div className="space-y-2">
                 <Label className="text-sm font-medium">Script Comparison</Label>
-                <Tabs defaultValue={Array.from(selectedScriptsForPull)[0]} className="flex flex-col gap-2">
+                <Tabs defaultValue={Array.from(selectedScriptsForPull)[0]} className="
+                  flex flex-col gap-2
+                ">
                   <TabsList variant="line" className="h-7">
                     {scriptsForPull
                       .filter(s => selectedScriptsForPull.has(s.scriptType))
                       .map((script) => (
-                        <TabsTrigger key={script.scriptType} value={script.scriptType} className="h-6 text-xs px-2">
+                        <TabsTrigger key={script.scriptType} value={script.scriptType} className="
+                          h-6 px-2 text-xs
+                        ">
                           {script.scriptType === 'ad' ? 'Active Discovery' : 'Collection'}
                         </TabsTrigger>
                       ))}
@@ -268,12 +292,22 @@ export function PullFromPortalDialog({
                     .filter(s => selectedScriptsForPull.has(s.scriptType))
                     .map((script) => (
                       <TabsContent key={script.scriptType} value={script.scriptType}>
-                        <div className="border border-border rounded-md overflow-hidden">
-                          <div className="grid grid-cols-2 border-b border-border bg-muted/30">
-                            <div className="px-4 py-2 text-xs font-medium text-muted-foreground border-r border-border">
+                        <div className="
+                          overflow-hidden rounded-md border border-border
+                        ">
+                          <div className="
+                            grid grid-cols-2 border-b border-border bg-muted/30
+                          ">
+                            <div className="
+                              border-r border-border px-4 py-2 text-xs
+                              font-medium text-muted-foreground
+                            ">
                               Local (Current)
                             </div>
-                            <div className="px-4 py-2 text-xs font-medium text-muted-foreground">
+                            <div className="
+                              px-4 py-2 text-xs font-medium
+                              text-muted-foreground
+                            ">
                               Portal (Will Replace)
                             </div>
                           </div>
@@ -303,21 +337,27 @@ export function PullFromPortalDialog({
                       {detailsChanges.length} field{detailsChanges.length !== 1 ? 's' : ''} differ
                     </Badge>
                   ) : (
-                    <Badge variant="outline" className="text-xs text-teal-600 border-green-600/50">
+                    <Badge variant="outline" className="
+                      border-green-600/50 text-xs text-teal-600
+                    ">
                       In sync
                     </Badge>
                   )}
                 </div>
                 
                 {hasDetailsChanges && (
-                  <div className="border border-border rounded-md">
-                    <label className="flex items-center gap-3 p-3 hover:bg-muted/40 cursor-pointer transition-colors border-b border-border">
+                  <div className="rounded-md border border-border">
+                    <label className="
+                      flex cursor-pointer items-center gap-3 border-b
+                      border-border p-3 transition-colors
+                      hover:bg-muted/40
+                    ">
                       <Checkbox
                         checked={includeDetailsInPull}
                         onCheckedChange={(checked) => setIncludeDetailsInPull(!!checked)}
                         aria-label="Include module details in pull"
                       />
-                      <div className="flex items-center gap-2 flex-1">
+                      <div className="flex flex-1 items-center gap-2">
                         <Settings className="size-4 text-muted-foreground" />
                         <div className="flex flex-col">
                           <span className="text-sm font-medium">Include Module Details</span>
@@ -329,18 +369,34 @@ export function PullFromPortalDialog({
                     </label>
                     
                     {includeDetailsInPull && (
-                      <div className="p-3 bg-muted/20 space-y-2 max-h-48 overflow-y-auto">
-                        <p className="text-xs font-medium text-muted-foreground mb-2">Fields to update:</p>
+                      <div className="
+                        max-h-48 space-y-2 overflow-y-auto bg-muted/20 p-3
+                      ">
+                        <p className="
+                          mb-2 text-xs font-medium text-muted-foreground
+                        ">Fields to update:</p>
                         {detailsChanges.map((change) => (
-                          <div key={change.field} className="text-xs space-y-0.5">
+                          <div key={change.field} className="
+                            space-y-0.5 text-xs
+                          ">
                             <div className="font-medium text-foreground">{change.label}</div>
                             <div className="grid grid-cols-2 gap-2">
-                              <div className="bg-background/50 border border-border rounded px-2 py-1">
-                                <span className="text-muted-foreground text-[10px] uppercase">Local:</span>
+                              <div className="
+                                rounded-sm border border-border bg-background/50
+                                px-2 py-1
+                              ">
+                                <span className="
+                                  text-[10px] text-muted-foreground uppercase
+                                ">Local:</span>
                                 <span className="block truncate">{change.localValue || '(empty)'}</span>
                               </div>
-                              <div className="bg-primary/5 border border-primary/20 rounded px-2 py-1">
-                                <span className="text-muted-foreground text-[10px] uppercase">Portal:</span>
+                              <div className="
+                                rounded-sm border border-primary/20 bg-primary/5
+                                px-2 py-1
+                              ">
+                                <span className="
+                                  text-[10px] text-muted-foreground uppercase
+                                ">Portal:</span>
                                 <span className="block truncate">{change.portalValue || '(empty)'}</span>
                               </div>
                             </div>
@@ -352,7 +408,10 @@ export function PullFromPortalDialog({
                 )}
                 
                 {!hasDetailsChanges && (
-                  <div className="text-xs text-muted-foreground italic border border-dashed border-border rounded-md p-3 bg-muted/20">
+                  <div className="
+                    rounded-md border border-dashed border-border bg-muted/20
+                    p-3 text-xs text-muted-foreground italic
+                  ">
                     Module details are up to date with the portal (version {moduleDetailsForPull.portalVersion}).
                   </div>
                 )}
@@ -361,7 +420,10 @@ export function PullFromPortalDialog({
 
             {/* No scripts selected */}
             {!isLoading && scriptsForPull && !hasAnythingSelected && (
-              <div className="flex items-center gap-2 border border-dashed border-border rounded-md p-3 bg-muted/20 text-xs text-muted-foreground">
+              <div className="
+                flex items-center gap-2 rounded-md border border-dashed
+                border-border bg-muted/20 p-3 text-xs text-muted-foreground
+              ">
                 <Info className="size-4" />
                 Select at least one script or module details to pull from the portal.
               </div>
@@ -369,7 +431,7 @@ export function PullFromPortalDialog({
           </div>
         </div>
 
-        <DialogFooter className="px-6 pb-6 pt-4 border-t shrink-0">
+        <DialogFooter className="shrink-0 border-t px-6 pt-4 pb-6">
           <Button type="button" variant="ghost" onClick={handleCancel} disabled={isProcessing}>
             Cancel
           </Button>
@@ -381,12 +443,12 @@ export function PullFromPortalDialog({
           >
             {isProcessing ? (
               <>
-                <Loader2 className="size-4 mr-2 animate-spin" />
+                <Loader2 className="mr-2 size-4 animate-spin" />
                 Pulling...
               </>
             ) : (
               <>
-                <Download className="size-4 mr-2" />
+                <Download className="mr-2 size-4" />
                 Pull Selected
               </>
             )}

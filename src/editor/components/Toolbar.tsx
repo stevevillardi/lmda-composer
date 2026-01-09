@@ -202,21 +202,32 @@ export function Toolbar() {
     };
 
     return (
-      <div className="flex items-center gap-2 px-3 py-2 bg-secondary/30 border-b border-border">
+      <div className="
+        flex items-center gap-2 border-b border-border bg-secondary/30 px-3 py-2
+      ">
         <div className="flex items-center gap-2">
-          <Label className="text-xs text-muted-foreground whitespace-nowrap hidden lg:block select-none">
+          <Label className="
+            hidden text-xs whitespace-nowrap text-muted-foreground select-none
+            lg:block
+          ">
             Context:
           </Label>
           <ContextDropdown showCollector={false} showDevice={false} />
         </div>
 
-        <Separator orientation="vertical" className="h-8 mx-1" />
+        <Separator orientation="vertical" className="mx-1 h-8" />
 
         <div className="flex items-center gap-2">
-          <Label className="text-xs text-muted-foreground whitespace-nowrap hidden lg:block select-none">
+          <Label className="
+            hidden text-xs whitespace-nowrap text-muted-foreground select-none
+            lg:block
+          ">
             Pagination:
           </Label>
-          <div className="flex items-center rounded-md border border-input bg-background/50 gap-1">
+          <div className="
+            flex items-center gap-1 rounded-md border border-input
+            bg-background/50
+          ">
             <div className="flex items-center gap-2 px-2">
               <span className="text-xs text-muted-foreground select-none">Auto</span>
               <Switch
@@ -229,7 +240,10 @@ export function Toolbar() {
               <Tooltip>
                 <TooltipTrigger
                   render={
-                    <span className="text-xs text-muted-foreground whitespace-nowrap select-none">
+                    <span className="
+                      text-xs whitespace-nowrap text-muted-foreground
+                      select-none
+                    ">
                       Batch Size
                     </span>
                   }
@@ -246,7 +260,9 @@ export function Toolbar() {
                 step={25}
                 className="w-[120px]"
               />
-              <span className="text-xs text-muted-foreground w-6 text-right select-none">
+              <span className="
+                w-6 text-right text-xs text-muted-foreground select-none
+              ">
                 {pagination?.pageSize ?? 25}
               </span>
             </div>
@@ -305,28 +321,39 @@ export function Toolbar() {
   }
 
   return (
-    <div className="flex items-center gap-2 px-3 py-2 bg-secondary/30 border-b border-border">
+    <div className="
+      flex items-center gap-2 border-b border-border bg-secondary/30 px-3 py-2
+    ">
       {/* Context Dropdown (Portal/Collector/Device) */}
       <div className="flex items-center gap-2">
-        <Label className="text-xs text-muted-foreground whitespace-nowrap hidden lg:block">
+        <Label className="
+          hidden text-xs whitespace-nowrap text-muted-foreground
+          lg:block
+        ">
           Context:
         </Label>
         <ContextDropdown />
       </div>
 
-      <Separator orientation="vertical" className="h-8 mx-1" />
+      <Separator orientation="vertical" className="mx-1 h-8" />
 
       {/* Script Config Group */}
       <div className="flex items-center gap-2">
         {/* Language Toggle */}
-        <Label className="text-xs text-muted-foreground whitespace-nowrap hidden lg:block">
+        <Label className="
+          hidden text-xs whitespace-nowrap text-muted-foreground
+          lg:block
+        ">
           Language:
         </Label>
         <Tooltip>
           <TooltipTrigger
             render={
               <div 
-                className="flex items-center rounded-md border border-input bg-background/50 p-0.5 gap-0.5"
+                className="
+                  flex items-center gap-0.5 rounded-md border border-input
+                  bg-background/50 p-0.5
+                "
                 role="group"
                 aria-label="Script language selector"
               >
@@ -368,7 +395,10 @@ export function Toolbar() {
 
         {/* Mode Selector */}
         <div className="flex items-center gap-2">
-          <Label className="text-xs text-muted-foreground whitespace-nowrap hidden lg:block">
+          <Label className="
+            hidden text-xs whitespace-nowrap text-muted-foreground
+            lg:block
+          ">
             Mode:
           </Label>
           <Tooltip>
@@ -482,7 +512,11 @@ export function Toolbar() {
                   Module Details
                   {moduleDetailsDirtyCount > 0 && (
                     <span 
-                      className="ml-1.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center text-[10px] font-semibold rounded-full bg-yellow-500 text-white"
+                      className="
+                        ml-1.5 flex h-[18px] min-w-[18px] items-center
+                        justify-center rounded-full bg-yellow-500 px-1
+                        text-[10px] font-semibold text-white
+                      "
                       aria-label={`${moduleDetailsDirtyCount} unsaved changes`}
                     >
                       {moduleDetailsDirtyCount}
@@ -571,7 +605,7 @@ export function Toolbar() {
         )}
 
         {/* Separator between module actions and general actions */}
-        {isModuleTab && <Separator orientation="vertical" className="h-8 mx-1" aria-hidden="true" />}
+        {isModuleTab && <Separator orientation="vertical" className="mx-1 h-8" aria-hidden="true" />}
         
         {/* Actions Dropdown */}
         <ActionsDropdown />
@@ -613,7 +647,7 @@ export function Toolbar() {
           </Tooltip>
         )}
 
-        <Separator orientation="vertical" className="h-8 mx-1" aria-hidden="true" />
+        <Separator orientation="vertical" className="mx-1 h-8" aria-hidden="true" />
 
         {/* Right Sidebar Toggle */}
         <Tooltip>

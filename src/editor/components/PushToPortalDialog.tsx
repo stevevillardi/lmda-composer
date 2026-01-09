@@ -587,7 +587,9 @@ export function PushToPortalDialog({
     return (
       <div className="flex flex-wrap gap-1">
         {lines.map((line, index) => (
-          <Badge key={`${line}-${index}`} variant="secondary" className="text-[11px] font-mono">
+          <Badge key={`${line}-${index}`} variant="secondary" className="
+            font-mono text-[11px]
+          ">
             {line}
           </Badge>
         ))}
@@ -620,7 +622,10 @@ export function PushToPortalDialog({
           <Badge 
             key={item.name} 
             variant={item.status === 'unchanged' ? 'secondary' : 'outline'} 
-            className={`text-[11px] font-mono ${statusStyles[item.status]}`}
+            className={`
+              font-mono text-[11px]
+              ${statusStyles[item.status]}
+            `}
           >
             {statusIndicators[item.status] && (
               <span className="mr-0.5 font-bold">{statusIndicators[item.status]}</span>
@@ -657,7 +662,10 @@ export function PushToPortalDialog({
           <Badge 
             key={item.name} 
             variant={item.status === 'unchanged' ? 'secondary' : 'outline'} 
-            className={`text-[11px] font-mono ${statusStyles[item.status]}`}
+            className={`
+              font-mono text-[11px]
+              ${statusStyles[item.status]}
+            `}
           >
             {statusIndicators[item.status] && (
               <span className="mr-0.5 font-bold">{statusIndicators[item.status]}</span>
@@ -726,8 +734,11 @@ export function PushToPortalDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw]! sm:max-w-[1500px]! max-h-[90vh] flex flex-col gap-0 p-0">
-        <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
+      <DialogContent className="
+        flex max-h-[90vh] max-w-[95vw]! flex-col gap-0 p-0
+        sm:max-w-[1500px]!
+      ">
+        <DialogHeader className="shrink-0 border-b px-6 pt-6 pb-4">
           <DialogTitle className="flex items-center gap-2">
             <Upload className="size-5" />
             Push Changes to Portal
@@ -743,10 +754,10 @@ export function PushToPortalDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto px-6 py-4 min-h-0">
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
           <div className="space-y-4">
           {/* Module info */}
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex flex-wrap items-center gap-2">
             <Label className="text-sm font-medium select-none">Module:</Label>
             <Badge variant="outline">{moduleName}</Badge>
             <Badge variant="secondary">{MODULE_TYPE_LABELS[moduleType]}</Badge>
@@ -758,7 +769,7 @@ export function PushToPortalDialog({
             <Alert variant="destructive">
               <AlertCircle className="size-4" />
               <AlertDescription>
-                <div className="font-medium mb-1">Conflict Detected</div>
+                <div className="mb-1 font-medium">Conflict Detected</div>
                 {conflictMessage || 'The module has been changed externally. Review the changes below before pushing.'}
               </AlertDescription>
             </Alert>
@@ -788,11 +799,17 @@ export function PushToPortalDialog({
                   {scriptsWithChanges.length} changed
                 </Badge>
               </div>
-              <div className="border border-border rounded-md divide-y divide-border">
+              <div className="
+                divide-y divide-border rounded-md border border-border
+              ">
                 {directoryScriptsForCommit!.map((script) => (
                   <label
                     key={script.scriptType}
-                    className="flex items-center gap-3 p-3 hover:bg-muted/40 cursor-pointer transition-colors"
+                    className="
+                      flex cursor-pointer items-center gap-3 p-3
+                      transition-colors
+                      hover:bg-muted/40
+                    "
                   >
                     <Checkbox
                       checked={selectedScriptsForCommit.has(script.scriptType)}
@@ -800,27 +817,35 @@ export function PushToPortalDialog({
                       disabled={!script.hasChanges}
                       aria-label={`Include ${script.scriptType === 'ad' ? 'Active Discovery' : 'Collection'} script`}
                     />
-                    <div className="flex items-center gap-2 flex-1">
+                    <div className="flex flex-1 items-center gap-2">
                       <FileCode className="size-4 text-muted-foreground" />
                       <div className="flex flex-col">
                         <span className="text-sm font-medium select-none">
                           {script.scriptType === 'ad' ? 'Active Discovery Script' : 'Collection Script'}
                         </span>
-                        <span className="text-xs text-muted-foreground select-none">
+                        <span className="
+                          text-xs text-muted-foreground select-none
+                        ">
                           {script.fileName}
                         </span>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge variant={script.language === 'powershell' ? 'default' : 'secondary'} className="text-xs">
+                      <Badge variant={script.language === 'powershell' ? 'default' : 'secondary'} className="
+                        text-xs
+                      ">
                         {script.language === 'powershell' ? 'PowerShell' : 'Groovy'}
                       </Badge>
                       {script.hasChanges ? (
-                        <Badge variant="outline" className="text-xs text-yellow-600 border-amber-600/50">
+                        <Badge variant="outline" className="
+                          border-amber-600/50 text-xs text-yellow-600
+                        ">
                           Modified
                         </Badge>
                       ) : (
-                        <Badge variant="outline" className="text-xs text-muted-foreground">
+                        <Badge variant="outline" className="
+                          text-xs text-muted-foreground
+                        ">
                           No changes
                         </Badge>
                       )}
@@ -843,12 +868,16 @@ export function PushToPortalDialog({
               {hasDirectoryScripts ? (
                 // Directory mode - show diffs for selected scripts
                 selectedScriptsForCommit.size > 0 ? (
-                  <Tabs defaultValue={Array.from(selectedScriptsForCommit)[0]} className="flex flex-col gap-2">
+                  <Tabs defaultValue={Array.from(selectedScriptsForCommit)[0]} className="
+                    flex flex-col gap-2
+                  ">
                     <TabsList variant="line" className="h-7">
                       {directoryScriptsForCommit!
                         .filter(s => selectedScriptsForCommit.has(s.scriptType))
                         .map((script) => (
-                          <TabsTrigger key={script.scriptType} value={script.scriptType} className="h-6 text-xs px-2">
+                          <TabsTrigger key={script.scriptType} value={script.scriptType} className="
+                            h-6 px-2 text-xs
+                          ">
                             {script.scriptType === 'ad' ? 'Active Discovery' : 'Collection'}
                           </TabsTrigger>
                         ))}
@@ -857,12 +886,23 @@ export function PushToPortalDialog({
                       .filter(s => selectedScriptsForCommit.has(s.scriptType))
                       .map((script) => (
                         <TabsContent key={script.scriptType} value={script.scriptType}>
-                          <div className="border border-border rounded-md overflow-hidden">
-                            <div className="grid grid-cols-2 border-b border-border bg-muted/30">
-                              <div className="px-4 py-2 text-xs font-medium text-muted-foreground border-r border-border select-none">
+                          <div className="
+                            overflow-hidden rounded-md border border-border
+                          ">
+                            <div className="
+                              grid grid-cols-2 border-b border-border
+                              bg-muted/30
+                            ">
+                              <div className="
+                                border-r border-border px-4 py-2 text-xs
+                                font-medium text-muted-foreground select-none
+                              ">
                                 Portal (Current)
                               </div>
-                              <div className="px-4 py-2 text-xs font-medium text-muted-foreground select-none">
+                              <div className="
+                                px-4 py-2 text-xs font-medium
+                                text-muted-foreground select-none
+                              ">
                                 Local (Disk)
                               </div>
                             </div>
@@ -879,7 +919,11 @@ export function PushToPortalDialog({
                       ))}
                   </Tabs>
                 ) : (
-                  <div className="flex items-center gap-2 border border-dashed border-border rounded-md p-3 bg-muted/20 text-xs text-muted-foreground select-none">
+                  <div className="
+                    flex items-center gap-2 rounded-md border border-dashed
+                    border-border bg-muted/20 p-3 text-xs text-muted-foreground
+                    select-none
+                  ">
                     <Info className="size-4" />
                     No scripts selected. Select scripts above or push module details only.
                   </div>
@@ -887,12 +931,22 @@ export function PushToPortalDialog({
               ) : hasScriptChanges ? (
                 // Single script mode - show active tab diff
                 originalScript !== undefined && newScript !== undefined ? (
-                  <div className="border border-border rounded-md overflow-hidden">
-                    <div className="grid grid-cols-2 border-b border-border bg-muted/30">
-                      <div className="px-4 py-2 text-xs font-medium text-muted-foreground border-r border-border select-none">
+                  <div className="
+                    overflow-hidden rounded-md border border-border
+                  ">
+                    <div className="
+                      grid grid-cols-2 border-b border-border bg-muted/30
+                    ">
+                      <div className="
+                        border-r border-border px-4 py-2 text-xs font-medium
+                        text-muted-foreground select-none
+                      ">
                         Original
                       </div>
-                      <div className="px-4 py-2 text-xs font-medium text-muted-foreground select-none">
+                      <div className="
+                        px-4 py-2 text-xs font-medium text-muted-foreground
+                        select-none
+                      ">
                         Modified
                       </div>
                     </div>
@@ -909,7 +963,11 @@ export function PushToPortalDialog({
                   <p className="text-xs text-muted-foreground select-none">Loading diff...</p>
                 )
               ) : (
-                <div className="flex items-center gap-2 border border-dashed border-border rounded-md p-3 bg-muted/20 text-xs text-muted-foreground select-none">
+                <div className="
+                  flex items-center gap-2 rounded-md border border-dashed
+                  border-border bg-muted/20 p-3 text-xs text-muted-foreground
+                  select-none
+                ">
                   <Info className="size-4" />
                   No script changes will be pushed for this update.
                 </div>
@@ -927,15 +985,17 @@ export function PushToPortalDialog({
               </div>
               <Tabs defaultValue="readable" className="flex flex-col gap-3">
                 <TabsList variant="line" className="h-7">
-                  <TabsTrigger value="readable" className="h-6 text-xs px-2">
+                  <TabsTrigger value="readable" className="h-6 px-2 text-xs">
                     Human Readable
                   </TabsTrigger>
-                  <TabsTrigger value="payload" className="h-6 text-xs px-2">
+                  <TabsTrigger value="payload" className="h-6 px-2 text-xs">
                     Payload Diff
                   </TabsTrigger>
                 </TabsList>
                 <TabsContent value="readable">
-                  <div className="space-y-4 border border-border rounded-md p-4 bg-muted/20">
+                  <div className="
+                    space-y-4 rounded-md border border-border bg-muted/20 p-4
+                  ">
                     {readableModuleDetailsChanges.length === 0 && hasAdConfigPayload && (
                       <div className="text-xs text-muted-foreground select-none">
                         Active Discovery config is included to support the script update.
@@ -946,14 +1006,24 @@ export function PushToPortalDialog({
                       return (
                         <div
                           key={group.section}
-                          className={index === 0 ? 'space-y-3' : 'space-y-3 border-t border-border/60 pt-4'}
+                          className={index === 0 ? 'space-y-3' : `
+                            space-y-3 border-t border-border/60 pt-4
+                          `}
                         >
-                          <div className="flex items-center justify-between border-b border-border/60 pb-2">
-                            <div className="flex items-center gap-2 text-sm font-semibold select-none">
+                          <div className="
+                            flex items-center justify-between border-b
+                            border-border/60 pb-2
+                          ">
+                            <div className="
+                              flex items-center gap-2 text-sm font-semibold
+                              select-none
+                            ">
                               <Icon className="size-4 text-muted-foreground" />
                               {group.section}
                             </div>
-                            <div className="text-xs text-muted-foreground select-none">
+                            <div className="
+                              text-xs text-muted-foreground select-none
+                            ">
                               {group.items.length} change{group.items.length !== 1 ? 's' : ''}
                             </div>
                           </div>
@@ -962,61 +1032,110 @@ export function PushToPortalDialog({
                               change.datapointItems ? (
                                 // Special rendering for datapoints - unified view with change indicators
                                 <div key={change.key} className="space-y-2">
-                                  <div className="flex items-center justify-between">
-                                    <div className="text-sm font-medium select-none">{change.label}</div>
-                                    <div className="flex items-center gap-3 text-[11px] select-none">
-                                      <span className="flex items-center gap-1 text-teal-600">
+                                  <div className="
+                                    flex items-center justify-between
+                                  ">
+                                    <div className="
+                                      text-sm font-medium select-none
+                                    ">{change.label}</div>
+                                    <div className="
+                                      flex items-center gap-3 text-[11px]
+                                      select-none
+                                    ">
+                                      <span className="
+                                        flex items-center gap-1 text-teal-600
+                                      ">
                                         <span className="font-bold">+</span> Added
                                       </span>
-                                      <span className="flex items-center gap-1 text-yellow-600">
+                                      <span className="
+                                        flex items-center gap-1 text-yellow-600
+                                      ">
                                         <span className="font-bold">~</span> Modified
                                       </span>
-                                      <span className="flex items-center gap-1 text-red-600">
+                                      <span className="
+                                        flex items-center gap-1 text-red-600
+                                      ">
                                         <span className="font-bold">−</span> Removed
                                       </span>
                                     </div>
                                   </div>
-                                  <div className="font-mono text-xs bg-background p-2 rounded border">
+                                  <div className="
+                                    rounded-sm border bg-background p-2
+                                    font-mono text-xs
+                                  ">
                                     {renderDatapointItems(change.datapointItems)}
                                   </div>
                                 </div>
                               ) : change.configCheckItems ? (
                                 // Special rendering for config checks - unified view with change indicators
                                 <div key={change.key} className="space-y-2">
-                                  <div className="flex items-center justify-between">
-                                    <div className="text-sm font-medium select-none">{change.label}</div>
-                                    <div className="flex items-center gap-3 text-[11px] select-none">
-                                      <span className="flex items-center gap-1 text-teal-600">
+                                  <div className="
+                                    flex items-center justify-between
+                                  ">
+                                    <div className="
+                                      text-sm font-medium select-none
+                                    ">{change.label}</div>
+                                    <div className="
+                                      flex items-center gap-3 text-[11px]
+                                      select-none
+                                    ">
+                                      <span className="
+                                        flex items-center gap-1 text-teal-600
+                                      ">
                                         <span className="font-bold">+</span> Added
                                       </span>
-                                      <span className="flex items-center gap-1 text-yellow-600">
+                                      <span className="
+                                        flex items-center gap-1 text-yellow-600
+                                      ">
                                         <span className="font-bold">~</span> Modified
                                       </span>
-                                      <span className="flex items-center gap-1 text-red-600">
+                                      <span className="
+                                        flex items-center gap-1 text-red-600
+                                      ">
                                         <span className="font-bold">−</span> Removed
                                       </span>
                                     </div>
                                   </div>
-                                  <div className="font-mono text-xs bg-background p-2 rounded border">
+                                  <div className="
+                                    rounded-sm border bg-background p-2
+                                    font-mono text-xs
+                                  ">
                                     {renderConfigCheckItems(change.configCheckItems)}
                                   </div>
                                 </div>
                               ) : (
                                 // Standard two-column rendering for other fields
-                                <div key={change.key} className="grid grid-cols-1 md:grid-cols-[220px_1fr_1fr] gap-3">
+                                <div key={change.key} className="
+                                  grid grid-cols-1 gap-3
+                                  md:grid-cols-[220px_1fr_1fr]
+                                ">
                                   <div className="space-y-1">
-                                    <div className="text-xs text-muted-foreground select-none">Field</div>
-                                    <div className="text-sm font-medium select-none">{change.label}</div>
+                                    <div className="
+                                      text-xs text-muted-foreground select-none
+                                    ">Field</div>
+                                    <div className="
+                                      text-sm font-medium select-none
+                                    ">{change.label}</div>
                                   </div>
                                   <div className="space-y-1">
-                                    <div className="text-xs text-muted-foreground select-none">Original</div>
-                                    <div className="font-mono text-xs bg-background p-2 rounded border">
+                                    <div className="
+                                      text-xs text-muted-foreground select-none
+                                    ">Original</div>
+                                    <div className="
+                                      rounded-sm border bg-background p-2
+                                      font-mono text-xs
+                                    ">
                                       {change.originalLines ? renderFilterLines(change.originalLines) : change.original}
                                     </div>
                                   </div>
                                   <div className="space-y-1">
-                                    <div className="text-xs text-muted-foreground select-none">Modified</div>
-                                    <div className="font-mono text-xs bg-background p-2 rounded border border-cyan-500/50">
+                                    <div className="
+                                      text-xs text-muted-foreground select-none
+                                    ">Modified</div>
+                                    <div className="
+                                      rounded-sm border border-cyan-500/50
+                                      bg-background p-2 font-mono text-xs
+                                    ">
                                       {change.modifiedLines ? renderFilterLines(change.modifiedLines) : change.modified}
                                     </div>
                                   </div>
@@ -1030,12 +1149,22 @@ export function PushToPortalDialog({
                   </div>
                 </TabsContent>
                 <TabsContent value="payload">
-                  <div className="border border-border rounded-md overflow-hidden">
-                    <div className="grid grid-cols-2 border-b border-border bg-muted/30">
-                      <div className="px-4 py-2 text-xs font-medium text-muted-foreground border-r border-border select-none">
+                  <div className="
+                    overflow-hidden rounded-md border border-border
+                  ">
+                    <div className="
+                      grid grid-cols-2 border-b border-border bg-muted/30
+                    ">
+                      <div className="
+                        border-r border-border px-4 py-2 text-xs font-medium
+                        text-muted-foreground select-none
+                      ">
                         Original Payload (changed fields)
                       </div>
-                      <div className="px-4 py-2 text-xs font-medium text-muted-foreground select-none">
+                      <div className="
+                        px-4 py-2 text-xs font-medium text-muted-foreground
+                        select-none
+                      ">
                         Updated Payload (changed fields)
                       </div>
                     </div>
@@ -1065,7 +1194,7 @@ export function PushToPortalDialog({
             <Alert variant="destructive">
               <AlertCircle className="size-4" />
               <AlertDescription>
-                <pre className="whitespace-pre-wrap font-mono text-xs leading-relaxed">
+                <pre className="font-mono text-xs/relaxed whitespace-pre-wrap">
                   {commitError}
                 </pre>
               </AlertDescription>
@@ -1074,7 +1203,7 @@ export function PushToPortalDialog({
           </div>
         </div>
 
-        <DialogFooter className="px-6 pb-6 pt-4 border-t shrink-0">
+        <DialogFooter className="shrink-0 border-t px-6 pt-4 pb-6">
           <Button type="button" variant="ghost" onClick={handleCancel} disabled={isCommitting}>
             Cancel
           </Button>
@@ -1086,12 +1215,12 @@ export function PushToPortalDialog({
           >
             {isCommitting ? (
               <>
-                <Loader2 className="size-4 mr-2 animate-spin" />
+                <Loader2 className="mr-2 size-4 animate-spin" />
                 Pushing...
               </>
             ) : (
               <>
-                <Upload className="size-4 mr-2" />
+                <Upload className="mr-2 size-4" />
                 Push to Portal
               </>
             )}

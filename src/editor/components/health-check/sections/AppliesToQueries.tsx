@@ -25,9 +25,14 @@ export function AppliesToQueries({ queries }: AppliesToQueriesProps) {
 
   if (!queries || queries.length === 0) {
     return (
-      <SectionCard title="Helpful AppliesTo Queries" icon={<Filter className="size-4" />}>
-        <div className="flex items-center justify-center py-8 text-muted-foreground select-none">
-          <Info className="size-5 mr-2 opacity-50" />
+      <SectionCard title="Helpful AppliesTo Queries" icon={<Filter className="
+        size-4
+      " />}>
+        <div className="
+          flex items-center justify-center py-8 text-muted-foreground
+          select-none
+        ">
+          <Info className="mr-2 size-5 opacity-50" />
           <span className="text-sm">No queries available</span>
         </div>
       </SectionCard>
@@ -44,14 +49,14 @@ export function AppliesToQueries({ queries }: AppliesToQueriesProps) {
         {queries.map((item, index) => (
           <div 
             key={index} 
-            className="p-3 bg-muted/50 rounded-lg border border-border/50"
+            className="rounded-lg border border-border/50 bg-muted/50 p-3"
           >
-            <div className="flex items-start justify-between gap-2 mb-2">
+            <div className="mb-2 flex items-start justify-between gap-2">
               <p className="text-sm font-medium">{item.label}</p>
               <Button
                 variant="ghost"
                 size="sm"
-                className="h-7 px-2 shrink-0"
+                className="h-7 shrink-0 px-2"
                 onClick={() => copyToClipboard(item.query, index)}
               >
                 {copiedIndex === index ? (
@@ -61,7 +66,9 @@ export function AppliesToQueries({ queries }: AppliesToQueriesProps) {
                 )}
               </Button>
             </div>
-            <code className="text-xs font-mono text-muted-foreground break-all block">
+            <code className="
+              block font-mono text-xs break-all text-muted-foreground
+            ">
               {item.query}
             </code>
           </div>

@@ -6,16 +6,12 @@
  * - Module details restoration on directory reopen
  * - Pull dialog comparison logic
  */
-import { describe, expect, it, beforeEach, afterEach, vi } from 'vitest';
+import { describe, expect, it, beforeEach, afterEach } from 'vitest';
 import { 
   resetStore, 
-  getStoreState, 
-  setStoreState, 
-  createMockModuleTab,
-  createMockPortal,
   resetCounters,
 } from './helpers/store-helpers';
-import type { ModuleDirectoryConfig, EditorTab } from '../src/shared/types';
+import type { ModuleDirectoryConfig } from '../src/shared/types';
 import type { ModuleDetailsDraft } from '../src/editor/stores/slices/tools-slice';
 
 // =============================================================================
@@ -84,38 +80,6 @@ function createMockModuleConfig(options: {
       localDraft,
     },
     lastSyncedAt: new Date().toISOString(),
-  };
-}
-
-/**
- * Create a mock directory-saved module tab.
- */
-function createMockDirectorySavedTab(options: {
-  directoryHandleId?: string;
-  content?: string;
-  lastSavedContent?: string;
-  lastKnownContent?: string;
-} = {}): EditorTab {
-  const {
-    directoryHandleId = 'dir-handle-1',
-    content = 'println "Hello"',
-    lastSavedContent = 'println "Hello"',
-    lastKnownContent = 'println "Hello"',
-  } = options;
-
-  const baseTab = createMockModuleTab({ content });
-  
-  return {
-    ...baseTab,
-    directoryHandleId,
-    document: {
-      type: 'local',
-      file: {
-        handleId: directoryHandleId,
-        lastSavedContent,
-      },
-      portal: baseTab.document?.portal,
-    },
   };
 }
 

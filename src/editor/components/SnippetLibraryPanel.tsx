@@ -158,10 +158,16 @@ export function SnippetLibraryPanel() {
       <button
         key={snippet.id}
         className={cn(
-          'w-full text-left px-3 py-2.5 transition-all border-l-2 group relative',
+          `
+            group relative w-full border-l-2 px-3 py-2.5 text-left
+            transition-all
+          `,
           isCompatible
-            ? 'border-transparent hover:bg-muted/30 hover:border-l-primary'
-            : 'border-transparent opacity-60 bg-muted/20 cursor-not-allowed'
+            ? `
+              border-transparent
+              hover:border-l-primary hover:bg-muted/30
+            `
+            : 'cursor-not-allowed border-transparent bg-muted/20 opacity-60'
         )}
         onClick={() => isCompatible && handleInsert(snippet)}
         disabled={!isCompatible}
@@ -169,36 +175,49 @@ export function SnippetLibraryPanel() {
         aria-label={`${snippet.name} snippet${isCompatible ? '' : ' (incompatible language)'}`}
       >
         <div className="flex items-start justify-between gap-3">
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <span className={cn("text-sm truncate font-medium", isCompatible ? "text-foreground" : "text-muted-foreground")}>
+          <div className="min-w-0 flex-1">
+            <div className="mb-1 flex items-center gap-2">
+              <span className={cn("truncate text-sm font-medium", isCompatible ? `
+                text-foreground
+              ` : `text-muted-foreground`)}>
                 {snippet.name}
               </span>
               <div className="flex items-center gap-1.5">
                 <Badge
                   variant="outline"
-                  className={cn('text-[9px] h-4 px-1 font-normal bg-opacity-10 border-opacity-20', LANGUAGE_COLORS[snippet.language])}
+                  className={cn(`
+                    bg-opacity-10 border-opacity-20 h-4 px-1 text-[9px]
+                    font-normal
+                  `, LANGUAGE_COLORS[snippet.language])}
                 >
                   {snippet.language === 'both' ? 'Both' : snippet.language}
                 </Badge>
                 {!snippet.isBuiltIn && (
-                  <Badge variant="secondary" className="text-[9px] h-4 px-1 font-normal">
+                  <Badge variant="secondary" className="
+                    h-4 px-1 text-[9px] font-normal
+                  ">
                     User
                   </Badge>
                 )}
               </div>
             </div>
-            <p className="text-xs text-muted-foreground line-clamp-1">
+            <p className="line-clamp-1 text-xs text-muted-foreground">
               {snippet.description}
             </p>
           </div>
           
-          <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="
+            flex shrink-0 items-center gap-1 opacity-0 transition-opacity
+            group-hover:opacity-100
+          ">
              <Tooltip>
                 <TooltipTrigger
                   render={
                     <div
-                      className="p-1 rounded-md hover:bg-background/80 cursor-pointer"
+                      className="
+                        cursor-pointer rounded-md p-1
+                        hover:bg-background/80
+                      "
                       onClick={(e) => {
                         e.stopPropagation();
                         handlePreview(snippet);
@@ -217,7 +236,10 @@ export function SnippetLibraryPanel() {
                     <TooltipTrigger
                       render={
                         <div
-                          className="p-1 rounded-md hover:bg-background/80 cursor-pointer"
+                          className="
+                            cursor-pointer rounded-md p-1
+                            hover:bg-background/80
+                          "
                           onClick={(e) => {
                             e.stopPropagation();
                             handleEdit(snippet);
@@ -233,13 +255,19 @@ export function SnippetLibraryPanel() {
                     <TooltipTrigger
                       render={
                         <div
-                          className="p-1 rounded-md hover:bg-destructive/10 hover:text-destructive cursor-pointer"
+                          className="
+                            cursor-pointer rounded-md p-1
+                            hover:bg-destructive/10 hover:text-destructive
+                          "
                           onClick={(e) => {
                             e.stopPropagation();
                             handleDeleteClick(snippet);
                           }}
                         >
-                          <Trash2 className="size-3.5 text-muted-foreground hover:text-destructive" />
+                          <Trash2 className="
+                            size-3.5 text-muted-foreground
+                            hover:text-destructive
+                          " />
                         </div>
                       }
                     />
@@ -254,17 +282,24 @@ export function SnippetLibraryPanel() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-muted/5">
+    <div className="flex h-full flex-col bg-muted/5">
       {/* Header with filters */}
-      <div className="p-3 border-b border-border space-y-3 bg-background">
+      <div className="space-y-3 border-b border-border bg-background p-3">
         {/* Search */}
         <div className="relative">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+          <Search className="
+            absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2
+            text-muted-foreground
+          " />
           <Input
             placeholder="Search snippets..."
             value={snippetsSearchQuery}
             onChange={(e) => setSnippetsSearchQuery(e.target.value)}
-            className="pl-8 h-8 text-xs bg-muted/30 border-input shadow-sm focus-visible:bg-background transition-colors"
+            className="
+              h-8 border-input bg-muted/30 pl-8 text-xs shadow-sm
+              transition-colors
+              focus-visible:bg-background
+            "
           />
         </div>
 
@@ -273,14 +308,23 @@ export function SnippetLibraryPanel() {
           value={snippetCategoryFilter}
           onValueChange={(v) => setSnippetCategoryFilter(v as 'all' | 'template' | 'pattern')}
         >
-          <TabsList className="w-full h-8 bg-muted/50 p-0.5" variant="default">
-            <TabsTrigger value="all" className="flex-1 text-xs h-7 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+          <TabsList className="h-8 w-full bg-muted/50 p-0.5" variant="default">
+            <TabsTrigger value="all" className="
+              h-7 flex-1 text-xs
+              data-[state=active]:bg-background data-[state=active]:shadow-sm
+            ">
               All
             </TabsTrigger>
-            <TabsTrigger value="template" className="flex-1 text-xs h-7 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+            <TabsTrigger value="template" className="
+              h-7 flex-1 text-xs
+              data-[state=active]:bg-background data-[state=active]:shadow-sm
+            ">
               Templates
             </TabsTrigger>
-            <TabsTrigger value="pattern" className="flex-1 text-xs h-7 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+            <TabsTrigger value="pattern" className="
+              h-7 flex-1 text-xs
+              data-[state=active]:bg-background data-[state=active]:shadow-sm
+            ">
               Patterns
             </TabsTrigger>
           </TabsList>
@@ -292,7 +336,11 @@ export function SnippetLibraryPanel() {
             value={snippetLanguageFilter}
             onValueChange={(v) => setSnippetLanguageFilter(v as 'all' | 'groovy' | 'powershell')}
           >
-            <SelectTrigger className="h-7 text-xs flex-1 bg-transparent border-input/60 hover:bg-accent/50 focus:ring-offset-0">
+            <SelectTrigger className="
+              h-7 flex-1 border-input/60 bg-transparent text-xs
+              hover:bg-accent/50
+              focus:ring-offset-0
+            ">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -306,7 +354,11 @@ export function SnippetLibraryPanel() {
             value={snippetSourceFilter}
             onValueChange={(v) => setSnippetSourceFilter(v as 'all' | 'builtin' | 'user')}
           >
-            <SelectTrigger className="h-7 text-xs flex-1 bg-transparent border-input/60 hover:bg-accent/50 focus:ring-offset-0">
+            <SelectTrigger className="
+              h-7 flex-1 border-input/60 bg-transparent text-xs
+              hover:bg-accent/50
+              focus:ring-offset-0
+            ">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -321,21 +373,26 @@ export function SnippetLibraryPanel() {
         <Button
           variant="outline"
           size="sm"
-          className="w-full h-8 text-xs border-dashed hover:border-primary/50 hover:bg-accent/30 hover:text-primary transition-colors"
+          className="
+            h-8 w-full border-dashed text-xs transition-colors
+            hover:border-primary/50 hover:bg-accent/30 hover:text-primary
+          "
           onClick={() => setCreateSnippetDialogOpen(true)}
         >
-          <Plus className="size-3.5 mr-1.5" />
+          <Plus className="mr-1.5 size-3.5" />
           Create Snippet
         </Button>
       </div>
 
       {/* Snippets list - scrollable */}
-      <div className="flex-1 min-h-0 overflow-auto">
-        <div className="p-2 space-y-4">
+      <div className="min-h-0 flex-1 overflow-auto">
+        <div className="space-y-4 p-2">
           {filteredSnippets.length === 0 ? (
-            <div className="flex flex-col h-full bg-muted/5">
-              <Empty className="py-8 border-0 bg-transparent flex flex-col justify-center">
-                <EmptyMedia variant="icon" className="bg-muted/50 mb-4">
+            <div className="flex h-full flex-col bg-muted/5">
+              <Empty className="
+                flex flex-col justify-center border-0 bg-transparent py-8
+              ">
+                <EmptyMedia variant="icon" className="mb-4 bg-muted/50">
                   <Code2 className="size-5 text-muted-foreground/70" />
                 </EmptyMedia>
                 <EmptyHeader>
@@ -352,19 +409,33 @@ export function SnippetLibraryPanel() {
                 <Collapsible
                   open={collapsedGroups.template}
                   onOpenChange={() => toggleGroup('template')}
-                  className="border border-border/40 rounded-md bg-card/20 overflow-hidden"
+                  className="
+                    overflow-hidden rounded-md border border-border/40
+                    bg-card/20
+                  "
                 >
-                  <CollapsibleTrigger className="flex w-full items-center justify-between px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted/50 transition-colors">
+                  <CollapsibleTrigger className="
+                    flex w-full items-center justify-between px-3 py-2 text-xs
+                    font-medium text-muted-foreground transition-colors
+                    hover:bg-muted/50
+                  ">
                     <span className="flex items-center gap-2">
-                      {collapsedGroups.template ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
+                      {collapsedGroups.template ? <ChevronDown className="
+                        size-3.5
+                      " /> : <ChevronRight className="size-3.5" />}
                       <FileText className="size-3.5" />
                       Templates
                     </span>
-                    <Badge variant="secondary" className="text-[10px] h-4 px-1.5 font-normal bg-muted text-muted-foreground">
+                    <Badge variant="secondary" className="
+                      h-4 bg-muted px-1.5 text-[10px] font-normal
+                      text-muted-foreground
+                    ">
                       {templates.length}
                     </Badge>
                   </CollapsibleTrigger>
-                  <CollapsibleContent className="border-t border-border/40 divide-y divide-border/30">
+                  <CollapsibleContent className="
+                    divide-y divide-border/30 border-t border-border/40
+                  ">
                     {templates.map(renderSnippetCard)}
                   </CollapsibleContent>
                 </Collapsible>
@@ -374,26 +445,43 @@ export function SnippetLibraryPanel() {
                  <Collapsible
                   open={collapsedGroups.pattern}
                   onOpenChange={() => toggleGroup('pattern')}
-                  className="border border-border/40 rounded-md bg-card/20 overflow-hidden"
+                  className="
+                    overflow-hidden rounded-md border border-border/40
+                    bg-card/20
+                  "
                 >
-                  <CollapsibleTrigger className="flex w-full items-center justify-between px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted/50 transition-colors">
+                  <CollapsibleTrigger className="
+                    flex w-full items-center justify-between px-3 py-2 text-xs
+                    font-medium text-muted-foreground transition-colors
+                    hover:bg-muted/50
+                  ">
                     <span className="flex items-center gap-2">
-                      {collapsedGroups.pattern ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
+                      {collapsedGroups.pattern ? <ChevronDown className="
+                        size-3.5
+                      " /> : <ChevronRight className="size-3.5" />}
                       <Code2 className="size-3.5" />
                       Patterns
                     </span>
-                    <Badge variant="secondary" className="text-[10px] h-4 px-1.5 font-normal bg-muted text-muted-foreground">
+                    <Badge variant="secondary" className="
+                      h-4 bg-muted px-1.5 text-[10px] font-normal
+                      text-muted-foreground
+                    ">
                       {patterns.length}
                     </Badge>
                   </CollapsibleTrigger>
-                  <CollapsibleContent className="border-t border-border/40 divide-y divide-border/30">
+                  <CollapsibleContent className="
+                    divide-y divide-border/30 border-t border-border/40
+                  ">
                     {patterns.map(renderSnippetCard)}
                   </CollapsibleContent>
                 </Collapsible>
               )}
 
               {snippetCategoryFilter !== 'all' && (
-                <div className="border border-border/40 rounded-md bg-card/20 overflow-hidden divide-y divide-border/30">
+                <div className="
+                  divide-y divide-border/30 overflow-hidden rounded-md border
+                  border-border/40 bg-card/20
+                ">
                   {filteredSnippets.map(renderSnippetCard)}
                 </div>
               )}

@@ -100,8 +100,11 @@ export function UpdateFunctionConfirmationDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw]! sm:max-w-[1500px]! max-h-[90vh] flex flex-col gap-0 p-0">
-        <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
+      <DialogContent className="
+        flex max-h-[90vh] max-w-[95vw]! flex-col gap-0 p-0
+        sm:max-w-[1500px]!
+      ">
+        <DialogHeader className="shrink-0 border-b px-6 pt-6 pb-4">
           <DialogTitle className="flex items-center gap-2">
             <Upload className="size-5" />
             Commit Changes to Function
@@ -111,7 +114,7 @@ export function UpdateFunctionConfirmationDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto px-6 py-4 min-h-0">
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-4">
           <div className="space-y-4">
           {/* Name field */}
           <div className="grid grid-cols-4 items-center gap-4">
@@ -125,7 +128,7 @@ export function UpdateFunctionConfirmationDialog({
                 onChange={(e) => handleNameChange(e.target.value)}
                 className={cn(nameError && 'border-destructive')}
               />
-              {nameError && <p className="text-destructive text-xs mt-1">{nameError}</p>}
+              {nameError && <p className="mt-1 text-xs text-destructive">{nameError}</p>}
             </div>
           </div>
 
@@ -133,12 +136,19 @@ export function UpdateFunctionConfirmationDialog({
           <div className="space-y-2">
             <Label className="text-sm font-medium">Code Changes</Label>
             {hasCodeChanges ? (
-              <div className="border border-border rounded-md overflow-hidden">
-                <div className="grid grid-cols-2 border-b border-border bg-muted/30">
-                  <div className="px-4 py-2 text-xs font-medium text-muted-foreground border-r border-border">
+              <div className="overflow-hidden rounded-md border border-border">
+                <div className="
+                  grid grid-cols-2 border-b border-border bg-muted/30
+                ">
+                  <div className="
+                    border-r border-border px-4 py-2 text-xs font-medium
+                    text-muted-foreground
+                  ">
                     Original
                   </div>
-                  <div className="px-4 py-2 text-xs font-medium text-muted-foreground">
+                  <div className="
+                    px-4 py-2 text-xs font-medium text-muted-foreground
+                  ">
                     Modified
                   </div>
                 </div>
@@ -159,7 +169,7 @@ export function UpdateFunctionConfirmationDialog({
 
           {/* Description field */}
           <div className="grid grid-cols-4 items-start gap-4">
-            <Label htmlFor="update-description" className="text-right pt-2">
+            <Label htmlFor="update-description" className="pt-2 text-right">
               Description (optional)
             </Label>
             <div className="col-span-3">
@@ -174,14 +184,16 @@ export function UpdateFunctionConfirmationDialog({
           </div>
 
           {updateError && (
-            <div className="text-destructive text-sm bg-destructive/10 p-2 rounded">
+            <div className="
+              rounded-sm bg-destructive/10 p-2 text-sm text-destructive
+            ">
               {updateError}
             </div>
           )}
           </div>
         </div>
 
-        <DialogFooter className="px-6 pb-6 pt-4 border-t shrink-0">
+        <DialogFooter className="shrink-0 border-t px-6 pt-4 pb-6">
           <Button type="button" variant="ghost" onClick={handleCancel} disabled={isUpdating}>
             Cancel
           </Button>
@@ -193,12 +205,12 @@ export function UpdateFunctionConfirmationDialog({
           >
             {isUpdating ? (
               <>
-                <Loader2 className="size-4 mr-2 animate-spin" />
+                <Loader2 className="mr-2 size-4 animate-spin" />
                 Committing...
               </>
             ) : (
               <>
-                <Upload className="size-4 mr-2" />
+                <Upload className="mr-2 size-4" />
                 Commit Changes
               </>
             )}

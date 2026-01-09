@@ -102,12 +102,15 @@ interface SectionProps {
 
 function Section({ icon, title, children, className = '' }: SectionProps) {
   return (
-    <div className={`rounded-lg border bg-card ${className}`}>
+    <div className={`
+      rounded-lg border bg-card
+      ${className}
+    `}>
       <div className="flex items-center gap-2 border-b bg-muted/30 px-4 py-2.5">
         {icon}
         <h3 className="text-sm font-semibold text-foreground">{title}</h3>
       </div>
-      <div className="p-4 space-y-4">
+      <div className="space-y-4 p-4">
         {children}
       </div>
     </div>
@@ -372,7 +375,9 @@ export function DatapointEditorSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-[500px] max-w-[500px] flex flex-col overflow-hidden p-0">
+      <SheetContent side="right" className="
+        flex w-[500px] max-w-[500px] flex-col overflow-hidden p-0
+      ">
         <SheetHeader className="shrink-0 border-b p-4">
         <SheetTitle className="flex items-center gap-2">
             <Database className="size-5" />
@@ -383,10 +388,13 @@ export function DatapointEditorSheet({
           </SheetDescription>
         </SheetHeader>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div className="flex-1 space-y-4 overflow-y-auto p-4">
           {/* Advanced options disclaimer */}
-          <div className="flex items-start gap-3 rounded-lg border-l-4 border-cyan-500 bg-cyan-500/10 p-3">
-            <Info className="size-4 text-cyan-500 mt-0.5 shrink-0" />
+          <div className="
+            flex items-start gap-3 rounded-lg border-l-4 border-cyan-500
+            bg-cyan-500/10 p-3
+          ">
+            <Info className="mt-0.5 size-4 shrink-0 text-cyan-500" />
             <p className="text-sm text-muted-foreground">
               Some advanced options (dynamic thresholds, anomaly detection) are not shown. 
               Edit in Portal for full control.
@@ -407,7 +415,7 @@ export function DatapointEditorSheet({
                 className={errors.name ? 'border-destructive' : ''}
               />
               {errors.name && (
-                <p className="text-xs text-destructive flex items-center gap-1">
+                <p className="flex items-center gap-1 text-xs text-destructive">
                   <AlertCircle className="size-3" />
                   {errors.name}
                 </p>
@@ -440,10 +448,15 @@ export function DatapointEditorSheet({
                   onChange={(e) => handleFieldChange('postProcessorParam', e.target.value)}
                   placeholder="e.g., max(100 - (PercentProcessorTime * 100 / Frequency_Sys100NS), 0)"
                   rows={4}
-                  className={`font-mono text-sm ${errors.postProcessorParam ? 'border-destructive' : ''}`}
+                  className={`
+                    font-mono text-sm
+                    ${errors.postProcessorParam ? `border-destructive` : ''}
+                  `}
                 />
                 {errors.postProcessorParam && (
-                  <p className="text-xs text-destructive flex items-center gap-1">
+                  <p className="
+                    flex items-center gap-1 text-xs text-destructive
+                  ">
                     <AlertCircle className="size-3" />
                     {errors.postProcessorParam}
                   </p>
@@ -453,7 +466,10 @@ export function DatapointEditorSheet({
                 </p>
               </div>
 
-              <div className="flex items-center gap-2 rounded-md bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
+              <div className="
+                flex items-center gap-2 rounded-md bg-muted/50 px-3 py-2 text-sm
+                text-muted-foreground
+              ">
                 <Gauge className="size-4" />
                 <span>Complex datapoints are always Gauge type.</span>
               </div>
@@ -541,7 +557,10 @@ export function DatapointEditorSheet({
                         onChange={(e) => handleFieldChange('postProcessorParam', e.target.value)}
                         placeholder={getInterpretationParamPlaceholder(formData.postProcessorMethod || '')}
                         rows={3}
-                        className={`font-mono text-sm ${errors.postProcessorParam ? 'border-destructive' : ''}`}
+                        className={`
+                          font-mono text-sm
+                          ${errors.postProcessorParam ? `border-destructive` : ''}
+                        `}
                       />
                     ) : (
                       <Input
@@ -549,11 +568,15 @@ export function DatapointEditorSheet({
                         value={formData.postProcessorParam || ''}
                         onChange={(e) => handleFieldChange('postProcessorParam', e.target.value)}
                         placeholder={getInterpretationParamPlaceholder(formData.postProcessorMethod || '')}
-                        className={errors.postProcessorParam ? 'border-destructive' : ''}
+                        className={errors.postProcessorParam ? `
+                          border-destructive
+                        ` : ''}
                       />
                     )}
                     {errors.postProcessorParam && (
-                      <p className="text-xs text-destructive flex items-center gap-1">
+                      <p className="
+                        flex items-center gap-1 text-xs text-destructive
+                      ">
                         <AlertCircle className="size-3" />
                         {errors.postProcessorParam}
                       </p>
@@ -564,11 +587,14 @@ export function DatapointEditorSheet({
 
               {/* Info for Exit Code / Response Time - no additional fields needed */}
               {isExitCodeOrResponseTime && (
-                <div className="flex items-start gap-2 rounded-md bg-muted/50 px-3 py-2 text-sm text-muted-foreground">
+                <div className="
+                  flex items-start gap-2 rounded-md bg-muted/50 px-3 py-2
+                  text-sm text-muted-foreground
+                ">
                   {formData.rawDataFieldName === 'exitCode' ? (
-                    <Terminal className="size-4 mt-0.5 shrink-0" />
+                    <Terminal className="mt-0.5 size-4 shrink-0" />
                   ) : (
-                    <Clock className="size-4 mt-0.5 shrink-0" />
+                    <Clock className="mt-0.5 size-4 shrink-0" />
                   )}
                   <span>
                     {formData.rawDataFieldName === 'exitCode' 
@@ -631,7 +657,10 @@ export function DatapointEditorSheet({
                         <Badge
                           key={`${t.level}-${t.value}`}
                           variant="outline"
-                          className={`text-xs font-mono gap-1 ${ALERT_LEVEL_BG_STYLES[t.level]}`}
+                          className={`
+                            gap-1 font-mono text-xs
+                            ${ALERT_LEVEL_BG_STYLES[t.level]}
+                          `}
                         >
                           <AlertIcon className="size-3" />
                           {t.operator}{t.value}
@@ -651,7 +680,9 @@ export function DatapointEditorSheet({
                   value={String(formData.alertTransitionInterval ?? 0)}
                   onValueChange={(value) => value && handleFieldChange('alertTransitionInterval', parseInt(value, 10))}
                 >
-                  <SelectTrigger id="dp-trigger-interval" className="h-8 text-xs">
+                  <SelectTrigger id="dp-trigger-interval" className="
+                    h-8 text-xs
+                  ">
                     <SelectValue>{selectedTriggerIntervalLabel}</SelectValue>
                   </SelectTrigger>
                   <SelectContent>
@@ -724,7 +755,9 @@ export function DatapointEditorSheet({
           </Section>
         </div>
 
-        <SheetFooter className="shrink-0 flex-row justify-end gap-2 border-t p-4 mt-0">
+        <SheetFooter className="
+          mt-0 shrink-0 flex-row justify-end gap-2 border-t p-4
+        ">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>

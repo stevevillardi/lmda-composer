@@ -220,7 +220,10 @@ export function CreateSnippetDialog() {
           {/* Code */}
           <div className="space-y-2">
             <Label htmlFor="snippet-code">Code *</Label>
-            <div className="rounded-md border border-border bg-muted/30 h-[260px] overflow-hidden">
+            <div className="
+              h-[260px] overflow-hidden rounded-md border border-border
+              bg-muted/30
+            ">
               <Editor
                 height="100%"
                 language={monacoLanguage === 'powershell' ? 'powershell' : 'groovy'}
@@ -229,8 +232,8 @@ export function CreateSnippetDialog() {
                 onChange={(value) => setCode(value ?? '')}
                 options={editorOptions}
                 loading={
-                  <div className="flex items-center justify-center h-full">
-                    <div className="text-muted-foreground text-xs">Loading...</div>
+                  <div className="flex h-full items-center justify-center">
+                    <div className="text-xs text-muted-foreground">Loading...</div>
                   </div>
                 }
               />

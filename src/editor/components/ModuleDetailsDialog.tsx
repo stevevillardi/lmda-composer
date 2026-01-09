@@ -232,16 +232,20 @@ export function ModuleDetailsDialog() {
 
   return (
     <Dialog open={moduleDetailsDialogOpen} onOpenChange={setModuleDetailsDialogOpen}>
-      <DialogContent className="w-[95vw] max-w-[1600px]! h-[90vh] flex flex-col gap-0 p-0" showCloseButton>
-        <div className="relative flex flex-col h-full">
-          <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
+      <DialogContent className="
+        flex h-[90vh] w-[95vw] max-w-[1600px]! flex-col gap-0 p-0
+      " showCloseButton>
+        <div className="relative flex h-full flex-col">
+          <DialogHeader className="shrink-0 border-b px-6 pt-6 pb-4">
             <div className="flex items-center justify-between">
               <div>
                 <DialogTitle className="flex items-center gap-2">
                   <Settings className="size-5" />
                   Module Details
                   {isRefreshingModuleDetails && (
-                    <span className="text-xs text-muted-foreground flex items-center gap-1">
+                    <span className="
+                      flex items-center gap-1 text-xs text-muted-foreground
+                    ">
                       <RefreshCw className="size-3 animate-spin" />
                       Checking for updates...
                     </span>
@@ -254,7 +258,7 @@ export function ModuleDetailsDialog() {
             </div>
           </DialogHeader>
 
-          <div className="flex-1 flex min-h-0 border-t border-border">
+          <div className="flex min-h-0 flex-1 border-t border-border">
             {/* Sidebar Navigation */}
               <ModuleDetailsSidebar
                 activeSection={activeSection}
@@ -265,10 +269,10 @@ export function ModuleDetailsDialog() {
               />
 
             {/* Main Content Area */}
-            <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
               {/* Conflict Warning Banner */}
               {moduleDetailsConflict?.hasConflict && (
-                <div className="shrink-0 p-4 border-b">
+                <div className="shrink-0 border-b p-4">
                   <Alert variant="warning">
                     <AlertTitle>Portal Changes Detected</AlertTitle>
                     <AlertDescription className="mt-2">
@@ -276,7 +280,7 @@ export function ModuleDetailsDialog() {
                         <p>
                           {moduleDetailsConflict.message}
                           {moduleDetailsConflict.conflictingFields && moduleDetailsConflict.conflictingFields.length > 0 && (
-                            <span className="block mt-1">
+                            <span className="mt-1 block">
                               Changed fields: {moduleDetailsConflict.conflictingFields.join(', ')}
                             </span>
                           )}
@@ -294,7 +298,7 @@ export function ModuleDetailsDialog() {
                             variant="secondary"
                             onClick={() => activeTabId && resolveModuleDetailsConflict(activeTabId, 'use-portal')}
                           >
-                            <RefreshCw className="size-3.5 mr-1.5" />
+                            <RefreshCw className="mr-1.5 size-3.5" />
                             Use Portal Version
                           </Button>
                         </div>
@@ -305,9 +309,11 @@ export function ModuleDetailsDialog() {
               )}
 
               {moduleDetailsLoading ? (
-                <div className="flex items-center justify-center h-full">
+                <div className="flex h-full items-center justify-center">
                   <div className="flex flex-col items-center gap-3">
-                    <Loader2 className="size-8 animate-spin text-muted-foreground" />
+                    <Loader2 className="
+                      size-8 animate-spin text-muted-foreground
+                    " />
                     <p className="text-sm text-muted-foreground">Loading module details...</p>
                   </div>
                 </div>
@@ -346,21 +352,23 @@ export function ModuleDetailsDialog() {
                   )}
                 </div>
               ) : (
-                <div className="flex items-center justify-center h-full text-muted-foreground">
+                <div className="
+                  flex h-full items-center justify-center text-muted-foreground
+                ">
                   No module details loaded
                 </div>
               )}
             </div>
           </div>
 
-          <DialogFooter className="px-6 pb-6 pt-4 border-t shrink-0">
-            <div className="flex items-center justify-between w-full">
+          <DialogFooter className="shrink-0 border-t px-6 pt-4 pb-6">
+            <div className="flex w-full items-center justify-between">
               <div className="text-xs text-muted-foreground">
                 {hasChanges && (
                   <span className="text-yellow-500">You have changes that have not been staged</span>
                 )}
               </div>
-              <div className="flex items-center gap-2 ml-auto">
+              <div className="ml-auto flex items-center gap-2">
                 {hasChanges && (
                   <Button variant="outline" onClick={() => setResetDialogOpen(true)}>
                     Reset Changes

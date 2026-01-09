@@ -72,8 +72,11 @@ const PANEL_SIZES = {
 } as const;
 
 const panelLoadingFallback = (
-  <div className="flex items-center justify-center h-full">
-    <div className="flex items-center gap-3 rounded-lg border border-border bg-muted/30 px-4 py-3 text-sm text-muted-foreground shadow-sm">
+  <div className="flex h-full items-center justify-center">
+    <div className="
+      flex items-center gap-3 rounded-lg border border-border bg-muted/30 px-4
+      py-3 text-sm text-muted-foreground shadow-sm
+    ">
       <Loader2 className="size-4 animate-spin" />
       Loading workspace…
     </div>
@@ -375,22 +378,30 @@ export function App() {
   }, [pendingResourceId, portals, selectedPortalId, switchToPortalWithContext, setPendingResourceId]);
 
   return (
-    <div className="flex flex-col h-screen bg-background text-foreground overflow-hidden">
+    <div className="
+      flex h-screen flex-col overflow-hidden bg-background text-foreground
+    ">
       {/* Toolbar */}
       <Toolbar />
 
       {/* File Permission Banner - shown when files need permission re-request */}
       {tabsNeedingPermission.length > 0 && (
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-yellow-500/10 border-b border-yellow-500/20">
-          <FileWarning className="size-4 text-yellow-500 shrink-0" />
-          <span className="text-sm text-yellow-500 flex-1">
+        <div className="
+          flex items-center gap-2 border-b border-yellow-500/20 bg-yellow-500/10
+          px-3 py-1.5
+        ">
+          <FileWarning className="size-4 shrink-0 text-yellow-500" />
+          <span className="flex-1 text-sm text-yellow-500">
             {tabsNeedingPermission.length} file{tabsNeedingPermission.length !== 1 ? 's' : ''} need permission to save directly
           </span>
           <Button 
             variant="outline" 
             size="sm"
             onClick={requestFilePermissions}
-            className="border-yellow-500/30 text-yellow-500 hover:bg-yellow-500/10"
+            className="
+              border-yellow-500/30 text-yellow-500
+              hover:bg-yellow-500/10
+            "
           >
             Restore Access
           </Button>
@@ -399,7 +410,7 @@ export function App() {
 
       {/* Main Content Area */}
       {workspaceState.showWelcome ? (
-        <div className="flex-1 min-h-0">
+        <div className="min-h-0 flex-1">
           {workspaceState.showApiWelcome ? (
             <Suspense fallback={panelLoadingFallback}>
               <ApiWelcomeScreenLazy />
@@ -409,14 +420,14 @@ export function App() {
           )}
         </div>
       ) : (
-        <div className="flex-1 min-h-0 flex flex-col">
+        <div className="flex min-h-0 flex-1 flex-col">
           <TabBar />
 
           {/* Main workspace */}
           <ResizablePanelGroup
             key={rightSidebarOpen ? 'with-sidebar' : 'without-sidebar'}
             direction="horizontal"
-            className="flex-1 min-h-0"
+            className="min-h-0 flex-1"
           >
             <ResizablePanel defaultSize={rightSidebarOpen ? PANEL_SIZES.MAIN_WITH_SIDEBAR : PANEL_SIZES.MAIN_FULL} minSize={PANEL_SIZES.MIN_MAIN}>
               {activeTab?.kind === 'api' ? (
@@ -551,16 +562,16 @@ export function App() {
             <AlertDialogDescription>
               You have unsaved work from a previous session
               {pendingDraft?.lastModified && (
-                <span className="block mt-1 text-xs">
+                <span className="mt-1 block text-xs">
                   Last modified: {new Date(pendingDraft.lastModified).toLocaleString()}
                 </span>
               )}
               {pendingDraft && 'tabs' in pendingDraft ? (
-                <span className="block mt-1 text-xs">
+                <span className="mt-1 block text-xs">
                   {pendingDraft.tabs.length} open tab{pendingDraft.tabs.length !== 1 ? 's' : ''}
                 </span>
               ) : pendingDraft ? (
-                <span className="block mt-1 text-xs">
+                <span className="mt-1 block text-xs">
                   Language: {pendingDraft.language === 'groovy' ? 'Groovy' : 'PowerShell'}
                   {pendingDraft.hostname && ` • Host: ${pendingDraft.hostname}`}
                 </span>

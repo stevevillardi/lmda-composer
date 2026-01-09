@@ -64,13 +64,23 @@ const EXTERNAL_LINKS = [
 
 function GradientBackground() {
   return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+    <div className="pointer-events-none absolute inset-0 overflow-hidden">
       {/* Purple accent glow - top right */}
-      <div className="absolute -top-24 -right-24 h-64 w-64 rounded-full bg-purple-400/25 blur-3xl dark:bg-purple-500/15" />
+      <div className="
+        absolute -top-24 -right-24 size-64 rounded-full bg-purple-400/25
+        blur-3xl
+        dark:bg-purple-500/15
+      " />
       {/* Teal accent glow - left side */}
-      <div className="absolute top-40 -left-24 h-72 w-72 rounded-full bg-teal-400/25 blur-3xl dark:bg-teal-500/15" />
+      <div className="
+        absolute top-40 -left-24 size-72 rounded-full bg-teal-400/25 blur-3xl
+        dark:bg-teal-500/15
+      " />
       {/* Cyan accent glow - bottom */}
-      <div className="absolute bottom-0 right-1/3 h-48 w-48 rounded-full bg-cyan-400/20 blur-3xl dark:bg-cyan-500/10" />
+      <div className="
+        absolute right-1/3 bottom-0 size-48 rounded-full bg-cyan-400/20 blur-3xl
+        dark:bg-cyan-500/10
+      " />
     </div>
   );
 }
@@ -101,16 +111,29 @@ function ActionRow({
       onClick={disabled ? undefined : onClick}
       disabled={disabled}
       className={cn(
-        "flex items-center gap-3 w-full px-3.5 py-2.5 rounded-md border transition-all text-left",
+        `
+          flex w-full items-center gap-3 rounded-md border px-3.5 py-2.5
+          text-left transition-all
+        `,
+        `
+          focus-visible:ring-2 focus-visible:ring-ring
+          focus-visible:ring-offset-2 focus-visible:outline-none
+        `,
         disabled
-          ? "border-border/40 bg-muted/20 cursor-not-allowed opacity-50"
-          : "border-border/60 bg-card/40 hover:bg-accent/50 hover:border-primary/40 hover:shadow-sm"
+          ? "cursor-not-allowed border-border/40 bg-muted/20 opacity-50"
+          : `
+            border-border/60 bg-card/40
+            hover:border-primary/40 hover:bg-accent/50 hover:shadow-sm
+          `
       )}
     >
       <div
         className={cn(
-          "size-9 rounded-md grid place-items-center shrink-0 transition-colors",
-          disabled ? "bg-muted/30 text-muted-foreground" : "bg-primary/10 text-primary group-hover:bg-primary/20"
+          "grid size-9 shrink-0 place-items-center rounded-md transition-colors",
+          disabled ? "bg-muted/30 text-muted-foreground" : `
+            bg-primary/10 text-primary
+            group-hover:bg-primary/20
+          `
         )}
       >
         {icon}
@@ -124,7 +147,7 @@ function ActionRow({
         >
           {title}
         </div>
-        <div className="text-xs text-muted-foreground mt-0.5 truncate">
+        <div className="mt-0.5 truncate text-xs text-muted-foreground">
           {description}
         </div>
       </div>
@@ -156,18 +179,35 @@ function ExternalLinkRow({ title, description, url }: ExternalLinkRowProps) {
       target="_blank"
       rel="noopener noreferrer"
       className={cn(
-        "flex items-center gap-3 w-full px-3.5 py-2.5 rounded-md border transition-all text-left group",
-        "border-border/60 bg-card/40 hover:bg-accent/50 hover:border-primary/40 hover:shadow-sm"
+        `
+          group flex w-full items-center gap-3 rounded-md border px-3.5 py-2.5
+          text-left transition-all
+        `,
+        `
+          border-border/60 bg-card/40
+          hover:border-primary/40 hover:bg-accent/50 hover:shadow-sm
+        `,
+        `
+          focus-visible:ring-2 focus-visible:ring-ring
+          focus-visible:ring-offset-2 focus-visible:outline-none
+        `
       )}
     >
-      <div className="size-9 rounded-md grid place-items-center shrink-0 bg-primary/10 text-primary transition-colors group-hover:bg-primary/20">
+      <div className="
+        grid size-9 shrink-0 place-items-center rounded-md bg-primary/10
+        text-primary transition-colors
+        group-hover:bg-primary/20
+      ">
         <ExternalLink className="size-4" />
       </div>
       <div className="min-w-0 flex-1">
-        <div className="text-sm font-medium tracking-tight text-foreground group-hover:text-primary transition-colors">
+        <div className="
+          text-sm font-medium tracking-tight text-foreground transition-colors
+          group-hover:text-primary
+        ">
           {title}
         </div>
-        <div className="text-xs text-muted-foreground mt-0.5 truncate">
+        <div className="mt-0.5 truncate text-xs text-muted-foreground">
           {description}
         </div>
       </div>
@@ -191,18 +231,22 @@ export function ApiWelcomeScreen() {
   };
 
   return (
-    <div className="h-full relative flex flex-col bg-background overflow-auto" tabIndex={-1}>
+    <div className="relative flex h-full flex-col overflow-auto bg-background" tabIndex={-1}>
       <GradientBackground />
       
-      <div className="flex-1 flex items-center justify-center p-6 relative z-10">
+      <div className="relative z-10 flex flex-1 items-center justify-center p-6">
         <div className="w-full max-w-5xl space-y-6">
           {/* Header */}
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-2 select-none">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <img src={logoIcon} alt="LMDA Composer" className="size-10 drop-shadow-sm" />
+                <img src={logoIcon} alt="LMDA Composer" className="
+                  size-10 drop-shadow-sm
+                " draggable={false} />
                 <div className="leading-tight">
-                  <h1 className="text-2xl font-semibold text-foreground tracking-tight">
+                  <h1 className="
+                    text-2xl font-semibold tracking-tight text-foreground
+                  ">
                     API Explorer
                   </h1>
                   <p className="text-sm text-muted-foreground">
@@ -214,22 +258,33 @@ export function ApiWelcomeScreen() {
                 variant="ghost"
                 size="sm"
                 onClick={handleBackToComposer}
-                className="text-muted-foreground hover:text-foreground hover:bg-white/10"
+                className="
+                  text-muted-foreground
+                  hover:bg-white/10 hover:text-foreground
+                "
               >
-                <ArrowLeft className="size-4 mr-1.5" />
+                <ArrowLeft className="mr-1.5 size-4" />
                 Back to Composer
               </Button>
             </div>
           </div>
 
           {/* Main Content Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="
+            grid grid-cols-1 gap-6
+            lg:grid-cols-2
+          ">
             {/* Left Column */}
             <div className="space-y-4">
               {/* Quick Start */}
-              <Card size="sm" className="bg-card/60 backdrop-blur-sm border-border/60 shadow-sm">
+              <Card size="sm" className="
+                border-border/60 bg-card/60 shadow-sm backdrop-blur-sm
+              ">
                 <CardHeader className="pb-0">
-                  <CardTitle className="text-xs uppercase tracking-wide text-muted-foreground font-medium">
+                  <CardTitle className="
+                    text-xs font-medium tracking-wide text-muted-foreground
+                    uppercase
+                  ">
                     Quick Start
                   </CardTitle>
                 </CardHeader>
@@ -246,9 +301,14 @@ export function ApiWelcomeScreen() {
               </Card>
 
               {/* Rate Limits */}
-              <Card size="sm" className="bg-card/60 backdrop-blur-sm border-border/60 shadow-sm">
+              <Card size="sm" className="
+                border-border/60 bg-card/60 shadow-sm backdrop-blur-sm
+              ">
                 <CardHeader className="pb-0">
-                  <CardTitle className="text-xs uppercase tracking-wide text-muted-foreground font-medium flex items-center gap-2">
+                  <CardTitle className="
+                    flex items-center gap-2 text-xs font-medium tracking-wide
+                    text-muted-foreground uppercase
+                  ">
                     <Gauge className="size-3.5" />
                     Default Rate Limits
                   </CardTitle>
@@ -261,30 +321,42 @@ export function ApiWelcomeScreen() {
                         <div
                           key={method}
                           className={cn(
-                            "flex flex-col items-center justify-center p-2.5 rounded-md border border-border/50",
+                            `
+                              flex flex-col items-center justify-center
+                              rounded-md border border-border/50 p-2.5
+                            `,
                             methodStyle.bgSubtle
                           )}
                         >
-                          <span className={cn("text-xs font-semibold font-mono", methodStyle.text)}>
+                          <span className={cn("font-mono text-xs font-semibold", methodStyle.text)}>
                             {method}
                           </span>
-                          <span className="text-[10px] text-muted-foreground mt-0.5">
+                          <span className="
+                            mt-0.5 text-[10px] text-muted-foreground
+                          ">
                             {limit}
                           </span>
                         </div>
                       );
                     })}
                   </div>
-                  <p className="text-[10px] text-muted-foreground mt-2 text-center">
+                  <p className="
+                    mt-2 text-center text-[10px] text-muted-foreground
+                  ">
                     Limits are per portal, not per user. Check response headers for remaining quota.
                   </p>
                 </CardContent>
               </Card>
 
               {/* Resources */}
-              <Card size="sm" className="bg-card/60 backdrop-blur-sm border-border/60 shadow-sm">
+              <Card size="sm" className="
+                border-border/60 bg-card/60 shadow-sm backdrop-blur-sm
+              ">
                 <CardHeader className="pb-0">
-                  <CardTitle className="text-xs uppercase tracking-wide text-muted-foreground font-medium flex items-center gap-2">
+                  <CardTitle className="
+                    flex items-center gap-2 text-xs font-medium tracking-wide
+                    text-muted-foreground uppercase
+                  ">
                     <BookOpen className="size-3.5" />
                     Resources
                   </CardTitle>
@@ -303,43 +375,75 @@ export function ApiWelcomeScreen() {
             </div>
 
             {/* Right Column - Error Codes Reference */}
-            <Card size="sm" className="bg-card/60 backdrop-blur-sm border-border/60 shadow-sm">
+            <Card size="sm" className="
+              border-border/60 bg-card/60 shadow-sm backdrop-blur-sm
+            ">
               <CardHeader className="pb-0">
-                <CardTitle className="text-xs uppercase tracking-wide text-muted-foreground font-medium flex items-center gap-2">
+                <CardTitle className="
+                  flex items-center gap-2 text-xs font-medium tracking-wide
+                  text-muted-foreground uppercase
+                ">
                   <AlertCircle className="size-3.5" />
                   API Error Codes (v3)
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="border border-border/50 rounded-md overflow-hidden bg-background/50">
+                <div className="
+                  overflow-hidden rounded-md border border-border/50
+                  bg-background/50
+                ">
                   {/* Table Header */}
-                  <div className="grid grid-cols-[60px_60px_1fr] bg-muted/40 border-b border-border/50 px-3 py-1.5">
-                    <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
+                  <div className="
+                    grid grid-cols-[60px_60px_1fr] border-b border-border/50
+                    bg-muted/40 px-3 py-1.5
+                  ">
+                    <span className="
+                      text-[10px] font-medium tracking-wide
+                      text-muted-foreground uppercase
+                    ">
                       HTTP
                     </span>
-                    <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
+                    <span className="
+                      text-[10px] font-medium tracking-wide
+                      text-muted-foreground uppercase
+                    ">
                       LM Code
                     </span>
-                    <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">
+                    <span className="
+                      text-[10px] font-medium tracking-wide
+                      text-muted-foreground uppercase
+                    ">
                       Description
                     </span>
                   </div>
                   {/* Table Body */}
-                  <div className="divide-y divide-border/30 max-h-[350px] overflow-y-auto scrollbar-thin scrollbar-thumb-border scrollbar-track-transparent">
+                  <div className="
+                    scrollbar-thin scrollbar-thumb-border
+                    scrollbar-track-transparent max-h-[350px] divide-y
+                    divide-border/30 overflow-y-auto
+                  ">
                     {ERROR_CODES.map(({ http, lm, description }) => (
                       <div
                         key={http}
-                        className="grid grid-cols-[60px_60px_1fr] px-3 py-2 hover:bg-muted/20 transition-colors"
+                        className="
+                          grid grid-cols-[60px_60px_1fr] px-3 py-2
+                          transition-colors
+                          hover:bg-muted/20
+                        "
                       >
                         <span className={cn(
-                          "text-xs font-mono font-medium",
+                          "font-mono text-xs font-medium",
                           http >= 500 ? "text-red-500" :
                           http >= 400 ? "text-yellow-500" :
-                          http >= 200 ? "text-teal-500" : "text-muted-foreground"
+                          http >= 200 ? "text-teal-500" : `
+                            text-muted-foreground
+                          `
                         )}>
                           {http}
                         </span>
-                        <span className="text-xs font-mono text-muted-foreground">
+                        <span className="
+                          font-mono text-xs text-muted-foreground
+                        ">
                           {lm}
                         </span>
                         <span className="text-xs text-foreground">
@@ -349,16 +453,20 @@ export function ApiWelcomeScreen() {
                     ))}
                   </div>
                 </div>
-                <p className="text-[10px] text-muted-foreground mt-2 text-center">
-                  The <code className="font-mono bg-muted/50 px-1 rounded">errorCode</code> field appears in the response body for failed requests.
+                <p className="
+                  mt-2 text-center text-[10px] text-muted-foreground
+                ">
+                  The <code className="rounded-sm bg-muted/50 px-1 font-mono">errorCode</code> field appears in the response body for failed requests.
                 </p>
               </CardContent>
             </Card>
           </div>
 
           {/* Footer Tip */}
-          <div className="w-full flex items-center justify-center">
-            <div className="text-xs text-muted-foreground flex items-center gap-2">
+          <div className="flex w-full items-center justify-center select-none">
+            <div className="
+              flex items-center gap-2 text-xs text-muted-foreground
+            ">
               <span>Tip</span>
               <div className="flex items-center gap-0.5">
                 <Kbd>⌘</Kbd>

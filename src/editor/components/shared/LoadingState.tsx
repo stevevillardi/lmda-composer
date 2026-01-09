@@ -14,7 +14,7 @@ export function LoadingState({
   className,
 }: LoadingStateProps) {
   return (
-    <Empty className={cn('h-full border-0 flex items-center justify-center', className)}>
+    <Empty className={cn('flex h-full items-center justify-center border-0', className)}>
       <EmptyHeader>
         <EmptyMedia variant="icon">
           <Loader2 className="size-5 animate-spin" />

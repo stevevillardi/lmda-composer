@@ -26,7 +26,7 @@ export function ValidationContent() {
   // No execution yet
   if (!currentExecution) {
     return (
-      <Empty className="border-none h-full">
+      <Empty className="h-full border-none">
         <EmptyHeader>
           <EmptyMedia variant="icon">
             <Play className="size-5" />
@@ -46,7 +46,7 @@ export function ValidationContent() {
       <div className="p-4">
         <Card className="border-red-500/30 bg-red-500/5">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm flex items-center gap-2 text-red-500">
+            <CardTitle className="flex items-center gap-2 text-sm text-red-500">
               <ErrorIcon className="size-4" />
               Execution Failed
             </CardTitle>
@@ -62,7 +62,7 @@ export function ValidationContent() {
   // No parsed output available
   if (!parsedOutput) {
     return (
-      <Empty className="border-none h-full">
+      <Empty className="h-full border-none">
         <EmptyHeader>
           <EmptyMedia variant="icon">
             <Terminal className="size-5" />
@@ -112,7 +112,7 @@ function ValidationSummary({ result }: ValidationSummaryProps) {
   const allValid = summary.errors === 0 && summary.warnings === 0;
 
   return (
-    <div className="p-4 space-y-4">
+    <div className="space-y-4 p-4">
       {/* Summary Cards */}
       <div className="grid grid-cols-4 gap-3">
         <SummaryCard
@@ -125,26 +125,32 @@ function ValidationSummary({ result }: ValidationSummaryProps) {
           title="Valid"
           value={summary.valid}
           icon={CheckCircle2}
-          className={summary.valid > 0 ? 'bg-teal-500/10 text-teal-600' : 'bg-muted/30'}
+          className={summary.valid > 0 ? 'bg-teal-500/10 text-teal-600' : `
+            bg-muted/30
+          `}
         />
         <SummaryCard
           title="Errors"
           value={summary.errors}
           icon={XCircle}
-          className={summary.errors > 0 ? 'bg-red-500/10 text-red-500' : 'bg-muted/30'}
+          className={summary.errors > 0 ? 'bg-red-500/10 text-red-500' : `
+            bg-muted/30
+          `}
         />
         <SummaryCard
           title="Warnings"
           value={summary.warnings}
           icon={AlertTriangle}
-          className={summary.warnings > 0 ? 'bg-yellow-500/10 text-yellow-500' : 'bg-muted/30'}
+          className={summary.warnings > 0 ? 'bg-yellow-500/10 text-yellow-500' : `
+            bg-muted/30
+          `}
         />
       </div>
 
       {/* All Valid Message */}
       {allValid && (
         <Card className="border-teal-500/30 bg-teal-500/5">
-          <CardContent className="py-4 flex items-center gap-3">
+          <CardContent className="flex items-center gap-3 py-4">
             <SuccessIcon className="size-6" />
             <div>
               <div className="font-medium text-teal-600">All Valid</div>
@@ -209,7 +215,7 @@ interface SummaryCardProps {
 function SummaryCard({ title, value, icon: Icon, className }: SummaryCardProps) {
   return (
     <Card className={cn('border-none', className)}>
-      <CardContent className="py-3 px-4">
+      <CardContent className="px-4 py-3">
         <div className="flex items-center justify-between">
           <div>
             <div className="text-xs text-muted-foreground">{title}</div>
@@ -250,7 +256,7 @@ function IssueSection({
 
   return (
     <div>
-      <div className="flex items-center gap-2 mb-2">
+      <div className="mb-2 flex items-center gap-2">
         <Icon className={cn('size-4', iconClass)} />
         <span className="text-sm font-medium">{title}</span>
         <Badge variant={badgeVariant} className={cn('text-xs', badgeClass)}>
@@ -264,7 +270,9 @@ function IssueSection({
           .map(([lineNum, lineIssues]) => (
             <div key={lineNum} className="px-3 py-2">
               <div className="flex items-start gap-3">
-                <span className="text-xs text-muted-foreground font-mono shrink-0 pt-0.5">
+                <span className="
+                  shrink-0 pt-0.5 font-mono text-xs text-muted-foreground
+                ">
                   Line {lineNum}
                 </span>
                 <Separator orientation="vertical" className="h-4" />
@@ -272,13 +280,13 @@ function IssueSection({
                   {lineIssues.map((issue, idx) => (
                     <div 
                       key={idx}
-                      className="text-sm flex items-center gap-2"
+                      className="flex items-center gap-2 text-sm"
                     >
                       <span>{issue.message}</span>
                       {issue.field && (
                         <Badge 
                           variant="secondary" 
-                          className="h-4 px-1.5 text-[10px] font-mono"
+                          className="h-4 px-1.5 font-mono text-[10px]"
                         >
                           {issue.field}
                         </Badge>

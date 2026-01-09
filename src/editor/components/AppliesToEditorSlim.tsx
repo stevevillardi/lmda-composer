@@ -249,12 +249,15 @@ export function AppliesToEditorSlim({
               setCursorWordStart(wordContext.start);
             }}
             placeholder='hasCategory("Linux") && isDevice()'
-            className="min-h-[120px] font-mono text-sm resize-none"
+            className="min-h-[120px] resize-none font-mono text-sm"
           />
           
           {/* Autocomplete suggestions dropdown */}
           {showSuggestions && suggestions.length > 0 && (
-            <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-popover border border-border rounded-md shadow-lg max-h-48 overflow-auto">
+            <div className="
+              absolute top-full right-0 left-0 z-50 mt-1 max-h-48 overflow-auto
+              rounded-md border border-border bg-popover shadow-lg
+            ">
               {suggestions.map((item, index) => {
                 const isFunction = 'name' in item;
                 const displayName = isFunction ? (item as AppliesToFunction).name : (item as AppliesToOperator).symbol;
@@ -270,15 +273,23 @@ export function AppliesToEditorSlim({
                     key={isFunction ? (item as AppliesToFunction).name : (item as AppliesToOperator).symbol}
                     onClick={() => selectSuggestion(item)}
                     className={cn(
-                      "w-full px-3 py-2 text-left text-sm flex items-center gap-2 hover:bg-accent transition-colors",
+                      `
+                        flex w-full items-center gap-2 px-3 py-2 text-left
+                        text-sm transition-colors
+                        hover:bg-accent
+                      `,
                       index === suggestionIndex && "bg-accent"
                     )}
                   >
-                    <Badge variant={isFunction ? 'default' : 'secondary'} className="text-xs font-mono">
+                    <Badge variant={isFunction ? 'default' : 'secondary'} className="
+                      font-mono text-xs
+                    ">
                       <span className="font-semibold">{matchedPart}</span>
                       <span className="opacity-70">{remainingPart}</span>
                     </Badge>
-                    <span className="text-muted-foreground text-xs truncate flex-1">
+                    <span className="
+                      flex-1 truncate text-xs text-muted-foreground
+                    ">
                       {description.slice(0, 60)}
                       {description.length > 60 && '...'}
                     </span>
@@ -339,13 +350,18 @@ export function AppliesToEditorSlim({
             )}
           </div>
 
-          <div className="border border-border rounded-md bg-muted/20 min-h-[200px] max-h-[300px] overflow-auto">
+          <div className="
+            max-h-[300px] min-h-[200px] overflow-auto rounded-md border
+            border-border bg-muted/20
+          ">
             {displayError ? (
-              <div className="flex items-start gap-3 p-4 bg-destructive/10">
-                <AlertCircle className="size-5 text-destructive mt-0.5 shrink-0" />
+              <div className="flex items-start gap-3 bg-destructive/10 p-4">
+                <AlertCircle className="mt-0.5 size-5 shrink-0 text-destructive" />
                 <div className="flex-1">
-                  <div className="text-sm font-medium text-destructive mb-2">Expression Error</div>
-                  <pre className="text-sm text-destructive/90 whitespace-pre-wrap font-mono">
+                  <div className="mb-2 text-sm font-medium text-destructive">Expression Error</div>
+                  <pre className="
+                    font-mono text-sm whitespace-pre-wrap text-destructive/90
+                  ">
                     {displayError}
                   </pre>
                 </div>
@@ -379,15 +395,24 @@ export function AppliesToEditorSlim({
                 {displayResults.map((match) => (
                   <div 
                     key={match.id}
-                    className="flex items-center gap-3 px-4 py-2.5 hover:bg-accent/50 transition-colors group"
+                    className="
+                      group flex items-center gap-3 px-4 py-2.5
+                      transition-colors
+                      hover:bg-accent/50
+                    "
                   >
-                    <Badge variant="outline" className="shrink-0 font-mono text-xs">
+                    <Badge variant="outline" className="
+                      shrink-0 font-mono text-xs
+                    ">
                       {match.type}
                     </Badge>
-                    <span className="font-mono text-xs text-muted-foreground shrink-0 w-16 text-right">
+                    <span className="
+                      w-16 shrink-0 text-right font-mono text-xs
+                      text-muted-foreground
+                    ">
                       #{match.id}
                     </span>
-                    <span className="text-sm truncate flex-1" title={match.name}>
+                    <span className="flex-1 truncate text-sm" title={match.name}>
                       {match.name}
                     </span>
                     <Tooltip>
@@ -397,7 +422,10 @@ export function AppliesToEditorSlim({
                             variant="ghost"
                             size="icon-xs"
                             onClick={() => handleCopy(match.id)}
-                            className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                            className="
+                              shrink-0 opacity-0 transition-opacity
+                              group-hover:opacity-100
+                            "
                           >
                             {copiedId === match.id ? (
                               <Check className="size-3 text-teal-500" />

@@ -34,7 +34,10 @@ export function BraveFileSystemWarning({
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent size="default" className="max-w-xl! !sm:max-w-2xl">
+      <AlertDialogContent size="default" className="
+        max-w-xl!
+        sm:max-w-2xl!
+      ">
         <AlertDialogHeader>
           <AlertDialogMedia className="bg-yellow-500/10">
             <AlertTriangle className="size-8 text-yellow-500" />
@@ -49,15 +52,19 @@ export function BraveFileSystemWarning({
           <div className="space-y-2 text-left text-sm text-muted-foreground">
             <div className="font-medium text-foreground">To enable it:</div>
             {isBrave ? (
-              <ol className="list-decimal list-inside space-y-1 ml-2">
-                <li>Open <code className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono">brave://flags</code> in a new tab</li>
+              <ol className="ml-2 list-inside list-decimal space-y-1">
+                <li>Open <code className="
+                  rounded-sm bg-muted px-1.5 py-0.5 font-mono text-xs
+                ">brave://flags</code> in a new tab</li>
                 <li>Search for \"File System Access API\"</li>
                 <li>Set it to \"Enabled\"</li>
                 <li>Restart your browser</li>
               </ol>
             ) : (
-              <ol className="list-decimal list-inside space-y-1 ml-2">
-                <li>Open <code className="px-1.5 py-0.5 bg-muted rounded text-xs font-mono">vivaldi://extensions</code></li>
+              <ol className="ml-2 list-inside list-decimal space-y-1">
+                <li>Open <code className="
+                  rounded-sm bg-muted px-1.5 py-0.5 font-mono text-xs
+                ">vivaldi://extensions</code></li>
                 <li>Select \"LMDA Composer\"</li>
                 <li>Enable \"Allow access to file URLs\"</li>
               </ol>

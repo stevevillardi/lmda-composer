@@ -166,7 +166,9 @@ export function LogicModuleBrowser() {
   return (
     <>
       <Dialog open={moduleBrowserOpen} onOpenChange={setModuleBrowserOpen}>
-        <DialogContent className="w-[90vw]! max-w-[90vw]! h-[90vh] flex flex-col gap-4 p-0" showCloseButton>
+        <DialogContent className="
+          flex h-[90vh] w-[90vw]! max-w-[90vw]! flex-col gap-4 p-0
+        " showCloseButton>
           {/* Header */}
           <DialogHeader className="px-6 pt-6 pb-0">
             <DialogTitle className="flex items-center gap-2">
@@ -184,7 +186,7 @@ export function LogicModuleBrowser() {
               value={[selectedModuleType]}
               onValueChange={handleTypeChange}
               variant="outline"
-              className="w-full justify-start flex-wrap"
+              className="w-full flex-wrap justify-start"
             >
               {LOGIC_MODULE_TYPES.map((type) => {
                 const Icon = type.icon;
@@ -195,7 +197,10 @@ export function LogicModuleBrowser() {
                     className="flex items-center gap-1.5 px-3"
                   >
                     <Icon className="size-4" />
-                    <span className="hidden sm:inline">{type.label}</span>
+                    <span className="
+                      hidden
+                      sm:inline
+                    ">{type.label}</span>
                     <span className="sm:hidden">{type.shortLabel}</span>
                   </ToggleGroupItem>
                 );
@@ -204,26 +209,37 @@ export function LogicModuleBrowser() {
           </div>
 
           {/* Main Content Area */}
-          <div className="flex-1 flex min-h-0 border-t border-border">
+          <div className="flex min-h-0 flex-1 border-t border-border">
             {/* Left Panel - Module List */}
-            <div className="w-80 shrink-0 border-r border-border flex flex-col bg-muted/5">
+            <div className="
+              flex w-80 shrink-0 flex-col border-r border-border bg-muted/5
+            ">
               {/* Search */}
-              <div className="p-3 border-b border-border bg-background">
+              <div className="border-b border-border bg-background p-3">
                 <div className="flex items-center gap-2">
                   <div className="relative flex-1">
-                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                    <Search className="
+                      absolute top-1/2 left-2.5 size-4 -translate-y-1/2
+                      text-muted-foreground
+                    " />
                     <Input
                       type="text"
                       placeholder="Search modules..."
                       value={moduleSearchQuery}
                       onChange={(e) => setModuleSearchQuery(e.target.value)}
-                      className="pl-8 pr-7 h-8 bg-background border-input shadow-sm"
+                      className="
+                        h-8 border-input bg-background pr-7 pl-8 shadow-sm
+                      "
                     />
                     {moduleSearchQuery.trim() && (
                       <button
                         type="button"
                         onClick={() => setModuleSearchQuery('')}
-                        className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        className="
+                          absolute top-1/2 right-2 -translate-y-1/2
+                          text-muted-foreground
+                          hover:text-foreground
+                        "
                         aria-label="Clear search"
                       >
                         ×
@@ -240,13 +256,17 @@ export function LogicModuleBrowser() {
                           disabled={isRefreshingModules || isFetchingModules}
                           className={cn(
                             "size-8 transition-all duration-200",
-                            (isRefreshingModules || isFetchingModules) && "opacity-70"
+                            (isRefreshingModules || isFetchingModules) && `
+                              opacity-70
+                            `
                           )}
                         >
                           <RefreshCw 
                             className={cn(
                               "size-3.5 transition-transform duration-200",
-                              (isRefreshingModules || isFetchingModules) && "animate-spin"
+                              (isRefreshingModules || isFetchingModules) && `
+                                animate-spin
+                              `
                             )} 
                           />
                         </Button>
@@ -260,7 +280,7 @@ export function LogicModuleBrowser() {
               </div>
 
               {/* Module List */}
-              <div className="flex-1 overflow-y-auto flex flex-col">
+              <div className="flex flex-1 flex-col overflow-y-auto">
                 {isFetchingModules ? (
                   <LoadingState 
                     title="Loading modules..."
@@ -268,10 +288,14 @@ export function LogicModuleBrowser() {
                     className="border-0 bg-transparent"
                   />
                 ) : filteredModules.length === 0 ? (
-                  <Empty className="border-none h-full py-8 flex flex-col justify-center">
+                  <Empty className="
+                    flex h-full flex-col justify-center border-none py-8
+                  ">
                     <EmptyHeader>
                       <EmptyMedia variant="icon" className="bg-muted/50">
-                        <FolderSearch className="size-5 text-muted-foreground/70" />
+                        <FolderSearch className="
+                          size-5 text-muted-foreground/70
+                        " />
                       </EmptyMedia>
                       <EmptyTitle className="text-base font-medium">No modules found</EmptyTitle>
                       <EmptyDescription className="px-6">
@@ -284,7 +308,7 @@ export function LogicModuleBrowser() {
                     </EmptyHeader>
                   </Empty>
                 ) : (
-                  <div className="p-2 space-y-1">
+                  <div className="space-y-1 p-2">
                     {filteredModules.map((module) => (
                       <ModuleListItem
                         key={module.id}
@@ -294,11 +318,14 @@ export function LogicModuleBrowser() {
                       />
                     ))}
                     {moduleMeta?.hasMore && (
-                      <div className="pt-2 pb-1 px-1">
+                      <div className="px-1 pt-2 pb-1">
                         <Button
                           variant="outline"
                           size="sm"
-                          className="w-full bg-background/50 border-dashed hover:bg-accent/50"
+                          className="
+                            w-full border-dashed bg-background/50
+                            hover:bg-accent/50
+                          "
                           onClick={() => fetchModules(selectedModuleType, { append: true })}
                           disabled={isFetchingModules}
                         >
@@ -314,14 +341,21 @@ export function LogicModuleBrowser() {
             </div>
 
             {/* Right Panel - Preview */}
-            <div className="flex-1 flex flex-col min-w-0 bg-background/50">
+            <div className="flex min-w-0 flex-1 flex-col bg-background/50">
               {selectedModule ? (
                 <ModulePreview module={selectedModule} />
               ) : (
-                <div className="flex flex-col items-center justify-center h-full p-8 text-center animate-in fade-in duration-300">
-                  <Empty className="border-none bg-transparent shadow-none w-full max-w-sm">
+                <div className="
+                  flex h-full animate-in flex-col items-center justify-center
+                  p-8 text-center duration-300 fade-in
+                ">
+                  <Empty className="
+                    w-full max-w-sm border-none bg-transparent shadow-none
+                  ">
                     <EmptyHeader>
-                      <EmptyMedia variant="icon" className="mx-auto bg-muted/50 mb-4">
+                      <EmptyMedia variant="icon" className="
+                        mx-auto mb-4 bg-muted/50
+                      ">
                         <Eye className="size-5 text-muted-foreground/70" />
                       </EmptyMedia>
                       <EmptyTitle className="text-base font-medium">No module selected</EmptyTitle>
@@ -378,23 +412,39 @@ function ModuleListItem({ module, isSelected, onClick }: ModuleListItemProps) {
     <button
       onClick={onClick}
       className={cn(
-        'w-full text-left px-3 py-2.5 transition-all duration-200 group relative',
+        `
+          group relative w-full px-3 py-2.5 text-left transition-all
+          duration-200
+        `,
         'border-l-2',
         isSelected 
-          ? 'bg-accent/50 border-primary text-accent-foreground shadow-sm' 
-          : 'border-transparent hover:bg-muted/30 hover:border-border/50 text-muted-foreground hover:text-foreground'
+          ? 'border-primary bg-accent/50 text-accent-foreground shadow-sm' 
+          : `
+            border-transparent text-muted-foreground
+            hover:border-border/50 hover:bg-muted/30 hover:text-foreground
+          `
       )}
     >
-      <div className={cn("font-medium text-sm truncate mb-1 flex items-center gap-1.5 min-w-0", isSelected ? "text-foreground" : "text-foreground/90")}>
-        <span className="truncate flex-1">{module.displayName || module.name}</span>
+      <div className={cn(`
+        mb-1 flex min-w-0 items-center gap-1.5 truncate text-sm font-medium
+      `, isSelected ? `text-foreground` : `text-foreground/90`)}>
+        <span className="flex-1 truncate">{module.displayName || module.name}</span>
         {module.name && module.displayName && module.name !== module.displayName && (
-          <span className={cn("text-xs font-normal truncate shrink-0 max-w-[40%]", isSelected ? "text-muted-foreground/80" : "text-muted-foreground/60")}>
+          <span className={cn(`
+            max-w-[40%] shrink-0 truncate text-xs font-normal
+          `, isSelected ? `text-muted-foreground/80` : `
+            text-muted-foreground/60
+          `)}>
             ({module.name})
           </span>
         )}
       </div>
-      <div className={cn("flex items-center gap-2 text-xs", isSelected ? "text-muted-foreground" : "text-muted-foreground/70")}>
-        <span className="font-mono font-medium tracking-tight bg-muted/30 px-1 rounded-[3px]">{module.collectMethod}</span>
+      <div className={cn("flex items-center gap-2 text-xs", isSelected ? `
+        text-muted-foreground
+      ` : `text-muted-foreground/70`)}>
+        <span className="
+          rounded-[3px] bg-muted/30 px-1 font-mono font-medium tracking-tight
+        ">{module.collectMethod}</span>
         {(module.hasAutoDiscovery || module.collectMethod === 'batchscript' || module.collectMethod) && (
           <>
             <span className="text-muted-foreground/30">•</span>
@@ -415,7 +465,9 @@ function ModuleListItem({ module, isSelected, onClick }: ModuleListItemProps) {
                 <Tooltip>
                   <TooltipTrigger
                     render={
-                      <span className="inline-flex items-center text-orange-500/80" aria-label="Batch collection">
+                      <span className="
+                        inline-flex items-center text-orange-500/80
+                      " aria-label="Batch collection">
                         <BatchCollectionIcon className="size-3.5" />
                       </span>
                     }
@@ -427,7 +479,9 @@ function ModuleListItem({ module, isSelected, onClick }: ModuleListItemProps) {
                 <Tooltip>
                   <TooltipTrigger
                     render={
-                      <span className="inline-flex items-center text-teal-500/80" aria-label="Collection">
+                      <span className="
+                        inline-flex items-center text-teal-500/80
+                      " aria-label="Collection">
                         <CollectionIcon className="size-3.5" />
                       </span>
                     }
@@ -440,7 +494,12 @@ function ModuleListItem({ module, isSelected, onClick }: ModuleListItemProps) {
         )}
       </div>
       {module.appliesTo && (
-        <div className={cn("mt-1.5 text-[11px] font-mono truncate transition-colors", isSelected ? "text-muted-foreground/80" : "text-muted-foreground/50 group-hover:text-muted-foreground/70")}>
+        <div className={cn(`
+          mt-1.5 truncate font-mono text-[11px] transition-colors
+        `, isSelected ? `text-muted-foreground/80` : `
+          text-muted-foreground/50
+          group-hover:text-muted-foreground/70
+        `)}>
           {module.appliesTo}
         </div>
       )}

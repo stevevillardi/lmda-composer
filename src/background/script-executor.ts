@@ -302,7 +302,7 @@ export class ScriptExecutor {
 
     try {
       // Get CSRF token (portalId is the hostname)
-      let csrfToken = await this.acquireCsrfToken(request.portalId);
+      const csrfToken = await this.acquireCsrfToken(request.portalId);
       if (!csrfToken) {
         throw new Error(getNoCsrfTokenMessage());
       }

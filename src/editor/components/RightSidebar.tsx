@@ -24,20 +24,26 @@ export function RightSidebar({ className }: RightSidebarProps) {
   }
 
   return (
-    <div className={cn('flex flex-col h-full bg-background border-l border-border min-w-[200px] overflow-hidden', className)}>
+    <div className={cn(`
+      flex h-full min-w-[200px] flex-col overflow-hidden border-l border-border
+      bg-background
+    `, className)}>
       {/* Header with tabs */}
-      <div className="flex items-center px-2 py-1.5 border-b border-border bg-secondary/30 shrink-0">
+      <div className="
+        flex shrink-0 items-center border-b border-border bg-secondary/30 px-2
+        py-1.5
+      ">
         <Tabs value={rightSidebarTab} onValueChange={(value) => setRightSidebarTab(value as 'properties' | 'snippets' | 'history')}>
           <TabsList variant="line" className="h-7">
-            <TabsTrigger value="properties" className="h-6 text-xs px-2 gap-1">
+            <TabsTrigger value="properties" className="h-6 gap-1 px-2 text-xs">
               <Server className="size-3" />
               <span>Props{deviceProperties.length > 0 && ` (${deviceProperties.length})`}</span>
             </TabsTrigger>
-            <TabsTrigger value="snippets" className="h-6 text-xs px-2 gap-1">
+            <TabsTrigger value="snippets" className="h-6 gap-1 px-2 text-xs">
               <Code2 className="size-3" />
               <span>Snippets</span>
             </TabsTrigger>
-            <TabsTrigger value="history" className="h-6 text-xs px-2 gap-1">
+            <TabsTrigger value="history" className="h-6 gap-1 px-2 text-xs">
               <Clock className="size-3" />
               <span>History{executionHistory.length > 0 && ` (${executionHistory.length})`}</span>
             </TabsTrigger>
@@ -46,7 +52,7 @@ export function RightSidebar({ className }: RightSidebarProps) {
       </div>
 
       {/* Content - panels handle their own scrolling */}
-      <div className="flex-1 min-h-0 overflow-hidden">
+      <div className="min-h-0 flex-1 overflow-hidden">
         {rightSidebarTab === 'properties' && (
           <DevicePropertiesPanel />
         )}

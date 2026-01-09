@@ -89,7 +89,9 @@ export function ModuleDetailsBasicInfo({ tabId, moduleType }: ModuleDetailsBasic
 
   if (!draft) {
     return (
-      <div className="flex items-center justify-center h-64 text-muted-foreground">
+      <div className="
+        flex h-64 items-center justify-center text-muted-foreground
+      ">
         Loading module details...
       </div>
     );
@@ -122,18 +124,23 @@ export function ModuleDetailsBasicInfo({ tabId, moduleType }: ModuleDetailsBasic
               className={validationErrors.name ? 'border-destructive' : ''}
             />
             {validationErrors.name && (
-              <p className="text-xs text-destructive flex items-center gap-1">
+              <p className="flex items-center gap-1 text-xs text-destructive">
                 <AlertCircle className="size-3" />
                 {validationErrors.name}
               </p>
             )}
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="
+            grid grid-cols-1 gap-4
+            md:grid-cols-2
+          ">
             {/* Display Name */}
             {schema.editableFields.includes('displayName') && (
               <div className="space-y-2">
-                <Label htmlFor="module-display-name" className="text-sm font-medium">
+                <Label htmlFor="module-display-name" className="
+                  text-sm font-medium
+                ">
                   Resource Label
                 </Label>
                 <Input
@@ -145,7 +152,9 @@ export function ModuleDetailsBasicInfo({ tabId, moduleType }: ModuleDetailsBasic
                   className={validationErrors.displayName ? 'border-destructive' : ''}
                 />
                 {validationErrors.displayName && (
-                  <p className="text-xs text-destructive flex items-center gap-1">
+                  <p className="
+                    flex items-center gap-1 text-xs text-destructive
+                  ">
                     <AlertCircle className="size-3" />
                     {validationErrors.displayName}
                   </p>
@@ -156,8 +165,12 @@ export function ModuleDetailsBasicInfo({ tabId, moduleType }: ModuleDetailsBasic
             {/* Collect Interval */}
             {schema.editableFields.includes('collectInterval') && (
               <div className="space-y-2">
-                <Label htmlFor="module-collect-interval" className="text-sm font-medium">
-                  {schema.intervalLabel || 'Collect Interval'} <span className="text-destructive">*</span>
+                <Label htmlFor="module-collect-interval" className="
+                  text-sm font-medium
+                ">
+                  {schema.intervalLabel || 'Collect Interval'} <span className="
+                    text-destructive
+                  ">*</span>
                 </Label>
                 {collectIntervalOptions.length > 0 ? (
                   <Select
@@ -169,7 +182,9 @@ export function ModuleDetailsBasicInfo({ tabId, moduleType }: ModuleDetailsBasic
                       }
                     }}
                   >
-                    <SelectTrigger id="module-collect-interval" className={validationErrors.collectInterval ? 'border-destructive' : ''}>
+                    <SelectTrigger id="module-collect-interval" className={validationErrors.collectInterval ? `
+                      border-destructive
+                    ` : ''}>
                       <SelectValue>
                         {selectedCollectIntervalLabel || 'Select collect interval'}
                       </SelectValue>
@@ -191,11 +206,15 @@ export function ModuleDetailsBasicInfo({ tabId, moduleType }: ModuleDetailsBasic
                     onChange={(e) => handleFieldChange('collectInterval', parseInt(e.target.value, 10) || 0)}
                     placeholder="300"
                     aria-invalid={!!validationErrors.collectInterval}
-                    className={validationErrors.collectInterval ? 'border-destructive' : ''}
+                    className={validationErrors.collectInterval ? `
+                      border-destructive
+                    ` : ''}
                   />
                 )}
                 {validationErrors.collectInterval && (
-                  <p className="text-xs text-destructive flex items-center gap-1">
+                  <p className="
+                    flex items-center gap-1 text-xs text-destructive
+                  ">
                     <AlertCircle className="size-3" />
                     {validationErrors.collectInterval}
                   </p>
@@ -208,10 +227,17 @@ export function ModuleDetailsBasicInfo({ tabId, moduleType }: ModuleDetailsBasic
           {schema.editableFields.includes('description') && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label htmlFor="module-description" className="text-sm font-medium">
+                <Label htmlFor="module-description" className="
+                  text-sm font-medium
+                ">
                   Description
                 </Label>
-                <span className={`text-xs ${(draftData.description?.length || 0) > 1024 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                <span className={`
+                  text-xs
+                  ${(draftData.description?.length || 0) > 1024 ? `
+                    text-destructive
+                  ` : `text-muted-foreground`}
+                `}>
                   {(draftData.description?.length || 0)} / 1024
                 </span>
               </div>
@@ -230,7 +256,7 @@ export function ModuleDetailsBasicInfo({ tabId, moduleType }: ModuleDetailsBasic
                 aria-invalid={!!validationErrors.description}
               />
               {validationErrors.description && (
-                <p className="text-xs text-destructive flex items-center gap-1">
+                <p className="flex items-center gap-1 text-xs text-destructive">
                   <AlertCircle className="size-3" />
                   {validationErrors.description}
                 </p>

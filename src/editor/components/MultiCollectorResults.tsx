@@ -45,7 +45,9 @@ function ResultContent({
   // If we have valid health check data, render the visual report
   if (healthCheckData) {
     return (
-      <div className="flex-1 flex flex-col min-h-0 border rounded-md overflow-hidden">
+      <div className="
+        flex min-h-0 flex-1 flex-col overflow-hidden rounded-md border
+      ">
         <HealthCheckReport data={healthCheckData} />
       </div>
     );
@@ -53,21 +55,23 @@ function ResultContent({
 
   // Default text output
   return (
-    <div className="flex-1 border rounded-md overflow-hidden">
+    <div className="flex-1 overflow-hidden rounded-md border">
       <ScrollArea className="h-full p-4">
         {result.success && result.output ? (
-          <pre className="text-sm font-mono whitespace-pre-wrap wrap-break-word">
+          <pre className="font-mono text-sm wrap-break-word whitespace-pre-wrap">
             {result.output}
           </pre>
         ) : result.error ? (
           <div className="text-red-500">
-            <p className="font-semibold mb-2">Error:</p>
-            <pre className="text-sm font-mono whitespace-pre-wrap wrap-break-word">
+            <p className="mb-2 font-semibold">Error:</p>
+            <pre className="
+              font-mono text-sm wrap-break-word whitespace-pre-wrap
+            ">
               {result.error}
             </pre>
           </div>
         ) : (
-          <div className="text-muted-foreground text-center py-8 select-none">
+          <div className="py-8 text-center text-muted-foreground select-none">
             No output available
           </div>
         )}
@@ -113,7 +117,7 @@ export function MultiCollectorResults({ command, executedCommand, onBack }: Mult
     try {
       await navigator.clipboard.writeText(output);
       toast.success('Output copied to clipboard');
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to copy output');
     }
   };
@@ -123,7 +127,7 @@ export function MultiCollectorResults({ command, executedCommand, onBack }: Mult
     try {
       await navigator.clipboard.writeText(executedCommand);
       toast.success('Executed command copied');
-    } catch (error) {
+    } catch (_error) {
       toast.error('Failed to copy command');
     }
   };
@@ -193,12 +197,12 @@ export function MultiCollectorResults({ command, executedCommand, onBack }: Mult
         variant="warning"
         icon={StopCircle}
       />
-      <div className="flex flex-col h-full">
+      <div className="flex h-full flex-col">
         {/* Header */}
-        <div className="p-4 border-b flex items-center justify-between">
+        <div className="flex items-center justify-between border-b p-4">
           <div className="flex items-center gap-3">
             <Button variant="ghost" size="sm" onClick={onBack} disabled={isExecutingDebugCommand}>
-              <ArrowLeft className="size-4 mr-2" />
+              <ArrowLeft className="mr-2 size-4" />
               Back
             </Button>
             <Separator orientation="vertical" className="h-6" />
@@ -212,12 +216,14 @@ export function MultiCollectorResults({ command, executedCommand, onBack }: Mult
                   {isExecutingDebugCommand ? (command.type === 'healthcheck' ? 'Analyzing...' : 'Executing...') : 'Complete'}
                 </Badge>
                 {command.type === 'healthcheck' && !isExecutingDebugCommand && (
-                  <Badge className="bg-linear-to-r from-emerald-500 to-cyan-500 text-white">
+                  <Badge className="
+                    bg-linear-to-r from-emerald-500 to-cyan-500 text-white
+                  ">
                     Visual Report
                   </Badge>
                 )}
               </div>
-              <p className="text-sm text-muted-foreground mt-0.5">
+              <p className="mt-0.5 text-sm text-muted-foreground">
                 {resultsWithCollectors.length} collector{resultsWithCollectors.length !== 1 ? 's' : ''}
               </p>
             </div>
@@ -229,7 +235,7 @@ export function MultiCollectorResults({ command, executedCommand, onBack }: Mult
                 size="sm"
                 onClick={() => setShowCancelDialog(true)}
               >
-                <StopCircle className="size-4 mr-2" />
+                <StopCircle className="mr-2 size-4" />
                 Cancel
               </Button>
             )}
@@ -248,25 +254,25 @@ export function MultiCollectorResults({ command, executedCommand, onBack }: Mult
             >
               {viewMode === 'tabs' ? (
                 <>
-                  <LayoutGrid className="size-4 mr-2" />
+                  <LayoutGrid className="mr-2 size-4" />
                   Grid View
                 </>
               ) : (
                 <>
-                  <List className="size-4 mr-2" />
+                  <List className="mr-2 size-4" />
                   Tab View
                 </>
               )}
             </Button>
             {resultsWithCollectors.length > 0 && (
               <Button variant="outline" size="sm" onClick={exportAllResults}>
-                <Download className="size-4 mr-2" />
+                <Download className="mr-2 size-4" />
                 Export All
               </Button>
             )}
             {executedCommand && command.type !== 'healthcheck' && (
               <Button variant="outline" size="sm" onClick={copyExecutedCommand}>
-                <Copy className="size-4 mr-2" />
+                <Copy className="mr-2 size-4" />
                 Copy Command
               </Button>
             )}
@@ -275,18 +281,18 @@ export function MultiCollectorResults({ command, executedCommand, onBack }: Mult
 
       {/* Results */}
       {resultsWithCollectors.length === 0 ? (
-        <div className="flex-1 flex items-center justify-center p-6">
+        <div className="flex flex-1 items-center justify-center p-6">
           <div className="text-center text-muted-foreground">
             {isExecutingDebugCommand ? (
               <>
-                <Loader2 className="size-12 mx-auto mb-4 animate-spin" />
-                <p className="text-lg font-medium mb-2">Executing command...</p>
+                <Loader2 className="mx-auto mb-4 size-12 animate-spin" />
+                <p className="mb-2 text-lg font-medium">Executing command...</p>
                 <p className="text-sm">Results will appear here when complete</p>
               </>
             ) : (
               <>
-                <ErrorIcon className="size-12 mx-auto mb-4 opacity-50" />
-                <p className="text-lg font-medium mb-2">No results</p>
+                <ErrorIcon className="mx-auto mb-4 size-12 opacity-50" />
+                <p className="mb-2 text-lg font-medium">No results</p>
                 <p className="text-sm">Execute a command to see results</p>
               </>
             )}
@@ -296,7 +302,7 @@ export function MultiCollectorResults({ command, executedCommand, onBack }: Mult
         <Tabs
           value={selectedCollectorId?.toString() || undefined}
           onValueChange={(value) => setSelectedCollectorId(parseInt(value, 10))}
-          className="flex-1 flex flex-col min-h-0"
+          className="flex min-h-0 flex-1 flex-col"
         >
           <TabsList className="mx-4 mt-4">
             {resultsWithCollectors.map(({ collectorId, collector, result }) => (
@@ -310,7 +316,7 @@ export function MultiCollectorResults({ command, executedCommand, onBack }: Mult
                 ) : (
                   <ErrorIcon className="size-4" />
                 )}
-                <span className="truncate max-w-[150px]">
+                <span className="max-w-[150px] truncate">
                   {collector?.description || `Collector ${collectorId}`}
                 </span>
               </TabsTrigger>
@@ -321,24 +327,26 @@ export function MultiCollectorResults({ command, executedCommand, onBack }: Mult
             <TabsContent
               key={collectorId}
               value={collectorId.toString()}
-              className="flex-1 flex flex-col m-0 mt-4 min-h-0"
+              className="m-0 mt-4 flex min-h-0 flex-1 flex-col"
             >
-              <div className="flex-1 flex flex-col mx-4 mb-4 min-h-0">
+              <div className="mx-4 mb-4 flex min-h-0 flex-1 flex-col">
                 {/* Result Header */}
-                <div className="flex items-center justify-between mb-3 pb-3 border-b">
+                <div className="
+                  mb-3 flex items-center justify-between border-b pb-3
+                ">
                   <div>
-                    <div className="flex items-center gap-2 mb-1">
+                    <div className="mb-1 flex items-center gap-2">
                       <h3 className="font-semibold">
                         {collector?.description || `Collector ${collectorId}`}
                       </h3>
                       {result.success ? (
                         <Badge variant="default">
-                          <SuccessIcon className="size-3 mr-1" />
+                          <SuccessIcon className="mr-1 size-3" />
                           Success
                         </Badge>
                       ) : (
                         <Badge variant="destructive">
-                          <ErrorIcon className="size-3 mr-1" />
+                          <ErrorIcon className="mr-1 size-3" />
                           Error
                         </Badge>
                       )}
@@ -355,7 +363,7 @@ export function MultiCollectorResults({ command, executedCommand, onBack }: Mult
                         size="sm"
                         onClick={() => copyOutput(result.output!)}
                       >
-                        <Copy className="size-4 mr-2" />
+                        <Copy className="mr-2 size-4" />
                         Copy
                       </Button>
                     )}
@@ -365,7 +373,7 @@ export function MultiCollectorResults({ command, executedCommand, onBack }: Mult
                         size="sm"
                         onClick={() => downloadOutput(result.output!, collector?.description || `collector-${collectorId}`)}
                       >
-                        <Download className="size-4 mr-2" />
+                        <Download className="mr-2 size-4" />
                         Download
                       </Button>
                     )}
@@ -383,29 +391,33 @@ export function MultiCollectorResults({ command, executedCommand, onBack }: Mult
         </Tabs>
       ) : (
         <ScrollArea className="flex-1 p-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="
+            grid grid-cols-1 gap-4
+            md:grid-cols-2
+            lg:grid-cols-3
+          ">
             {resultsWithCollectors.map(({ collectorId, collector, result }) => (
               <div
                 key={collectorId}
-                className="border rounded-lg p-4 flex flex-col"
+                className="flex flex-col rounded-lg border p-4"
               >
-                <div className="flex items-start justify-between mb-3">
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold truncate">
+                <div className="mb-3 flex items-start justify-between">
+                  <div className="min-w-0 flex-1">
+                    <h3 className="truncate font-semibold">
                       {collector?.description || `Collector ${collectorId}`}
                     </h3>
-                    <p className="text-xs text-muted-foreground truncate mt-0.5">
+                    <p className="mt-0.5 truncate text-xs text-muted-foreground">
                       {collector?.hostname || 'N/A'}
                     </p>
                   </div>
                   {result.success ? (
-                    <SuccessIcon className="size-5 shrink-0 ml-2" />
+                    <SuccessIcon className="ml-2 size-5 shrink-0" />
                   ) : (
-                    <ErrorIcon className="size-5 shrink-0 ml-2" />
+                    <ErrorIcon className="ml-2 size-5 shrink-0" />
                   )}
                 </div>
 
-                <div className="flex items-center gap-2 mb-3">
+                <div className="mb-3 flex items-center gap-2">
                   {result.success ? (
                     <Badge variant="default" className="bg-teal-500">Success</Badge>
                   ) : (
@@ -418,23 +430,25 @@ export function MultiCollectorResults({ command, executedCommand, onBack }: Mult
                   )}
                 </div>
 
-                <div className="max-h-48 mb-3 border rounded overflow-hidden">
+                <div className="mb-3 max-h-48 overflow-hidden rounded-sm border">
                   <ScrollArea className="h-full p-2">
                     {result.success && result.output ? (
-                      <pre className="text-xs font-mono whitespace-pre-wrap wrap-break-word">
+                      <pre className="
+                        font-mono text-xs wrap-break-word whitespace-pre-wrap
+                      ">
                         {result.output.length > 200
                           ? `${result.output.substring(0, 200)}...`
                           : result.output}
                       </pre>
                     ) : result.error ? (
-                      <p className="text-xs text-red-500 wrap-break-word">{result.error}</p>
+                      <p className="text-xs wrap-break-word text-red-500">{result.error}</p>
                     ) : (
                       <p className="text-xs text-muted-foreground select-none">No output</p>
                     )}
                   </ScrollArea>
                 </div>
 
-                <div className="flex items-center gap-2 pt-2 border-t">
+                <div className="flex items-center gap-2 border-t pt-2">
                   <Button
                     variant="outline"
                     size="sm"

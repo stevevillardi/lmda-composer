@@ -53,7 +53,9 @@ export function ModuleDetailsAlertSettings({ tabId, moduleType }: ModuleDetailsA
 
   if (!draft) {
     return (
-      <div className="flex items-center justify-center h-64 text-muted-foreground">
+      <div className="
+        flex h-64 items-center justify-center text-muted-foreground
+      ">
         Loading module details...
       </div>
     );
@@ -76,9 +78,14 @@ export function ModuleDetailsAlertSettings({ tabId, moduleType }: ModuleDetailsA
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="
+            grid grid-cols-1 gap-4
+            md:grid-cols-2
+          ">
             <div className="space-y-2">
-              <Label htmlFor="module-alert-level" className="text-sm font-medium">
+              <Label htmlFor="module-alert-level" className="
+                text-sm font-medium
+              ">
                 Alert Level
               </Label>
               <Select
@@ -99,8 +106,13 @@ export function ModuleDetailsAlertSettings({ tabId, moduleType }: ModuleDetailsA
             </div>
 
             <div className="space-y-2">
-              <div className="flex items-center justify-between gap-3 rounded-md border px-3 py-2">
-                <Label htmlFor="module-clear-after-ack" className="text-sm font-medium">
+              <div className="
+                flex items-center justify-between gap-3 rounded-md border px-3
+                py-2
+              ">
+                <Label htmlFor="module-clear-after-ack" className="
+                  text-sm font-medium
+                ">
                   Clear After ACK
                 </Label>
                 <Switch
@@ -110,7 +122,7 @@ export function ModuleDetailsAlertSettings({ tabId, moduleType }: ModuleDetailsA
                 />
               </div>
               {validationErrors.clearAfterAck && (
-                <p className="text-xs text-destructive flex items-center gap-1">
+                <p className="flex items-center gap-1 text-xs text-destructive">
                   <AlertCircle className="size-3" />
                   {validationErrors.clearAfterAck}
                 </p>
@@ -118,7 +130,9 @@ export function ModuleDetailsAlertSettings({ tabId, moduleType }: ModuleDetailsA
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="module-alert-effective-ival" className="text-sm font-medium">
+              <Label htmlFor="module-alert-effective-ival" className="
+                text-sm font-medium
+              ">
                 Auto Clear After (minutes) <span className="text-destructive">*</span>
               </Label>
               <Input
@@ -132,10 +146,12 @@ export function ModuleDetailsAlertSettings({ tabId, moduleType }: ModuleDetailsA
                   handleFieldChange('alertEffectiveIval', value === '' ? undefined : parseInt(value, 10));
                 }}
                 aria-invalid={!!validationErrors.alertEffectiveIval}
-                className={validationErrors.alertEffectiveIval ? 'border-destructive' : ''}
+                className={validationErrors.alertEffectiveIval ? `
+                  border-destructive
+                ` : ''}
               />
               {validationErrors.alertEffectiveIval && (
-                <p className="text-xs text-destructive flex items-center gap-1">
+                <p className="flex items-center gap-1 text-xs text-destructive">
                   <AlertCircle className="size-3" />
                   {validationErrors.alertEffectiveIval}
                 </p>
@@ -144,7 +160,9 @@ export function ModuleDetailsAlertSettings({ tabId, moduleType }: ModuleDetailsA
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="module-alert-subject" className="text-sm font-medium">
+            <Label htmlFor="module-alert-subject" className="
+              text-sm font-medium
+            ">
               Alert Subject Template
             </Label>
             <Input

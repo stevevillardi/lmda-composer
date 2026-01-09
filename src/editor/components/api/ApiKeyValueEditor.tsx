@@ -141,7 +141,10 @@ export function ApiKeyValueEditor({
   return (
     <div className={cn("space-y-2", className)}>
       <div className="flex items-center justify-between">
-        <div className="text-xs font-medium text-muted-foreground flex items-center gap-1.5 select-none">
+        <div className="
+          flex items-center gap-1.5 text-xs font-medium text-muted-foreground
+          select-none
+        ">
           {label}
         </div>
         {suggestions.length > 0 ? (
@@ -163,7 +166,7 @@ export function ApiKeyValueEditor({
             </Tooltip>
             <DropdownMenuContent align="end" className="w-72">
               {availableSuggestions.length === 0 ? (
-                <div className="px-2 py-2 text-xs text-muted-foreground">
+                <div className="p-2 text-xs text-muted-foreground">
                   All available fields are already added.
                 </div>
               ) : (
@@ -173,11 +176,15 @@ export function ApiKeyValueEditor({
                       <div className="text-xs font-medium text-foreground">
                         {item.key}
                         {item.required && (
-                          <span className="ml-1 text-[10px] text-muted-foreground">required</span>
+                          <span className="
+                            ml-1 text-[10px] text-muted-foreground
+                          ">required</span>
                         )}
                       </div>
                       {item.description && (
-                        <span className="text-[11px] text-muted-foreground line-clamp-2">
+                        <span className="
+                          line-clamp-2 text-[11px] text-muted-foreground
+                        ">
                           {item.description}
                         </span>
                       )}
@@ -193,7 +200,9 @@ export function ApiKeyValueEditor({
           <Tooltip>
             <TooltipTrigger
               render={
-                <Button variant="ghost" size="xs" onClick={handleAdd} className="gap-1">
+                <Button variant="ghost" size="xs" onClick={handleAdd} className="
+                  gap-1
+                ">
                   <Plus className="size-3.5" />
                   Add
                 </Button>
@@ -205,23 +214,30 @@ export function ApiKeyValueEditor({
       </div>
 
       {rows.length === 0 ? (
-        <div className="text-xs text-muted-foreground py-6 text-center border-0 bg-transparent flex flex-col items-center justify-center h-24">
-          <p className="text-sm font-medium text-muted-foreground/80 mb-1">
+        <div className="
+          flex h-24 flex-col items-center justify-center border-0 bg-transparent
+          py-6 text-center text-xs text-muted-foreground
+        ">
+          <p className="
+            mb-1 text-sm font-medium text-muted-foreground/80 select-none
+          ">
             {emptyLabel}
           </p>
           {suggestions.length > 0 ? (
             <DropdownMenu>
               <DropdownMenuTrigger
                 render={
-                  <Button variant="outline" size="xs" className="mt-2 bg-background/50">
-                    <Plus className="size-3.5 mr-1" />
+                  <Button variant="outline" size="xs" className="
+                    mt-2 bg-background/50
+                  ">
+                    <Plus className="mr-1 size-3.5" />
                     Add Field
                   </Button>
                 }
               />
               <DropdownMenuContent align="center" className="w-72">
                 {availableSuggestions.length === 0 ? (
-                  <div className="px-2 py-2 text-xs text-muted-foreground">
+                  <div className="p-2 text-xs text-muted-foreground">
                     All available fields are already added.
                   </div>
                 ) : (
@@ -231,11 +247,15 @@ export function ApiKeyValueEditor({
                         <div className="text-xs font-medium text-foreground">
                           {item.key}
                           {item.required && (
-                            <span className="ml-1 text-[10px] text-muted-foreground">required</span>
+                            <span className="
+                              ml-1 text-[10px] text-muted-foreground
+                            ">required</span>
                           )}
                         </div>
                         {item.description && (
-                          <span className="text-[11px] text-muted-foreground line-clamp-2">
+                          <span className="
+                            line-clamp-2 text-[11px] text-muted-foreground
+                          ">
                             {item.description}
                           </span>
                         )}
@@ -248,8 +268,10 @@ export function ApiKeyValueEditor({
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <Button variant="outline" size="xs" onClick={handleAdd} className="mt-2 bg-background/50">
-              <Plus className="size-3.5 mr-1" />
+            <Button variant="outline" size="xs" onClick={handleAdd} className="
+              mt-2 bg-background/50
+            ">
+              <Plus className="mr-1 size-3.5" />
               Add Field
             </Button>
           )}
@@ -257,25 +279,39 @@ export function ApiKeyValueEditor({
       ) : (
         <div className="space-y-2">
           {rows.map((row) => (
-            <div key={row.id} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-center group">
+            <div key={row.id} className="
+              group grid grid-cols-[1fr_1fr_auto] items-center gap-2
+            ">
               <Input
                 value={row.key}
                 onChange={(event) => handleRowChange(row.id, 'key', event.target.value)}
                 placeholder="Key"
-                className="h-8 bg-muted/30 border-input/60 focus-visible:bg-background transition-colors font-mono text-xs"
+                className="
+                  h-8 border-input/60 bg-muted/30 font-mono text-xs
+                  transition-colors
+                  focus-visible:bg-background
+                "
               />
               <Input
                 value={row.value}
                 onChange={(event) => handleRowChange(row.id, 'value', event.target.value)}
                 placeholder="Value"
-                className="h-8 bg-muted/30 border-input/60 focus-visible:bg-background transition-colors font-mono text-xs"
+                className="
+                  h-8 border-input/60 bg-muted/30 font-mono text-xs
+                  transition-colors
+                  focus-visible:bg-background
+                "
               />
               <Button
                 variant="ghost"
                 size="icon-sm"
                 onClick={() => handleRemove(row.id)}
                 aria-label="Remove row"
-                className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:text-destructive hover:bg-destructive/10"
+                className="
+                  text-muted-foreground opacity-0 transition-opacity
+                  group-hover:opacity-100
+                  hover:bg-destructive/10 hover:text-destructive
+                "
               >
                 <Trash2 className="size-3.5" />
               </Button>

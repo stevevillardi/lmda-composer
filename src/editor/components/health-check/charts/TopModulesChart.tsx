@@ -32,7 +32,7 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<
   
   const data = payload[0].payload;
   return (
-    <div className="bg-popover border border-border rounded-md p-2 shadow-md">
+    <div className="rounded-md border border-border bg-popover p-2 shadow-md">
       <p className="text-sm font-medium text-popover-foreground">{data.fullName}</p>
       <p className="text-sm text-muted-foreground">{data.devices} devices</p>
     </div>
@@ -43,8 +43,11 @@ export function TopModulesChart({ data }: TopModulesChartProps) {
   if (!data || data.length === 0) {
     return (
       <SectionCard title="Top Failing Modules" icon={<Package className="size-4" />}>
-        <div className="flex items-center justify-center py-8 text-muted-foreground select-none">
-          <CheckCircle className="size-5 mr-2 text-teal-500" />
+        <div className="
+          flex items-center justify-center py-8 text-muted-foreground
+          select-none
+        ">
+          <CheckCircle className="mr-2 size-5 text-teal-500" />
           <span className="text-sm">No failing modules detected</span>
         </div>
       </SectionCard>
