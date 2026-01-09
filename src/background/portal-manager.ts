@@ -335,6 +335,10 @@ export class PortalManager {
             existingPortal.status = 'expired';
             existingPortal.csrfToken = null;
             existingPortal.csrfTokenTimestamp = null;
+          } else if (hasActiveSession && existingPortal.status === 'expired') {
+            // User likely re-logged-in; don't leave the portal stuck in expired.
+            // We'll refresh CSRF below to confirm and set active.
+            existingPortal.status = 'unknown';
           }
         } else {
           const hasComplete = portalHasCompleteTab.get(hostname) === true;
@@ -534,7 +538,10 @@ export class PortalManager {
     for (const portal of this.portals.values()) {
       if (portal.csrfToken && portal.csrfTokenTimestamp) {
         const age = Date.now() - portal.csrfTokenTimestamp;
-        if (age < PortalManager.CSRF_TOKEN_TTL_MS) {
+        // If we already consider the portal active and the token is fresh, skip refresh.
+        // Otherwise, refresh even if the token is "fresh" so we can recover when a user
+        // re-logs-in after being marked expired/unknown.
+        if (portal.status === 'active' && age < PortalManager.CSRF_TOKEN_TTL_MS) {
           continue;
         }
       }
