@@ -289,14 +289,39 @@ describe('chrome-messaging', () => {
       const chrome = getChromeMock();
       chrome.runtime.sendMessage.mockResolvedValueOnce({ 
         type: 'APPLIES_TO_ERROR', 
-        payload: { error: 'Invalid expression' } 
+        payload: { 
+          errorMessage: 'This LogicModule requires the "myFunc" AppliesTo Function that has not been found',
+          errorCode: 1400,
+          errorDetail: null
+        } 
       });
 
       const result = await sendMessage({ type: 'TEST_APPLIES_TO', payload: { expression: 'bad' } } as any);
       
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.error).toBe('Invalid expression');
+        expect(result.error).toBe('This LogicModule requires the "myFunc" AppliesTo Function that has not been found');
+        expect(result.code).toBe('1400');
+      }
+    });
+
+    it('handles APPLIES_TO_ERROR with errorDetail', async () => {
+      const chrome = getChromeMock();
+      chrome.runtime.sendMessage.mockResolvedValueOnce({ 
+        type: 'APPLIES_TO_ERROR', 
+        payload: { 
+          errorMessage: 'Syntax error in expression',
+          errorCode: 400,
+          errorDetail: 'Unexpected token at position 5'
+        } 
+      });
+
+      const result = await sendMessage({ type: 'TEST_APPLIES_TO', payload: { expression: 'bad' } } as any);
+      
+      expect(result.ok).toBe(false);
+      if (!result.ok) {
+        expect(result.error).toBe('Syntax error in expression\nUnexpected token at position 5');
+        expect(result.code).toBe('400');
       }
     });
 

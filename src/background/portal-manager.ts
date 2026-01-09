@@ -607,22 +607,15 @@ export class PortalManager {
 }
 
 // Function to be injected into the page to fetch CSRF token
+// Note: This function has special header requirements (X-CSRF-Token: Fetch)
+// and needs to read response headers, so it doesn't use the standard lmFetch pattern.
 function fetchCsrfToken(): Promise<string | null> {
   return new Promise((resolve) => {
     const xhr = new XMLHttpRequest();
     xhr.open('GET', '/santaba/rest/functions/dummy', true);
-    xhr.setRequestHeader('X-CSRF-Token', 'Fetch');
+    xhr.setRequestHeader('X-CSRF-Token', 'Fetch'); // Special value to request token
     xhr.setRequestHeader('X-version', '3');
-    
-    xhr.onload = () => {
-      if (xhr.status === 200) {
-        const token = xhr.getResponseHeader('X-CSRF-Token');
-        resolve(token);
-      } else {
-        resolve(null);
-      }
-    };
-    
+    xhr.onload = () => resolve(xhr.status === 200 ? xhr.getResponseHeader('X-CSRF-Token') : null);
     xhr.onerror = () => resolve(null);
     xhr.send();
   });
@@ -639,85 +632,59 @@ async function fetchCollectors(csrfToken: string | null): Promise<Array<{
   collectorGroupName: string;
   arch?: string;
 }>> {
+  // Embedded lmFetch helper
+  const lmFetch = <T = unknown>(url: string, opts: { csrfToken?: string | null } = {}): Promise<{ ok: boolean; data?: T }> =>
+    new Promise((resolve) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('GET', url, true);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.setRequestHeader('X-version', '3');
+      if (opts.csrfToken) xhr.setRequestHeader('X-CSRF-Token', opts.csrfToken);
+      xhr.onload = () => {
+        const ok = xhr.status >= 200 && xhr.status < 300;
+        let data: T | undefined;
+        try { data = JSON.parse(xhr.responseText) as T; } catch { /* empty */ }
+        resolve({ ok, data });
+      };
+      xhr.onerror = () => resolve({ ok: false });
+      xhr.send();
+    });
+
+  type CollectorItem = { id: number; description: string; hostname: string; status: number; isDown: boolean; collectorGroupName: string; arch?: string };
+  type CollectorResponse = { items?: CollectorItem[]; data?: { items?: CollectorItem[]; total?: number }; total?: number };
+
   const pageSize = 1000;
-
-  const fetchPage = (offset: number) => new Promise<{
-    items: Array<{
-      id: number;
-      description: string;
-      hostname: string;
-      status: number;
-      isDown: boolean;
-      collectorGroupName: string;
-      arch?: string;
-    }>;
-    total: number;
-  }>((resolve) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open('GET', `/santaba/rest/setting/collector/collectors?size=${pageSize}&offset=${offset}&fields=id,description,hostname,status,isDown,collectorGroupName,arch`, true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.setRequestHeader('X-version', '3');
-    if (csrfToken) {
-      xhr.setRequestHeader('X-CSRF-Token', csrfToken);
-    }
-    
-    xhr.onload = () => {
-      if (xhr.status === 200) {
-        try {
-          const response = JSON.parse(xhr.responseText);
-          const items = response.items || response.data?.items || [];
-          const collectors = items.map((c: {
-            id: number;
-            description: string;
-            hostname: string;
-            status: number;
-            isDown: boolean;
-            collectorGroupName: string;
-            arch?: string;
-          }) => ({
-            id: c.id,
-            description: c.description || `Collector ${c.id}`,
-            hostname: c.hostname,
-            status: c.status,
-            isDown: c.isDown,
-            collectorGroupName: c.collectorGroupName,
-            arch: c.arch,
-          }));
-          const total = typeof response.total === 'number' ? response.total : (response.data?.total ?? 0);
-          resolve({ items: collectors, total: total || items.length });
-        } catch {
-          resolve({ items: [], total: 0 });
-        }
-      } else {
-        resolve({ items: [], total: 0 });
-      }
-    };
-    
-    xhr.onerror = () => resolve({ items: [], total: 0 });
-    xhr.send();
-  });
-
-  const allCollectors: Array<{
-    id: number;
-    description: string;
-    hostname: string;
-    status: number;
-    isDown: boolean;
-    collectorGroupName: string;
-    arch?: string;
-  }> = [];
-
+  const allCollectors: CollectorItem[] = [];
   let offset = 0;
   let total = 0;
 
   while (true) {
-    const page = await fetchPage(offset);
-    if (page.items.length === 0) break;
-    allCollectors.push(...page.items);
-    total = page.total;
-    offset += page.items.length;
+    const result = await lmFetch<CollectorResponse>(
+      `/santaba/rest/setting/collector/collectors?size=${pageSize}&offset=${offset}&fields=id,description,hostname,status,isDown,collectorGroupName,arch`,
+      { csrfToken }
+    );
+
+    if (!result.ok || !result.data) break;
+
+    const items = result.data.items || result.data.data?.items || [];
+    if (items.length === 0) break;
+
+    const collectors = items.map((c) => ({
+      id: c.id,
+      description: c.description || `Collector ${c.id}`,
+      hostname: c.hostname,
+      status: c.status,
+      isDown: c.isDown,
+      collectorGroupName: c.collectorGroupName,
+      arch: c.arch,
+    }));
+
+    allCollectors.push(...collectors);
+    total = typeof result.data.total === 'number' ? result.data.total : (result.data.data?.total ?? 0);
+    offset += items.length;
+
     if (total > 0 && offset >= total) break;
-    if (page.items.length < pageSize) break;
+    if (items.length < pageSize) break;
   }
 
   return allCollectors;
@@ -734,214 +701,171 @@ async function fetchDevices(csrfToken: string | null, collectorId: number): Prom
   }>;
   total: number;
 }> {
+  // Embedded lmFetch helper
+  const lmFetch = <T = unknown>(url: string, opts: { csrfToken?: string | null } = {}): Promise<{ ok: boolean; data?: T }> =>
+    new Promise((resolve) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('GET', url, true);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.setRequestHeader('X-version', '3');
+      if (opts.csrfToken) xhr.setRequestHeader('X-CSRF-Token', opts.csrfToken);
+      xhr.onload = () => {
+        const ok = xhr.status >= 200 && xhr.status < 300;
+        let data: T | undefined;
+        try { data = JSON.parse(xhr.responseText) as T; } catch { /* empty */ }
+        resolve({ ok, data });
+      };
+      xhr.onerror = () => resolve({ ok: false });
+      xhr.send();
+    });
+
+  type DeviceItem = { id: number; name: string; displayName: string; currentCollectorId: number; hostStatus: string };
+  type DeviceResponse = { items?: DeviceItem[]; data?: { items?: DeviceItem[]; total?: number }; total?: number };
+
   const pageSize = 1000;
-
-  const fetchPage = (offset: number) => new Promise<{
-    items: Array<{
-      id: number;
-      name: string;
-      displayName: string;
-      currentCollectorId: number;
-      hostStatus: string;
-    }>;
-    total: number;
-  }>((resolve) => {
-    const xhr = new XMLHttpRequest();
-    const filter = encodeURIComponent(`currentCollectorId:${collectorId}`);
-    xhr.open('GET', `/santaba/rest/device/devices?filter=${filter}&size=${pageSize}&offset=${offset}&fields=id,name,displayName,currentCollectorId,hostStatus`, true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.setRequestHeader('X-version', '3');
-    if (csrfToken) {
-      xhr.setRequestHeader('X-CSRF-Token', csrfToken);
-    }
-    
-    xhr.onload = () => {
-      if (xhr.status === 200) {
-        try {
-          const response = JSON.parse(xhr.responseText);
-          const items = response.items || response.data?.items || [];
-          const devices = items.map((d: {
-            id: number;
-            name: string;
-            displayName: string;
-            currentCollectorId: number;
-            hostStatus: string;
-          }) => ({
-            id: d.id,
-            name: d.name,
-            displayName: d.displayName || d.name,
-            currentCollectorId: d.currentCollectorId,
-            hostStatus: d.hostStatus || 'unknown',
-          }));
-          const total = typeof response.total === 'number' ? response.total : (response.data?.total ?? 0);
-          resolve({ items: devices, total: total || items.length });
-        } catch {
-          resolve({ items: [], total: 0 });
-        }
-      } else {
-        resolve({ items: [], total: 0 });
-      }
-    };
-    
-    xhr.onerror = () => resolve({ items: [], total: 0 });
-    xhr.send();
-  });
-
-  const allDevices: Array<{
-    id: number;
-    name: string;
-    displayName: string;
-    currentCollectorId: number;
-    hostStatus: string;
-  }> = [];
-
+  const filter = encodeURIComponent(`currentCollectorId:${collectorId}`);
+  const allDevices: DeviceItem[] = [];
   let offset = 0;
   let total = 0;
 
   while (true) {
-    const page = await fetchPage(offset);
-    if (page.items.length === 0) break;
-    allDevices.push(...page.items);
-    total = page.total;
-    offset += page.items.length;
+    const result = await lmFetch<DeviceResponse>(
+      `/santaba/rest/device/devices?filter=${filter}&size=${pageSize}&offset=${offset}&fields=id,name,displayName,currentCollectorId,hostStatus`,
+      { csrfToken }
+    );
+
+    if (!result.ok || !result.data) break;
+
+    const items = result.data.items || result.data.data?.items || [];
+    if (items.length === 0) break;
+
+    const devices = items.map((d) => ({
+      id: d.id,
+      name: d.name,
+      displayName: d.displayName || d.name,
+      currentCollectorId: d.currentCollectorId,
+      hostStatus: d.hostStatus || 'unknown',
+    }));
+
+    allDevices.push(...devices);
+    total = typeof result.data.total === 'number' ? result.data.total : (result.data.data?.total ?? 0);
+    offset += items.length;
+
     if (total > 0 && offset >= total) break;
-    if (page.items.length < pageSize) break;
+    if (items.length < pageSize) break;
   }
 
   return { items: allDevices, total: total || allDevices.length };
 }
 
 // Function to be injected into the page to fetch a single device by ID
-function fetchDeviceById(csrfToken: string | null, resourceId: number): Promise<{
+async function fetchDeviceById(csrfToken: string | null, resourceId: number): Promise<{
   id: number;
   name: string;
   displayName: string;
   currentCollectorId: number;
 } | null> {
-  return new Promise((resolve) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open('GET', `/santaba/rest/device/devices/${resourceId}?fields=id,name,displayName,currentCollectorId`, true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.setRequestHeader('X-version', '3');
-    if (csrfToken) {
-      xhr.setRequestHeader('X-CSRF-Token', csrfToken);
-    }
-    
-    xhr.onload = () => {
-      if (xhr.status === 200) {
-        try {
-          const response = JSON.parse(xhr.responseText);
-          const device = response.data || response;
-          resolve({
-            id: device.id,
-            name: device.name,
-            displayName: device.displayName || device.name,
-            currentCollectorId: device.currentCollectorId,
-          });
-        } catch {
-          resolve(null);
-        }
-      } else {
-        resolve(null);
-      }
+  // Embedded lmFetch helper
+  const lmFetch = <T = unknown>(url: string, opts: { method?: string; csrfToken?: string | null; body?: unknown } = {}): Promise<{ ok: boolean; status: number; data?: T }> =>
+    new Promise((resolve) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open(opts.method || 'GET', url, true);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.setRequestHeader('X-version', '3');
+      if (opts.csrfToken) xhr.setRequestHeader('X-CSRF-Token', opts.csrfToken);
+      xhr.onload = () => {
+        const ok = xhr.status >= 200 && xhr.status < 300;
+        let data: T | undefined;
+        try { data = JSON.parse(xhr.responseText) as T; } catch { /* empty */ }
+        resolve({ ok, status: xhr.status, data });
+      };
+      xhr.onerror = () => resolve({ ok: false, status: 0 });
+      xhr.send(opts.body ? JSON.stringify(opts.body) : undefined);
+    });
+
+  const result = await lmFetch<{ data?: { id: number; name: string; displayName: string; currentCollectorId: number }; id?: number; name?: string; displayName?: string; currentCollectorId?: number }>(
+    `/santaba/rest/device/devices/${resourceId}?fields=id,name,displayName,currentCollectorId`,
+    { csrfToken }
+  );
+
+  if (result.ok && result.data) {
+    const device = result.data.data || result.data;
+    return {
+      id: device.id!,
+      name: device.name!,
+      displayName: device.displayName || device.name!,
+      currentCollectorId: device.currentCollectorId!,
     };
-    
-    xhr.onerror = () => resolve(null);
-    xhr.send();
-  });
+  }
+  return null;
 }
 
 // Function to be injected into the page to fetch device properties
-function fetchDeviceProperties(csrfToken: string | null, deviceId: number): Promise<Array<{
+async function fetchDeviceProperties(csrfToken: string | null, deviceId: number): Promise<Array<{
   name: string;
   value: string;
   type: 'system' | 'custom' | 'inherited' | 'auto';
 }>> {
-  return new Promise((resolve) => {
-    const xhr = new XMLHttpRequest();
-    // Fetch device with all property types
-    xhr.open('GET', `/santaba/rest/device/devices/${deviceId}?fields=systemProperties,customProperties,inheritedProperties,autoProperties`, true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.setRequestHeader('X-version', '3');
-    if (csrfToken) {
-      xhr.setRequestHeader('X-CSRF-Token', csrfToken);
-    }
-    
-    xhr.onload = () => {
-      if (xhr.status === 200) {
-        try {
-          const response = JSON.parse(xhr.responseText);
-          const device = response.data || response;
-          
-          const properties: Array<{
-            name: string;
-            value: string;
-            type: 'system' | 'custom' | 'inherited' | 'auto';
-          }> = [];
-          
-          // Process system properties
-          if (device.systemProperties && Array.isArray(device.systemProperties)) {
-            device.systemProperties.forEach((prop: { name: string; value: string }) => {
-              properties.push({
-                name: prop.name,
-                value: prop.value || '',
-                type: 'system',
-              });
-            });
-          }
-          
-          // Process custom properties
-          if (device.customProperties && Array.isArray(device.customProperties)) {
-            device.customProperties.forEach((prop: { name: string; value: string }) => {
-              properties.push({
-                name: prop.name,
-                value: prop.value || '',
-                type: 'custom',
-              });
-            });
-          }
-          
-          // Process inherited properties
-          if (device.inheritedProperties && Array.isArray(device.inheritedProperties)) {
-            device.inheritedProperties.forEach((prop: { name: string; value: string }) => {
-              properties.push({
-                name: prop.name,
-                value: prop.value || '',
-                type: 'inherited',
-              });
-            });
-          }
-          
-          // Process auto properties
-          if (device.autoProperties && Array.isArray(device.autoProperties)) {
-            device.autoProperties.forEach((prop: { name: string; value: string }) => {
-              properties.push({
-                name: prop.name,
-                value: prop.value || '',
-                type: 'auto',
-              });
-            });
-          }
-          
-          // Sort by name
-          properties.sort((a, b) => a.name.localeCompare(b.name));
-          
-          resolve(properties);
-        } catch {
-          resolve([]);
-        }
-      } else {
-        resolve([]);
-      }
+  // Embedded lmFetch helper
+  const lmFetch = <T = unknown>(url: string, opts: { csrfToken?: string | null } = {}): Promise<{ ok: boolean; data?: T }> =>
+    new Promise((resolve) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('GET', url, true);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.setRequestHeader('X-version', '3');
+      if (opts.csrfToken) xhr.setRequestHeader('X-CSRF-Token', opts.csrfToken);
+      xhr.onload = () => {
+        const ok = xhr.status >= 200 && xhr.status < 300;
+        let data: T | undefined;
+        try { data = JSON.parse(xhr.responseText) as T; } catch { /* empty */ }
+        resolve({ ok, data });
+      };
+      xhr.onerror = () => resolve({ ok: false });
+      xhr.send();
+    });
+
+  type DevicePropsResponse = {
+    data?: {
+      systemProperties?: Array<{ name: string; value: string }>;
+      customProperties?: Array<{ name: string; value: string }>;
+      inheritedProperties?: Array<{ name: string; value: string }>;
+      autoProperties?: Array<{ name: string; value: string }>;
     };
-    
-    xhr.onerror = () => resolve([]);
-    xhr.send();
-  });
+    systemProperties?: Array<{ name: string; value: string }>;
+    customProperties?: Array<{ name: string; value: string }>;
+    inheritedProperties?: Array<{ name: string; value: string }>;
+    autoProperties?: Array<{ name: string; value: string }>;
+  };
+
+  const result = await lmFetch<DevicePropsResponse>(
+    `/santaba/rest/device/devices/${deviceId}?fields=systemProperties,customProperties,inheritedProperties,autoProperties`,
+    { csrfToken }
+  );
+
+  if (!result.ok || !result.data) return [];
+
+  const device = result.data.data || result.data;
+  const properties: Array<{ name: string; value: string; type: 'system' | 'custom' | 'inherited' | 'auto' }> = [];
+
+  // Process each property type
+  const propTypes = ['system', 'custom', 'inherited', 'auto'] as const;
+  for (const propType of propTypes) {
+    const propsKey = `${propType}Properties` as keyof typeof device;
+    const props = device[propsKey];
+    if (Array.isArray(props)) {
+      for (const prop of props) {
+        properties.push({ name: prop.name, value: prop.value || '', type: propType });
+      }
+    }
+  }
+
+  // Sort by name
+  properties.sort((a, b) => a.name.localeCompare(b.name));
+  return properties;
 }
 
 // Function to be injected into the page to test AppliesTo expressions
-function testAppliesToExpression(
+async function testAppliesToExpression(
   csrfToken: string | null, 
   currentAppliesTo: string, 
   testFrom: 'devicesGroup' | 'websiteGroup'
@@ -959,66 +883,70 @@ function testAppliesToExpression(
     errorDetail: string | null;
   };
 }> {
-  return new Promise((resolve) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', '/santaba/rest/functions', true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.setRequestHeader('X-version', '3');
-    if (csrfToken) {
-      xhr.setRequestHeader('X-CSRF-Token', csrfToken);
-    }
-    
-    const payload = {
+  // Embedded lmFetch helper
+  const lmFetch = <T = unknown>(url: string, opts: { method?: string; csrfToken?: string | null; body?: unknown } = {}): Promise<{ ok: boolean; status: number; data?: T }> =>
+    new Promise((resolve) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open(opts.method || 'GET', url, true);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.setRequestHeader('X-version', '3');
+      if (opts.csrfToken) xhr.setRequestHeader('X-CSRF-Token', opts.csrfToken);
+      xhr.onload = () => {
+        const ok = xhr.status >= 200 && xhr.status < 300;
+        let data: T | undefined;
+        try { data = JSON.parse(xhr.responseText) as T; } catch { /* empty */ }
+        resolve({ ok, status: xhr.status, data });
+      };
+      xhr.onerror = () => resolve({ ok: false, status: 0 });
+      xhr.send(opts.body ? JSON.stringify(opts.body) : undefined);
+    });
+
+  type AppliesToResponse = {
+    originalAppliesTo?: string;
+    currentAppliesTo?: string;
+    originalMatches?: Array<{ type: string; id: number; name: string }>;
+    currentMatches?: Array<{ type: string; id: number; name: string }>;
+    warnMessage?: string;
+    errorMessage?: string;
+    message?: string;
+    errorCode?: number;
+    errorDetail?: string | null;
+  };
+
+  const result = await lmFetch<AppliesToResponse>('/santaba/rest/functions', {
+    method: 'POST',
+    csrfToken,
+    body: {
       currentAppliesTo,
       originalAppliesTo: '',
       type: 'testAppliesTo',
       needInheritProps: false,
       testFrom,
-    };
-    
-    xhr.onload = () => {
-      try {
-        const response = JSON.parse(xhr.responseText);
-        
-        if (xhr.status === 200) {
-          resolve({
-            result: {
-              originalAppliesTo: response.originalAppliesTo || '',
-              currentAppliesTo: response.currentAppliesTo || currentAppliesTo,
-              originalMatches: response.originalMatches || [],
-              currentMatches: response.currentMatches || [],
-              warnMessage: response.warnMessage || '',
-            },
-          });
-        } else {
-          // API returned an error (e.g., 400 for syntax errors)
-          resolve({
-            error: {
-              errorMessage: response.errorMessage || response.message || 'Unknown error',
-              errorCode: response.errorCode || xhr.status,
-              errorDetail: response.errorDetail || null,
-            },
-          });
-        }
-      } catch {
-        resolve({
-          error: {
-            errorMessage: 'Failed to parse response',
-            errorCode: 500,
-            errorDetail: null,
-          },
-        });
-      }
-    };
-    
-    xhr.onerror = () => resolve({
-      error: {
-        errorMessage: 'Network error',
-        errorCode: 0,
-        errorDetail: null,
-      },
-    });
-    
-    xhr.send(JSON.stringify(payload));
+    },
   });
+
+  if (!result.data) {
+    return { error: { errorMessage: 'Network error', errorCode: 0, errorDetail: null } };
+  }
+
+  if (result.ok) {
+    return {
+      result: {
+        originalAppliesTo: result.data.originalAppliesTo || '',
+        currentAppliesTo: result.data.currentAppliesTo || currentAppliesTo,
+        originalMatches: result.data.originalMatches || [],
+        currentMatches: result.data.currentMatches || [],
+        warnMessage: result.data.warnMessage || '',
+      },
+    };
+  }
+
+  // API returned an error (e.g., 400 for syntax errors)
+  return {
+    error: {
+      errorMessage: result.data.errorMessage || result.data.message || 'Unknown error',
+      errorCode: result.data.errorCode || result.status,
+      errorDetail: result.data.errorDetail || null,
+    },
+  };
 }

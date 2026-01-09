@@ -265,3 +265,63 @@ export function getInjectableLmMutateFunction(): string {
     });
   }`;
 }
+
+// ============================================================================
+// Embedded Helper Pattern for Injected Functions
+// ============================================================================
+
+/**
+ * Options for the embedded lmFetch helper used within injected functions.
+ * This interface is for documentation - it cannot be imported in injected code.
+ */
+export interface LmFetchOptions {
+  method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
+  csrfToken?: string | null;
+  body?: unknown;
+  xRequestedWith?: boolean;
+}
+
+/**
+ * Response from the embedded lmFetch helper.
+ * This interface is for documentation - it cannot be imported in injected code.
+ */
+export interface LmFetchResponse<T = unknown> {
+  ok: boolean;
+  status: number;
+  data?: T;
+  text?: string;
+  error?: string;
+}
+
+/**
+ * Embedded lmFetch helper pattern for use inside injected functions.
+ * 
+ * Copy this pattern into any injected function that needs to make API calls.
+ * It provides a consistent, minimal XHR wrapper that handles:
+ * - Standard LM headers (Content-Type, X-version, X-CSRF-Token)
+ * - JSON parsing with error handling
+ * - Network error handling
+ * 
+ * Pattern (copy and adapt types as needed):
+ * 
+ *   const lmFetch = (url, opts = {}) =>
+ *     new Promise((resolve) => {
+ *       const xhr = new XMLHttpRequest();
+ *       xhr.open(opts.method || 'GET', url, true);
+ *       xhr.setRequestHeader('Content-Type', 'application/json');
+ *       xhr.setRequestHeader('X-version', '3');
+ *       if (opts.csrfToken) xhr.setRequestHeader('X-CSRF-Token', opts.csrfToken);
+ *       if (opts.xRequestedWith) xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+ *       xhr.onload = () => {
+ *         const ok = xhr.status >= 200 && xhr.status < 300;
+ *         let data;
+ *         try { data = JSON.parse(xhr.responseText); } catch {}
+ *         resolve({ ok, status: xhr.status, data, text: xhr.responseText });
+ *       };
+ *       xhr.onerror = () => resolve({ ok: false, status: 0, error: 'Network error' });
+ *       xhr.send(opts.body ? JSON.stringify(opts.body) : undefined);
+ *     });
+ * 
+ * For TypeScript, add generic type parameter and type annotations as needed.
+ * See portal-manager.ts, module-api.ts, and module-loader.ts for real examples.
+ */

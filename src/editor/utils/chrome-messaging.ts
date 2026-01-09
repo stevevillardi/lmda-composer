@@ -89,8 +89,24 @@ export async function sendMessage<T extends EditorToSWMessage>(
     }
     
     // Check for specific error response types
-    if (response.type === 'APPLIES_TO_ERROR' || 
-        response.type === 'CUSTOM_FUNCTION_ERROR' ||
+    if (response.type === 'APPLIES_TO_ERROR') {
+      // AppliesTo errors have errorMessage, errorCode, and errorDetail
+      const payload = response.payload as { errorMessage?: string; errorCode?: number; errorDetail?: string | null };
+      const errorParts: string[] = [];
+      if (payload?.errorMessage) {
+        errorParts.push(payload.errorMessage.trim());
+      }
+      if (payload?.errorDetail) {
+        errorParts.push(payload.errorDetail);
+      }
+      return {
+        ok: false,
+        error: errorParts.length > 0 ? errorParts.join('\n') : 'Unknown error',
+        code: payload?.errorCode?.toString()
+      };
+    }
+    
+    if (response.type === 'CUSTOM_FUNCTION_ERROR' ||
         response.type === 'MODULE_SNIPPETS_ERROR') {
       return {
         ok: false,
