@@ -98,8 +98,6 @@ export function ApiPathAutocomplete({
     [endpoints, method, onChange, onSelectEndpoint]
   );
 
-  const methodStyle = COLORS.METHOD[method];
-
   return (
     <Combobox
       value={value}

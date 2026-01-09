@@ -211,12 +211,14 @@ export function ApiKeyValueEditor({
           </p>
           {suggestions.length > 0 ? (
             <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="xs" className="mt-2 bg-background/50">
-                  <Plus className="size-3.5 mr-1" />
-                  Add Field
-                </Button>
-              </DropdownMenuTrigger>
+              <DropdownMenuTrigger
+                render={
+                  <Button variant="outline" size="xs" className="mt-2 bg-background/50">
+                    <Plus className="size-3.5 mr-1" />
+                    Add Field
+                  </Button>
+                }
+              />
               <DropdownMenuContent align="center" className="w-72">
                 {availableSuggestions.length === 0 ? (
                   <div className="px-2 py-2 text-xs text-muted-foreground">

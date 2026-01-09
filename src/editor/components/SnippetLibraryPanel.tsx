@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Search, Plus, Code2, FileText, Edit2, Trash2, Play, Eye, ChevronDown, ChevronRight } from 'lucide-react';
+import { Search, Plus, Code2, FileText, Edit2, Trash2, Eye, ChevronDown, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEditorStore } from '../stores/editor-store';
 import { Input } from '@/components/ui/input';
