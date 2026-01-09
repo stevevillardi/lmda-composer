@@ -35,10 +35,10 @@ describe('PortalManager', () => {
     // discoverPortals() should not attempt LMGlobalData verification for incomplete tabs,
     // but it *will* try to refresh CSRF tokens after discovery; ensure it doesn't crash.
     chromeMock.tabs.get.mockImplementation(async (tabId: number) => {
-      const map: Record<number, any> = {
-        1: { id: 1, url: 'https://acme.logicmonitor.com/santaba/home', status: 'unloaded', discarded: true, active: false, lastAccessed: 10 },
-        2: { id: 2, url: 'https://acme.logicmonitor.com/santaba/home', status: 'loading', discarded: false, active: false, lastAccessed: 20 },
-        3: { id: 3, url: 'https://beta.logicmonitor.com/santaba/home', status: 'unloaded', discarded: true, active: false, lastAccessed: 30 },
+      const map: Record<number, chrome.tabs.Tab> = {
+        1: { id: 1, url: 'https://acme.logicmonitor.com/santaba/home', status: 'unloaded', discarded: true, active: false, lastAccessed: 10, index: 0, pinned: false, highlighted: false, windowId: 1, incognito: false, selected: false, autoDiscardable: true, groupId: -1 },
+        2: { id: 2, url: 'https://acme.logicmonitor.com/santaba/home', status: 'loading', discarded: false, active: false, lastAccessed: 20, index: 1, pinned: false, highlighted: false, windowId: 1, incognito: false, selected: false, autoDiscardable: true, groupId: -1 },
+        3: { id: 3, url: 'https://beta.logicmonitor.com/santaba/home', status: 'unloaded', discarded: true, active: false, lastAccessed: 30, index: 2, pinned: false, highlighted: false, windowId: 1, incognito: false, selected: false, autoDiscardable: true, groupId: -1 },
       };
       return map[tabId] ?? null;
     });
@@ -70,9 +70,9 @@ describe('PortalManager', () => {
     chromeMock.scripting.executeScript.mockResolvedValue([{ result: { hasLMGlobalData: true, isPopulated: true } }]);
 
     chromeMock.tabs.get.mockImplementation(async (tabId: number) => {
-      const map: Record<number, any> = {
-        10: { id: 10, url: 'https://acme.logicmonitor.com/santaba/home', status: 'complete', discarded: false, active: false, lastAccessed: 100 },
-        11: { id: 11, url: 'https://acme.logicmonitor.com/santaba/home', status: 'complete', discarded: false, active: true, lastAccessed: 50 },
+      const map: Record<number, chrome.tabs.Tab> = {
+        10: { id: 10, url: 'https://acme.logicmonitor.com/santaba/home', status: 'complete', discarded: false, active: false, lastAccessed: 100, index: 0, pinned: false, highlighted: false, windowId: 1, incognito: false, selected: false, autoDiscardable: true, groupId: -1 },
+        11: { id: 11, url: 'https://acme.logicmonitor.com/santaba/home', status: 'complete', discarded: false, active: true, lastAccessed: 50, index: 1, pinned: false, highlighted: false, windowId: 1, incognito: false, selected: false, autoDiscardable: true, groupId: -1 },
       };
       return map[tabId] ?? null;
     });
@@ -129,7 +129,7 @@ describe('PortalManager', () => {
     // Make the mock deterministic:
     // - MAIN world probe (LMGlobalData check) => present but empty (logged out)
     // - CSRF fetch (no world) => even if it returns a token, we should NOT mark portal active
-    chromeMock.scripting.executeScript.mockImplementation(async (params: any) => {
+    chromeMock.scripting.executeScript.mockImplementation(async (params: chrome.scripting.ScriptInjection) => {
       if (params?.world === 'MAIN') return [{ result: { hasLMGlobalData: true, isPopulated: false } }];
       return [{ result: 'token-even-when-logged-out' }];
     });

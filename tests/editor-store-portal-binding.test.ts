@@ -7,14 +7,7 @@ const initialState = useEditorStore.getState();
 describe('editor-store portal binding', () => {
   beforeEach(() => {
     useEditorStore.setState(initialState, true);
-    (globalThis as any).chrome = {
-      runtime: {
-        sendMessage: vi.fn(),
-      },
-      tabs: {
-        query: vi.fn(),
-      },
-    };
+    // Chrome mock is already installed globally via tests/setup.ts
   });
 
   afterEach(() => {

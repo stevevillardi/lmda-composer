@@ -1,20 +1,18 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useEditorStore } from '../src/editor/stores/editor-store';
 import type { EditorTab } from '../src/shared/types';
+import { getChromeMock } from './setup';
 
 const initialState = useEditorStore.getState();
 
 describe('editor-store commit tags payload', () => {
   beforeEach(() => {
     useEditorStore.setState(initialState, true);
-    (globalThis as any).chrome = {
-      runtime: {
-        sendMessage: vi.fn().mockResolvedValue({
-          type: 'MODULE_COMMITTED',
-          payload: { moduleId: 1, moduleType: 'logsource' },
-        }),
-      },
-    };
+    const chrome = getChromeMock();
+    chrome.runtime.sendMessage.mockResolvedValue({
+      type: 'MODULE_COMMITTED',
+      payload: { moduleId: 1, moduleType: 'logsource' },
+    });
   });
 
   afterEach(() => {
@@ -70,7 +68,7 @@ describe('editor-store commit tags payload', () => {
 
     await useEditorStore.getState().commitModuleScript(tab.id);
 
-    expect((globalThis as any).chrome.runtime.sendMessage).toHaveBeenCalledWith(
+    expect(getChromeMock().runtime.sendMessage).toHaveBeenCalledWith(
       expect.objectContaining({
         type: 'COMMIT_MODULE_SCRIPT',
         payload: expect.objectContaining({
@@ -130,7 +128,7 @@ describe('editor-store commit tags payload', () => {
 
     await useEditorStore.getState().commitModuleScript(tab.id);
 
-    expect((globalThis as any).chrome.runtime.sendMessage).toHaveBeenCalledWith(
+    expect(getChromeMock().runtime.sendMessage).toHaveBeenCalledWith(
       expect.objectContaining({
         type: 'COMMIT_MODULE_SCRIPT',
         payload: expect.objectContaining({

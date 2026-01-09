@@ -1,9 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { isValidSender } from '../src/background/sender-validation';
+import { getChromeMock } from './setup';
 
 describe('sender-validation', () => {
   beforeEach(() => {
-    (globalThis as any).chrome = { runtime: { id: 'ext-id' } };
+    // Override the default extension ID for these tests
+    const chrome = getChromeMock();
+    (chrome.runtime as { id: string }).id = 'ext-id';
   });
 
   it('rejects senders from other extensions', () => {

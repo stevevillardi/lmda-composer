@@ -1,9 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { loadApiSchema, resetApiSchemaCache } from '../src/editor/data/api-schema';
 
+// Store original fetch to restore later
+const originalFetch = globalThis.fetch;
+
 describe('api schema loader', () => {
   afterEach(() => {
     resetApiSchemaCache();
+    globalThis.fetch = originalFetch;
     vi.restoreAllMocks();
   });
 
@@ -24,7 +28,7 @@ describe('api schema loader', () => {
         },
       }),
     });
-    (globalThis as any).fetch = fetchSpy;
+    globalThis.fetch = fetchSpy;
 
     const first = await loadApiSchema();
     const second = await loadApiSchema();
@@ -35,7 +39,7 @@ describe('api schema loader', () => {
   });
 
   it('throws when remote schema cannot be loaded', async () => {
-    (globalThis as any).fetch = vi.fn().mockResolvedValue({
+    globalThis.fetch = vi.fn().mockResolvedValue({
       ok: false,
       status: 500,
     });

@@ -55,7 +55,7 @@ import { cn } from '@/lib/utils';
 import { APPLIES_TO_OPERATORS, getOperatorsByCategory, type AppliesToOperator } from '../data/applies-to-operators';
 import { CreateFunctionDialog } from './AppliesToTester/CreateFunctionDialog';
 import { UpdateFunctionConfirmationDialog } from './AppliesToTester/UpdateFunctionConfirmationDialog';
-import type { AppliesToFunction, CustomAppliesToFunction } from '@/shared/types';
+import type { AppliesToFunction, CustomAppliesToFunction, AppliesToFunctionWithSource } from '@/shared/types';
 
 export function AppliesToTester() {
   const {
@@ -111,9 +111,9 @@ export function AppliesToTester() {
     return getAllFunctions();
   }, [getAllFunctions, customFunctions]);
 
-  // Fix type issues - ensure allFunctions has proper types
-  const typedAllFunctions = useMemo(() => {
-    return allFunctions.map((f: any) => ({
+  // Typed function list from store (already properly typed)
+  const typedAllFunctions: AppliesToFunctionWithSource[] = useMemo(() => {
+    return allFunctions.map((f) => ({
       ...f,
       source: f.source || 'builtin',
       customId: f.customId,
@@ -126,14 +126,14 @@ export function AppliesToTester() {
     
     // Filter by custom/builtin toggle
     if (showOnlyCustom) {
-      functions = functions.filter((f: any) => f.source === 'custom');
+      functions = functions.filter((f) => f.source === 'custom');
     }
     
     // Filter by search query
     if (appliesToFunctionSearch.trim()) {
       const query = appliesToFunctionSearch.toLowerCase();
       functions = functions.filter(
-        (f: any) => f.name.toLowerCase().includes(query) || 
+        (f) => f.name.toLowerCase().includes(query) || 
              f.description.toLowerCase().includes(query)
       );
     }
@@ -274,7 +274,7 @@ export function AppliesToTester() {
     
     // Add function matches (built-in + custom)
     const functionMatches = typedAllFunctions
-      .filter((f: any) => f.name.toLowerCase().startsWith(word))
+      .filter((f) => f.name.toLowerCase().startsWith(word))
       .slice(0, 5);
     results.push(...functionMatches);
     
@@ -313,7 +313,7 @@ export function AppliesToTester() {
       
       // Add function matches (built-in + custom)
       const functionMatches = typedAllFunctions
-        .filter((f: any) => f.name.toLowerCase().startsWith(word))
+        .filter((f) => f.name.toLowerCase().startsWith(word))
         .slice(0, 5);
       currentSuggestions.push(...functionMatches);
       
@@ -701,7 +701,7 @@ export function AppliesToTester() {
                     <div className="space-y-4">
                       {filteredFunctions.length > 0 ? (
                         <div className="grid grid-cols-1 gap-3">
-                          {filteredFunctions.map((func: any) => (
+                          {filteredFunctions.map((func) => (
                             <FunctionCard
                               key={`${func.source || 'builtin'}-${func.name}-${func.customId || ''}`}
                               func={func}

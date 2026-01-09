@@ -953,10 +953,10 @@ export type SWToEditorMessage =
   | { type: 'CUSTOM_FUNCTION_ERROR'; payload: { error: string; code?: number } }
   | { type: 'DEBUG_COMMAND_UPDATE'; payload: DebugCommandProgress }
   | { type: 'DEBUG_COMMAND_COMPLETE'; payload: DebugCommandComplete }
-  | { type: 'MODULE_FETCHED'; payload: any } // Full module object from API
+  | { type: 'MODULE_FETCHED'; payload: Record<string, unknown> } // Full module object from API
   | { type: 'MODULE_COMMITTED'; payload: { moduleId: number; moduleType: LogicModuleType } }
   | { type: 'MODULE_ERROR'; payload: { error: string; code?: number } }
-  | { type: 'MODULE_DETAILS_FETCHED'; payload: { module: any } } // Full module details object from API
+  | { type: 'MODULE_DETAILS_FETCHED'; payload: { module: Record<string, unknown> } } // Full module details object from API
   | { type: 'MODULE_DETAILS_ERROR'; payload: { error: string; code?: number } }
   | { type: 'ACCESS_GROUPS_FETCHED'; payload: { accessGroups: Array<{ id: number; name: string; description?: string; createdOn?: number; updatedOn?: number; createdBy?: string; tenantId?: string | null }> } }
   | { type: 'ACCESS_GROUPS_ERROR'; payload: { error: string; code?: number } }

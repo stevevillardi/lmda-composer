@@ -1,4 +1,19 @@
-export function generateExampleFromSchema(schema: any, depth = 0): unknown {
+/**
+ * Minimal JSON Schema-like interface for OpenAPI schema objects.
+ * Covers the fields actually used for example generation.
+ */
+interface JSONSchemaLike {
+  type?: string;
+  example?: unknown;
+  enum?: unknown[];
+  oneOf?: JSONSchemaLike[];
+  anyOf?: JSONSchemaLike[];
+  allOf?: JSONSchemaLike[];
+  properties?: Record<string, JSONSchemaLike>;
+  items?: JSONSchemaLike;
+}
+
+export function generateExampleFromSchema(schema: JSONSchemaLike | null | undefined, depth = 0): unknown {
   if (!schema || depth > 4) {
     return {};
   }
@@ -21,7 +36,7 @@ export function generateExampleFromSchema(schema: any, depth = 0): unknown {
 
   if (schema.allOf && Array.isArray(schema.allOf) && schema.allOf.length > 0) {
     const merged: Record<string, unknown> = {};
-    schema.allOf.forEach((item: any) => {
+    schema.allOf.forEach((item: JSONSchemaLike) => {
       const value = generateExampleFromSchema(item, depth + 1);
       if (value && typeof value === 'object' && !Array.isArray(value)) {
         Object.assign(merged, value);

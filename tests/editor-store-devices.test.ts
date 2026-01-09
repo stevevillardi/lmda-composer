@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useEditorStore } from '../src/editor/stores/editor-store';
-import type { FetchDevicesResponse } from '../src/shared/types';
+import type { FetchDevicesResponse, SWToEditorMessage } from '../src/shared/types';
+import { getChromeMock } from './setup';
 
 const initialState = useEditorStore.getState();
 
@@ -17,11 +18,6 @@ function createDeferred<T>() {
 describe('editor-store device fetch', () => {
   beforeEach(() => {
     useEditorStore.setState(initialState, true);
-    (globalThis as any).chrome = {
-      runtime: {
-        sendMessage: vi.fn(),
-      },
-    };
   });
 
   afterEach(() => {
@@ -30,9 +26,9 @@ describe('editor-store device fetch', () => {
   });
 
   it('ignores stale device responses after selection changes', async () => {
-    const deferred = createDeferred<any>();
-    const sendMessage = vi.fn().mockReturnValue(deferred.promise);
-    (globalThis as any).chrome.runtime.sendMessage = sendMessage;
+    const deferred = createDeferred<SWToEditorMessage>();
+    const chrome = getChromeMock();
+    chrome.runtime.sendMessage.mockReturnValue(deferred.promise);
 
     useEditorStore.setState({
       selectedPortalId: 'portal-a',

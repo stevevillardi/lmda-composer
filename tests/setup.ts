@@ -60,8 +60,16 @@ const mockChrome = {
   },
 };
 
+/** Type representing the mock Chrome API structure. */
+export type MockChrome = typeof mockChrome;
+
+// Declare global Chrome type for type-safe access in tests
+declare global {
+  var chrome: MockChrome;
+}
+
 // Install Chrome mock globally
-(globalThis as unknown as { chrome: typeof mockChrome }).chrome = mockChrome;
+globalThis.chrome = mockChrome;
 
 // =============================================================================
 // Browser API Mocks (JSDOM gaps)

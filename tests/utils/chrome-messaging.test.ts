@@ -21,6 +21,7 @@ import {
   validateResponse,
 } from '../../src/editor/utils/chrome-messaging';
 import { resetChromeMocks, getChromeMock } from '../setup';
+import type { EditorToSWMessage } from '../../src/shared/types';
 
 describe('chrome-messaging', () => {
   beforeEach(() => {
@@ -296,7 +297,7 @@ describe('chrome-messaging', () => {
         } 
       });
 
-      const result = await sendMessage({ type: 'TEST_APPLIES_TO', payload: { expression: 'bad' } } as any);
+      const result = await sendMessage({ type: 'TEST_APPLIES_TO', payload: { portalId: 'test', currentAppliesTo: 'bad', testFrom: 'devicesGroup' } } as EditorToSWMessage);
       
       expect(result.ok).toBe(false);
       if (!result.ok) {
@@ -316,7 +317,7 @@ describe('chrome-messaging', () => {
         } 
       });
 
-      const result = await sendMessage({ type: 'TEST_APPLIES_TO', payload: { expression: 'bad' } } as any);
+      const result = await sendMessage({ type: 'TEST_APPLIES_TO', payload: { portalId: 'test', currentAppliesTo: 'bad', testFrom: 'devicesGroup' } } as EditorToSWMessage);
       
       expect(result.ok).toBe(false);
       if (!result.ok) {
@@ -375,7 +376,7 @@ describe('chrome-messaging', () => {
       chrome.runtime.sendMessage.mockResolvedValueOnce({});
 
       // Should not throw or return anything
-      sendMessageIgnoreError({ type: 'CANCEL_EXECUTION' } as any);
+      sendMessageIgnoreError({ type: 'CANCEL_EXECUTION', payload: { executionId: 'test-id' } } as EditorToSWMessage);
       
       expect(chrome.runtime.sendMessage).toHaveBeenCalled();
     });
@@ -386,7 +387,7 @@ describe('chrome-messaging', () => {
 
       // Should not throw
       expect(() => {
-        sendMessageIgnoreError({ type: 'CANCEL_EXECUTION' } as any);
+        sendMessageIgnoreError({ type: 'CANCEL_EXECUTION', payload: { executionId: 'test-id' } } as EditorToSWMessage);
       }).not.toThrow();
     });
   });

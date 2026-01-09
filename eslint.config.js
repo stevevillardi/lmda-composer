@@ -18,6 +18,7 @@ export default tseslint.config(
       'docs/**',
       'versions/**',
       'node_modules/**',
+      'ref-docs/**',
     ],
   },
   js.configs.recommended,

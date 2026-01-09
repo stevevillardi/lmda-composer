@@ -537,8 +537,31 @@ export function convertToLocalDocument(
  * @returns The script content, or empty string if not found
  */
  
+/**
+ * Minimal module shape for script extraction.
+ * Covers the fields actually accessed during extraction.
+ */
+interface ModuleScriptData {
+  groovyScript?: string;
+  script?: string;
+  autoDiscoveryConfig?: {
+    method?: {
+      groovyScript?: string;
+    };
+  };
+  collectorAttribute?: {
+    groovyScript?: string;
+  };
+  collectionAttribute?: {
+    script?: {
+      embeddedContent?: string;
+    };
+    groovyScript?: string;
+  };
+}
+
 export function extractScriptFromModule(
-  module: any, 
+  module: ModuleScriptData, 
   moduleType: LogicModuleType, 
   scriptType: 'collection' | 'ad'
 ): string {

@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+import { create, type StoreApi } from 'zustand';
 import { createUISlice, type UISlice, uiSliceInitialState } from './slices/ui-slice';
 import { createPortalSlice, type PortalSlice, portalSliceInitialState } from './slices/portal-slice';
 import { createTabsSlice, type TabsSlice, tabsSliceInitialState } from './slices/tabs-slice';
@@ -43,23 +43,23 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   ...toolsSliceInitialState,
 
   // Portal slice actions - spread from createPortalSlice
-  ...createPortalSlice(set, get, {} as any),
+  ...createPortalSlice(set, get, {} as StoreApi<EditorState>),
 
   // Tabs slice actions - spread from createTabsSlice
-  ...createTabsSlice(set, get, {} as any),
+  ...createTabsSlice(set, get, {} as StoreApi<EditorState>),
 
   // UI state actions - spread from createUISlice
-  ...createUISlice(set, get, {} as any),
+  ...createUISlice(set, get, {} as StoreApi<EditorState>),
 
   // Execution state and actions - spread from createExecutionSlice
-  ...createExecutionSlice(set, get, {} as any),
+  ...createExecutionSlice(set, get, {} as StoreApi<EditorState>),
 
   // Module state and actions - spread from createModuleSlice
-  ...createModuleSlice(set, get, {} as any),
+  ...createModuleSlice(set, get, {} as StoreApi<EditorState>),
 
   // API state and actions - spread from createAPISlice
-  ...createAPISlice(set, get, {} as any),
+  ...createAPISlice(set, get, {} as StoreApi<EditorState>),
 
   // Tools state and actions - spread from createToolsSlice
-  ...createToolsSlice(set, get, {} as any),
+  ...createToolsSlice(set, get, {} as StoreApi<EditorState>),
 }));
