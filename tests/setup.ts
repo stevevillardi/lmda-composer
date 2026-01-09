@@ -37,6 +37,9 @@ const mockChrome = {
     sendMessage: vi.fn(() => Promise.resolve({})),
     get: vi.fn(() => Promise.resolve(null)),
   },
+  scripting: {
+    executeScript: vi.fn(() => Promise.resolve([{ result: null }])),
+  },
   storage: {
     local: {
       get: vi.fn(() => Promise.resolve({})),
@@ -59,6 +62,26 @@ const mockChrome = {
 
 // Install Chrome mock globally
 (globalThis as unknown as { chrome: typeof mockChrome }).chrome = mockChrome;
+
+// =============================================================================
+// Browser API Mocks (JSDOM gaps)
+// =============================================================================
+
+// Some components rely on prefers-color-scheme via matchMedia.
+// JSDOM doesn't implement it by default.
+if (typeof window !== 'undefined' && typeof window.matchMedia !== 'function') {
+  (window as unknown as { matchMedia: (query: string) => MediaQueryList }).matchMedia = (query: string) =>
+    ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: vi.fn(), // deprecated
+      removeListener: vi.fn(), // deprecated
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    }) as unknown as MediaQueryList;
+}
 
 // =============================================================================
 // Test Utilities

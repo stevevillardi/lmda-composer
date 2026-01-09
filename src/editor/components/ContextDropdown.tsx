@@ -96,10 +96,19 @@ export function ContextDropdown({
   const selectedPortal = portals.find(p => p.id === selectedPortalId);
   const selectedCollector = collectors.find(c => c.id === selectedCollectorId);
   const selectedCollectorArch = selectedCollector?.arch;
+  const isPortalActive = selectedPortal?.status === 'active';
   const selectedDevice = useMemo(() => {
     if (!hostname) return null;
     return devices.find(device => device.name === hostname) ?? null;
   }, [devices, hostname]);
+
+  // If portal becomes inactive, clear dependent context so we don't show stale collector/device state.
+  useEffect(() => {
+    if (!selectedPortalId) return;
+    if (isPortalActive) return;
+    if (selectedCollectorId) setSelectedCollector(null);
+    if (hostname) setHostname('');
+  }, [hostname, isPortalActive, selectedCollectorId, selectedPortalId, setHostname, setSelectedCollector]);
 
   // Build items arrays for Select
   const portalItems = [
@@ -127,9 +136,9 @@ export function ContextDropdown({
   // Build summary text for dropdown trigger
   const getSummaryText = () => {
     if (!selectedPortal) return 'No connected portal';
-    if (!showCollector) return selectedPortal.hostname;
+    if (!showCollector || !isPortalActive) return selectedPortal.hostname;
     if (!selectedCollector) return selectedPortal.hostname;
-    const device = showDevice && hostname ? ` → ${formatDeviceLabel(hostname)}` : '';
+    const device = showDevice && isPortalActive && hostname ? ` → ${formatDeviceLabel(hostname)}` : '';
     return `${selectedPortal.hostname} → ${selectedCollector.description || selectedCollector.hostname}${device}`;
   };
 
@@ -177,6 +186,16 @@ export function ContextDropdown({
                   className="h-8 gap-1.5 max-w-[280px]"
                 >
                   <Globe className="size-3.5 shrink-0" />
+                  <Circle
+                    className={cn(
+                      'size-2 shrink-0',
+                      selectedPortal?.status === 'active'
+                        ? 'fill-green-500 text-teal-500'
+                        : selectedPortal
+                          ? 'fill-red-500 text-red-500'
+                          : 'fill-muted-foreground text-muted-foreground'
+                    )}
+                  />
                   <span className="truncate text-xs">{getSummaryText()}</span>
                   <ChevronDown className="size-3 shrink-0 text-muted-foreground" />
                 </Button>
@@ -291,7 +310,7 @@ export function ContextDropdown({
                       selectedPortal?.status === 'active'
                         ? 'fill-green-500 text-teal-500'
                         : selectedPortal
-                          ? 'fill-yellow-500 text-yellow-500'
+                          ? 'fill-red-500 text-red-500'
                           : 'fill-muted-foreground text-muted-foreground'
                     )}
                   />
@@ -312,7 +331,7 @@ export function ContextDropdown({
                             'size-2',
                             portal.status === 'active'
                               ? 'fill-green-500 text-teal-500'
-                              : 'fill-yellow-500 text-yellow-500'
+                              : 'fill-red-500 text-red-500'
                           )}
                         />
                         <span>{portal.hostname}</span>
@@ -324,7 +343,37 @@ export function ContextDropdown({
             </Select>
           </div>
 
-          {showCollector && (
+          {selectedPortal && !isPortalActive && (
+            <>
+              <Separator />
+              <Empty className="border border-border/50 bg-background/40 p-4 rounded-lg">
+                <EmptyHeader>
+                  <EmptyMedia variant="icon" className="bg-muted/50">
+                    <Globe className="size-5 text-muted-foreground/70" />
+                  </EmptyMedia>
+                  <EmptyTitle className="text-sm font-medium">Portal detected, but no active session</EmptyTitle>
+                  <EmptyDescription className="text-xs">
+                    We can see <span className="font-medium">{selectedPortal.hostname}</span>, but it looks like you may be
+                    logged out (or the tab is on the login screen). Open that portal tab, sign in, then refresh.
+                  </EmptyDescription>
+                </EmptyHeader>
+                <EmptyContent className="mt-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRefreshPortals}
+                    disabled={isRefreshingPortals}
+                    className="w-full bg-background/50"
+                  >
+                    <RefreshCw className={cn("size-3.5 mr-2", isRefreshingPortals && "animate-spin")} />
+                    {isRefreshingPortals ? 'Checking...' : 'Refresh portal status'}
+                  </Button>
+                </EmptyContent>
+              </Empty>
+            </>
+          )}
+
+          {showCollector && isPortalActive && (
             <>
               <Separator />
               <div className="space-y-1.5">
@@ -423,7 +472,7 @@ export function ContextDropdown({
             </>
           )}
 
-          {showDevice && (
+          {showDevice && isPortalActive && (
             <>
               <Separator />
               <div className="space-y-1.5">

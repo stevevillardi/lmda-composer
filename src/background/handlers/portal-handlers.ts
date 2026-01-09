@@ -25,8 +25,9 @@ export function handleCsrfToken(
   { portalManager }: HandlerContext
 ) {
   const { portalId, token } = payload;
-  portalManager.updateCsrfToken(portalId, token);
-  sendResponse({ success: true });
+  portalManager.receiveCsrfTokenFromContentScript(portalId, token)
+    .then(() => sendResponse({ success: true }))
+    .catch(() => sendResponse({ success: true }));
 }
 
 export async function handleGetCollectors(

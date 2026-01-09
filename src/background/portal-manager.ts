@@ -135,26 +135,89 @@ export class PortalManager {
    * race conditions when called concurrently.
    */
   private async getValidTabId(portal: Portal): Promise<number | null> {
+    interface Candidate {
+      tabId: number;
+      isUsable: boolean;
+      isActive: boolean;
+      lastAccessed: number;
+    }
+
+    const candidates: Candidate[] = [];
     const validTabIds: number[] = [];
-    
+
     for (const tabId of portal.tabIds) {
       try {
-        // Check if the tab still exists
         const tab = await chrome.tabs.get(tabId);
-        if (tab?.url && new URL(tab.url).hostname.endsWith('.logicmonitor.com')) {
-          validTabIds.push(tabId);
-        }
+        if (!tab?.url) continue;
+
+        const hostname = new URL(tab.url).hostname;
+        if (!hostname.endsWith('.logicmonitor.com')) continue;
+
+        validTabIds.push(tabId);
+
+        const isUsable =
+          tab.status === 'complete' &&
+          tab.discarded !== true &&
+          tab.url.startsWith('https://');
+
+        candidates.push({
+          tabId,
+          isUsable,
+          isActive: tab.active === true,
+          lastAccessed: typeof tab.lastAccessed === 'number' ? tab.lastAccessed : 0,
+        });
       } catch {
         // Tab no longer exists, skip it
       }
     }
-    
+
     // Atomic update - replace the entire array at once
     portal.tabIds = validTabIds;
-    
-    // Don't delete the portal here - let the caller handle rediscovery
-    // The portal might be refreshable with discoverPortals()
-    return validTabIds[0] ?? null;
+
+    // We must be able to inject scripts into the tab. If no loaded/usable tab exists,
+    // treat this as no valid tab rather than returning an unloaded/discarded tab ID.
+    const best = candidates
+      .filter(c => c.isUsable)
+      .sort((a, b) => {
+        if (a.isActive !== b.isActive) return a.isActive ? -1 : 1;
+        return b.lastAccessed - a.lastAccessed;
+      })[0];
+
+    return best?.tabId ?? null;
+  }
+
+  private async getUsableTabCandidates(portal: Portal): Promise<Array<{ tabId: number; isActive: boolean; lastAccessed: number }>> {
+    const candidates: Array<{ tabId: number; isActive: boolean; lastAccessed: number }> = [];
+
+    for (const tabId of portal.tabIds) {
+      try {
+        const tab = await chrome.tabs.get(tabId);
+        if (!tab?.url) continue;
+
+        const hostname = new URL(tab.url).hostname;
+        if (!hostname.endsWith('.logicmonitor.com')) continue;
+
+        const isUsable =
+          tab.status === 'complete' &&
+          tab.discarded !== true &&
+          tab.url.startsWith('https://');
+
+        if (!isUsable) continue;
+
+        candidates.push({
+          tabId,
+          isActive: tab.active === true,
+          lastAccessed: typeof tab.lastAccessed === 'number' ? tab.lastAccessed : 0,
+        });
+      } catch {
+        // ignore
+      }
+    }
+
+    return candidates.sort((a, b) => {
+      if (a.isActive !== b.isActive) return a.isActive ? -1 : 1;
+      return b.lastAccessed - a.lastAccessed;
+    });
   }
 
   private async resolvePortalAndTab(
@@ -209,33 +272,45 @@ export class PortalManager {
 
       // Group tabs by hostname, but first verify they are actual LM portals
       const portalTabs = new Map<string, number[]>();
+      const portalHasCompleteTab = new Map<string, boolean>();
+      const portalHasActiveSession = new Map<string, boolean>();
       let skippedIncomplete = 0;
       let verifiedPortals = 0;
       let fallbackPortals = 0;
       let nonPortalMatches = 0;
+      let includedIncomplete = 0;
       
       for (const tab of tabs) {
         if (!tab.url || !tab.id) continue;
-        
-        // Skip tabs that aren't ready - they won't have LMGlobalData loaded yet
-        if (tab.status !== 'complete') {
-          console.log(`Skipping tab ${tab.id}: status is ${tab.status}`);
-          skippedIncomplete += 1;
-          continue;
-        }
-        
+
         const url = new URL(tab.url);
         const hostname = url.hostname;
         const isLikelyPortal = isLikelyPortalHostname(hostname);
-        const isLMPortal = await this.verifyLogicMonitorPortal(tab.id);
-        if (!isLMPortal && !isLikelyPortal) {
+
+        // If it doesn't even look like a portal hostname, ignore it.
+        // (tabs.query matches *.logicmonitor.com, which includes docs/support/etc.)
+        if (!isLikelyPortal) {
           nonPortalMatches += 1;
           continue;
         }
-        if (isLMPortal) {
-          verifiedPortals += 1;
-        } else if (isLikelyPortal) {
-          fallbackPortals += 1;
+
+        // If the tab isn't fully loaded, we can't reliably verify LMGlobalData (or fetch CSRF).
+        // Still include the hostname so the user can see the portal and we preserve state.
+        if (tab.status !== 'complete') {
+          console.log(`Including incomplete tab ${tab.id}: status is ${tab.status}`);
+          skippedIncomplete += 1;
+          includedIncomplete += 1;
+        } else {
+          portalHasCompleteTab.set(hostname, true);
+          const isLMPortal = await this.verifyLogicMonitorPortal(tab.id);
+          if (isLMPortal) {
+            verifiedPortals += 1;
+            portalHasActiveSession.set(hostname, true);
+          } else {
+            // Heuristic fallback: hostname looks like a portal, but LM app didn't expose LMGlobalData
+            // (often due to login page / expired session / alternate LM page).
+            fallbackPortals += 1;
+          }
         }
         
         if (!portalTabs.has(hostname)) {
@@ -250,7 +325,20 @@ export class PortalManager {
         
         if (existingPortal) {
           existingPortal.tabIds = tabIds;
+
+          // If we can see at least one loaded tab for this portal, but none of them have a populated
+          // LMGlobalData, we should not treat the portal as "active" (green). This commonly indicates
+          // the login page (LMGlobalData = {}) / expired session.
+          const hasComplete = portalHasCompleteTab.get(hostname) === true;
+          const hasActiveSession = portalHasActiveSession.get(hostname) === true;
+          if (hasComplete && !hasActiveSession) {
+            existingPortal.status = 'expired';
+            existingPortal.csrfToken = null;
+            existingPortal.csrfTokenTimestamp = null;
+          }
         } else {
+          const hasComplete = portalHasCompleteTab.get(hostname) === true;
+          const hasActiveSession = portalHasActiveSession.get(hostname) === true;
           this.portals.set(hostname, {
             id: hostname,
             hostname,
@@ -258,7 +346,7 @@ export class PortalManager {
             csrfToken: null,
             csrfTokenTimestamp: null,
             tabIds,
-            status: 'unknown',
+            status: hasComplete && !hasActiveSession ? 'expired' : 'unknown',
           });
         }
       }
@@ -281,6 +369,7 @@ export class PortalManager {
         portalsFound: portalTabs.size,
         portalHosts: Array.from(portalTabs.keys()),
         skippedIncomplete,
+        includedIncomplete,
         verifiedPortals,
         fallbackPortals,
         nonPortalMatches,
@@ -294,8 +383,11 @@ export class PortalManager {
   }
 
   /**
-   * Verify that a tab contains a LogicMonitor portal by checking for:
-   * window.LMGlobalData - a global object defined by LogicMonitor's application
+   * Verify that a tab is a *usable* LogicMonitor portal tab by checking for:
+   * window.LMGlobalData being present and populated.
+   *
+   * Note: On logged-out/login pages, LogicMonitor may define `LMGlobalData` as an empty object (`{}`).
+   * In that case we treat the tab as NOT verified for an active session.
    */
   private async verifyLogicMonitorPortal(tabId: number): Promise<boolean> {
     try {
@@ -335,15 +427,34 @@ export class PortalManager {
             target: { tabId },
             world: 'MAIN', // Execute in the main world to access page's window object
             func: () => {
-              // Check if LMGlobalData exists on the window object
-              return typeof (window as unknown as { LMGlobalData?: unknown }).LMGlobalData !== 'undefined';
+              const lmgd = (window as unknown as { LMGlobalData?: unknown }).LMGlobalData;
+              if (typeof lmgd === 'undefined' || lmgd === null) {
+                return { hasLMGlobalData: false, isPopulated: false };
+              }
+              if (typeof lmgd !== 'object') {
+                // Unexpected shape, but it exists and is "not empty"
+                return { hasLMGlobalData: true, isPopulated: true };
+              }
+              // Login pages can have LMGlobalData = {}. Treat that as not authenticated.
+              const keys = Object.keys(lmgd as Record<string, unknown>);
+              return { hasLMGlobalData: true, isPopulated: keys.length > 0 };
             },
           });
           
-          const isValid = results?.[0]?.result === true;
-          
-          if (isValid) {
-            return true;
+          const result = results?.[0]?.result as
+            | { hasLMGlobalData: boolean; isPopulated: boolean }
+            | undefined;
+
+          if (result?.hasLMGlobalData && result.isPopulated) return true;
+
+          // If LMGlobalData exists but is empty, it may still be initializing, but it's also the
+          // logged-out/login-page shape. We'll retry a couple times before giving up.
+          if (result?.hasLMGlobalData && !result.isPopulated) {
+            if (attempt < maxRetries - 1) {
+              console.log(`Portal verification attempt ${attempt + 1} failed: LMGlobalData empty for tab ${tabId}, retrying...`);
+              continue;
+            }
+            return false;
           }
           
           // If result is false but no error, the page might still be loading
@@ -388,6 +499,25 @@ export class PortalManager {
     }
   }
 
+  private async hasActiveSessionForTab(tabId: number): Promise<boolean> {
+    // Keep this cheap: no retries/delays here. Callers can decide when to retry.
+    try {
+      const results = await chrome.scripting.executeScript({
+        target: { tabId },
+        world: 'MAIN',
+        func: () => {
+          const lmgd = (window as unknown as { LMGlobalData?: unknown }).LMGlobalData;
+          if (typeof lmgd === 'undefined' || lmgd === null) return false;
+          if (typeof lmgd !== 'object') return true;
+          return Object.keys(lmgd as Record<string, unknown>).length > 0;
+        },
+      });
+      return results?.[0]?.result === true;
+    } catch {
+      return false;
+    }
+  }
+
   private extractDisplayName(hostname: string): string {
     // Extract company name from hostname (e.g., "acme.logicmonitor.com" -> "Acme")
     const parts = hostname.split('.');
@@ -417,27 +547,36 @@ export class PortalManager {
   }
 
   private async refreshCsrfToken(portal: Portal): Promise<void> {
-    const tabId = await this.getValidTabId(portal);
-    if (!tabId) {
-      portal.status = 'expired';
-      portal.csrfToken = null;
-      portal.csrfTokenTimestamp = null;
+    const candidates = await this.getUsableTabCandidates(portal);
+    if (candidates.length === 0) {
+      // No *loaded* tab available (tabs may be discarded/unloaded). Don't assume the session is expired.
+      portal.status = portal.csrfToken ? portal.status : 'unknown';
       this.persistState();
       return;
     }
     
     try {
-      // Execute in content script context to fetch CSRF token
-      const results = await chrome.scripting.executeScript({
-        target: { tabId },
-        func: fetchCsrfToken,
-      });
+      for (const { tabId } of candidates) {
+        // A CSRF token can be returned even while logged out; don't treat that as an active portal.
+        // Only accept a token when the tab also indicates an active session.
+        const hasActiveSession = await this.hasActiveSessionForTab(tabId);
+        if (!hasActiveSession) {
+          continue;
+        }
 
-      const token = results?.[0]?.result ?? null;
-      if (token) {
-        this.updateCsrfToken(portal.id, token);
-        return;
+        // Execute in content script context to fetch CSRF token
+        const results = await chrome.scripting.executeScript({
+          target: { tabId },
+          func: fetchCsrfToken,
+        });
+
+        const token = results?.[0]?.result ?? null;
+        if (token) {
+          this.setActiveCsrfToken(portal.id, token);
+          return;
+        }
       }
+
       portal.csrfToken = null;
       portal.csrfTokenTimestamp = null;
       portal.status = 'expired';
@@ -450,15 +589,45 @@ export class PortalManager {
     }
   }
 
-  updateCsrfToken(portalId: string, token: string): void {
+  /**
+   * Accept a CSRF token reported by the content script.
+   *
+   * IMPORTANT: A CSRF token may be obtainable even while logged out, so we must NOT
+   * automatically mark the portal as active based on token presence alone.
+   */
+  async receiveCsrfTokenFromContentScript(portalId: string, token: string): Promise<void> {
     const portal = this.portals.get(portalId);
-    if (portal) {
-      portal.csrfToken = token;
-      portal.csrfTokenTimestamp = Date.now();
-      portal.status = 'active';
-      // Persist the updated token
-      this.persistState();
+    if (!portal) return;
+
+    portal.csrfToken = token;
+    portal.csrfTokenTimestamp = Date.now();
+
+    // Only mark active if we can confirm an active session from a usable portal tab.
+    const candidates = await this.getUsableTabCandidates(portal);
+    const bestTabId = candidates[0]?.tabId;
+    if (bestTabId) {
+      const hasActiveSession = await this.hasActiveSessionForTab(bestTabId);
+      if (hasActiveSession) {
+        portal.status = 'active';
+      } else {
+        // Keep non-green; discovery will set expired if it sees a loaded login page.
+        if (portal.status === 'active') portal.status = 'unknown';
+      }
     }
+
+    this.persistState();
+  }
+
+  /**
+   * Internal helper for when we already know a request succeeded under an active session.
+   */
+  private setActiveCsrfToken(portalId: string, token: string): void {
+    const portal = this.portals.get(portalId);
+    if (!portal) return;
+    portal.csrfToken = token;
+    portal.csrfTokenTimestamp = Date.now();
+    portal.status = 'active';
+    this.persistState();
   }
 
   /**
