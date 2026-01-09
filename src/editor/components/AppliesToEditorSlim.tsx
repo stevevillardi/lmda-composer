@@ -295,6 +295,7 @@ export function AppliesToEditorSlim({
         <Button
           onClick={handleTest}
           disabled={displayIsTesting || !selectedPortalId || !value.trim()}
+          variant="execute"
           className="gap-2"
         >
           {displayIsTesting ? (
@@ -365,7 +366,7 @@ export function AppliesToEditorSlim({
               <Empty className="h-full border-0">
                 <EmptyHeader>
                   <EmptyMedia variant="icon">
-                    <CheckCircle2 className="text-green-500" />
+                    <CheckCircle2 className="text-teal-500" />
                   </EmptyMedia>
                   <EmptyTitle className="text-base">No Matches Found</EmptyTitle>
                   <EmptyDescription>
@@ -399,7 +400,7 @@ export function AppliesToEditorSlim({
                             className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
                           >
                             {copiedId === match.id ? (
-                              <Check className="size-3 text-green-500" />
+                              <Check className="size-3 text-teal-500" />
                             ) : (
                               <Copy className="size-3" />
                             )}
@@ -415,7 +416,7 @@ export function AppliesToEditorSlim({
           </div>
 
           {displayResults.length > 0 && !displayError && (
-            <div className="flex items-center gap-2 text-sm text-green-500">
+            <div className="flex items-center gap-2 text-sm text-teal-500">
               <CheckCircle2 className="size-4" />
               <span>Expression is valid</span>
             </div>

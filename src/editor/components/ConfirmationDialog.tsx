@@ -33,8 +33,8 @@ const variantStyles = {
     buttonVariant: 'default' as const,
   },
   warning: {
-    iconBg: 'bg-amber-500/10',
-    iconColor: 'text-amber-500',
+    iconBg: 'bg-yellow-500/10',
+    iconColor: 'text-yellow-500',
     buttonVariant: 'warning' as const,
   },
   destructive: {

@@ -1,5 +1,5 @@
-import { Info, ChevronDown, ChevronRight, Play, Terminal, ListX } from 'lucide-react';
-import { SuccessIcon, ErrorIcon, WarningIcon, XCircleIcon, AlertTriangleIcon } from '../constants/icons';
+import { Info, ChevronDown, ChevronRight, Play, Terminal, ListX, XCircle, AlertTriangle } from 'lucide-react';
+import { SuccessIcon, ErrorIcon, WarningIcon } from '../constants/icons';
 import { useState, useMemo } from 'react';
 import { useEditorStore } from '../stores/editor-store';
 import {
@@ -206,7 +206,7 @@ function ADParseResultTable({ result }: ADParseResultTableProps) {
           {summary.total} instance{summary.total !== 1 ? 's' : ''} found
         </span>
         {summary.valid > 0 && (
-          <Badge variant="outline" className="gap-1 text-green-600 border-green-600/30">
+          <Badge variant="outline" className="gap-1 text-teal-600 border-green-600/30">
             <SuccessIcon className="size-3" />
             {summary.valid} valid
           </Badge>
@@ -390,7 +390,7 @@ function CollectionParseResultTable({ result }: CollectionParseResultTableProps)
           <Badge variant="outline" className="text-xs">JSON format</Badge>
         )}
         {summary.valid > 0 && (
-          <Badge variant="outline" className="gap-1 text-green-600 border-green-600/30">
+          <Badge variant="outline" className="gap-1 text-teal-600 border-green-600/30">
             <SuccessIcon className="size-3" />
             {summary.valid} valid
           </Badge>
@@ -498,7 +498,7 @@ function CollectionDatapointRow({ datapoint, showWildvalue }: CollectionDatapoin
               {datapoint.rawValue.length > 50 ? datapoint.rawValue.substring(0, 50) + '...' : datapoint.rawValue}
             </span>
           ) : datapoint.value !== null ? (
-            <span className="text-green-600">{datapoint.value}</span>
+            <span className="text-teal-600">{datapoint.value}</span>
           ) : (
             <span className="text-red-500">{datapoint.rawValue}</span>
           )}
@@ -553,11 +553,11 @@ function IssueDisplay({ issue }: IssueDisplayProps) {
   const colors = {
     error: 'text-red-500',
     warning: 'text-yellow-500',
-    info: 'text-blue-500',
+    info: 'text-cyan-500',
   };
   const icons = {
-    error: XCircleIcon,
-    warning: AlertTriangleIcon,
+    error: XCircle,
+    warning: AlertTriangle,
     info: Info,
   };
   const Icon = icons[issue.severity];
@@ -775,7 +775,7 @@ function EventParseResultTable({ result }: EventParseResultTableProps) {
           {summary.total} event{summary.total !== 1 ? 's' : ''} found
         </span>
         {summary.valid > 0 && (
-          <Badge variant="outline" className="gap-1 text-green-600 border-green-600/30">
+          <Badge variant="outline" className="gap-1 text-teal-600 border-green-600/30">
             <SuccessIcon className="size-3" />
             {summary.valid} valid
           </Badge>
@@ -826,7 +826,7 @@ function EventEntryRow({ event }: { event: EventEntry }) {
     error: 'text-red-500 bg-red-500/10',
     warn: 'text-yellow-500 bg-yellow-500/10',
     warning: 'text-yellow-500 bg-yellow-500/10',
-    info: 'text-blue-500 bg-blue-500/10',
+    info: 'text-cyan-500 bg-cyan-500/10',
     debug: 'text-gray-500 bg-gray-500/10',
   };
 
@@ -897,7 +897,7 @@ function PropertyParseResultTable({ result }: PropertyParseResultTableProps) {
           {summary.total} propert{summary.total !== 1 ? 'ies' : 'y'} found
         </span>
         {summary.valid > 0 && (
-          <Badge variant="outline" className="gap-1 text-green-600 border-green-600/30">
+          <Badge variant="outline" className="gap-1 text-teal-600 border-green-600/30">
             <SuccessIcon className="size-3" />
             {summary.valid} valid
           </Badge>
@@ -1000,7 +1000,7 @@ function LogParseResultTable({ result }: LogParseResultTableProps) {
           {summary.total} log entr{summary.total !== 1 ? 'ies' : 'y'} found
         </span>
         {summary.valid > 0 && (
-          <Badge variant="outline" className="gap-1 text-green-600 border-green-600/30">
+          <Badge variant="outline" className="gap-1 text-teal-600 border-green-600/30">
             <SuccessIcon className="size-3" />
             {summary.valid} valid
           </Badge>
@@ -1083,7 +1083,7 @@ function ConfigParseResultView({ result }: ConfigParseResultViewProps) {
           Configuration output ({content.length} characters)
         </span>
         {summary.errors === 0 && summary.warnings === 0 && (
-          <Badge variant="outline" className="gap-1 text-green-600 border-green-600/30">
+          <Badge variant="outline" className="gap-1 text-teal-600 border-green-600/30">
             <SuccessIcon className="size-3" />
             Valid
           </Badge>

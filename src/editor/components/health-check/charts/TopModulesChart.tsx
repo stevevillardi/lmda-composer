@@ -44,7 +44,7 @@ export function TopModulesChart({ data }: TopModulesChartProps) {
     return (
       <SectionCard title="Top Failing Modules" icon={<Package className="size-4" />}>
         <div className="flex items-center justify-center py-8 text-muted-foreground select-none">
-          <CheckCircle className="size-5 mr-2 text-green-500" />
+          <CheckCircle className="size-5 mr-2 text-teal-500" />
           <span className="text-sm">No failing modules detected</span>
         </div>
       </SectionCard>

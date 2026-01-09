@@ -1,0 +1,262 @@
+---
+description: Zustand state management patterns and slice architecture for LMDA Composer
+globs:
+  - "src/editor/stores/**/*.ts"
+alwaysApply: false
+---
+
+# Zustand Store Patterns
+
+## Slice-Based Architecture
+
+The editor uses a slice-based architecture where each domain has its own slice file. All slices are combined in the root store.
+
+### Directory Structure
+
+```
+src/editor/stores/
+├── editor-store.ts          # Root store combining all slices
+├── slices/
+│   ├── ui-slice.ts          # Dialog states, preferences
+│   ├── portal-slice.ts      # Portal/collector/device context
+│   ├── tabs-slice.ts        # Tab management, file operations
+│   ├── tools-slice.ts       # Dev tools (properties, snippets)
+│   ├── api-slice.ts         # API Explorer
+│   ├── execution-slice.ts   # Script execution
+│   └── module-slice.ts      # Module browser, search, commit
+└── helpers/
+    └── slice-helpers.ts     # Shared utilities
+```
+
+## Slice File Structure
+
+Each slice exports three things:
+
+```typescript
+// 1. State interface
+export interface UISliceState {
+  commandPaletteOpen: boolean;
+  settingsDialogOpen: boolean;
+  rightSidebarOpen: boolean;
+  preferences: UserPreferences;
+}
+
+// 2. Actions interface
+export interface UISliceActions {
+  setCommandPaletteOpen: (open: boolean) => void;
+  setSettingsDialogOpen: (open: boolean) => void;
+  toggleRightSidebar: () => void;
+  setPreferences: (prefs: Partial<UserPreferences>) => void;
+}
+
+// 3. Combined slice type
+export type UISlice = UISliceState & UISliceActions;
+
+// 4. Initial state (for store composition)
+export const uiSliceInitialState: UISliceState = {
+  commandPaletteOpen: false,
+  settingsDialogOpen: false,
+  rightSidebarOpen: true,
+  preferences: DEFAULT_PREFERENCES,
+};
+
+// 5. Slice creator function
+export const createUISlice: StateCreator<
+  UISlice & UISliceDependencies,  // Full store type for cross-slice access
+  [],
+  [],
+  UISlice
+> = (set, get) => ({
+  ...uiSliceInitialState,
+  
+  setCommandPaletteOpen: (open) => set({ commandPaletteOpen: open }),
+  
+  toggleRightSidebar: () => set((state) => ({ 
+    rightSidebarOpen: !state.rightSidebarOpen 
+  })),
+  
+  setPreferences: (prefs) => {
+    set((state) => ({
+      preferences: { ...state.preferences, ...prefs }
+    }));
+    // Side effect: persist to storage
+    chrome.storage.local.set({ preferences: get().preferences });
+  },
+});
+```
+
+## Root Store Composition
+
+The root store combines all slices:
+
+```typescript
+// editor-store.ts
+type EditorState = UISlice & PortalSlice & TabsSlice & ToolsSlice & APISlice & ExecutionSlice & ModuleSlice;
+
+export const useEditorStore = create<EditorState>((set, get) => ({
+  // Spread initial states
+  ...uiSliceInitialState,
+  ...portalSliceInitialState,
+  ...tabsSliceInitialState,
+  // ... other initial states
+  
+  // Spread slice creators
+  ...createUISlice(set, get, {} as any),
+  ...createPortalSlice(set, get, {} as any),
+  ...createTabsSlice(set, get, {} as any),
+  // ... other slice creators
+}));
+```
+
+## Cross-Slice Dependencies
+
+When a slice needs state/actions from another slice, declare dependencies:
+
+```typescript
+// Dependencies this slice needs from other slices
+export interface ModuleSliceDependencies {
+  tabs: EditorTab[];
+  activeTabId: string | null;
+  selectedPortalId: string | null;
+  portals: Portal[];
+  updateTab: (tabId: string, updates: Partial<EditorTab>) => void;
+}
+
+export const createModuleSlice: StateCreator<
+  ModuleSlice & ModuleSliceDependencies,
+  [],
+  [],
+  ModuleSlice
+> = (set, get) => ({
+  // Can now access get().tabs, get().selectedPortalId, etc.
+});
+```
+
+## Action Patterns
+
+### Simple State Updates
+For simple updates, use direct `set`:
+
+```typescript
+setDialogOpen: (open) => set({ dialogOpen: open }),
+```
+
+### Computed Updates
+Use the callback form for updates based on current state:
+
+```typescript
+toggleSidebar: () => set((state) => ({ 
+  sidebarOpen: !state.sidebarOpen 
+})),
+```
+
+### Async Actions
+For async operations, handle loading/error states:
+
+```typescript
+fetchModules: async () => {
+  set({ isFetchingModules: true, modulesError: null });
+  
+  try {
+    const result = await sendMessage({ type: 'FETCH_MODULES', payload: {...} });
+    
+    if (result.ok) {
+      set({ modules: result.data, isFetchingModules: false });
+    } else {
+      set({ modulesError: result.error, isFetchingModules: false });
+    }
+  } catch (error) {
+    set({ 
+      modulesError: error instanceof Error ? error.message : 'Unknown error',
+      isFetchingModules: false 
+    });
+  }
+},
+```
+
+### Side Effects
+Isolate side effects (storage, messaging) from state updates:
+
+```typescript
+savePreferences: (prefs) => {
+  // 1. Update state
+  set((state) => ({
+    preferences: { ...state.preferences, ...prefs }
+  }));
+  
+  // 2. Side effect: persist
+  const newPrefs = get().preferences;
+  chrome.storage.local.set({ preferences: newPrefs });
+  
+  // 3. Side effect: notify
+  toast.success('Preferences saved');
+},
+```
+
+## Selector Patterns
+
+### Fine-Grained Selectors
+Always use fine-grained selectors in components:
+
+```typescript
+// Good - minimal subscription
+const isOpen = useEditorStore((state) => state.dialogOpen);
+const tabs = useEditorStore((state) => state.tabs);
+
+// Avoid - subscribes to entire store
+const store = useEditorStore();
+```
+
+### Computed Selectors
+Compute derived values in selectors:
+
+```typescript
+const activeTab = useEditorStore((state) => 
+  state.tabs.find(t => t.id === state.activeTabId)
+);
+
+const hasUnsavedChanges = useEditorStore((state) =>
+  state.tabs.some(t => hasPortalChanges(t) || isFileDirty(t))
+);
+```
+
+## Helper Functions
+
+Shared utilities go in `helpers/slice-helpers.ts`:
+
+```typescript
+// slice-helpers.ts
+export function ensurePortalBindingActive(
+  tab: EditorTab,
+  selectedPortalId: string | null,
+  portals: Portal[]
+): PortalBinding { ... }
+
+export function normalizeScript(content: string): string { ... }
+
+export function isPlainObject(value: unknown): boolean { ... }
+```
+
+## State Organization Guidelines
+
+1. **Group related state** - Keep related fields together in the interface
+2. **Prefix loading states** - Use `is` prefix: `isLoading`, `isFetching`
+3. **Suffix error states** - Use `Error` suffix: `fetchError`, `commitError`
+4. **Use null for "not set"** - Distinguish "not loaded" from "empty"
+
+```typescript
+interface ModuleSliceState {
+  // Module browser
+  moduleBrowserOpen: boolean;
+  selectedModuleType: LogicModuleType;
+  modulesCache: Record<LogicModuleType, LogicModuleInfo[]>;
+  isFetchingModules: boolean;
+  modulesError: string | null;
+  
+  // Module search
+  moduleSearchOpen: boolean;
+  moduleSearchTerm: string;
+  isSearchingModules: boolean;
+  moduleSearchError: string | null;
+}
+```

@@ -7,6 +7,9 @@ import { getPortalBindingStatus } from '../utils/portal-binding';
 import { PortalBindingOverlay } from './PortalBindingOverlay';
 import { registerMonacoShortcuts } from '../utils/keyboard-shortcuts';
 
+import { FilePlus, Loader2 } from 'lucide-react';
+import { Kbd } from '@/components/ui/kbd';
+
 // Import the loader config to use bundled Monaco (CSP-safe)
 import '../monaco-loader';
 
@@ -19,6 +22,7 @@ export function EditorPanel() {
     selectedPortalId,
     portals,
     setEditorInstance,
+    createNewFile,
   } = useEditorStore();
   
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
@@ -96,14 +100,33 @@ export function EditorPanel() {
             onMount={handleEditorMount}
             options={editorOptions}
             loading={
-              <div className="flex items-center justify-center h-full" role="status" aria-label="Loading editor">
-                <div className="text-muted-foreground">Loading editor...</div>
+              <div className="flex flex-col items-center justify-center h-full gap-3 text-muted-foreground" role="status" aria-label="Loading editor">
+                <Loader2 className="size-8 animate-spin text-primary/50" />
+                <span className="text-sm font-medium">Initializing Editor...</span>
               </div>
             }
           />
         ) : (
-          <div className="flex items-center justify-center h-full text-muted-foreground" role="status" aria-label="No file open">
-            No file open
+          <div 
+            className="flex flex-col items-center justify-center h-full text-muted-foreground gap-4" 
+            role="status" 
+            aria-label="No file open"
+          >
+            <div className="p-4 rounded-full bg-secondary/30">
+              <FilePlus className="size-8 text-muted-foreground/50" />
+            </div>
+            <div className="text-center space-y-1">
+              <p className="font-medium text-foreground">No file open</p>
+              <p className="text-sm text-muted-foreground">
+                Press <Kbd>⌘</Kbd> <Kbd>N</Kbd> to create a new file
+              </p>
+            </div>
+            <button
+              onClick={createNewFile}
+              className="mt-2 px-4 py-2 text-xs font-medium bg-primary/10 text-primary hover:bg-primary/20 rounded-md transition-colors"
+            >
+              Create New File
+            </button>
           </div>
         )}
       </div>

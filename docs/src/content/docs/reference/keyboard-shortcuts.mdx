@@ -8,27 +8,52 @@ import FeatureCard from '../../../components/FeatureCard.astro';
 
 LMDA Composer provides extensive keyboard shortcuts for efficient workflow. This page lists all available shortcuts.
 
+<Aside type="tip" title="Chord Shortcuts">
+  Many shortcuts use a **chord pattern**: press <kbd>Cmd</kbd>+<kbd>K</kbd> (Mac) or <kbd>Ctrl</kbd>+<kbd>K</kbd> (Windows/Linux), release, then press the second key. The status bar shows "⌘K waiting..." when a chord is pending.
+</Aside>
+
 ## Global Shortcuts
 
 These shortcuts work anywhere in LMDA Composer:
 
 | Action | Windows/Linux | Mac |
 |--------|---------------|-----|
+| Run Script / Send API Request | <kbd>Ctrl</kbd>+<kbd>Enter</kbd> | <kbd>Cmd</kbd>+<kbd>Enter</kbd> |
 | Open Command Palette | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> |
-| Open Settings | <kbd>Ctrl</kbd>+<kbd>,</kbd> | <kbd>Cmd</kbd>+<kbd>,</kbd> |
 | Toggle Right Sidebar | <kbd>Ctrl</kbd>+<kbd>B</kbd> | <kbd>Cmd</kbd>+<kbd>B</kbd> |
+| Open Settings | <kbd>Ctrl</kbd>+<kbd>,</kbd> | <kbd>Cmd</kbd>+<kbd>,</kbd> |
 
 ---
 
-## File Operations
+## File Operations (Chord Shortcuts)
+
+File operations use the <kbd>Ctrl/Cmd</kbd>+<kbd>K</kbd> chord followed by a key:
 
 | Action | Windows/Linux | Mac |
 |--------|---------------|-----|
-| New File | <kbd>Ctrl</kbd>+<kbd>K</kbd> | <kbd>Cmd</kbd>+<kbd>K</kbd> |
-| Open File | <kbd>Ctrl</kbd>+<kbd>O</kbd> | <kbd>Cmd</kbd>+<kbd>O</kbd> |
+| New File | <kbd>Ctrl</kbd>+<kbd>K</kbd>, <kbd>N</kbd> | <kbd>Cmd</kbd>+<kbd>K</kbd>, <kbd>N</kbd> |
+| Open File | <kbd>Ctrl</kbd>+<kbd>K</kbd>, <kbd>O</kbd> | <kbd>Cmd</kbd>+<kbd>K</kbd>, <kbd>O</kbd> |
+| Open Module Folder | <kbd>Ctrl</kbd>+<kbd>K</kbd>, <kbd>F</kbd> | <kbd>Cmd</kbd>+<kbd>K</kbd>, <kbd>F</kbd> |
 | Save File | <kbd>Ctrl</kbd>+<kbd>S</kbd> | <kbd>Cmd</kbd>+<kbd>S</kbd> |
-| Save As | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>S</kbd> |
-| Export (Download) | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>E</kbd> |
+| Save As | <kbd>Ctrl</kbd>+<kbd>K</kbd>, <kbd>Shift</kbd>+<kbd>S</kbd> | <kbd>Cmd</kbd>+<kbd>K</kbd>, <kbd>Shift</kbd>+<kbd>S</kbd> |
+| Export (Download) | <kbd>Ctrl</kbd>+<kbd>K</kbd>, <kbd>E</kbd> | <kbd>Cmd</kbd>+<kbd>K</kbd>, <kbd>E</kbd> |
+| Toggle API/Script View | <kbd>Ctrl</kbd>+<kbd>K</kbd>, <kbd>M</kbd> | <kbd>Cmd</kbd>+<kbd>K</kbd>, <kbd>M</kbd> |
+
+---
+
+## Portal Tools (Chord Shortcuts)
+
+Portal tools use the <kbd>Ctrl/Cmd</kbd>+<kbd>K</kbd> chord followed by a key:
+
+| Action | Windows/Linux | Mac |
+|--------|---------------|-----|
+| Import from LMX (Module Browser) | <kbd>Ctrl</kbd>+<kbd>K</kbd>, <kbd>I</kbd> | <kbd>Cmd</kbd>+<kbd>K</kbd>, <kbd>I</kbd> |
+| Search LogicModules | <kbd>Ctrl</kbd>+<kbd>K</kbd>, <kbd>S</kbd> | <kbd>Cmd</kbd>+<kbd>K</kbd>, <kbd>S</kbd> |
+| AppliesTo Toolbox | <kbd>Ctrl</kbd>+<kbd>K</kbd>, <kbd>A</kbd> | <kbd>Cmd</kbd>+<kbd>K</kbd>, <kbd>A</kbd> |
+| Debug Commands | <kbd>Ctrl</kbd>+<kbd>K</kbd>, <kbd>D</kbd> | <kbd>Cmd</kbd>+<kbd>K</kbd>, <kbd>D</kbd> |
+| Module Snippets | <kbd>Ctrl</kbd>+<kbd>K</kbd>, <kbd>L</kbd> | <kbd>Cmd</kbd>+<kbd>K</kbd>, <kbd>L</kbd> |
+| Refresh Collectors | <kbd>Ctrl</kbd>+<kbd>K</kbd>, <kbd>R</kbd> | <kbd>Cmd</kbd>+<kbd>K</kbd>, <kbd>R</kbd> |
+| Copy Output | <kbd>Ctrl</kbd>+<kbd>K</kbd>, <kbd>C</kbd> | <kbd>Cmd</kbd>+<kbd>K</kbd>, <kbd>C</kbd> |
 
 ---
 
@@ -67,7 +92,6 @@ These shortcuts work anywhere in LMDA Composer:
     | Find and Replace | <kbd>Ctrl</kbd>+<kbd>H</kbd> | <kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>F</kbd> |
     | Find Next | <kbd>F3</kbd> | <kbd>Cmd</kbd>+<kbd>G</kbd> |
     | Find Previous | <kbd>Shift</kbd>+<kbd>F3</kbd> | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>G</kbd> |
-    | Search in Modules | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> |
   </TabItem>
   
   <TabItem label="Multi-Cursor" icon="star">
@@ -84,8 +108,8 @@ These shortcuts work anywhere in LMDA Composer:
     |--------|---------------|-----|
     | Fold Region | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>[</kbd> | <kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>[</kbd> |
     | Unfold Region | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>]</kbd> | <kbd>Cmd</kbd>+<kbd>Option</kbd>+<kbd>]</kbd> |
-    | Fold All | <kbd>Ctrl</kbd>+<kbd>K</kbd> <kbd>Ctrl</kbd>+<kbd>0</kbd> | <kbd>Cmd</kbd>+<kbd>K</kbd> <kbd>Cmd</kbd>+<kbd>0</kbd> |
-    | Unfold All | <kbd>Ctrl</kbd>+<kbd>K</kbd> <kbd>Ctrl</kbd>+<kbd>J</kbd> | <kbd>Cmd</kbd>+<kbd>K</kbd> <kbd>Cmd</kbd>+<kbd>J</kbd> |
+    | Fold All | <kbd>Ctrl</kbd>+<kbd>K</kbd>, <kbd>Ctrl</kbd>+<kbd>0</kbd> | <kbd>Cmd</kbd>+<kbd>K</kbd>, <kbd>Cmd</kbd>+<kbd>0</kbd> |
+    | Unfold All | <kbd>Ctrl</kbd>+<kbd>K</kbd>, <kbd>Ctrl</kbd>+<kbd>J</kbd> | <kbd>Cmd</kbd>+<kbd>K</kbd>, <kbd>Cmd</kbd>+<kbd>J</kbd> |
   </TabItem>
 </Tabs>
 
@@ -94,37 +118,6 @@ These shortcuts work anywhere in LMDA Composer:
 | Action | Windows/Linux | Mac |
 |--------|---------------|-----|
 | Toggle Line Comment | <kbd>Ctrl</kbd>+<kbd>/</kbd> | <kbd>Cmd</kbd>+<kbd>/</kbd> |
-
----
-
-## Script Execution
-
-| Action | Windows/Linux | Mac |
-|--------|---------------|-----|
-| Run Script / Send API Request | <kbd>Ctrl</kbd>+<kbd>Enter</kbd> | <kbd>Cmd</kbd>+<kbd>Enter</kbd> |
-| Run Script / Send API Request | <kbd>F5</kbd> | <kbd>F5</kbd> |
-
----
-
-## Output Panel
-
-| Action | Windows/Linux | Mac |
-|--------|---------------|-----|
-| Copy Output | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>C</kbd> |
-
----
-
-## Portal Tools
-
-| Action | Windows/Linux | Mac |
-|--------|---------------|-----|
-| Import from LMX (Module Browser) | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd> | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd> |
-| Search LogicModules | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>F</kbd> |
-| AppliesTo Toolbox | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>A</kbd> |
-| Debug Commands | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>D</kbd> |
-| Module Snippets | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd> | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>L</kbd> |
-| Toggle API/Script view | <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd> | <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd> |
-| Refresh Collectors | <kbd>Ctrl</kbd>+<kbd>R</kbd> | <kbd>Cmd</kbd>+<kbd>R</kbd> |
 
 ---
 
@@ -154,25 +147,43 @@ When a dialog is open:
 
 ---
 
+## Chord Shortcut Reference
+
+A quick reference for all chord shortcuts (<kbd>Ctrl/Cmd</kbd>+<kbd>K</kbd> followed by key):
+
+| Second Key | Action |
+|------------|--------|
+| <kbd>N</kbd> | New file |
+| <kbd>O</kbd> | Open file |
+| <kbd>F</kbd> | Open Module Folder |
+| <kbd>Shift</kbd>+<kbd>S</kbd> | Save As... |
+| <kbd>E</kbd> | Export (Download) |
+| <kbd>M</kbd> | Toggle API/Script view |
+| <kbd>I</kbd> | Import from LMX |
+| <kbd>S</kbd> | Search LogicModules |
+| <kbd>A</kbd> | AppliesTo Toolbox |
+| <kbd>D</kbd> | Debug Commands |
+| <kbd>L</kbd> | Module Snippets |
+| <kbd>R</kbd> | Refresh collectors |
+| <kbd>C</kbd> | Copy output |
+
+---
+
 ## Tips for Learning Shortcuts
 
 <CardGrid>
   <FeatureCard title="Start with Essentials" icon="star" color="amber">
     Most commonly used:
-    1. <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> — Command Palette
-    2. <kbd>Ctrl</kbd>+<kbd>Enter</kbd> — Run Script
-    3. <kbd>Ctrl</kbd>+<kbd>S</kbd> — Save
-    4. <kbd>Ctrl</kbd>+<kbd>B</kbd> — Toggle Sidebar
+    1. <kbd>Cmd</kbd>+<kbd>Enter</kbd> — Run Script
+    2. <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> — Command Palette
+    3. <kbd>Cmd</kbd>+<kbd>S</kbd> — Save
+    4. <kbd>Cmd</kbd>+<kbd>B</kbd> — Toggle Sidebar
   </FeatureCard>
-  <FeatureCard title="Use Command Palette" icon="command" color="purple">
-    The Command Palette shows shortcuts next to commands. Search for an action and note the shortcut shown.
+  <FeatureCard title="Learn the Chord Pattern" icon="command" color="purple">
+    Press <kbd>Cmd</kbd>+<kbd>K</kbd>, watch for "waiting..." in status bar, then press the action key. Most portal tools and file operations use this pattern.
   </FeatureCard>
-  <FeatureCard title="Build Muscle Memory" icon="zap" color="green">
-    Focus on a few at a time:
-    - Week 1: File operations
-    - Week 2: Script execution
-    - Week 3: Navigation
-    - Week 4: Advanced editing
+  <FeatureCard title="Use Command Palette" icon="search" color="green">
+    The Command Palette shows shortcuts next to commands. Search for an action to see its shortcut.
   </FeatureCard>
 </CardGrid>
 
@@ -182,29 +193,29 @@ When a dialog is open:
 
 <Tabs>
   <TabItem label="Writing a Script" icon="pencil">
-    1. <kbd>Ctrl</kbd>+<kbd>K</kbd> — Create new file
+    1. <kbd>Cmd</kbd>+<kbd>K</kbd>, <kbd>N</kbd> — Create new file
     2. Type your script
-    3. <kbd>Ctrl</kbd>+<kbd>S</kbd> — Save
-    4. <kbd>Ctrl</kbd>+<kbd>Enter</kbd> — Run
+    3. <kbd>Cmd</kbd>+<kbd>S</kbd> — Save
+    4. <kbd>Cmd</kbd>+<kbd>Enter</kbd> — Run
     5. Review output
   </TabItem>
   <TabItem label="Debugging" icon="warning">
-    1. <kbd>Ctrl</kbd>+<kbd>O</kbd> — Open file
-    2. <kbd>Ctrl</kbd>+<kbd>F</kbd> — Find problematic code
+    1. <kbd>Cmd</kbd>+<kbd>K</kbd>, <kbd>O</kbd> — Open file
+    2. <kbd>Cmd</kbd>+<kbd>F</kbd> — Find problematic code
     3. Edit and fix
-    4. <kbd>Ctrl</kbd>+<kbd>Enter</kbd> — Run to test
-    5. <kbd>Ctrl</kbd>+<kbd>S</kbd> — Save when fixed
+    4. <kbd>Cmd</kbd>+<kbd>Enter</kbd> — Run to test
+    5. <kbd>Cmd</kbd>+<kbd>S</kbd> — Save when fixed
   </TabItem>
   <TabItem label="Exploring Modules" icon="seti:folder">
-    1. <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>I</kbd> — Open module browser
+    1. <kbd>Cmd</kbd>+<kbd>K</kbd>, <kbd>I</kbd> — Open module browser
     2. Navigate with arrow keys
     3. <kbd>Enter</kbd> — Load module
-    4. <kbd>Ctrl</kbd>+<kbd>Enter</kbd> — Run script
+    4. <kbd>Cmd</kbd>+<kbd>Enter</kbd> — Run script
   </TabItem>
   <TabItem label="Quick API Test" icon="seti:json">
-    1. <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>M</kbd> — Toggle to API view
+    1. <kbd>Cmd</kbd>+<kbd>K</kbd>, <kbd>M</kbd> — Toggle to API view
     2. Type endpoint
-    3. <kbd>Ctrl</kbd>+<kbd>Enter</kbd> — Send request
+    3. <kbd>Cmd</kbd>+<kbd>Enter</kbd> — Send request
     4. Review response
   </TabItem>
 </Tabs>
@@ -226,4 +237,3 @@ When a dialog is open:
   description="Solutions for common issues with LMDA Composer."
   href="/lmda-composer/reference/troubleshooting/"
 />
-

@@ -9,6 +9,21 @@ import type {
 } from '@/shared/types';
 import { ALL_LOGIC_MODULE_TYPES } from '@/shared/logic-modules';
 import { findMatchRanges, textMatches } from '@/shared/module-search-utils';
+
+/**
+ * Check if the query matches the module name or displayName.
+ */
+function matchesModuleName(
+  module: LogicModuleInfo,
+  query: string,
+  matchType: ModuleSearchMatchType,
+  caseSensitive: boolean
+): boolean {
+  return (
+    textMatches(module.name || '', query, matchType, caseSensitive) ||
+    textMatches(module.displayName || '', query, matchType, caseSensitive)
+  );
+}
 import type { ModuleLoader } from './module-loader';
 
 const DB_NAME = 'lm-ide-module-index';
@@ -270,14 +285,20 @@ export async function searchModuleScriptsFromIndex(
             caseSensitive
           );
 
+          // Check if name/displayName matches
+          const hasNameMatch = matchesModuleName(module, query, matchType, caseSensitive);
+          const hasScriptMatch = collectionMatches.length > 0 || adMatches.length > 0;
+
           processed += 1;
 
-          if (collectionMatches.length > 0 || adMatches.length > 0) {
+          if (hasScriptMatch || hasNameMatch) {
             matched += 1;
             results.push({
               module,
               collectionMatches,
               adMatches,
+              // Only set nameMatch if matched by name but NOT by script content
+              nameMatch: hasNameMatch && !hasScriptMatch,
             });
           }
 
@@ -350,6 +371,8 @@ export async function searchDatapointsFromIndex(
       try {
         const record = cursor.value as ModuleIndexRecord;
         const module = record.module;
+        // Note: Ghost datapoints are filtered at the API parsing level, not here
+        // LogicModuleInfo.dataPoints is already filtered
         const dataPoints = module.dataPoints || [];
         processed += 1;
 

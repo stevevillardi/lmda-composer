@@ -38,6 +38,7 @@ import {
   PropertySourceIcon,
   LogSourceIcon,
 } from '../constants/icons';
+import { cn } from '@/lib/utils';
 
 /** Returns the appropriate module type icon component for a given LogicModuleType */
 function getModuleTypeIcon(moduleType: LogicModuleType) {
@@ -74,24 +75,33 @@ function HistoryItem({ entry, onReload, onView }: HistoryItemProps) {
     ? entry.moduleSource!.moduleName
     : entry.tabDisplayName || entry.hostname || 'Untitled';
   
+  const isSuccess = entry.status === 'success';
+
   return (
     <div 
-      className="group p-2 rounded-lg border border-border/50 bg-card/50 hover:bg-card hover:border-border transition-colors select-none"
+      className={cn(
+        "group p-3 rounded-lg border transition-all duration-200 select-none relative overflow-hidden",
+        "bg-card/40 backdrop-blur-sm hover:shadow-sm",
+        isSuccess 
+          ? "border-border/50 hover:border-teal-500/30" 
+          : "border-destructive/20 hover:border-destructive/40 bg-destructive/5"
+      )}
     >
+      {/* Status Indicator Bar */}
+      <div className={cn(
+        "absolute left-0 top-0 bottom-0 w-1 transition-colors",
+        isSuccess ? "bg-teal-500/50 group-hover:bg-teal-500" : "bg-destructive/50 group-hover:bg-destructive"
+      )} />
+
       {/* Row 1: Primary identifier + actions */}
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-1.5 min-w-0">
-          {entry.status === 'success' ? (
-            <CheckCircle2 className="size-3.5 text-green-500 shrink-0" />
-          ) : (
-            <XCircle className="size-3.5 text-red-500 shrink-0" />
-          )}
+      <div className="flex items-start justify-between gap-2 pl-2">
+        <div className="flex items-center gap-2 min-w-0">
           {isModuleBound && ModuleIcon ? (
-            <ModuleIcon className="size-3.5 shrink-0" />
+            <ModuleIcon className="size-4 shrink-0 text-muted-foreground" />
           ) : (
-            <SquareTerminal className="size-3.5 text-muted-foreground shrink-0" />
+            <SquareTerminal className="size-4 text-muted-foreground shrink-0" />
           )}
-          <span className="font-medium text-xs truncate">
+          <span className="font-medium text-xs truncate text-foreground">
             {primaryName}
           </span>
         </div>
@@ -100,7 +110,7 @@ function HistoryItem({ entry, onReload, onView }: HistoryItemProps) {
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 px-2 text-xs"
+            className="h-6 px-2 text-[10px] hover:bg-background/80"
             onClick={onView}
           >
             <Eye className="size-3 mr-1" />
@@ -109,7 +119,7 @@ function HistoryItem({ entry, onReload, onView }: HistoryItemProps) {
           <Button
             variant="ghost"
             size="sm"
-            className="h-6 px-2 text-xs"
+            className="h-6 px-2 text-[10px] hover:bg-background/80"
             onClick={onReload}
           >
             <Play className="size-3 mr-1" />
@@ -119,48 +129,54 @@ function HistoryItem({ entry, onReload, onView }: HistoryItemProps) {
       </div>
 
       {/* Row 2: Execution context (hostname) */}
-      <div className="flex items-center gap-1 mt-1 text-[10px] text-muted-foreground">
-        <TestTubeDiagonal className="size-2.5 shrink-0" />
-        <span className="truncate">{entry.hostname || 'No hostname'}</span>
+      <div className="flex items-center gap-1.5 mt-1.5 pl-2 text-[10px] text-muted-foreground">
+        <TestTubeDiagonal className="size-3 shrink-0 opacity-70" />
+        <span className="truncate font-mono">{entry.hostname || 'No hostname'}</span>
       </div>
 
       {/* Row 3: Collector */}
-      <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-        <Server className="size-2.5 shrink-0" />
+      <div className="flex items-center gap-1.5 mt-0.5 pl-2 text-[10px] text-muted-foreground">
+        <Server className="size-3 shrink-0 opacity-70" />
         <span className="truncate">via {entry.collector}</span>
       </div>
 
-      {/* Row 4: Metadata badges (portal link for module-bound, language, mode) */}
-      <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+      {/* Row 4: Metadata badges */}
+      <div className="flex items-center gap-1.5 mt-2 pl-2 flex-wrap">
         {isModuleBound && (
-          <Badge variant="outline" className="text-[10px] h-4 px-1 gap-0.5">
-            <Link className="size-2.5" />
+          <Badge variant="outline" className="text-[10px] h-4 px-1 gap-1 font-normal bg-background/50">
+            <Link className="size-2.5 opacity-70" />
             {entry.moduleSource!.portalHostname}
           </Badge>
         )}
-        <Badge variant="secondary" className="text-[10px] h-4 px-1">
+        <Badge variant="secondary" className="text-[10px] h-4 px-1.5 font-normal">
           {entry.language === 'groovy' ? 'Groovy' : 'PS'}
         </Badge>
-        <Badge variant="outline" className="text-[10px] h-4 px-1">
+        <Badge variant="outline" className="text-[10px] h-4 px-1.5 font-normal bg-background/50">
           {getModeLabel(entry.mode)}
         </Badge>
       </div>
 
-      {/* Row 5: Timestamp */}
-      <div className="flex items-center gap-2 mt-1.5 text-[10px] text-muted-foreground">
+      {/* Row 5: Timestamp & Status */}
+      <div className="flex items-center justify-between mt-2 pl-2 text-[10px] text-muted-foreground border-t border-border/30 pt-2">
         <div className="flex items-center gap-1">
-          <Clock className="size-2.5" />
+          <Clock className="size-3 opacity-70" />
           <span>{formatTimestamp(entry.timestamp)}</span>
         </div>
-        <span>•</span>
-        <span>{formatDuration(entry.duration)}</span>
+        <div className="flex items-center gap-2">
+          <span>{formatDuration(entry.duration)}</span>
+          {isSuccess ? (
+            <CheckCircle2 className="size-3 text-teal-500" />
+          ) : (
+            <XCircle className="size-3 text-destructive" />
+          )}
+        </div>
       </div>
 
       {entry.output && (
-        <div className="mt-1.5 p-1.5 rounded bg-muted/50 font-mono text-[10px] text-muted-foreground max-h-12 overflow-hidden">
-          <pre className="whitespace-pre-wrap break-all line-clamp-2">
-            {entry.output.slice(0, 100)}
-            {entry.output.length > 100 && '...'}
+        <div className="mt-2 ml-2 p-2 rounded-md bg-muted/40 font-mono text-[10px] text-muted-foreground max-h-16 overflow-hidden border border-border/20">
+          <pre className="whitespace-pre-wrap break-all line-clamp-3">
+            {entry.output.slice(0, 150)}
+            {entry.output.length > 150 && '...'}
           </pre>
         </div>
       )}
@@ -234,40 +250,42 @@ export function ExecutionHistoryPanel() {
   // Empty state
   if (executionHistory.length === 0) {
     return (
-      <Empty className="h-full border-0 flex items-center justify-center">
-        <EmptyMedia variant="icon">
-          <Clock />
-        </EmptyMedia>
-        <EmptyHeader>
-          <EmptyTitle>No History</EmptyTitle>
-          <EmptyDescription>
-            Run a script to see it appear here
-          </EmptyDescription>
-        </EmptyHeader>
-      </Empty>
+      <div className="flex flex-col h-full bg-muted/5">
+        <Empty className="h-full border-0 bg-transparent flex flex-col justify-center">
+          <EmptyMedia variant="icon" className="bg-muted/50 mb-4">
+            <Clock className="size-5 text-muted-foreground/70" />
+          </EmptyMedia>
+          <EmptyHeader>
+            <EmptyTitle className="text-base font-medium">No History</EmptyTitle>
+            <EmptyDescription className="mt-1.5">
+              Run a script to see it appear here
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+      </div>
     );
   }
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-muted/5">
       {/* Header with count and clear button */}
-      <div className="flex items-center justify-between p-2 border-b border-border shrink-0">
-        <span className="text-xs text-muted-foreground">
+      <div className="flex items-center justify-between p-3 border-b border-border bg-background shrink-0">
+        <span className="text-xs text-muted-foreground font-medium">
           {executionHistory.length} execution{executionHistory.length !== 1 ? 's' : ''}
         </span>
         <Button
           variant="ghost"
           size="sm"
           onClick={clearHistory}
-          className="text-destructive hover:text-destructive h-6 px-2 text-xs"
+          className="text-destructive hover:text-destructive hover:bg-destructive/10 h-7 px-2.5 text-xs"
         >
-          <Trash2 className="size-3 mr-1" />
+          <Trash2 className="size-3.5 mr-1.5" />
           Clear
         </Button>
       </div>
 
       {/* History list - scrollable */}
-      <div className="flex-1 min-h-0 overflow-auto">
+      <div className="flex-1 min-h-0 overflow-auto bg-muted/5">
         <div className="flex flex-col gap-2 p-2">
           {executionHistory.map((entry) => (
             <HistoryItem 

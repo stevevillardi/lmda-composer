@@ -1,0 +1,169 @@
+---
+description: TypeScript coding conventions and type patterns for LMDA Composer
+globs:
+  - "src/**/*.ts"
+  - "src/**/*.tsx"
+alwaysApply: false
+---
+
+# TypeScript Conventions
+
+## Type Definitions
+
+### Prefer `interface` over `type` for Object Shapes
+Use `interface` for object shapes as they provide better error messages and are extendable:
+
+```typescript
+// Good
+interface Portal {
+  id: string;
+  hostname: string;
+  status: PortalStatus;
+}
+
+// Avoid for object shapes
+type Portal = {
+  id: string;
+  hostname: string;
+};
+```
+
+### Use Union Types Instead of Enums
+Avoid TypeScript enums; use union types or const objects:
+
+```typescript
+// Good - union type
+type PortalStatus = 'active' | 'expired' | 'unknown';
+type ScriptLanguage = 'groovy' | 'powershell';
+type ScriptMode = 'ad' | 'collection' | 'freeform';
+
+// Good - const object for complex cases
+const MODULE_TYPES = {
+  datasource: 'DataSource',
+  eventsource: 'EventSource',
+  propertyrule: 'PropertyRule',
+} as const;
+
+// Avoid
+enum PortalStatus {
+  Active = 'active',
+  Expired = 'expired',
+}
+```
+
+## Naming Conventions
+
+### Descriptive Names with Auxiliary Verbs
+Use descriptive boolean names with auxiliary verbs:
+
+```typescript
+// Good
+const isLoading = true;
+const hasError = false;
+const canExecute = selectedPortalId && selectedCollectorId;
+const shouldRefresh = tokenAge > MAX_TOKEN_AGE;
+
+// Avoid
+const loading = true;
+const error = false;
+const execute = true;
+```
+
+### Interface Naming
+- State interfaces: `{Name}SliceState` (e.g., `UISliceState`)
+- Action interfaces: `{Name}SliceActions` (e.g., `UISliceActions`)
+- Props interfaces: `{Component}Props` (e.g., `ToolbarProps`)
+- Response types: `{Action}Response` (e.g., `FetchModulesResponse`)
+
+## Import Patterns
+
+### Use Path Alias
+Always use the `@/*` path alias for imports from `src/`:
+
+```typescript
+// Good
+import { Portal, Collector } from '@/shared/types';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
+
+// Avoid
+import { Portal } from '../../../shared/types';
+```
+
+### Type-Only Imports
+Use `import type` for type-only imports to improve build performance:
+
+```typescript
+// Good
+import type { StateCreator } from 'zustand';
+import type { Portal, Collector, EditorTab } from '@/shared/types';
+
+// Import values and types separately when needed
+import { toast } from 'sonner';
+import type { ToastT } from 'sonner';
+```
+
+## Shared Types Location
+
+Domain types shared across contexts belong in `src/shared/types.ts`:
+
+```typescript
+// src/shared/types.ts
+export interface Portal { ... }
+export interface Collector { ... }
+export interface DeviceInfo { ... }
+export interface EditorTab { ... }
+export type ScriptLanguage = 'groovy' | 'powershell';
+```
+
+Context-specific types stay in their respective locations:
+- Slice types: in the slice file
+- Component props: in the component file or co-located types file
+- Handler types: in `src/background/handlers/types.ts`
+
+## Strict Mode Compliance
+
+The project uses strict TypeScript settings. Ensure:
+
+- No unused locals or parameters (use `_` prefix if intentionally unused)
+- No implicit `any` types
+- Explicit return types on exported functions
+- Null/undefined handled explicitly
+
+```typescript
+// Good - explicit handling
+function getPortal(id: string): Portal | null {
+  return portals.find(p => p.id === id) ?? null;
+}
+
+// Good - unused parameter
+function handleMessage(_sender: chrome.runtime.MessageSender): void {
+  // sender intentionally unused
+}
+```
+
+## Generic Type Patterns
+
+### Message Listener Manager
+Use generics for reusable utilities:
+
+```typescript
+class MessageListenerManager<TMessage = unknown, TId = string> {
+  start(id: TId, handler: (message: TMessage) => void | boolean): void;
+  cleanup(): void;
+  getCurrentId(): TId | null;
+}
+```
+
+### API Response Types
+Type API responses explicitly:
+
+```typescript
+interface ApiResult<T> {
+  ok: boolean;
+  data?: T;
+  error?: string;
+}
+
+const result: ApiResult<Portal[]> = await sendMessage({ type: 'DISCOVER_PORTALS' });
+```

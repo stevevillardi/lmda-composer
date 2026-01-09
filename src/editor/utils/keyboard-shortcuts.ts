@@ -2,15 +2,41 @@ import { KeyCode, KeyMod, type editor } from 'monaco-editor';
 import { toast } from 'sonner';
 import { useEditorStore } from '../stores/editor-store';
 
-type ShortcutDescriptor = {
+// ============================================================================
+// Types
+// ============================================================================
+
+interface SingleShortcut {
   id: string;
   label: string;
   match: (event: KeyboardEvent) => boolean;
   action: () => void;
   monacoKeybinding?: number;
-};
+}
+
+interface ChordShortcut {
+  id: string;
+  label: string;
+  followKey: string;
+  followShift?: boolean;
+  action: () => void;
+  monacoKeybinding?: number;
+}
+
+// ============================================================================
+// State
+// ============================================================================
 
 const getState = useEditorStore.getState;
+
+// Chord state management
+let pendingChord = false;
+let chordTimeout: ReturnType<typeof setTimeout> | null = null;
+const CHORD_TIMEOUT_MS = 1500;
+
+// ============================================================================
+// Helpers
+// ============================================================================
 
 const isModKey = (event: KeyboardEvent) => event.metaKey || event.ctrlKey;
 
@@ -23,6 +49,10 @@ const matchesModKeyExact = (event: KeyboardEvent, key: string, shift: boolean | 
   isModKey(event)
   && (shift === 'any' || event.shiftKey === shift)
   && event.key === key;
+
+// ============================================================================
+// Actions
+// ============================================================================
 
 const runPrimaryAction = () => {
   const {
@@ -52,10 +82,13 @@ const openCommandPalette = () => {
 };
 
 const createNewFileOrApi = () => {
-  const { activeTabId, tabs, createNewFile, openApiExplorerTab } = getState();
+  const { activeTabId, tabs, activeWorkspace, createNewFile, openApiExplorerTab } = getState();
   const activeTab = activeTabId ? tabs.find(tab => tab.id === activeTabId) : null;
 
-  if (activeTab?.kind === 'api') {
+  // Use active tab kind if available, otherwise use workspace state
+  const isApiMode = activeTab ? activeTab.kind === 'api' : activeWorkspace === 'api';
+
+  if (isApiMode) {
     openApiExplorerTab();
   } else {
     createNewFile();
@@ -63,27 +96,32 @@ const createNewFileOrApi = () => {
 };
 
 const toggleView = () => {
-  const { activeTabId, tabs, setActiveTab, createNewFile, openApiExplorerTab } = getState();
+  const { activeTabId, tabs, activeWorkspace, setActiveTab, setActiveWorkspace } = getState();
   const activeTab = activeTabId ? tabs.find(tab => tab.id === activeTabId) : null;
   const getLastTabIdByKind = (kind: 'api' | 'script') =>
     [...tabs].reverse().find(tab => (tab.kind ?? 'script') === kind)?.id ?? null;
 
-  if (activeTab?.kind === 'api') {
+  // Determine current workspace from active tab or workspace state
+  const currentWorkspace = activeTab?.kind === 'api' ? 'api' : activeWorkspace;
+
+  if (currentWorkspace === 'api') {
+    // Switch to script workspace
+    setActiveWorkspace('script');
     const lastScript = getLastTabIdByKind('script');
     if (lastScript) {
       setActiveTab(lastScript);
-    } else {
-      createNewFile();
     }
+    // If no script tabs, shows EditorWelcomeScreen
     return;
   }
 
+  // Switch to API workspace
+  setActiveWorkspace('api');
   const lastApi = getLastTabIdByKind('api');
   if (lastApi) {
     setActiveTab(lastApi);
-  } else {
-    openApiExplorerTab();
   }
+  // If no API tabs, shows ApiWelcomeScreen
 };
 
 export const copyOutputToClipboard = async () => {
@@ -92,7 +130,7 @@ export const copyOutputToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(currentExecution.rawOutput);
       toast.success('Output copied to clipboard');
-    } catch (error) {
+    } catch {
       toast.error('Failed to copy output', {
         description: 'Could not copy to clipboard',
       });
@@ -101,19 +139,11 @@ export const copyOutputToClipboard = async () => {
   setCommandPaletteOpen(false);
 };
 
-const saveWithToast = (save: () => Promise<unknown>) => {
-  void save()
-    .then(() => {
-      toast.success('File saved');
-    })
-    .catch((error) => {
-      toast.error('Failed to save file', {
-        description: error instanceof Error ? error.message : 'Unknown error',
-      });
-    });
-};
+// ============================================================================
+// Single-Combo Shortcuts (Low conflict, universal patterns)
+// ============================================================================
 
-const shortcuts: ShortcutDescriptor[] = [
+const singleShortcuts: SingleShortcut[] = [
   {
     id: 'command-palette',
     label: 'Command Palette',
@@ -136,47 +166,14 @@ const shortcuts: ShortcutDescriptor[] = [
     monacoKeybinding: KeyCode.F5,
   },
   {
-    id: 'copy-output',
-    label: 'Copy Output',
-    match: (event) => matchesModKey(event, 'c', true),
+    id: 'save-file',
+    label: 'Save',
+    match: (event) => matchesModKey(event, 's', false),
     action: () => {
-      void copyOutputToClipboard();
+      const { saveFile } = getState();
+      void saveFile();
     },
-    monacoKeybinding: KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KeyC,
-  },
-  {
-    id: 'new-file',
-    label: 'New File',
-    match: (event) => matchesModKey(event, 'k', false),
-    action: createNewFileOrApi,
-    monacoKeybinding: KeyMod.CtrlCmd | KeyCode.KeyK,
-  },
-  {
-    id: 'toggle-view',
-    label: 'Toggle View',
-    match: (event) => matchesModKey(event, 'm', true),
-    action: toggleView,
-    monacoKeybinding: KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KeyM,
-  },
-  {
-    id: 'open-file',
-    label: 'Open File',
-    match: (event) => matchesModKey(event, 'o'),
-    action: () => {
-      const { openFileFromDisk } = getState();
-      openFileFromDisk();
-    },
-    monacoKeybinding: KeyMod.CtrlCmd | KeyCode.KeyO,
-  },
-  {
-    id: 'toggle-sidebar',
-    label: 'Toggle Sidebar',
-    match: (event) => matchesModKey(event, 'b'),
-    action: () => {
-      const { toggleRightSidebar } = getState();
-      toggleRightSidebar();
-    },
-    monacoKeybinding: KeyMod.CtrlCmd | KeyCode.KeyB,
+    monacoKeybinding: KeyMod.CtrlCmd | KeyCode.KeyS,
   },
   {
     id: 'open-settings',
@@ -189,111 +186,198 @@ const shortcuts: ShortcutDescriptor[] = [
     monacoKeybinding: KeyMod.CtrlCmd | KeyCode.Comma,
   },
   {
-    id: 'save-file',
-    label: 'Save',
-    match: (event) => matchesModKey(event, 's', false),
+    id: 'toggle-sidebar',
+    label: 'Toggle Sidebar',
+    match: (event) => matchesModKey(event, 'b'),
     action: () => {
-      const { saveFile } = getState();
-      saveWithToast(saveFile);
+      const { toggleRightSidebar } = getState();
+      toggleRightSidebar();
     },
-    monacoKeybinding: KeyMod.CtrlCmd | KeyCode.KeyS,
+    monacoKeybinding: KeyMod.CtrlCmd | KeyCode.KeyB,
+  },
+];
+
+// ============================================================================
+// Chord Shortcuts (⌘K + key)
+// ============================================================================
+
+const chordShortcuts: ChordShortcut[] = [
+  {
+    id: 'new-file',
+    label: 'New File',
+    followKey: 'n',
+    action: createNewFileOrApi,
+    monacoKeybinding: KeyMod.CtrlCmd | KeyCode.KeyK,
+  },
+  {
+    id: 'open-file',
+    label: 'Open File',
+    followKey: 'o',
+    action: () => {
+      const { openFileFromDisk } = getState();
+      openFileFromDisk();
+    },
+  },
+  {
+    id: 'open-module-folder',
+    label: 'Open Module Folder',
+    followKey: 'f',
+    action: () => {
+      const { openModuleFolderFromDisk } = getState();
+      void openModuleFolderFromDisk();
+    },
   },
   {
     id: 'save-file-as',
     label: 'Save As',
-    match: (event) => matchesModKey(event, 's', true),
+    followKey: 's',
+    followShift: true,
     action: () => {
       const { saveFileAs } = getState();
-      saveWithToast(saveFileAs);
+      void saveFileAs();
     },
-    monacoKeybinding: KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KeyS,
-  },
-  {
-    id: 'refresh-collectors',
-    label: 'Refresh Collectors',
-    match: (event) => matchesModKey(event, 'r'),
-    action: () => {
-      const { refreshCollectors, selectedPortalId } = getState();
-      if (selectedPortalId) {
-        refreshCollectors();
-      }
-    },
-    monacoKeybinding: KeyMod.CtrlCmd | KeyCode.KeyR,
-  },
-  {
-    id: 'applies-to-toolbox',
-    label: 'AppliesTo Toolbox',
-    match: (event) => matchesModKey(event, 'a', true),
-    action: () => {
-      const { setAppliesToTesterOpen, selectedPortalId } = getState();
-      if (selectedPortalId) {
-        setAppliesToTesterOpen(true);
-      }
-    },
-    monacoKeybinding: KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KeyA,
-  },
-  {
-    id: 'debug-commands',
-    label: 'Debug Commands',
-    match: (event) => matchesModKey(event, 'd', true),
-    action: () => {
-      const { setDebugCommandsDialogOpen, selectedPortalId } = getState();
-      if (selectedPortalId) {
-        setDebugCommandsDialogOpen(true);
-      }
-    },
-    monacoKeybinding: KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KeyD,
   },
   {
     id: 'export-file',
     label: 'Export File',
-    match: (event) => matchesModKey(event, 'e', true),
+    followKey: 'e',
     action: () => {
       const { exportToFile } = getState();
       exportToFile();
     },
-    monacoKeybinding: KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KeyE,
   },
   {
-    id: 'module-search',
-    label: 'Search LogicModules',
-    match: (event) => matchesModKey(event, 'f', true),
-    action: () => {
-      const { setModuleSearchOpen, selectedPortalId } = getState();
-      if (selectedPortalId) {
-        setModuleSearchOpen(true);
-      }
-    },
-    monacoKeybinding: KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KeyF,
+    id: 'toggle-view',
+    label: 'Toggle View',
+    followKey: 'm',
+    action: toggleView,
   },
   {
     id: 'module-browser',
     label: 'Import from LMX',
-    match: (event) => matchesModKey(event, 'i', true),
+    followKey: 'i',
     action: () => {
       const { setModuleBrowserOpen, selectedPortalId } = getState();
       if (selectedPortalId) {
         setModuleBrowserOpen(true);
       }
     },
-    monacoKeybinding: KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KeyI,
+  },
+  {
+    id: 'module-search',
+    label: 'Search LogicModules',
+    followKey: 's',
+    action: () => {
+      const { setModuleSearchOpen, selectedPortalId } = getState();
+      if (selectedPortalId) {
+        setModuleSearchOpen(true);
+      }
+    },
+  },
+  {
+    id: 'applies-to-toolbox',
+    label: 'AppliesTo Toolbox',
+    followKey: 'a',
+    action: () => {
+      const { setAppliesToTesterOpen, selectedPortalId } = getState();
+      if (selectedPortalId) {
+        setAppliesToTesterOpen(true);
+      }
+    },
+  },
+  {
+    id: 'debug-commands',
+    label: 'Debug Commands',
+    followKey: 'd',
+    action: () => {
+      const { setDebugCommandsDialogOpen, selectedPortalId } = getState();
+      if (selectedPortalId) {
+        setDebugCommandsDialogOpen(true);
+      }
+    },
   },
   {
     id: 'module-snippets',
     label: 'Module Snippets',
-    match: (event) => matchesModKey(event, 'l', true),
+    followKey: 'l',
     action: () => {
       const { setModuleSnippetsDialogOpen } = getState();
       setModuleSnippetsDialogOpen(true);
     },
-    monacoKeybinding: KeyMod.CtrlCmd | KeyMod.Shift | KeyCode.KeyU,
+  },
+  {
+    id: 'copy-output',
+    label: 'Copy Output',
+    followKey: 'c',
+    action: () => {
+      void copyOutputToClipboard();
+    },
+  },
+  {
+    id: 'refresh-collectors',
+    label: 'Refresh Collectors',
+    followKey: 'r',
+    action: () => {
+      const { refreshCollectors, selectedPortalId } = getState();
+      if (selectedPortalId) {
+        refreshCollectors();
+      }
+    },
   },
 ];
 
+// ============================================================================
+// Chord State Management
+// ============================================================================
+
+const clearChordState = () => {
+  pendingChord = false;
+  if (chordTimeout) {
+    clearTimeout(chordTimeout);
+    chordTimeout = null;
+  }
+  getState().setChordPending(false);
+};
+
+const startChord = () => {
+  pendingChord = true;
+  getState().setChordPending(true);
+  
+  // Blur any focused element to prevent focus rings during chord
+  if (document.activeElement instanceof HTMLElement) {
+    const active = document.activeElement;
+    // Don't blur if it's an input/textarea/editor
+    if (
+      active.tagName !== 'INPUT' &&
+      active.tagName !== 'TEXTAREA' &&
+      !active.closest('.monaco-editor')
+    ) {
+      active.blur();
+    }
+  }
+  
+  chordTimeout = setTimeout(() => {
+    clearChordState();
+  }, CHORD_TIMEOUT_MS);
+};
+
+// ============================================================================
+// Global Key Handler
+// ============================================================================
+
+// Helper to fully stop an event from propagating
+const stopEvent = (event: KeyboardEvent) => {
+  event.preventDefault();
+  event.stopPropagation();
+  event.stopImmediatePropagation();
+};
+
 export const handleGlobalKeyDown = (event: KeyboardEvent) => {
-  const commandPalette = shortcuts.find(shortcut => shortcut.id === 'command-palette');
+  // Always allow command palette
+  const commandPalette = singleShortcuts.find(shortcut => shortcut.id === 'command-palette');
   if (commandPalette?.match(event)) {
-    event.preventDefault();
+    stopEvent(event);
+    clearChordState();
     commandPalette.action();
     return;
   }
@@ -303,18 +387,68 @@ export const handleGlobalKeyDown = (event: KeyboardEvent) => {
     return;
   }
 
-  for (const shortcut of shortcuts) {
+  // Handle chord follow-up key
+  if (pendingChord) {
+    const key = event.key.toLowerCase();
+    const shift = event.shiftKey;
+    
+    // Find matching chord shortcut
+    const matchedChord = chordShortcuts.find(shortcut => {
+      if (shortcut.followKey !== key) return false;
+      if (shortcut.followShift && !shift) return false;
+      if (!shortcut.followShift && shift) {
+        // Check if there's a shifted version of this key
+        const hasShiftedVersion = chordShortcuts.some(
+          s => s.followKey === key && s.followShift
+        );
+        if (hasShiftedVersion) return false;
+      }
+      return true;
+    });
+
+    if (matchedChord) {
+      stopEvent(event);
+      clearChordState();
+      matchedChord.action();
+      return;
+    }
+
+    // If Escape is pressed, cancel the chord
+    if (event.key === 'Escape') {
+      stopEvent(event);
+      clearChordState();
+      return;
+    }
+
+    // Any other key cancels the chord and falls through
+    clearChordState();
+  }
+
+  // Check for chord leader (⌘K)
+  if (isModKey(event) && event.key.toLowerCase() === 'k' && !event.shiftKey) {
+    stopEvent(event);
+    startChord();
+    return;
+  }
+
+  // Handle single-combo shortcuts
+  for (const shortcut of singleShortcuts) {
     if (shortcut.id === 'command-palette') continue;
     if (shortcut.match(event)) {
-      event.preventDefault();
+      stopEvent(event);
       shortcut.action();
       return;
     }
   }
 };
 
+// ============================================================================
+// Monaco Editor Integration
+// ============================================================================
+
 const registerActions = (target: editor.IStandaloneCodeEditor) => {
-  shortcuts.forEach((shortcut) => {
+  // Register single shortcuts
+  singleShortcuts.forEach((shortcut) => {
     if (!shortcut.monacoKeybinding) return;
     target.addAction({
       id: shortcut.id,
@@ -325,7 +459,60 @@ const registerActions = (target: editor.IStandaloneCodeEditor) => {
       },
     });
   });
+
+  // Register chord shortcuts with Monaco's chord support
+  // Monaco supports chords via KeyMod.chord()
+  chordShortcuts.forEach((shortcut) => {
+    const followKeyCode = getKeyCodeForLetter(shortcut.followKey);
+    if (!followKeyCode) return;
+
+    const secondPart = shortcut.followShift
+      ? KeyMod.Shift | followKeyCode
+      : followKeyCode;
+
+    target.addAction({
+      id: shortcut.id,
+      label: shortcut.label,
+      keybindings: [KeyMod.chord(KeyMod.CtrlCmd | KeyCode.KeyK, secondPart)],
+      run: () => {
+        shortcut.action();
+      },
+    });
+  });
 };
+
+// Helper to get Monaco KeyCode for a letter
+function getKeyCodeForLetter(letter: string): KeyCode | null {
+  const letterMap: Record<string, KeyCode> = {
+    a: KeyCode.KeyA,
+    b: KeyCode.KeyB,
+    c: KeyCode.KeyC,
+    d: KeyCode.KeyD,
+    e: KeyCode.KeyE,
+    f: KeyCode.KeyF,
+    g: KeyCode.KeyG,
+    h: KeyCode.KeyH,
+    i: KeyCode.KeyI,
+    j: KeyCode.KeyJ,
+    k: KeyCode.KeyK,
+    l: KeyCode.KeyL,
+    m: KeyCode.KeyM,
+    n: KeyCode.KeyN,
+    o: KeyCode.KeyO,
+    p: KeyCode.KeyP,
+    q: KeyCode.KeyQ,
+    r: KeyCode.KeyR,
+    s: KeyCode.KeyS,
+    t: KeyCode.KeyT,
+    u: KeyCode.KeyU,
+    v: KeyCode.KeyV,
+    w: KeyCode.KeyW,
+    x: KeyCode.KeyX,
+    y: KeyCode.KeyY,
+    z: KeyCode.KeyZ,
+  };
+  return letterMap[letter.toLowerCase()] ?? null;
+}
 
 export const registerMonacoShortcuts = (
   instance: editor.IStandaloneCodeEditor | editor.IStandaloneDiffEditor
@@ -338,3 +525,6 @@ export const registerMonacoShortcuts = (
 
   registerActions(instance);
 };
+
+// Export for use in UI components
+export const isChordPending = () => pendingChord;

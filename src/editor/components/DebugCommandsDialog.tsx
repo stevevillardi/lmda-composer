@@ -77,6 +77,7 @@ export function DebugCommandsDialog() {
   } = useEditorStore();
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [collectorSearchQuery, setCollectorSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedCommand, setSelectedCommand] = useState<DebugCommand | null>(null);
   const [parameters, setParameters] = useState<Record<string, string>>({});
@@ -90,6 +91,7 @@ export function DebugCommandsDialog() {
   useEffect(() => {
     if (debugCommandsDialogOpen) {
       setSearchQuery('');
+      setCollectorSearchQuery('');
       setSelectedCategory(null);
       setSelectedCommand(null);
       setParameters({});
@@ -132,7 +134,19 @@ export function DebugCommandsDialog() {
 
   const collectorsByGroup = useMemo(() => {
     const grouped: Record<string, typeof collectors> = {};
-    for (const collector of collectors) {
+    
+    // Filter collectors first
+    const filteredCollectors = collectors.filter(c => {
+      if (!collectorSearchQuery.trim()) return true;
+      const query = collectorSearchQuery.toLowerCase();
+      return (
+        c.description.toLowerCase().includes(query) ||
+        c.hostname.toLowerCase().includes(query) ||
+        (c.collectorGroupName && c.collectorGroupName.toLowerCase().includes(query))
+      );
+    });
+
+    for (const collector of filteredCollectors) {
       const groupName =
         collector.collectorGroupName && collector.collectorGroupName !== '@default'
           ? collector.collectorGroupName
@@ -143,7 +157,7 @@ export function DebugCommandsDialog() {
       grouped[groupName].push(collector);
     }
     return grouped;
-  }, [collectors]);
+  }, [collectors, collectorSearchQuery]);
 
   const collectorGroupOrder = useMemo(() => {
     const groups = Object.keys(collectorsByGroup);
@@ -388,14 +402,12 @@ export function DebugCommandsDialog() {
                   onClick={() => handleSelectCommand(HEALTH_CHECK_COMMAND)}
                   className={cn(
                     "w-full p-3 rounded-lg border-2 text-left transition-all",
-                    "bg-linear-to-r from-emerald-500/10 to-cyan-500/10",
-                    "hover:from-emerald-500/20 hover:to-cyan-500/20",
-                    "border-emerald-500/30 hover:border-emerald-500/50",
-                    selectedCommand?.id === 'healthcheck' && "border-emerald-500 from-emerald-500/20 to-cyan-500/20"
+                    "bg-card/40 backdrop-blur-sm border-teal-500/30 hover:bg-teal-500/10 hover:border-teal-500/50",
+                    selectedCommand?.id === 'healthcheck' && "border-teal-500 bg-teal-500/10"
                   )}
                 >
                   <div className="flex items-center gap-2 mb-1">
-                    <HeartPulse className="size-5 text-emerald-500" />
+                    <HeartPulse className="size-5 text-teal-500" />
                     <span className="font-semibold text-sm">Collector Health Check</span>
 
                   </div>
@@ -430,13 +442,13 @@ export function DebugCommandsDialog() {
                               "w-full text-left px-3 py-2 rounded-md text-sm transition-colors",
                               "hover:bg-accent",
                               selectedCommand?.id === cmd.id && "bg-accent font-medium",
-                              cmd.type === 'healthcheck' && "border-l-2 border-emerald-500"
+                              cmd.type === 'healthcheck' && "border-l-2 border-teal-500"
                             )}
                           >
                             <div className="flex items-center justify-between">
                               <span className="font-mono text-xs">{cmd.command}</span>
                               {cmd.type === 'healthcheck' ? (
-                                <HeartPulse className="size-4 text-emerald-500" />
+                                <HeartPulse className="size-4 text-teal-500" />
                               ) : (
                                 <ChevronRight className="size-4 text-muted-foreground" />
                               )}
@@ -468,7 +480,7 @@ export function DebugCommandsDialog() {
                           <div>
                             <div className="flex items-center gap-2 mb-2">
                               {selectedCommand.type === 'healthcheck' ? (
-                                <HeartPulse className="size-6 text-emerald-500" />
+                                <HeartPulse className="size-6 text-teal-500" />
                               ) : null}
                               <code className="text-lg font-mono font-semibold">{selectedCommand.command}</code>
                               <Badge variant="secondary">{getCategoryLabel(selectedCommand.category)}</Badge>
@@ -486,7 +498,7 @@ export function DebugCommandsDialog() {
 
                           {/* Health Check Special Info */}
                           {selectedCommand.type === 'healthcheck' && (
-                            <div className="p-4 rounded-lg bg-linear-to-r from-emerald-500/10 to-cyan-500/10 border border-emerald-500/20">
+                            <div className="p-4 rounded-lg bg-linear-to-r from-emerald-500/10 to-cyan-500/10 border border-teal-500/20">
                               <h4 className="font-semibold mb-2 flex items-center gap-2">
                                 <Sparkles className="size-4 text-cyan-500" />
                                 What this report includes:
@@ -592,6 +604,19 @@ export function DebugCommandsDialog() {
                                 </Button>
                               </div>
                             </div>
+
+                            <div className="mb-3">
+                              <div className="relative">
+                                <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+                                <Input 
+                                  placeholder="Filter collectors..." 
+                                  value={collectorSearchQuery}
+                                  onChange={(e) => setCollectorSearchQuery(e.target.value)}
+                                  className="pl-8 h-8 text-xs"
+                                />
+                              </div>
+                            </div>
+
                             {collectors.length === 0 ? (
                               <div className="p-4 text-center text-sm text-muted-foreground border rounded-md">
                                 No collectors available. Please select a portal first.
@@ -686,10 +711,8 @@ export function DebugCommandsDialog() {
                       <Button
                         onClick={handleExecute}
                         disabled={!canExecute}
-                        className={cn(
-                          "gap-2",
-                          selectedCommand?.type === 'healthcheck' && "bg-linear-to-r from-emerald-500 to-cyan-500 hover:from-emerald-600 hover:to-cyan-600"
-                        )}
+                        variant="execute"
+                        className="gap-2"
                       >
                         {isExecutingDebugCommand ? (
                           <>

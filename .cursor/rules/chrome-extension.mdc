@@ -1,0 +1,304 @@
+---
+description: Chrome Extension Manifest V3 patterns and best practices for LMDA Composer
+globs:
+  - "src/background/**/*.ts"
+  - "src/content/**/*.ts"
+  - "src/manifest.json"
+alwaysApply: false
+---
+
+# Chrome Extension Patterns
+
+## Manifest V3 Fundamentals
+
+### Service Worker Lifecycle
+The service worker is event-driven and can be terminated when idle:
+
+```typescript
+// BAD - in-memory state will be lost
+let cachedData = {}; // Lost when SW terminates
+
+// GOOD - persist to storage
+await chrome.storage.local.set({ cachedData });
+const { cachedData } = await chrome.storage.local.get('cachedData');
+```
+
+### State Persistence Pattern
+Use debounced persistence for frequently-updated state:
+
+```typescript
+class PortalManager {
+  private persistTimeout: NodeJS.Timeout | null = null;
+  
+  private scheduleStatePersistence(): void {
+    if (this.persistTimeout) {
+      clearTimeout(this.persistTimeout);
+    }
+    this.persistTimeout = setTimeout(() => {
+      this.persistState();
+    }, 1000); // Debounce 1 second
+  }
+  
+  private async persistState(): Promise<void> {
+    await chrome.storage.local.set({
+      portals: this.portals,
+      collectors: this.collectors,
+    });
+  }
+}
+```
+
+## Message Handling
+
+### Service Worker Message Router
+Route messages by type with typed handlers:
+
+```typescript
+// service-worker.ts
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (!isValidSender(sender)) {
+    sendResponse({ ok: false, error: 'Invalid sender' });
+    return false;
+  }
+  
+  // Handle async responses
+  handleMessage(message, sender)
+    .then(sendResponse)
+    .catch((err) => sendResponse({ ok: false, error: err.message }));
+  
+  return true; // Keep channel open for async response
+});
+
+async function handleMessage(message: Message, sender: Sender): Promise<Result> {
+  switch (message.type) {
+    case 'EXECUTE_SCRIPT':
+      return handleExecuteScript(context, message.payload);
+    case 'FETCH_MODULES':
+      return handleFetchModules(context, message.payload);
+    default:
+      return { ok: false, error: `Unknown message type: ${message.type}` };
+  }
+}
+```
+
+### Handler Context Pattern
+Pass shared resources via context object:
+
+```typescript
+// handlers/types.ts
+export interface HandlerContext {
+  portalManager: PortalManager;
+  scriptExecutor: ScriptExecutor;
+  moduleLoader: ModuleLoader;
+  activeSearches: Map<string, AbortController>;
+}
+
+// handlers/module-handlers.ts
+export async function handleFetchModules(
+  context: HandlerContext,
+  payload: FetchModulesPayload
+): Promise<FetchModulesResult> {
+  const { portalManager } = context;
+  // ...
+}
+```
+
+### Sender Validation
+Always validate message senders for security:
+
+```typescript
+// sender-validation.ts
+export function isValidSender(sender: chrome.runtime.MessageSender): boolean {
+  // Allow messages from extension itself
+  if (sender.id === chrome.runtime.id) {
+    return true;
+  }
+  
+  // Allow messages from LogicMonitor domains
+  if (sender.url) {
+    const url = new URL(sender.url);
+    return url.hostname.endsWith('.logicmonitor.com');
+  }
+  
+  return false;
+}
+```
+
+## Messaging from Editor UI
+
+### Send Message Utility
+Use a typed utility for sending messages:
+
+```typescript
+// utils/chrome-messaging.ts
+export async function sendMessage<T = unknown>(
+  message: EditorToSWMessage
+): Promise<ApiResult<T>> {
+  try {
+    const response = await chrome.runtime.sendMessage(message);
+    return response as ApiResult<T>;
+  } catch (error) {
+    return { 
+      ok: false, 
+      error: error instanceof Error ? error.message : 'Unknown error' 
+    };
+  }
+}
+
+// Usage
+const result = await sendMessage<Portal[]>({ type: 'DISCOVER_PORTALS' });
+if (result.ok) {
+  setPortals(result.data);
+}
+```
+
+## Message Listener Management
+
+### Safe Listener Lifecycle
+Use `MessageListenerManager` for progress-style listeners:
+
+```typescript
+import { MessageListenerManager, createFilteredListenerManager } from '@/editor/utils/message-listener';
+
+// For filtered messages (e.g., by searchId)
+const searchListenerManager = createFilteredListenerManager<ModuleSearchProgress>(
+  'MODULE_SEARCH_PROGRESS',
+  (msg) => (msg.payload as { searchId?: string })?.searchId
+);
+
+// Usage
+searchListenerManager.start(searchId, (progress) => {
+  set({ moduleSearchProgress: progress });
+});
+
+// Always cleanup
+try {
+  await performSearch();
+} finally {
+  searchListenerManager.cleanup();
+}
+```
+
+## Content Script Injection
+
+### Script Injection for CSRF Token
+Execute scripts in the page context to access page globals:
+
+```typescript
+async function fetchCsrfFromTab(tabId: number): Promise<string | null> {
+  const results = await chrome.scripting.executeScript({
+    target: { tabId },
+    world: 'MAIN', // Execute in page context
+    func: () => {
+      // This runs in the page, can access window.LMGlobalData
+      const xhr = new XMLHttpRequest();
+      xhr.open('GET', '/santaba/rest/functions/dummy', false);
+      xhr.setRequestHeader('X-CSRF-Token', 'Fetch');
+      xhr.send();
+      return xhr.getResponseHeader('X-CSRF-Token');
+    },
+  });
+  
+  return results?.[0]?.result ?? null;
+}
+```
+
+## Rate Limiting
+
+### Exponential Backoff Pattern
+Handle API rate limits gracefully:
+
+```typescript
+// rate-limiter.ts
+export async function fetchWithRetry(
+  url: string,
+  options: RequestInit,
+  maxRetries = 3
+): Promise<Response> {
+  let lastError: Error | null = null;
+  
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const response = await fetch(url, options);
+      
+      if (response.status === 429) {
+        const retryAfter = response.headers.get('Retry-After');
+        const waitMs = retryAfter ? parseInt(retryAfter) * 1000 : Math.pow(2, attempt) * 1000;
+        await new Promise(resolve => setTimeout(resolve, waitMs));
+        continue;
+      }
+      
+      return response;
+    } catch (error) {
+      lastError = error as Error;
+    }
+  }
+  
+  throw lastError ?? new Error('Max retries exceeded');
+}
+```
+
+## Storage Patterns
+
+### Chrome Storage for Extension State
+Use `chrome.storage.local` for extension-wide state:
+
+```typescript
+// Saving
+await chrome.storage.local.set({
+  portals: this.portals,
+  preferences: userPreferences,
+});
+
+// Loading with defaults
+const { portals = [], preferences = DEFAULT_PREFERENCES } = 
+  await chrome.storage.local.get(['portals', 'preferences']);
+```
+
+### IndexedDB for Large Data
+Use IndexedDB for file handles and large cached data:
+
+```typescript
+// utils/document-store.ts
+const DB_NAME = 'lmda-composer';
+const STORES = {
+  FILE_HANDLES: 'file-handles',
+  DIRECTORY_HANDLES: 'directory-handles',
+  DRAFTS: 'drafts',
+};
+
+export async function saveFileHandle(
+  id: string, 
+  handle: FileSystemFileHandle,
+  fileName: string
+): Promise<void> {
+  const db = await openDatabase();
+  await db.put(STORES.FILE_HANDLES, { id, handle, fileName, lastAccessed: Date.now() });
+}
+```
+
+## Cancellation Pattern
+
+### AbortController for Long Operations
+Support cancellation for long-running operations:
+
+```typescript
+const activeSearches = new Map<string, AbortController>();
+
+async function handleSearch(searchId: string): Promise<Result> {
+  const controller = new AbortController();
+  activeSearches.set(searchId, controller);
+  
+  try {
+    const results = await searchWithSignal(controller.signal);
+    return { ok: true, data: results };
+  } finally {
+    activeSearches.delete(searchId);
+  }
+}
+
+async function handleCancelSearch(searchId: string): Promise<void> {
+  const controller = activeSearches.get(searchId);
+  controller?.abort();
+}
+```

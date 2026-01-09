@@ -20,7 +20,7 @@ import type { AplistItem, SplistItem, AdlistItem, TplistItem } from '../types';
 function EmptyTableState({ message }: { message: string }) {
   return (
     <div className="flex items-center justify-center py-8 text-muted-foreground select-none">
-      <CheckCircle className="size-4 mr-2 text-green-500" />
+      <CheckCircle className="size-4 mr-2 text-teal-500" />
       <span className="text-sm">{message}</span>
     </div>
   );
@@ -56,7 +56,7 @@ export function TaskListTables({ aplist, splist, adlist, tplist }: TaskListTable
     return (
       <SectionCard title="Task Lists" icon={<ListTree className="size-4" />}>
         <div className="flex items-center justify-center py-8 text-muted-foreground select-none">
-          <CheckCircle className="size-5 mr-2 text-green-500" />
+          <CheckCircle className="size-5 mr-2 text-teal-500" />
           <span className="text-sm">All tasks completed successfully</span>
         </div>
       </SectionCard>

@@ -54,7 +54,7 @@ export function LongRunningChart({ data }: LongRunningChartProps) {
     return (
       <SectionCard title="Long Running Tasks" icon={<Timer className="size-4" />}>
         <div className="flex items-center justify-center py-8 text-muted-foreground select-none">
-          <CheckCircle className="size-5 mr-2 text-green-500" />
+          <CheckCircle className="size-5 mr-2 text-teal-500" />
           <span className="text-sm">No long-running tasks detected</span>
         </div>
       </SectionCard>

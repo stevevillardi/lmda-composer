@@ -34,14 +34,14 @@ function MetricCard({ label, value, icon, variant = 'default', subValue }: Metri
     default: 'border-border',
     warning: 'border-yellow-500/50 bg-yellow-500/5',
     error: 'border-red-500/50 bg-red-500/5',
-    success: 'border-green-500/50 bg-green-500/5',
+    success: 'border-teal-500/50 bg-teal-500/5',
   };
 
   const iconStyles = {
     default: 'text-muted-foreground',
     warning: 'text-yellow-500',
     error: 'text-red-500',
-    success: 'text-green-500',
+    success: 'text-teal-500',
   };
 
   return (
@@ -86,10 +86,10 @@ export function HealthCheckSummaryCards({ data }: HealthCheckSummaryCardsProps) 
   };
 
   const sizeColors: Record<string, string> = {
-    Small: 'bg-blue-500',
-    Medium: 'bg-green-500',
+    Small: 'bg-cyan-500',
+    Medium: 'bg-teal-500',
     Large: 'bg-yellow-500',
-    XL: 'bg-orange-500',
+    XL: 'bg-yellow-700',
     XXL: 'bg-red-500',
     Unknown: 'bg-gray-500',
   };

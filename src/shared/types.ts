@@ -98,7 +98,7 @@ export interface UserPreferences {
 }
 
 export const DEFAULT_PREFERENCES: UserPreferences = {
-  theme: 'dark',
+  theme: 'system',
   fontSize: 14,
   tabSize: 2,
   wordWrap: true,
@@ -180,20 +180,215 @@ export interface EditorTab {
   contextOverride?: EditorTabContextOverride;
   api?: ApiTabState;
   
-  // File system support (Phase 6)
-  /** Content when file was opened or last saved (for dirty detection) */
-  originalContent?: string;
-  /** Whether this tab has a persisted file handle in IndexedDB */
-  hasFileHandle?: boolean;
-  /** Distinguishes local files from modules, new files, history entries */
-  isLocalFile?: boolean;
+  /** Unified document state - determines document type and stores saved content */
+  document?: DocumentState;
+  
+  /** 
+   * ID used to look up the file handle in IndexedDB.
+   * Separate from tab.id to support scenarios like language change where the
+   * old file remains in recent files while the tab gets a new handle for the new file.
+   */
+  fileHandleId?: string;
+  
+  /**
+   * ID used to look up the directory handle in IndexedDB.
+   * Present when this tab is part of a module saved to a local directory.
+   */
+  directoryHandleId?: string;
+}
+
+// ============================================================================
+// Unified Document Model
+// ============================================================================
+
+/**
+ * Document type discriminator - determines what operations are available
+ */
+export type DocumentType = 
+  | 'scratch'      // New unsaved file (no file handle, no portal binding)
+  | 'local'        // Plain local file (has file handle, no portal binding)
+  | 'portal'       // Imported from portal (no file handle, has portal binding)
+  | 'history'      // Readonly history entry
+  | 'api';         // API explorer tab
+
+/**
+ * File state for documents backed by local files
+ */
+export interface FileState {
+  /** Reference to IndexedDB handle */
+  handleId: string;
+  /** Content when last saved to disk - for dirty detection */
+  lastSavedContent: string;
+  /** Timestamp of last save */
+  lastSavedAt?: number;
+  /** File name on disk */
+  fileName?: string;
+}
+
+/**
+ * Portal binding for documents linked to a LogicMonitor module
+ */
+export interface PortalBinding {
+  /** Portal ID (internal) */
+  id: string;
+  /** Portal hostname (e.g., "acme.logicmonitor.com") */
+  hostname: string;
+  /** Module ID in portal */
+  moduleId: number;
+  /** Module type */
+  moduleType: LogicModuleType;
+  /** Technical module name */
+  moduleName: string;
+  /** Which script this document represents */
+  scriptType: 'collection' | 'ad';
+  /** For lineage version history */
+  lineageId?: string;
+  /** Content as it exists on the portal - for push detection */
+  lastKnownContent: string;
+  /** When last pulled from portal */
+  lastPulledAt?: number;
+  /** Portal version number at last pull */
+  lastPulledVersion?: number;
+  /** When last pushed to portal */
+  lastPushedAt?: number;
+}
+
+/**
+ * Unified document state - single source of truth for document lifecycle
+ */
+export interface DocumentState {
+  /** Document type - determines available operations */
+  type: DocumentType;
+  
+  /** File state (present for 'local' type) */
+  file?: FileState;
+  
+  /** Portal binding (present for 'portal' type) */
+  portal?: PortalBinding;
+}
+
+/**
+ * Recent document entry for the unified recent documents list
+ */
+export interface RecentDocument {
+  /** Unique document ID (maps to tab ID for opened documents) */
+  id: string;
+  /** Document type at time of last access */
+  type: DocumentType;
+  /** Display name */
+  displayName: string;
+  /** Last access timestamp */
+  lastAccessed: number;
+  /** File name (for local types) */
+  fileName?: string;
+  /** For portal types */
+  portalHostname?: string;
+  /** For portal types */
+  moduleName?: string;
+  /** For portal types */
+  scriptType?: 'collection' | 'ad';
+}
+
+// ============================================================================
+// Module Directory Configuration (module.json)
+// ============================================================================
+
+/**
+ * Script metadata stored in module.json
+ */
+export interface ModuleDirectoryScript {
+  /** File name on disk (e.g., "collection.groovy" or "ad.ps1") */
+  fileName: string;
+  /** Script language */
+  language: ScriptLanguage;
+  /** Script mode */
+  mode: ScriptMode;
+  /** SHA-256 checksum of portal content at last sync (for push detection) */
+  portalChecksum: string;
+  /** SHA-256 checksum of disk content at last sync (for external change detection) */
+  diskChecksum?: string;
+}
+
+/**
+ * Module directory configuration file (module.json)
+ * Stored at the root of the module directory.
+ */
+export interface ModuleDirectoryConfig {
+  /** Schema version for future compatibility */
+  version: 1;
+  
+  /** Portal binding information */
+  portalBinding: {
+    /** Portal ID (internal) */
+    portalId: string;
+    /** Portal hostname (e.g., "acme.logicmonitor.com") */
+    portalHostname: string;
+    /** Module ID in portal */
+    moduleId: number;
+    /** Module type (DataSource, ConfigSource, etc.) */
+    moduleType: LogicModuleType;
+    /** Technical module name */
+    moduleName: string;
+    /** Lineage ID for version history */
+    lineageId?: string;
+  };
+  
+  /** Script file mappings */
+  scripts: {
+    collection?: ModuleDirectoryScript;
+    ad?: ModuleDirectoryScript;
+  };
+  
+  /** Module details snapshot (for push operations) */
+  moduleDetails?: {
+    /** Portal version number at last sync */
+    portalVersion: number;
+    /** When last pulled from portal */
+    lastPulledAt: string;
+    /** 
+     * Baseline values from portal at last sync.
+     * Used to detect what user has changed vs portal state.
+     * Analogous to portalChecksum for scripts.
+     */
+    portalBaseline: Record<string, unknown>;
+    /**
+     * User's local draft values (only stored if different from portalBaseline).
+     * Analogous to diskChecksum for scripts.
+     * If undefined, localDraft equals portalBaseline.
+     */
+    localDraft?: Record<string, unknown>;
+  };
+  
+  /** When this directory was last synced (push or pull) */
+  lastSyncedAt: string;
 }
 
 // Multi-tab Draft Auto-save
+
+/**
+ * Serializable version of ModuleDetailsDraft for storage in IndexedDB.
+ * Uses array instead of Set for dirtyFields since Sets can't be serialized.
+ */
+export interface SerializableModuleDetailsDraft {
+  original: Record<string, unknown> | null;
+  draft: Record<string, unknown>;
+  dirtyFields: string[];  // Serialized from Set<string>
+  loadedAt: number;
+  tabId: string;
+  moduleId: number;
+  moduleType: LogicModuleType;
+  portalId?: string;
+  version: number;
+}
+
 export interface DraftTabs {
   tabs: EditorTab[];
   activeTabId: string | null;
   lastModified: number;
+  /** Module details drafts indexed by tab ID (serializable format) */
+  moduleDetailsDrafts?: Record<string, SerializableModuleDetailsDraft>;
+  /** Active workspace (script or api) at time of save */
+  activeWorkspace?: 'script' | 'api';
 }
 
 // API Explorer
@@ -391,16 +586,12 @@ export interface CollectorAttribute {
   name: string;
   groovyScript: string;
   scriptType: ScriptType;
-  linuxScript: string;
-  windowsScript: string;
 }
 
 export interface ADMethod {
   name: string;
   type: string;
   groovyScript: string | null;
-  linuxScript: string | null;
-  winScript: string | null;
 }
 
 export interface AutoDiscoveryConfig {
@@ -408,13 +599,81 @@ export interface AutoDiscoveryConfig {
   method: ADMethod;
 }
 
+/**
+ * Status display name entry for gauge datapoints.
+ */
+export interface StatusDisplayName {
+  id?: number;
+  datapointId?: number;
+  statusDisplayName: string;
+  operator: 'EQ' | 'NEQ' | 'GTE' | 'LTE' | 'GT' | 'LT';
+  metricValue: number;
+}
+
+/**
+ * Full datapoint configuration.
+ * Used for editing and committing datapoint changes.
+ */
 export interface DataPoint {
-  id: number;
+  /** Datapoint ID - undefined for new datapoints */
+  id?: number;
+  /** DataSource ID - provided for existing datapoints */
+  dataSourceId?: number;
+  /** Datapoint name (required) */
   name: string;
-  dataType: number;
+  /** Description */
   description: string;
+  /** Metric type: 1=counter, 2=gauge, 3=derive */
+  type: number;
+  /** Data value type: Always 7 (double) for scripted modules */
+  dataType: number;
+  /** Max digits - always 4, legacy field */
+  maxDigits: number;
+  /** Post processor method: namevalue, expression, none, json, regex, etc. */
   postProcessorMethod: string;
+  /** Post processor parameter (key, expression, path, etc.) */
   postProcessorParam: string;
+  /** Raw data field: 'output', 'exitCode', 'responseTime', or empty for expressions */
+  rawDataFieldName: string;
+  /** Min value for datapoint range (empty string for no limit) */
+  minValue: string;
+  /** Max value for datapoint range (empty string for no limit) */
+  maxValue: string;
+  /** Alert for no data: 0=no alert, 1=no alert, 2=warn, 3=error, 4=critical */
+  alertForNoData: number;
+  /** Alert threshold expression (e.g., '> 60 80 90') */
+  alertExpr: string;
+  /** Alert threshold history note */
+  alertExprNote: string;
+  /** Alert subject template */
+  alertSubject: string;
+  /** Alert body template */
+  alertBody: string;
+  /** Poll cycles before alert triggers */
+  alertTransitionInterval: number;
+  /** Poll cycles before alert clears */
+  alertClearTransitionInterval: number;
+  // Preserved but not editable in this phase
+  /** Origin ID for tracking */
+  originId?: string;
+  /** Anomaly alert suppression - not editable */
+  enableAnomalyAlertSuppression?: string;
+  /** AD advanced setting enabled - not editable */
+  adAdvSettingEnabled?: boolean;
+  /** Warning AD advanced setting - not editable */
+  warnAdAdvSetting?: string;
+  /** Error AD advanced setting - not editable */
+  errorAdAdvSetting?: string;
+  /** Critical AD advanced setting - not editable */
+  criticalAdAdvSetting?: string;
+  /** User param 1 - not used */
+  userParam1?: string;
+  /** User param 2 - not used */
+  userParam2?: string;
+  /** User param 3 - not used */
+  userParam3?: string;
+  /** Status display names for gauge datapoints */
+  statusDisplayNames?: StatusDisplayName[];
 }
 
 export type ModuleSearchMatchType = 'substring' | 'exact' | 'regex';
@@ -429,6 +688,8 @@ export interface ScriptSearchResult {
   module: LogicModuleInfo;
   collectionMatches: ScriptMatchRange[];
   adMatches: ScriptMatchRange[];
+  /** True if matched by module name/displayName only (no script content matches) */
+  nameMatch?: boolean;
 }
 
 export interface DataPointSearchResult {
@@ -461,6 +722,88 @@ export interface LogicModule {
   autoDiscoveryConfig: AutoDiscoveryConfig | null;
   collectorAttribute: CollectorAttribute;
   dataPoints: DataPoint[];
+}
+
+// ============================================================================
+// ConfigCheck Types (for ConfigSource modules)
+// ============================================================================
+
+/**
+ * Diff check configuration for 'ignore' type config checks.
+ * Defines which lines/patterns to exclude from change detection.
+ */
+export interface DiffCheckConfig {
+  ignore_line_with_regex?: string[];
+  ignore_line_start_with?: string[];
+  ignore_blank_lines?: boolean;
+  ignore_space?: boolean;
+  ignore_line_contain?: string[];
+}
+
+/**
+ * Value check configuration for 'missing' and 'value' type config checks.
+ */
+export interface ValueCheckConfig {
+  variable: string;
+  must: ValueCheckMust[];
+}
+
+/**
+ * Condition for value checks - can be missing, value_change, or range comparison.
+ */
+export type ValueCheckMust = 
+  | { missing: Record<string, never> }
+  | { value_change: Record<string, never> }
+  | { range: { gt?: string; lt?: string; gte?: string; lte?: string; ne?: string; eq?: string } };
+
+/**
+ * Script configuration for config checks.
+ * The structure varies based on the config check type.
+ */
+export interface ConfigCheckScript {
+  /** Always 'arbitrary' - not UI-exposed */
+  format: 'arbitrary';
+  /** Groovy script code - for type='groovy' */
+  groovy?: string;
+  /** Diff exclusion rules - for type='ignore' */
+  diff_check?: DiffCheckConfig;
+  /** Fetch check config - for type='fetch', always { fetch: 0 } */
+  fetch_check?: { fetch: 0 };
+  /** Value/missing check config - for type='missing' or type='value' */
+  value_check?: ValueCheckConfig;
+}
+
+/**
+ * Config check type identifiers.
+ */
+export type ConfigCheckType = 'ignore' | 'groovy' | 'fetch' | 'missing' | 'value';
+
+/**
+ * Full ConfigCheck definition for ConfigSource modules.
+ */
+export interface ConfigCheck {
+  /** Config check ID - undefined for new checks */
+  id?: number;
+  /** ConfigSource ID - provided for existing checks */
+  configSourceId?: number;
+  /** Check name (required) */
+  name: string;
+  /** Description */
+  description: string;
+  /** Check type */
+  type: ConfigCheckType;
+  /** Alert level: 1=none, 2=warn, 3=error, 4=critical */
+  alertLevel: number;
+  /** Clear alert on acknowledgement */
+  ackClearAlert: boolean;
+  /** Clear after N minutes, 0=never */
+  alertEffectiveIval: number;
+  /** Transition interval - always 0, not UI-exposed */
+  alertTransitionInterval: number;
+  /** Script/check configuration */
+  script: ConfigCheckScript;
+  /** Origin ID for tracking */
+  originId?: string | null;
 }
 
 // Message Types
@@ -584,8 +927,8 @@ export type EditorToSWMessage =
   | { type: 'SEARCH_DATAPOINTS'; payload: SearchDatapointsRequest }
   | { type: 'CANCEL_MODULE_SEARCH'; payload: { searchId: string } }
   | { type: 'REFRESH_MODULE_INDEX'; payload: RefreshModuleIndexRequest }
-  | { type: 'FETCH_MODULE_DETAILS'; payload: { portalId: string; moduleType: LogicModuleType; moduleId: number; tabId: number } }
-  | { type: 'FETCH_ACCESS_GROUPS'; payload: { portalId: string; tabId: number } }
+  | { type: 'FETCH_MODULE_DETAILS'; payload: { portalId: string; moduleType: LogicModuleType; moduleId: number } }
+  | { type: 'FETCH_ACCESS_GROUPS'; payload: { portalId: string } }
   | { type: 'OPEN_EDITOR'; payload?: DeviceContext }
   | { type: 'FETCH_MODULE_SNIPPETS'; payload: { portalId: string; collectorId: number } }
   | { type: 'FETCH_MODULE_SNIPPET_SOURCE'; payload: { portalId: string; collectorId: number; name: string; version: string } }
@@ -613,6 +956,10 @@ export type SWToEditorMessage =
   | { type: 'MODULE_FETCHED'; payload: any } // Full module object from API
   | { type: 'MODULE_COMMITTED'; payload: { moduleId: number; moduleType: LogicModuleType } }
   | { type: 'MODULE_ERROR'; payload: { error: string; code?: number } }
+  | { type: 'MODULE_DETAILS_FETCHED'; payload: { module: any } } // Full module details object from API
+  | { type: 'MODULE_DETAILS_ERROR'; payload: { error: string; code?: number } }
+  | { type: 'ACCESS_GROUPS_FETCHED'; payload: { accessGroups: Array<{ id: number; name: string; description?: string; createdOn?: number; updatedOn?: number; createdBy?: string; tenantId?: string | null }> } }
+  | { type: 'ACCESS_GROUPS_ERROR'; payload: { error: string; code?: number } }
   | { type: 'LINEAGE_VERSIONS_FETCHED'; payload: { versions: LineageVersion[] } }
   | { type: 'LINEAGE_ERROR'; payload: { error: string; code?: number } }
   | { type: 'MODULE_SCRIPT_SEARCH_RESULTS'; payload: SearchModuleScriptsResponse }
@@ -725,6 +1072,7 @@ export interface DebugCommandResult {
 export interface DebugCommandComplete {
   results: Record<number, DebugCommandResult>;
 }
+
 
 // Constants
 

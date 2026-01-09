@@ -206,9 +206,9 @@ export function LogicModuleBrowser() {
           {/* Main Content Area */}
           <div className="flex-1 flex min-h-0 border-t border-border">
             {/* Left Panel - Module List */}
-            <div className="w-80 shrink-0 border-r border-border flex flex-col">
+            <div className="w-80 shrink-0 border-r border-border flex flex-col bg-muted/5">
               {/* Search */}
-              <div className="p-3 border-b border-border">
+              <div className="p-3 border-b border-border bg-background">
                 <div className="flex items-center gap-2">
                   <div className="relative flex-1">
                     <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
@@ -217,7 +217,7 @@ export function LogicModuleBrowser() {
                       placeholder="Search modules..."
                       value={moduleSearchQuery}
                       onChange={(e) => setModuleSearchQuery(e.target.value)}
-                      className="pl-8 pr-7 h-8"
+                      className="pl-8 pr-7 h-8 bg-background border-input shadow-sm"
                     />
                     {moduleSearchQuery.trim() && (
                       <button
@@ -265,16 +265,16 @@ export function LogicModuleBrowser() {
                   <LoadingState 
                     title="Loading modules..."
                     description="Fetching LogicModules from portal"
-                    className="border-0"
+                    className="border-0 bg-transparent"
                   />
                 ) : filteredModules.length === 0 ? (
-                  <Empty className="border-none h-full py-8">
+                  <Empty className="border-none h-full py-8 flex flex-col justify-center">
                     <EmptyHeader>
-                      <EmptyMedia variant="icon">
-                        <FolderSearch className="size-5" />
+                      <EmptyMedia variant="icon" className="bg-muted/50">
+                        <FolderSearch className="size-5 text-muted-foreground/70" />
                       </EmptyMedia>
-                      <EmptyTitle className="text-base">No modules found</EmptyTitle>
-                      <EmptyDescription>
+                      <EmptyTitle className="text-base font-medium">No modules found</EmptyTitle>
+                      <EmptyDescription className="px-6">
                         {!selectedPortalId 
                           ? 'Select a portal to browse modules'
                           : moduleSearchQuery 
@@ -284,7 +284,7 @@ export function LogicModuleBrowser() {
                     </EmptyHeader>
                   </Empty>
                 ) : (
-                  <div className="p-2 space-y-1.5">
+                  <div className="p-2 space-y-1">
                     {filteredModules.map((module) => (
                       <ModuleListItem
                         key={module.id}
@@ -294,11 +294,11 @@ export function LogicModuleBrowser() {
                       />
                     ))}
                     {moduleMeta?.hasMore && (
-                      <div className="pt-2">
+                      <div className="pt-2 pb-1 px-1">
                         <Button
                           variant="outline"
                           size="sm"
-                          className="w-full"
+                          className="w-full bg-background/50 border-dashed hover:bg-accent/50"
                           onClick={() => fetchModules(selectedModuleType, { append: true })}
                           disabled={isFetchingModules}
                         >
@@ -314,21 +314,23 @@ export function LogicModuleBrowser() {
             </div>
 
             {/* Right Panel - Preview */}
-            <div className="flex-1 flex flex-col min-w-0">
+            <div className="flex-1 flex flex-col min-w-0 bg-background/50">
               {selectedModule ? (
                 <ModulePreview module={selectedModule} />
               ) : (
-                <Empty className="flex-1 border-none">
-                  <EmptyHeader>
-                    <EmptyMedia variant="icon">
-                      <Eye className="size-5" />
-                    </EmptyMedia>
-                    <EmptyTitle className="text-base">No module selected</EmptyTitle>
-                    <EmptyDescription>
-                      Select a module from the list to preview its scripts
-                    </EmptyDescription>
-                  </EmptyHeader>
-                </Empty>
+                <div className="flex flex-col items-center justify-center h-full p-8 text-center animate-in fade-in duration-300">
+                  <Empty className="border-none bg-transparent shadow-none w-full max-w-sm">
+                    <EmptyHeader>
+                      <EmptyMedia variant="icon" className="mx-auto bg-muted/50 mb-4">
+                        <Eye className="size-5 text-muted-foreground/70" />
+                      </EmptyMedia>
+                      <EmptyTitle className="text-base font-medium">No module selected</EmptyTitle>
+                      <EmptyDescription className="mx-auto mt-1.5">
+                        Select a module from the list to preview its scripts and configuration
+                      </EmptyDescription>
+                    </EmptyHeader>
+                  </Empty>
+                </div>
               )}
             </div>
           </div>
@@ -339,7 +341,7 @@ export function LogicModuleBrowser() {
       <AlertDialog open={pendingModuleLoad !== null} onOpenChange={(open) => !open && cancelModuleLoad()}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogMedia className="bg-amber-500/10">
+            <AlertDialogMedia className="bg-yellow-500/10">
               <WarningIcon className="size-8" />
             </AlertDialogMedia>
             <AlertDialogTitle>Load script?</AlertDialogTitle>
@@ -376,31 +378,32 @@ function ModuleListItem({ module, isSelected, onClick }: ModuleListItemProps) {
     <button
       onClick={onClick}
       className={cn(
-        'w-full text-left px-4 py-3 rounded-md transition-all duration-200',
-        'border border-transparent',
-        'hover:bg-accent/50 hover:border-border',
-        isSelected && 'bg-accent border-border shadow-sm'
+        'w-full text-left px-3 py-2.5 transition-all duration-200 group relative',
+        'border-l-2',
+        isSelected 
+          ? 'bg-accent/50 border-primary text-accent-foreground shadow-sm' 
+          : 'border-transparent hover:bg-muted/30 hover:border-border/50 text-muted-foreground hover:text-foreground'
       )}
     >
-      <div className="font-semibold text-sm truncate mb-1">
-        {module.displayName || module.name}
+      <div className={cn("font-medium text-sm truncate mb-1 flex items-center gap-1.5 min-w-0", isSelected ? "text-foreground" : "text-foreground/90")}>
+        <span className="truncate flex-1">{module.displayName || module.name}</span>
         {module.name && module.displayName && module.name !== module.displayName && (
-          <span className="text-muted-foreground font-normal ml-1 truncate">
+          <span className={cn("text-xs font-normal truncate shrink-0 max-w-[40%]", isSelected ? "text-muted-foreground/80" : "text-muted-foreground/60")}>
             ({module.name})
           </span>
         )}
       </div>
-      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-        <span className="font-mono font-medium">{module.collectMethod}</span>
+      <div className={cn("flex items-center gap-2 text-xs", isSelected ? "text-muted-foreground" : "text-muted-foreground/70")}>
+        <span className="font-mono font-medium tracking-tight bg-muted/30 px-1 rounded-[3px]">{module.collectMethod}</span>
         {(module.hasAutoDiscovery || module.collectMethod === 'batchscript' || module.collectMethod) && (
           <>
-            <span className="text-muted-foreground/50">•</span>
-            <div className="flex items-center gap-1">
+            <span className="text-muted-foreground/30">•</span>
+            <div className="flex items-center gap-1.5">
               {module.hasAutoDiscovery && (
                 <Tooltip>
                   <TooltipTrigger
                     render={
-                      <span className="inline-flex items-center" aria-label="Active Discovery enabled">
+                      <span className="inline-flex items-center text-primary/80" aria-label="Active Discovery enabled">
                         <ActiveDiscoveryIcon className="size-3.5" />
                       </span>
                     }
@@ -412,7 +415,7 @@ function ModuleListItem({ module, isSelected, onClick }: ModuleListItemProps) {
                 <Tooltip>
                   <TooltipTrigger
                     render={
-                      <span className="inline-flex items-center" aria-label="Batch collection">
+                      <span className="inline-flex items-center text-orange-500/80" aria-label="Batch collection">
                         <BatchCollectionIcon className="size-3.5" />
                       </span>
                     }
@@ -424,7 +427,7 @@ function ModuleListItem({ module, isSelected, onClick }: ModuleListItemProps) {
                 <Tooltip>
                   <TooltipTrigger
                     render={
-                      <span className="inline-flex items-center" aria-label="Collection">
+                      <span className="inline-flex items-center text-teal-500/80" aria-label="Collection">
                         <CollectionIcon className="size-3.5" />
                       </span>
                     }
@@ -437,7 +440,7 @@ function ModuleListItem({ module, isSelected, onClick }: ModuleListItemProps) {
         )}
       </div>
       {module.appliesTo && (
-        <div className="mt-1.5 text-xs text-muted-foreground/70 truncate font-mono">
+        <div className={cn("mt-1.5 text-[11px] font-mono truncate transition-colors", isSelected ? "text-muted-foreground/80" : "text-muted-foreground/50 group-hover:text-muted-foreground/70")}>
           {module.appliesTo}
         </div>
       )}

@@ -54,8 +54,8 @@ function getValidationTabIndicator(parsedOutput: ParseResult | null): React.Reac
   // All valid
   return (
     <span className="ml-1.5 flex items-center gap-1">
-      <span className="size-2 rounded-full bg-green-500" />
-      <span className="text-xs text-green-500">✓</span>
+      <span className="size-2 rounded-full bg-teal-500" />
+      <span className="text-xs text-teal-500">✓</span>
     </span>
   );
 }
@@ -354,7 +354,7 @@ function ExecutionStatus({ isExecuting, execution }: ExecutionStatusProps) {
         variant={isError ? 'destructive' : 'default'}
         className={cn(
           'gap-1.5',
-          !isError && 'bg-green-600 hover:bg-green-500'
+          !isError && 'bg-teal-600 hover:bg-teal-500'
         )}
       >
         {isError ? (

@@ -3,8 +3,6 @@ import {
   Search,
   Loader2,
   Trash2,
-  ChevronDown,
-  ChevronRight,
   AlertCircle,
   Play,
   HelpCircle,
@@ -32,10 +30,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/components/ui/empty';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { Separator } from '@/components/ui/separator';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -80,7 +84,6 @@ export function AppliesToTester() {
     getAllFunctions,
   } = useEditorStore();
 
-  const [functionRefOpen, setFunctionRefOpen] = useState(true);
   const [copiedId, setCopiedId] = useState<number | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
@@ -600,111 +603,220 @@ export function AppliesToTester() {
     >
       <DialogContent className="w-[90vw]! max-w-[90vw]! h-[90vh] flex flex-col gap-0 p-0" showCloseButton>
         {/* Header */}
-        <DialogHeader className="px-6 pt-6 pb-4 shrink-0">
-          <DialogTitle className="flex items-center gap-2">
-            <Hammer className="size-5" />
-            AppliesTo Toolbox
-          </DialogTitle>
-          <DialogDescription>
-            Test AppliesTo expressions against resources in your portal
-          </DialogDescription>
+        <DialogHeader className="px-6 pt-6 pb-4 shrink-0 border-b relative">
+          <div className="flex items-center justify-between pr-8">
+            <div className="space-y-1">
+              <DialogTitle className="flex items-center gap-2">
+                <Hammer className="size-5" />
+                AppliesTo Toolbox
+              </DialogTitle>
+              <DialogDescription>
+                Test AppliesTo expressions against resources in your portal
+              </DialogDescription>
+            </div>
+            
+            <Sheet>
+              <SheetTrigger 
+                render={
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <HelpCircle className="size-4" />
+                    Function Reference
+                    <Badge variant="secondary" className="text-xs h-5 px-1.5 ml-1">
+                      {typedAllFunctions.length}
+                    </Badge>
+                  </Button>
+                }
+              />
+              <SheetContent side="right" className="w-full sm:max-w-md p-0 flex flex-col">
+                <SheetHeader className="p-6 border-b">
+                  <SheetTitle>Function Reference</SheetTitle>
+                  <SheetDescription>
+                    Browse built-in functions, operators, and manage your custom functions.
+                  </SheetDescription>
+                </SheetHeader>
+                
+                <div className="flex-1 overflow-auto p-6">
+                  {/* Search and Filter */}
+                  <div className="flex items-center gap-2 mb-4">
+                    <div className="relative flex-1">
+                      <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
+                      <Input
+                        type="text"
+                        placeholder="Search functions..."
+                        value={appliesToFunctionSearch}
+                        onChange={(e) => setAppliesToFunctionSearch(e.target.value)}
+                        className="pl-8 h-8"
+                      />
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Label htmlFor="custom-switch" className="text-xs text-muted-foreground whitespace-nowrap cursor-pointer">
+                        Custom only
+                      </Label>
+                      <Switch
+                        id="custom-switch"
+                        checked={showOnlyCustom}
+                        onCheckedChange={setShowOnlyCustom}
+                      />
+                    </div>
+                  </div>
+                  
+                  {/* Loading state */}
+                  {isLoadingCustomFunctions && (
+                    <div className="flex items-center justify-center py-8">
+                      <Loader2 className="size-5 animate-spin text-muted-foreground" />
+                      <span className="ml-2 text-sm text-muted-foreground">Loading custom functions...</span>
+                    </div>
+                  )}
+
+                  {/* Error state */}
+                  {customFunctionError && !isLoadingCustomFunctions && (
+                    <div className="rounded-md bg-destructive/10 border border-destructive/20 p-3 mb-2">
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="size-4 text-destructive" />
+                        <p className="text-sm text-destructive">{customFunctionError}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Functions grid */}
+                  {!isLoadingCustomFunctions && (
+                    <div className="space-y-4">
+                      {filteredFunctions.length > 0 ? (
+                        <div className="grid grid-cols-1 gap-3">
+                          {filteredFunctions.map((func: any) => (
+                            <FunctionCard
+                              key={`${func.source || 'builtin'}-${func.name}-${func.customId || ''}`}
+                              func={func}
+                              onInsert={() => insertItem(func)}
+                              onLoad={func.source === 'custom' && func.customId ? handleLoadFunction : undefined}
+                              onDelete={func.source === 'custom' && func.customId ? setDeletingFunctionId : undefined}
+                            />
+                          ))}
+                        </div>
+                      ) : (
+                        <Empty className="h-64 border rounded-md">
+                          <EmptyHeader>
+                            <EmptyMedia variant="icon">
+                              <Search className="size-5 text-muted-foreground" />
+                            </EmptyMedia>
+                            <EmptyTitle className="text-base">No Functions Found</EmptyTitle>
+                            <EmptyDescription>
+                              {showOnlyCustom
+                                ? "No custom functions match your search criteria."
+                                : "No functions match your search criteria."}
+                            </EmptyDescription>
+                          </EmptyHeader>
+                        </Empty>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </SheetContent>
+            </Sheet>
+          </div>
         </DialogHeader>
 
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col min-h-0 border-t border-border">
+        <div className="flex-1 flex flex-col min-h-0 bg-muted/5">
           {/* Top section: Expression + Results (side by side) */}
           <div className="flex-1 flex min-h-0">
             {/* Left Panel - Expression Input */}
-            <div className="w-1/2 flex flex-col border-r border-border p-4 gap-4">
+            <div className="w-1/2 flex flex-col border-r border-border p-6 gap-6">
               {/* Operator Toolbar */}
-              <div className="flex flex-col gap-2">
-                <Label className="text-xs text-muted-foreground">Quick Insert Operators</Label>
-                <div className="flex flex-wrap gap-1.5">
+              <div className="space-y-3">
+                <Label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Quick Insert Operators</Label>
+                <div className="space-y-4">
                   {/* Comparison Operators */}
-                  <div className="flex items-center gap-1">
-                    <span className="text-xs text-muted-foreground mr-1">Comparison:</span>
-                    {getOperatorsByCategory('comparison').map((op) => (
-                      <Tooltip key={op.symbol}>
-                        <TooltipTrigger
-                          render={
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => insertItem(op)}
-                              className="h-7 px-2 text-xs font-mono"
-                              aria-label={op.description}
-                            >
-                              {op.symbol}
-                            </Button>
-                          }
-                        />
-                        <TooltipContent>
-                          <div className="space-y-1">
-                            <div className="font-medium">{op.symbol}</div>
-                            <div className="text-xs">{op.description}</div>
-                            <div className="text-xs text-muted-foreground font-mono">{op.example}</div>
-                          </div>
-                        </TooltipContent>
-                      </Tooltip>
-                    ))}
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] text-muted-foreground font-medium uppercase">Comparison</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {getOperatorsByCategory('comparison').map((op) => (
+                        <Tooltip key={op.symbol}>
+                          <TooltipTrigger
+                            render={
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => insertItem(op)}
+                                className="h-7 min-w-8 px-2 text-xs font-mono bg-background hover:bg-accent hover:text-accent-foreground"
+                                aria-label={op.description}
+                              >
+                                {op.symbol}
+                              </Button>
+                            }
+                          />
+                          <TooltipContent>
+                            <div className="space-y-1">
+                              <div className="font-medium">{op.symbol}</div>
+                              <div className="text-xs">{op.description}</div>
+                              <div className="text-xs text-muted-foreground font-mono">{op.example}</div>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      ))}
+                    </div>
                   </div>
-                  <Separator orientation="vertical" className="h-6" />
+                  
                   {/* Logical Operators */}
-                  <div className="flex items-center gap-1">
-                    <span className="text-xs text-muted-foreground mr-1">Logical:</span>
-                    {getOperatorsByCategory('logical').map((op) => (
-                      <Tooltip key={op.symbol}>
-                        <TooltipTrigger
-                          render={
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => insertItem(op)}
-                              className="h-7 px-2 text-xs font-mono"
-                              aria-label={op.description}
-                            >
-                              {op.symbol}
-                            </Button>
-                          }
-                        />
-                        <TooltipContent>
-                          <div className="space-y-1">
-                            <div className="font-medium">{op.symbol}</div>
-                            <div className="text-xs">{op.description}</div>
-                            <div className="text-xs text-muted-foreground font-mono">{op.example}</div>
-                          </div>
-                        </TooltipContent>
-                      </Tooltip>
-                    ))}
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] text-muted-foreground font-medium uppercase">Logical</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {getOperatorsByCategory('logical').map((op) => (
+                        <Tooltip key={op.symbol}>
+                          <TooltipTrigger
+                            render={
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => insertItem(op)}
+                                className="h-7 min-w-8 px-2 text-xs font-mono bg-background hover:bg-accent hover:text-accent-foreground"
+                                aria-label={op.description}
+                              >
+                                {op.symbol}
+                              </Button>
+                            }
+                          />
+                          <TooltipContent>
+                            <div className="space-y-1">
+                              <div className="font-medium">{op.symbol}</div>
+                              <div className="text-xs">{op.description}</div>
+                              <div className="text-xs text-muted-foreground font-mono">{op.example}</div>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      ))}
+                    </div>
                   </div>
-                  <Separator orientation="vertical" className="h-6" />
+                  
                   {/* Grouping Operators */}
-                  <div className="flex items-center gap-1">
-                    <span className="text-xs text-muted-foreground mr-1">Grouping:</span>
-                    {getOperatorsByCategory('grouping').map((op) => (
-                      <Tooltip key={op.symbol}>
-                        <TooltipTrigger
-                          render={
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => insertItem(op)}
-                              className="h-7 px-2 text-xs font-mono"
-                              aria-label={op.description}
-                            >
-                              {op.symbol}
-                            </Button>
-                          }
-                        />
-                        <TooltipContent>
-                          <div className="space-y-1">
-                            <div className="font-medium">{op.symbol}</div>
-                            <div className="text-xs">{op.description}</div>
-                            <div className="text-xs text-muted-foreground font-mono">{op.example}</div>
-                          </div>
-                        </TooltipContent>
-                      </Tooltip>
-                    ))}
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] text-muted-foreground font-medium uppercase">Grouping</span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {getOperatorsByCategory('grouping').map((op) => (
+                        <Tooltip key={op.symbol}>
+                          <TooltipTrigger
+                            render={
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => insertItem(op)}
+                                className="h-7 min-w-8 px-2 text-xs font-mono bg-background hover:bg-accent hover:text-accent-foreground"
+                                aria-label={op.description}
+                              >
+                                {op.symbol}
+                              </Button>
+                            }
+                          />
+                          <TooltipContent>
+                            <div className="space-y-1">
+                              <div className="font-medium">{op.symbol}</div>
+                              <div className="text-xs">{op.description}</div>
+                              <div className="text-xs text-muted-foreground font-mono">{op.example}</div>
+                            </div>
+                          </TooltipContent>
+                        </Tooltip>
+                      ))}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -712,16 +824,27 @@ export function AppliesToTester() {
               {/* Expression textarea */}
               <div className="flex-1 flex flex-col gap-2 min-h-0">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="expression" className="text-sm font-medium">
-                    Expression
-                  </Label>
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="expression" className="text-sm font-medium">
+                      Expression
+                    </Label>
+                    <Button
+                      variant="ghost"
+                      size="xs"
+                      onClick={() => setAppliesToExpression('')}
+                      className="h-5 px-2 text-[10px] text-muted-foreground hover:text-foreground"
+                      disabled={!appliesToExpression}
+                    >
+                      Clear
+                    </Button>
+                  </div>
                   {loadedFunction && (
                     <div className="flex items-center gap-2">
                       <Badge variant="secondary" className="text-xs">
                         Editing: {loadedFunction.name}
                       </Badge>
                       {hasExpressionChanged && (
-                        <Badge variant="outline" className="text-xs text-orange-500 border-orange-500">
+                        <Badge variant="outline" className="text-xs text-yellow-700 border-yellow-700">
                           Modified
                         </Badge>
                       )}
@@ -768,7 +891,7 @@ export function AppliesToTester() {
                       setCursorWordStart(wordContext.start);
                     }}
                     placeholder='hasCategory("Linux") && isDevice()'
-                    className="h-full min-h-[120px] font-mono text-sm resize-none relative z-10"
+                    className="h-full min-h-[120px] font-mono text-sm resize-none relative z-10 bg-background shadow-sm"
                   />
                   
                   {/* Autocomplete suggestions dropdown */}
@@ -852,6 +975,7 @@ export function AppliesToTester() {
                   onClick={testAppliesTo}
                   disabled={isTestingAppliesTo || !selectedPortalId || !appliesToExpression.trim()}
                   className="gap-2"
+                  variant="execute"
                 >
                   {isTestingAppliesTo ? (
                     <Loader2 className="size-4 animate-spin" />
@@ -864,7 +988,7 @@ export function AppliesToTester() {
             </div>
 
             {/* Right Panel - Results */}
-            <div className="w-1/2 flex flex-col p-4 gap-2">
+            <div className="w-1/2 flex flex-col p-6 gap-4 bg-background/50">
               {/* Results header */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -893,7 +1017,7 @@ export function AppliesToTester() {
               </div>
 
               {/* Results list */}
-              <div className="flex-1 min-h-0 overflow-auto border border-border rounded-md bg-muted/20">
+              <div className="flex-1 min-h-0 overflow-auto border border-border rounded-md bg-background shadow-sm">
                 {/* Error display - show in results area */}
                 {appliesToError ? (
                   <div className="h-full flex flex-col">
@@ -957,7 +1081,7 @@ export function AppliesToTester() {
                                 className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
                               >
                                 {copiedId === match.id ? (
-                                  <Check className="size-3 text-green-500" />
+                                  <Check className="size-3 text-teal-500" />
                                 ) : (
                                   <Copy className="size-3" />
                                 )}
@@ -974,115 +1098,13 @@ export function AppliesToTester() {
 
               {/* Success indicator when results exist */}
               {appliesToResults.length > 0 && !appliesToError && (
-                <div className="flex items-center gap-2 text-sm text-green-500">
+                <div className="flex items-center gap-2 text-sm text-teal-500">
                   <SuccessIcon className="size-4" />
                   <span>Expression is valid</span>
                 </div>
               )}
             </div>
           </div>
-
-          {/* Bottom section: Function Reference (collapsible) */}
-          <Collapsible
-            open={functionRefOpen}
-            onOpenChange={setFunctionRefOpen}
-            className="border-t border-border"
-          >
-            <CollapsibleTrigger className="flex items-center gap-2 w-full px-4 py-3 hover:bg-accent/50 transition-colors">
-              {functionRefOpen ? (
-                <ChevronDown className="size-4 text-muted-foreground" />
-              ) : (
-                <ChevronRight className="size-4 text-muted-foreground" />
-              )}
-              <HelpCircle className="size-4 text-muted-foreground" />
-              <span className="text-sm font-medium">Function Reference</span>
-              <Badge variant="secondary" className="ml-2 text-xs">
-                {typedAllFunctions.length} functions
-                {customFunctions.length > 0 && (
-                  <span className="ml-1">({customFunctions.length} custom)</span>
-                )}
-              </Badge>
-            </CollapsibleTrigger>
-            
-            <CollapsibleContent>
-              <div className="px-4 pb-4">
-                {/* Search and Filter */}
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-4 text-muted-foreground" />
-                    <Input
-                      type="text"
-                      placeholder="Search functions..."
-                      value={appliesToFunctionSearch}
-                      onChange={(e) => setAppliesToFunctionSearch(e.target.value)}
-                      className="pl-8 h-8"
-                    />
-                  </div>
-                  <div className="flex items-center gap-2 shrink-0">
-                    <Label htmlFor="custom-switch" className="text-xs text-muted-foreground whitespace-nowrap cursor-pointer">
-                      Custom only
-                    </Label>
-                    <Switch
-                      id="custom-switch"
-                      checked={showOnlyCustom}
-                      onCheckedChange={setShowOnlyCustom}
-                    />
-                  </div>
-                </div>
-                
-                {/* Loading state */}
-                {isLoadingCustomFunctions && (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="size-5 animate-spin text-muted-foreground" />
-                    <span className="ml-2 text-sm text-muted-foreground">Loading custom functions...</span>
-                  </div>
-                )}
-
-                {/* Error state */}
-                {customFunctionError && !isLoadingCustomFunctions && (
-                  <div className="rounded-md bg-destructive/10 border border-destructive/20 p-3 mb-2">
-                    <div className="flex items-center gap-2">
-                      <AlertCircle className="size-4 text-destructive" />
-                      <p className="text-sm text-destructive">{customFunctionError}</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Functions grid - Fixed height container */}
-                {!isLoadingCustomFunctions && (
-                  <div className="h-48 overflow-auto">
-                    {filteredFunctions.length > 0 ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
-                        {filteredFunctions.map((func: any) => (
-                          <FunctionCard
-                            key={`${func.source || 'builtin'}-${func.name}-${func.customId || ''}`}
-                            func={func}
-                            onInsert={() => insertItem(func)}
-                            onLoad={func.source === 'custom' && func.customId ? handleLoadFunction : undefined}
-                            onDelete={func.source === 'custom' && func.customId ? setDeletingFunctionId : undefined}
-                          />
-                        ))}
-                      </div>
-                    ) : (
-                      <Empty className="h-full border-0">
-                        <EmptyHeader>
-                          <EmptyMedia variant="icon">
-                            <Search className="size-5 text-muted-foreground" />
-                          </EmptyMedia>
-                          <EmptyTitle className="text-base">No Functions Found</EmptyTitle>
-                          <EmptyDescription>
-                            {showOnlyCustom
-                              ? "No custom functions match your search criteria."
-                              : "No functions match your search criteria."}
-                          </EmptyDescription>
-                        </EmptyHeader>
-                      </Empty>
-                    )}
-                  </div>
-                )}
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
         </div>
       </DialogContent>
 
@@ -1162,32 +1184,36 @@ function FunctionCard({ func, onInsert, onLoad, onDelete }: FunctionCardProps) {
     : null;
 
   return (
-    <div className="group relative w-full text-left p-2 rounded-md border border-border transition-colors">
+    <div className="group relative flex items-center gap-3 p-3 rounded-md border border-border bg-card/40 hover:bg-accent/40 hover:border-primary/30 transition-all shadow-xs hover:shadow-md">
       <Tooltip>
-        <TooltipTrigger
+        <TooltipTrigger 
           render={
             <button
               onClick={onInsert}
-              className="w-full text-left hover:bg-accent/50 rounded-md p-1 -m-1 transition-colors"
+              className="flex-1 text-left min-w-0"
             >
-              <div className="flex items-center gap-2 mb-1 min-w-0">
-                <div className="font-mono text-xs font-medium text-primary truncate flex-1 min-w-0">
-                  {func.syntax}
+              <div className="flex items-center justify-between gap-2 mb-1 min-w-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  <code className="text-sm font-semibold text-primary truncate font-mono group-hover:text-primary/80 transition-colors">
+                    {func.syntax}
+                  </code>
+                  {isCustom && (
+                    <Badge variant="secondary" className="text-[10px] h-4 px-1 shrink-0 rounded-[4px] font-normal">
+                      Custom
+                    </Badge>
+                  )}
                 </div>
-                {isCustom && (
-                  <Badge variant="secondary" className="text-[10px] shrink-0">
-                    Custom
-                  </Badge>
-                )}
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity text-[10px] font-medium text-muted-foreground bg-background/50 px-1.5 py-0.5 rounded border border-border/50 shadow-sm">
+                  Insert
+                </div>
               </div>
-              <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
-                {func.description.slice(0, 80)}
-                {func.description.length > 80 && '...'}
-              </div>
+              <p className="text-xs text-muted-foreground line-clamp-2 leading-snug group-hover:text-foreground/80 transition-colors">
+                {func.description}
+              </p>
             </button>
           }
         />
-        <TooltipContent side="top" className="max-w-sm">
+        <TooltipContent side="left" className="max-w-sm">
           <div className="space-y-1">
             <div className="font-mono font-medium">{func.syntax}</div>
             {func.parameters && func.parameters !== 'None' && (
@@ -1211,36 +1237,49 @@ function FunctionCard({ func, onInsert, onLoad, onDelete }: FunctionCardProps) {
         </TooltipContent>
       </Tooltip>
       
-      {/* Action buttons for custom functions - always visible */}
+      {/* Actions for custom functions */}
       {isCustom && customFunction && (onLoad || onDelete) && (
-        <div className="flex items-center gap-1 mt-2 pt-2 border-t border-border">
+        <div className="flex items-center gap-2 shrink-0 pl-3 border-l border-border/50">
           {onLoad && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                onLoad(customFunction);
-              }}
-              className="h-7 px-2 text-xs flex-1"
-            >
-              <Download className="size-3 mr-1" />
-              Load
-            </Button>
+            <Tooltip>
+              <TooltipTrigger 
+                render={
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="h-7 px-3 text-xs font-medium gap-1.5 bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary border-transparent shadow-none"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onLoad(customFunction);
+                    }}
+                  >
+                    <Download className="size-3.5" />
+                    Edit
+                  </Button>
+                }
+              />
+              <TooltipContent>Load into editor to modify</TooltipContent>
+            </Tooltip>
           )}
           {onDelete && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete(customFunction.id);
-              }}
-              className="h-7 px-2 text-xs flex-1 text-destructive hover:text-destructive"
-            >
-              <Trash2 className="size-3 mr-1" />
-              Delete
-            </Button>
+            <Tooltip>
+              <TooltipTrigger 
+                render={
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-destructive/70 hover:text-destructive hover:bg-destructive/10"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete(customFunction.id);
+                    }}
+                  >
+                    <Trash2 className="size-3.5" />
+                  </Button>
+                }
+              />
+              <TooltipContent>Delete function</TooltipContent>
+            </Tooltip>
           )}
         </div>
       )}

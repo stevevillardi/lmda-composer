@@ -130,33 +130,94 @@ export class PortalManager {
    * Get a valid tab ID for a portal, trying alternatives if the first fails.
    * Returns null if no valid tabs remain.
    * Note: Does NOT delete the portal if tabs are exhausted - caller should handle rediscovery.
+   * 
+   * This method builds a new array of valid tab IDs and updates atomically to avoid
+   * race conditions when called concurrently.
    */
   private async getValidTabId(portal: Portal): Promise<number | null> {
-    for (let i = 0; i < portal.tabIds.length; i++) {
-      const tabId = portal.tabIds[i];
+    interface Candidate {
+      tabId: number;
+      isUsable: boolean;
+      isActive: boolean;
+      lastAccessed: number;
+    }
+
+    const candidates: Candidate[] = [];
+    const validTabIds: number[] = [];
+
+    for (const tabId of portal.tabIds) {
       try {
-        // Check if the tab still exists
         const tab = await chrome.tabs.get(tabId);
-        const url = tab?.url ? new URL(tab.url) : null;
-        if (url && url.hostname.endsWith('.logicmonitor.com')) {
-          // Move this tab to the front if it wasn't already
-          if (i > 0) {
-            portal.tabIds.splice(i, 1);
-            portal.tabIds.unshift(tabId);
-          }
-          return tabId;
-        }
-        portal.tabIds.splice(i, 1);
-        i--;
+        if (!tab?.url) continue;
+
+        const hostname = new URL(tab.url).hostname;
+        if (!hostname.endsWith('.logicmonitor.com')) continue;
+
+        validTabIds.push(tabId);
+
+        const isUsable =
+          tab.status === 'complete' &&
+          tab.discarded !== true &&
+          tab.url.startsWith('https://');
+
+        candidates.push({
+          tabId,
+          isUsable,
+          isActive: tab.active === true,
+          lastAccessed: typeof tab.lastAccessed === 'number' ? tab.lastAccessed : 0,
+        });
       } catch {
-        portal.tabIds.splice(i, 1);
-        i--;
+        // Tab no longer exists, skip it
       }
     }
-    
-    // Don't delete the portal here - let the caller handle rediscovery
-    // The portal might be refreshable with discoverPortals()
-    return null;
+
+    // Atomic update - replace the entire array at once
+    portal.tabIds = validTabIds;
+
+    // We must be able to inject scripts into the tab. If no loaded/usable tab exists,
+    // treat this as no valid tab rather than returning an unloaded/discarded tab ID.
+    const best = candidates
+      .filter(c => c.isUsable)
+      .sort((a, b) => {
+        if (a.isActive !== b.isActive) return a.isActive ? -1 : 1;
+        return b.lastAccessed - a.lastAccessed;
+      })[0];
+
+    return best?.tabId ?? null;
+  }
+
+  private async getUsableTabCandidates(portal: Portal): Promise<Array<{ tabId: number; isActive: boolean; lastAccessed: number }>> {
+    const candidates: Array<{ tabId: number; isActive: boolean; lastAccessed: number }> = [];
+
+    for (const tabId of portal.tabIds) {
+      try {
+        const tab = await chrome.tabs.get(tabId);
+        if (!tab?.url) continue;
+
+        const hostname = new URL(tab.url).hostname;
+        if (!hostname.endsWith('.logicmonitor.com')) continue;
+
+        const isUsable =
+          tab.status === 'complete' &&
+          tab.discarded !== true &&
+          tab.url.startsWith('https://');
+
+        if (!isUsable) continue;
+
+        candidates.push({
+          tabId,
+          isActive: tab.active === true,
+          lastAccessed: typeof tab.lastAccessed === 'number' ? tab.lastAccessed : 0,
+        });
+      } catch {
+        // ignore
+      }
+    }
+
+    return candidates.sort((a, b) => {
+      if (a.isActive !== b.isActive) return a.isActive ? -1 : 1;
+      return b.lastAccessed - a.lastAccessed;
+    });
   }
 
   private async resolvePortalAndTab(
@@ -211,33 +272,45 @@ export class PortalManager {
 
       // Group tabs by hostname, but first verify they are actual LM portals
       const portalTabs = new Map<string, number[]>();
+      const portalHasCompleteTab = new Map<string, boolean>();
+      const portalHasActiveSession = new Map<string, boolean>();
       let skippedIncomplete = 0;
       let verifiedPortals = 0;
       let fallbackPortals = 0;
       let nonPortalMatches = 0;
+      let includedIncomplete = 0;
       
       for (const tab of tabs) {
         if (!tab.url || !tab.id) continue;
-        
-        // Skip tabs that aren't ready - they won't have LMGlobalData loaded yet
-        if (tab.status !== 'complete') {
-          console.log(`Skipping tab ${tab.id}: status is ${tab.status}`);
-          skippedIncomplete += 1;
-          continue;
-        }
-        
+
         const url = new URL(tab.url);
         const hostname = url.hostname;
         const isLikelyPortal = isLikelyPortalHostname(hostname);
-        const isLMPortal = await this.verifyLogicMonitorPortal(tab.id);
-        if (!isLMPortal && !isLikelyPortal) {
+
+        // If it doesn't even look like a portal hostname, ignore it.
+        // (tabs.query matches *.logicmonitor.com, which includes docs/support/etc.)
+        if (!isLikelyPortal) {
           nonPortalMatches += 1;
           continue;
         }
-        if (isLMPortal) {
-          verifiedPortals += 1;
-        } else if (isLikelyPortal) {
-          fallbackPortals += 1;
+
+        // If the tab isn't fully loaded, we can't reliably verify LMGlobalData (or fetch CSRF).
+        // Still include the hostname so the user can see the portal and we preserve state.
+        if (tab.status !== 'complete') {
+          console.log(`Including incomplete tab ${tab.id}: status is ${tab.status}`);
+          skippedIncomplete += 1;
+          includedIncomplete += 1;
+        } else {
+          portalHasCompleteTab.set(hostname, true);
+          const isLMPortal = await this.verifyLogicMonitorPortal(tab.id);
+          if (isLMPortal) {
+            verifiedPortals += 1;
+            portalHasActiveSession.set(hostname, true);
+          } else {
+            // Heuristic fallback: hostname looks like a portal, but LM app didn't expose LMGlobalData
+            // (often due to login page / expired session / alternate LM page).
+            fallbackPortals += 1;
+          }
         }
         
         if (!portalTabs.has(hostname)) {
@@ -252,7 +325,20 @@ export class PortalManager {
         
         if (existingPortal) {
           existingPortal.tabIds = tabIds;
+
+          // If we can see at least one loaded tab for this portal, but none of them have a populated
+          // LMGlobalData, we should not treat the portal as "active" (green). This commonly indicates
+          // the login page (LMGlobalData = {}) / expired session.
+          const hasComplete = portalHasCompleteTab.get(hostname) === true;
+          const hasActiveSession = portalHasActiveSession.get(hostname) === true;
+          if (hasComplete && !hasActiveSession) {
+            existingPortal.status = 'expired';
+            existingPortal.csrfToken = null;
+            existingPortal.csrfTokenTimestamp = null;
+          }
         } else {
+          const hasComplete = portalHasCompleteTab.get(hostname) === true;
+          const hasActiveSession = portalHasActiveSession.get(hostname) === true;
           this.portals.set(hostname, {
             id: hostname,
             hostname,
@@ -260,7 +346,7 @@ export class PortalManager {
             csrfToken: null,
             csrfTokenTimestamp: null,
             tabIds,
-            status: 'unknown',
+            status: hasComplete && !hasActiveSession ? 'expired' : 'unknown',
           });
         }
       }
@@ -283,6 +369,7 @@ export class PortalManager {
         portalsFound: portalTabs.size,
         portalHosts: Array.from(portalTabs.keys()),
         skippedIncomplete,
+        includedIncomplete,
         verifiedPortals,
         fallbackPortals,
         nonPortalMatches,
@@ -296,8 +383,11 @@ export class PortalManager {
   }
 
   /**
-   * Verify that a tab contains a LogicMonitor portal by checking for:
-   * window.LMGlobalData - a global object defined by LogicMonitor's application
+   * Verify that a tab is a *usable* LogicMonitor portal tab by checking for:
+   * window.LMGlobalData being present and populated.
+   *
+   * Note: On logged-out/login pages, LogicMonitor may define `LMGlobalData` as an empty object (`{}`).
+   * In that case we treat the tab as NOT verified for an active session.
    */
   private async verifyLogicMonitorPortal(tabId: number): Promise<boolean> {
     try {
@@ -337,15 +427,34 @@ export class PortalManager {
             target: { tabId },
             world: 'MAIN', // Execute in the main world to access page's window object
             func: () => {
-              // Check if LMGlobalData exists on the window object
-              return typeof (window as unknown as { LMGlobalData?: unknown }).LMGlobalData !== 'undefined';
+              const lmgd = (window as unknown as { LMGlobalData?: unknown }).LMGlobalData;
+              if (typeof lmgd === 'undefined' || lmgd === null) {
+                return { hasLMGlobalData: false, isPopulated: false };
+              }
+              if (typeof lmgd !== 'object') {
+                // Unexpected shape, but it exists and is "not empty"
+                return { hasLMGlobalData: true, isPopulated: true };
+              }
+              // Login pages can have LMGlobalData = {}. Treat that as not authenticated.
+              const keys = Object.keys(lmgd as Record<string, unknown>);
+              return { hasLMGlobalData: true, isPopulated: keys.length > 0 };
             },
           });
           
-          const isValid = results?.[0]?.result === true;
-          
-          if (isValid) {
-            return true;
+          const result = results?.[0]?.result as
+            | { hasLMGlobalData: boolean; isPopulated: boolean }
+            | undefined;
+
+          if (result?.hasLMGlobalData && result.isPopulated) return true;
+
+          // If LMGlobalData exists but is empty, it may still be initializing, but it's also the
+          // logged-out/login-page shape. We'll retry a couple times before giving up.
+          if (result?.hasLMGlobalData && !result.isPopulated) {
+            if (attempt < maxRetries - 1) {
+              console.log(`Portal verification attempt ${attempt + 1} failed: LMGlobalData empty for tab ${tabId}, retrying...`);
+              continue;
+            }
+            return false;
           }
           
           // If result is false but no error, the page might still be loading
@@ -390,6 +499,25 @@ export class PortalManager {
     }
   }
 
+  private async hasActiveSessionForTab(tabId: number): Promise<boolean> {
+    // Keep this cheap: no retries/delays here. Callers can decide when to retry.
+    try {
+      const results = await chrome.scripting.executeScript({
+        target: { tabId },
+        world: 'MAIN',
+        func: () => {
+          const lmgd = (window as unknown as { LMGlobalData?: unknown }).LMGlobalData;
+          if (typeof lmgd === 'undefined' || lmgd === null) return false;
+          if (typeof lmgd !== 'object') return true;
+          return Object.keys(lmgd as Record<string, unknown>).length > 0;
+        },
+      });
+      return results?.[0]?.result === true;
+    } catch {
+      return false;
+    }
+  }
+
   private extractDisplayName(hostname: string): string {
     // Extract company name from hostname (e.g., "acme.logicmonitor.com" -> "Acme")
     const parts = hostname.split('.');
@@ -419,27 +547,36 @@ export class PortalManager {
   }
 
   private async refreshCsrfToken(portal: Portal): Promise<void> {
-    const tabId = await this.getValidTabId(portal);
-    if (!tabId) {
-      portal.status = 'expired';
-      portal.csrfToken = null;
-      portal.csrfTokenTimestamp = null;
+    const candidates = await this.getUsableTabCandidates(portal);
+    if (candidates.length === 0) {
+      // No *loaded* tab available (tabs may be discarded/unloaded). Don't assume the session is expired.
+      portal.status = portal.csrfToken ? portal.status : 'unknown';
       this.persistState();
       return;
     }
     
     try {
-      // Execute in content script context to fetch CSRF token
-      const results = await chrome.scripting.executeScript({
-        target: { tabId },
-        func: fetchCsrfToken,
-      });
+      for (const { tabId } of candidates) {
+        // A CSRF token can be returned even while logged out; don't treat that as an active portal.
+        // Only accept a token when the tab also indicates an active session.
+        const hasActiveSession = await this.hasActiveSessionForTab(tabId);
+        if (!hasActiveSession) {
+          continue;
+        }
 
-      const token = results?.[0]?.result ?? null;
-      if (token) {
-        this.updateCsrfToken(portal.id, token);
-        return;
+        // Execute in content script context to fetch CSRF token
+        const results = await chrome.scripting.executeScript({
+          target: { tabId },
+          func: fetchCsrfToken,
+        });
+
+        const token = results?.[0]?.result ?? null;
+        if (token) {
+          this.setActiveCsrfToken(portal.id, token);
+          return;
+        }
       }
+
       portal.csrfToken = null;
       portal.csrfTokenTimestamp = null;
       portal.status = 'expired';
@@ -452,15 +589,45 @@ export class PortalManager {
     }
   }
 
-  updateCsrfToken(portalId: string, token: string): void {
+  /**
+   * Accept a CSRF token reported by the content script.
+   *
+   * IMPORTANT: A CSRF token may be obtainable even while logged out, so we must NOT
+   * automatically mark the portal as active based on token presence alone.
+   */
+  async receiveCsrfTokenFromContentScript(portalId: string, token: string): Promise<void> {
     const portal = this.portals.get(portalId);
-    if (portal) {
-      portal.csrfToken = token;
-      portal.csrfTokenTimestamp = Date.now();
-      portal.status = 'active';
-      // Persist the updated token
-      this.persistState();
+    if (!portal) return;
+
+    portal.csrfToken = token;
+    portal.csrfTokenTimestamp = Date.now();
+
+    // Only mark active if we can confirm an active session from a usable portal tab.
+    const candidates = await this.getUsableTabCandidates(portal);
+    const bestTabId = candidates[0]?.tabId;
+    if (bestTabId) {
+      const hasActiveSession = await this.hasActiveSessionForTab(bestTabId);
+      if (hasActiveSession) {
+        portal.status = 'active';
+      } else {
+        // Keep non-green; discovery will set expired if it sees a loaded login page.
+        if (portal.status === 'active') portal.status = 'unknown';
+      }
     }
+
+    this.persistState();
+  }
+
+  /**
+   * Internal helper for when we already know a request succeeded under an active session.
+   */
+  private setActiveCsrfToken(portalId: string, token: string): void {
+    const portal = this.portals.get(portalId);
+    if (!portal) return;
+    portal.csrfToken = token;
+    portal.csrfTokenTimestamp = Date.now();
+    portal.status = 'active';
+    this.persistState();
   }
 
   /**
@@ -609,22 +776,15 @@ export class PortalManager {
 }
 
 // Function to be injected into the page to fetch CSRF token
+// Note: This function has special header requirements (X-CSRF-Token: Fetch)
+// and needs to read response headers, so it doesn't use the standard lmFetch pattern.
 function fetchCsrfToken(): Promise<string | null> {
   return new Promise((resolve) => {
     const xhr = new XMLHttpRequest();
     xhr.open('GET', '/santaba/rest/functions/dummy', true);
-    xhr.setRequestHeader('X-CSRF-Token', 'Fetch');
+    xhr.setRequestHeader('X-CSRF-Token', 'Fetch'); // Special value to request token
     xhr.setRequestHeader('X-version', '3');
-    
-    xhr.onload = () => {
-      if (xhr.status === 200) {
-        const token = xhr.getResponseHeader('X-CSRF-Token');
-        resolve(token);
-      } else {
-        resolve(null);
-      }
-    };
-    
+    xhr.onload = () => resolve(xhr.status === 200 ? xhr.getResponseHeader('X-CSRF-Token') : null);
     xhr.onerror = () => resolve(null);
     xhr.send();
   });
@@ -641,85 +801,59 @@ async function fetchCollectors(csrfToken: string | null): Promise<Array<{
   collectorGroupName: string;
   arch?: string;
 }>> {
+  // Embedded lmFetch helper
+  const lmFetch = <T = unknown>(url: string, opts: { csrfToken?: string | null } = {}): Promise<{ ok: boolean; data?: T }> =>
+    new Promise((resolve) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('GET', url, true);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.setRequestHeader('X-version', '3');
+      if (opts.csrfToken) xhr.setRequestHeader('X-CSRF-Token', opts.csrfToken);
+      xhr.onload = () => {
+        const ok = xhr.status >= 200 && xhr.status < 300;
+        let data: T | undefined;
+        try { data = JSON.parse(xhr.responseText) as T; } catch { /* empty */ }
+        resolve({ ok, data });
+      };
+      xhr.onerror = () => resolve({ ok: false });
+      xhr.send();
+    });
+
+  type CollectorItem = { id: number; description: string; hostname: string; status: number; isDown: boolean; collectorGroupName: string; arch?: string };
+  type CollectorResponse = { items?: CollectorItem[]; data?: { items?: CollectorItem[]; total?: number }; total?: number };
+
   const pageSize = 1000;
-
-  const fetchPage = (offset: number) => new Promise<{
-    items: Array<{
-      id: number;
-      description: string;
-      hostname: string;
-      status: number;
-      isDown: boolean;
-      collectorGroupName: string;
-      arch?: string;
-    }>;
-    total: number;
-  }>((resolve) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open('GET', `/santaba/rest/setting/collector/collectors?size=${pageSize}&offset=${offset}&fields=id,description,hostname,status,isDown,collectorGroupName,arch`, true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.setRequestHeader('X-version', '3');
-    if (csrfToken) {
-      xhr.setRequestHeader('X-CSRF-Token', csrfToken);
-    }
-    
-    xhr.onload = () => {
-      if (xhr.status === 200) {
-        try {
-          const response = JSON.parse(xhr.responseText);
-          const items = response.items || response.data?.items || [];
-          const collectors = items.map((c: {
-            id: number;
-            description: string;
-            hostname: string;
-            status: number;
-            isDown: boolean;
-            collectorGroupName: string;
-            arch?: string;
-          }) => ({
-            id: c.id,
-            description: c.description || `Collector ${c.id}`,
-            hostname: c.hostname,
-            status: c.status,
-            isDown: c.isDown,
-            collectorGroupName: c.collectorGroupName,
-            arch: c.arch,
-          }));
-          const total = typeof response.total === 'number' ? response.total : (response.data?.total ?? 0);
-          resolve({ items: collectors, total: total || items.length });
-        } catch {
-          resolve({ items: [], total: 0 });
-        }
-      } else {
-        resolve({ items: [], total: 0 });
-      }
-    };
-    
-    xhr.onerror = () => resolve({ items: [], total: 0 });
-    xhr.send();
-  });
-
-  const allCollectors: Array<{
-    id: number;
-    description: string;
-    hostname: string;
-    status: number;
-    isDown: boolean;
-    collectorGroupName: string;
-    arch?: string;
-  }> = [];
-
+  const allCollectors: CollectorItem[] = [];
   let offset = 0;
   let total = 0;
 
   while (true) {
-    const page = await fetchPage(offset);
-    if (page.items.length === 0) break;
-    allCollectors.push(...page.items);
-    total = page.total;
-    offset += page.items.length;
+    const result = await lmFetch<CollectorResponse>(
+      `/santaba/rest/setting/collector/collectors?size=${pageSize}&offset=${offset}&fields=id,description,hostname,status,isDown,collectorGroupName,arch`,
+      { csrfToken }
+    );
+
+    if (!result.ok || !result.data) break;
+
+    const items = result.data.items || result.data.data?.items || [];
+    if (items.length === 0) break;
+
+    const collectors = items.map((c) => ({
+      id: c.id,
+      description: c.description || `Collector ${c.id}`,
+      hostname: c.hostname,
+      status: c.status,
+      isDown: c.isDown,
+      collectorGroupName: c.collectorGroupName,
+      arch: c.arch,
+    }));
+
+    allCollectors.push(...collectors);
+    total = typeof result.data.total === 'number' ? result.data.total : (result.data.data?.total ?? 0);
+    offset += items.length;
+
     if (total > 0 && offset >= total) break;
-    if (page.items.length < pageSize) break;
+    if (items.length < pageSize) break;
   }
 
   return allCollectors;
@@ -736,214 +870,171 @@ async function fetchDevices(csrfToken: string | null, collectorId: number): Prom
   }>;
   total: number;
 }> {
+  // Embedded lmFetch helper
+  const lmFetch = <T = unknown>(url: string, opts: { csrfToken?: string | null } = {}): Promise<{ ok: boolean; data?: T }> =>
+    new Promise((resolve) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('GET', url, true);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.setRequestHeader('X-version', '3');
+      if (opts.csrfToken) xhr.setRequestHeader('X-CSRF-Token', opts.csrfToken);
+      xhr.onload = () => {
+        const ok = xhr.status >= 200 && xhr.status < 300;
+        let data: T | undefined;
+        try { data = JSON.parse(xhr.responseText) as T; } catch { /* empty */ }
+        resolve({ ok, data });
+      };
+      xhr.onerror = () => resolve({ ok: false });
+      xhr.send();
+    });
+
+  type DeviceItem = { id: number; name: string; displayName: string; currentCollectorId: number; hostStatus: string };
+  type DeviceResponse = { items?: DeviceItem[]; data?: { items?: DeviceItem[]; total?: number }; total?: number };
+
   const pageSize = 1000;
-
-  const fetchPage = (offset: number) => new Promise<{
-    items: Array<{
-      id: number;
-      name: string;
-      displayName: string;
-      currentCollectorId: number;
-      hostStatus: string;
-    }>;
-    total: number;
-  }>((resolve) => {
-    const xhr = new XMLHttpRequest();
-    const filter = encodeURIComponent(`currentCollectorId:${collectorId}`);
-    xhr.open('GET', `/santaba/rest/device/devices?filter=${filter}&size=${pageSize}&offset=${offset}&fields=id,name,displayName,currentCollectorId,hostStatus`, true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.setRequestHeader('X-version', '3');
-    if (csrfToken) {
-      xhr.setRequestHeader('X-CSRF-Token', csrfToken);
-    }
-    
-    xhr.onload = () => {
-      if (xhr.status === 200) {
-        try {
-          const response = JSON.parse(xhr.responseText);
-          const items = response.items || response.data?.items || [];
-          const devices = items.map((d: {
-            id: number;
-            name: string;
-            displayName: string;
-            currentCollectorId: number;
-            hostStatus: string;
-          }) => ({
-            id: d.id,
-            name: d.name,
-            displayName: d.displayName || d.name,
-            currentCollectorId: d.currentCollectorId,
-            hostStatus: d.hostStatus || 'unknown',
-          }));
-          const total = typeof response.total === 'number' ? response.total : (response.data?.total ?? 0);
-          resolve({ items: devices, total: total || items.length });
-        } catch {
-          resolve({ items: [], total: 0 });
-        }
-      } else {
-        resolve({ items: [], total: 0 });
-      }
-    };
-    
-    xhr.onerror = () => resolve({ items: [], total: 0 });
-    xhr.send();
-  });
-
-  const allDevices: Array<{
-    id: number;
-    name: string;
-    displayName: string;
-    currentCollectorId: number;
-    hostStatus: string;
-  }> = [];
-
+  const filter = encodeURIComponent(`currentCollectorId:${collectorId}`);
+  const allDevices: DeviceItem[] = [];
   let offset = 0;
   let total = 0;
 
   while (true) {
-    const page = await fetchPage(offset);
-    if (page.items.length === 0) break;
-    allDevices.push(...page.items);
-    total = page.total;
-    offset += page.items.length;
+    const result = await lmFetch<DeviceResponse>(
+      `/santaba/rest/device/devices?filter=${filter}&size=${pageSize}&offset=${offset}&fields=id,name,displayName,currentCollectorId,hostStatus`,
+      { csrfToken }
+    );
+
+    if (!result.ok || !result.data) break;
+
+    const items = result.data.items || result.data.data?.items || [];
+    if (items.length === 0) break;
+
+    const devices = items.map((d) => ({
+      id: d.id,
+      name: d.name,
+      displayName: d.displayName || d.name,
+      currentCollectorId: d.currentCollectorId,
+      hostStatus: d.hostStatus || 'unknown',
+    }));
+
+    allDevices.push(...devices);
+    total = typeof result.data.total === 'number' ? result.data.total : (result.data.data?.total ?? 0);
+    offset += items.length;
+
     if (total > 0 && offset >= total) break;
-    if (page.items.length < pageSize) break;
+    if (items.length < pageSize) break;
   }
 
   return { items: allDevices, total: total || allDevices.length };
 }
 
 // Function to be injected into the page to fetch a single device by ID
-function fetchDeviceById(csrfToken: string | null, resourceId: number): Promise<{
+async function fetchDeviceById(csrfToken: string | null, resourceId: number): Promise<{
   id: number;
   name: string;
   displayName: string;
   currentCollectorId: number;
 } | null> {
-  return new Promise((resolve) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open('GET', `/santaba/rest/device/devices/${resourceId}?fields=id,name,displayName,currentCollectorId`, true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.setRequestHeader('X-version', '3');
-    if (csrfToken) {
-      xhr.setRequestHeader('X-CSRF-Token', csrfToken);
-    }
-    
-    xhr.onload = () => {
-      if (xhr.status === 200) {
-        try {
-          const response = JSON.parse(xhr.responseText);
-          const device = response.data || response;
-          resolve({
-            id: device.id,
-            name: device.name,
-            displayName: device.displayName || device.name,
-            currentCollectorId: device.currentCollectorId,
-          });
-        } catch {
-          resolve(null);
-        }
-      } else {
-        resolve(null);
-      }
+  // Embedded lmFetch helper
+  const lmFetch = <T = unknown>(url: string, opts: { method?: string; csrfToken?: string | null; body?: unknown } = {}): Promise<{ ok: boolean; status: number; data?: T }> =>
+    new Promise((resolve) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open(opts.method || 'GET', url, true);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.setRequestHeader('X-version', '3');
+      if (opts.csrfToken) xhr.setRequestHeader('X-CSRF-Token', opts.csrfToken);
+      xhr.onload = () => {
+        const ok = xhr.status >= 200 && xhr.status < 300;
+        let data: T | undefined;
+        try { data = JSON.parse(xhr.responseText) as T; } catch { /* empty */ }
+        resolve({ ok, status: xhr.status, data });
+      };
+      xhr.onerror = () => resolve({ ok: false, status: 0 });
+      xhr.send(opts.body ? JSON.stringify(opts.body) : undefined);
+    });
+
+  const result = await lmFetch<{ data?: { id: number; name: string; displayName: string; currentCollectorId: number }; id?: number; name?: string; displayName?: string; currentCollectorId?: number }>(
+    `/santaba/rest/device/devices/${resourceId}?fields=id,name,displayName,currentCollectorId`,
+    { csrfToken }
+  );
+
+  if (result.ok && result.data) {
+    const device = result.data.data || result.data;
+    return {
+      id: device.id!,
+      name: device.name!,
+      displayName: device.displayName || device.name!,
+      currentCollectorId: device.currentCollectorId!,
     };
-    
-    xhr.onerror = () => resolve(null);
-    xhr.send();
-  });
+  }
+  return null;
 }
 
 // Function to be injected into the page to fetch device properties
-function fetchDeviceProperties(csrfToken: string | null, deviceId: number): Promise<Array<{
+async function fetchDeviceProperties(csrfToken: string | null, deviceId: number): Promise<Array<{
   name: string;
   value: string;
   type: 'system' | 'custom' | 'inherited' | 'auto';
 }>> {
-  return new Promise((resolve) => {
-    const xhr = new XMLHttpRequest();
-    // Fetch device with all property types
-    xhr.open('GET', `/santaba/rest/device/devices/${deviceId}?fields=systemProperties,customProperties,inheritedProperties,autoProperties`, true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.setRequestHeader('X-version', '3');
-    if (csrfToken) {
-      xhr.setRequestHeader('X-CSRF-Token', csrfToken);
-    }
-    
-    xhr.onload = () => {
-      if (xhr.status === 200) {
-        try {
-          const response = JSON.parse(xhr.responseText);
-          const device = response.data || response;
-          
-          const properties: Array<{
-            name: string;
-            value: string;
-            type: 'system' | 'custom' | 'inherited' | 'auto';
-          }> = [];
-          
-          // Process system properties
-          if (device.systemProperties && Array.isArray(device.systemProperties)) {
-            device.systemProperties.forEach((prop: { name: string; value: string }) => {
-              properties.push({
-                name: prop.name,
-                value: prop.value || '',
-                type: 'system',
-              });
-            });
-          }
-          
-          // Process custom properties
-          if (device.customProperties && Array.isArray(device.customProperties)) {
-            device.customProperties.forEach((prop: { name: string; value: string }) => {
-              properties.push({
-                name: prop.name,
-                value: prop.value || '',
-                type: 'custom',
-              });
-            });
-          }
-          
-          // Process inherited properties
-          if (device.inheritedProperties && Array.isArray(device.inheritedProperties)) {
-            device.inheritedProperties.forEach((prop: { name: string; value: string }) => {
-              properties.push({
-                name: prop.name,
-                value: prop.value || '',
-                type: 'inherited',
-              });
-            });
-          }
-          
-          // Process auto properties
-          if (device.autoProperties && Array.isArray(device.autoProperties)) {
-            device.autoProperties.forEach((prop: { name: string; value: string }) => {
-              properties.push({
-                name: prop.name,
-                value: prop.value || '',
-                type: 'auto',
-              });
-            });
-          }
-          
-          // Sort by name
-          properties.sort((a, b) => a.name.localeCompare(b.name));
-          
-          resolve(properties);
-        } catch {
-          resolve([]);
-        }
-      } else {
-        resolve([]);
-      }
+  // Embedded lmFetch helper
+  const lmFetch = <T = unknown>(url: string, opts: { csrfToken?: string | null } = {}): Promise<{ ok: boolean; data?: T }> =>
+    new Promise((resolve) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('GET', url, true);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.setRequestHeader('X-version', '3');
+      if (opts.csrfToken) xhr.setRequestHeader('X-CSRF-Token', opts.csrfToken);
+      xhr.onload = () => {
+        const ok = xhr.status >= 200 && xhr.status < 300;
+        let data: T | undefined;
+        try { data = JSON.parse(xhr.responseText) as T; } catch { /* empty */ }
+        resolve({ ok, data });
+      };
+      xhr.onerror = () => resolve({ ok: false });
+      xhr.send();
+    });
+
+  type DevicePropsResponse = {
+    data?: {
+      systemProperties?: Array<{ name: string; value: string }>;
+      customProperties?: Array<{ name: string; value: string }>;
+      inheritedProperties?: Array<{ name: string; value: string }>;
+      autoProperties?: Array<{ name: string; value: string }>;
     };
-    
-    xhr.onerror = () => resolve([]);
-    xhr.send();
-  });
+    systemProperties?: Array<{ name: string; value: string }>;
+    customProperties?: Array<{ name: string; value: string }>;
+    inheritedProperties?: Array<{ name: string; value: string }>;
+    autoProperties?: Array<{ name: string; value: string }>;
+  };
+
+  const result = await lmFetch<DevicePropsResponse>(
+    `/santaba/rest/device/devices/${deviceId}?fields=systemProperties,customProperties,inheritedProperties,autoProperties`,
+    { csrfToken }
+  );
+
+  if (!result.ok || !result.data) return [];
+
+  const device = result.data.data || result.data;
+  const properties: Array<{ name: string; value: string; type: 'system' | 'custom' | 'inherited' | 'auto' }> = [];
+
+  // Process each property type
+  const propTypes = ['system', 'custom', 'inherited', 'auto'] as const;
+  for (const propType of propTypes) {
+    const propsKey = `${propType}Properties` as keyof typeof device;
+    const props = device[propsKey];
+    if (Array.isArray(props)) {
+      for (const prop of props) {
+        properties.push({ name: prop.name, value: prop.value || '', type: propType });
+      }
+    }
+  }
+
+  // Sort by name
+  properties.sort((a, b) => a.name.localeCompare(b.name));
+  return properties;
 }
 
 // Function to be injected into the page to test AppliesTo expressions
-function testAppliesToExpression(
+async function testAppliesToExpression(
   csrfToken: string | null, 
   currentAppliesTo: string, 
   testFrom: 'devicesGroup' | 'websiteGroup'
@@ -961,66 +1052,70 @@ function testAppliesToExpression(
     errorDetail: string | null;
   };
 }> {
-  return new Promise((resolve) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', '/santaba/rest/functions', true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.setRequestHeader('X-version', '3');
-    if (csrfToken) {
-      xhr.setRequestHeader('X-CSRF-Token', csrfToken);
-    }
-    
-    const payload = {
+  // Embedded lmFetch helper
+  const lmFetch = <T = unknown>(url: string, opts: { method?: string; csrfToken?: string | null; body?: unknown } = {}): Promise<{ ok: boolean; status: number; data?: T }> =>
+    new Promise((resolve) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open(opts.method || 'GET', url, true);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.setRequestHeader('X-version', '3');
+      if (opts.csrfToken) xhr.setRequestHeader('X-CSRF-Token', opts.csrfToken);
+      xhr.onload = () => {
+        const ok = xhr.status >= 200 && xhr.status < 300;
+        let data: T | undefined;
+        try { data = JSON.parse(xhr.responseText) as T; } catch { /* empty */ }
+        resolve({ ok, status: xhr.status, data });
+      };
+      xhr.onerror = () => resolve({ ok: false, status: 0 });
+      xhr.send(opts.body ? JSON.stringify(opts.body) : undefined);
+    });
+
+  type AppliesToResponse = {
+    originalAppliesTo?: string;
+    currentAppliesTo?: string;
+    originalMatches?: Array<{ type: string; id: number; name: string }>;
+    currentMatches?: Array<{ type: string; id: number; name: string }>;
+    warnMessage?: string;
+    errorMessage?: string;
+    message?: string;
+    errorCode?: number;
+    errorDetail?: string | null;
+  };
+
+  const result = await lmFetch<AppliesToResponse>('/santaba/rest/functions', {
+    method: 'POST',
+    csrfToken,
+    body: {
       currentAppliesTo,
       originalAppliesTo: '',
       type: 'testAppliesTo',
       needInheritProps: false,
       testFrom,
-    };
-    
-    xhr.onload = () => {
-      try {
-        const response = JSON.parse(xhr.responseText);
-        
-        if (xhr.status === 200) {
-          resolve({
-            result: {
-              originalAppliesTo: response.originalAppliesTo || '',
-              currentAppliesTo: response.currentAppliesTo || currentAppliesTo,
-              originalMatches: response.originalMatches || [],
-              currentMatches: response.currentMatches || [],
-              warnMessage: response.warnMessage || '',
-            },
-          });
-        } else {
-          // API returned an error (e.g., 400 for syntax errors)
-          resolve({
-            error: {
-              errorMessage: response.errorMessage || response.message || 'Unknown error',
-              errorCode: response.errorCode || xhr.status,
-              errorDetail: response.errorDetail || null,
-            },
-          });
-        }
-      } catch {
-        resolve({
-          error: {
-            errorMessage: 'Failed to parse response',
-            errorCode: 500,
-            errorDetail: null,
-          },
-        });
-      }
-    };
-    
-    xhr.onerror = () => resolve({
-      error: {
-        errorMessage: 'Network error',
-        errorCode: 0,
-        errorDetail: null,
-      },
-    });
-    
-    xhr.send(JSON.stringify(payload));
+    },
   });
+
+  if (!result.data) {
+    return { error: { errorMessage: 'Network error', errorCode: 0, errorDetail: null } };
+  }
+
+  if (result.ok) {
+    return {
+      result: {
+        originalAppliesTo: result.data.originalAppliesTo || '',
+        currentAppliesTo: result.data.currentAppliesTo || currentAppliesTo,
+        originalMatches: result.data.originalMatches || [],
+        currentMatches: result.data.currentMatches || [],
+        warnMessage: result.data.warnMessage || '',
+      },
+    };
+  }
+
+  // API returned an error (e.g., 400 for syntax errors)
+  return {
+    error: {
+      errorMessage: result.data.errorMessage || result.data.message || 'Unknown error',
+      errorCode: result.data.errorCode || result.status,
+      errorDetail: result.data.errorDetail || null,
+    },
+  };
 }

@@ -1227,17 +1227,7 @@ export interface ParseOptions {
 /**
  * Parse script output with mode and optional module type for specialized validation
  */
-export function parseOutput(output: string, options: ParseOptions): ParseResult | null;
-/**
- * @deprecated Use parseOutput(output, options) instead
- */
-export function parseOutput(output: string, mode: ScriptMode): ParseResult | null;
-export function parseOutput(output: string, modeOrOptions: ScriptMode | ParseOptions): ParseResult | null {
-  // Handle both old and new API
-  const options: ParseOptions = typeof modeOrOptions === 'string' 
-    ? { mode: modeOrOptions } 
-    : modeOrOptions;
-  
+export function parseOutput(output: string, options: ParseOptions): ParseResult | null {
   const { mode, moduleType, scriptType } = options;
 
   // For freeform mode, no parsing

@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback, useMemo, Suspense, lazy } from 'react';
+import { useEffect, useMemo, Suspense, lazy } from 'react';
 import { FileWarning, RotateCcw, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Toolbar } from './components/Toolbar';
@@ -10,14 +10,13 @@ import { CommandPalette } from './components/CommandPalette';
 import { SettingsDialog } from './components/SettingsDialog';
 import { RightSidebar } from './components/RightSidebar';
 import { TabBar } from './components/TabBar';
-import { WelcomeScreenV2 } from './components/WelcomeScreenV2';
+import { EditorWelcomeScreen } from './components/EditorWelcomeScreen';
 import { BraveFileSystemWarning } from './components/BraveFileSystemWarning';
 import { DebugCommandsDialog } from './components/DebugCommandsDialog';
 import { ModuleDetailsDialog } from './components/ModuleDetailsDialog';
 import { ModuleSnippetsDialog } from './components/ModuleSnippetsDialog';
+import { OpenModuleDirectoryDialog } from './components/OpenModuleDirectoryDialog';
 import { useEditorStore } from './stores/editor-store';
-import { isFileSystemAccessSupported } from './utils/file-handle-store';
-import { isBraveBrowser, isVivaldiBrowser } from './utils/browser-detection';
 import { Button } from '@/components/ui/button';
 import {
   ResizablePanelGroup,
@@ -35,16 +34,42 @@ import {
   AlertDialogMedia,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { ALL_LOGIC_MODULE_TYPES } from '@/shared/logic-modules';
-import type { DraftScript, DraftTabs, LogicModuleInfo, LogicModuleType, ScriptType } from '@/shared/types';
+import type { LogicModuleInfo, LogicModuleType, ScriptType } from '@/shared/types';
+import { getOriginalContent } from './utils/document-helpers';
+import {
+  useAppInitialization,
+  useThemeSync,
+  useUrlParamsHandler,
+  useDraftManagement,
+  usePortalEventListeners,
+  useBrowserFileSystemWarning,
+  useWindowTitle,
+  useActiveTab,
+} from './hooks';
 
+// Lazy-loaded components
 const EditorPanelLazy = lazy(() => import('./components/EditorPanel').then((mod) => ({ default: mod.EditorPanel })));
 const LogicModuleSearchLazy = lazy(() => import('./components/LogicModuleSearch').then((mod) => ({ default: mod.LogicModuleSearch })));
 const ApiExplorerPanelLazy = lazy(() => import('./components/api/ApiExplorerPanel').then((mod) => ({ default: mod.ApiExplorerPanel })));
 const ApiRightSidebarLazy = lazy(() => import('./components/api/ApiRightSidebar').then((mod) => ({ default: mod.ApiRightSidebar })));
+const ApiWelcomeScreenLazy = lazy(() => import('./components/api/ApiWelcomeScreen').then((mod) => ({ default: mod.ApiWelcomeScreen })));
 const AppliesToTesterLazy = lazy(() => import('./components/AppliesToTester').then((mod) => ({ default: mod.AppliesToTester })));
-const ModuleCommitConfirmationDialogLazy = lazy(() => import('./components/ModuleCommitConfirmationDialog').then((mod) => ({ default: mod.ModuleCommitConfirmationDialog })));
+const PushToPortalDialogLazy = lazy(() => import('./components/PushToPortalDialog').then((mod) => ({ default: mod.PushToPortalDialog })));
+const PullFromPortalDialogLazy = lazy(() => import('./components/PullFromPortalDialog').then((mod) => ({ default: mod.PullFromPortalDialog })));
 const ModuleLineageDialogLazy = lazy(() => import('./components/ModuleLineageDialog').then((mod) => ({ default: mod.ModuleLineageDialog })));
+const SaveOptionsDialogLazy = lazy(() => import('./components/SaveOptionsDialog').then((mod) => ({ default: mod.SaveOptionsDialog })));
+
+// Layout constants
+const PANEL_SIZES = {
+  MAIN_WITH_SIDEBAR: '78.5%',
+  MAIN_FULL: '100%',
+  SIDEBAR: '21.5%',
+  SIDEBAR_MAX: '40%',
+  EDITOR: '80%',
+  OUTPUT: '40%',
+  MIN: '20%',
+  MIN_MAIN: '50%',
+} as const;
 
 const panelLoadingFallback = (
   <div className="flex items-center justify-center h-full">
@@ -104,9 +129,9 @@ function buildModuleScriptsFromResponse(
     scriptType = normalizeModuleScriptType(collectorAttribute?.scriptType || (module.scriptType as string | undefined));
 
     if (moduleType !== 'topologysource') {
-      const adMethod = (module.autoDiscoveryConfig as { method?: { groovyScript?: string; linuxScript?: string; winScript?: string } } | undefined)?.method;
+      const adMethod = (module.autoDiscoveryConfig as { method?: { groovyScript?: string } } | undefined)?.method;
       if (adMethod) {
-        adScript = adMethod.groovyScript || adMethod.linuxScript || adMethod.winScript || '';
+        adScript = adMethod.groovyScript || '';
         hasAutoDiscovery = !!adScript.trim();
       }
     }
@@ -140,137 +165,78 @@ export function App() {
     refreshPortals, 
     tabs,
     activeTabId,
-    loadDraft, 
-    restoreDraft,
-    restoreDraftTabs,
-    clearDraft,
-    saveDraft,
-    loadPreferences,
-    loadHistory,
-    loadApiHistory,
-    loadApiEnvironments,
-    loadUserSnippets,
-    preferences,
     portals,
     selectedPortalId,
-    setSelectedPortal,
-    switchToPortalWithContext,
     openModuleScripts,
     rightSidebarOpen,
+    activeWorkspace,
     tabsNeedingPermission,
     restoreFileHandles,
     requestFilePermissions,
-    handlePortalDisconnected,
     moduleCommitConfirmationOpen,
     setModuleCommitConfirmationOpen,
     loadedModuleForCommit,
     commitModuleScript,
     isCommittingModule,
+    moduleCommitConflict,
+    switchToPortalWithContext,
+    // Pull dialog
+    pullLatestDialogOpen,
+    // Save options dialog
+    saveOptionsDialogOpen,
+    saveOptionsDialogTabId,
+    setSaveOptionsDialogOpen,
+    saveFileAs,
+    saveModuleDirectory,
   } = useEditorStore();
   
   // Get active tab for auto-save trigger and window title
-  const activeTab = useMemo(() => {
-    return tabs.find(t => t.id === activeTabId) ?? null;
-  }, [tabs, activeTabId]);
+  const activeTab = useActiveTab();
   
-  // Track URL params application state
-  const [urlParamsApplied, setUrlParamsApplied] = useState(false);
-  const [pendingResourceId, setPendingResourceId] = useState<number | null>(null);
-  const [pendingDataSourceId, setPendingDataSourceId] = useState<number | null>(null);
-  const [pendingCollectMethod, setPendingCollectMethod] = useState<string | null>(null);
-  const [pendingModuleId, setPendingModuleId] = useState<number | null>(null);
-  const [pendingModuleType, setPendingModuleType] = useState<LogicModuleType | null>(null);
-
-  // Draft restore dialog state
-  const [pendingDraft, setPendingDraft] = useState<DraftScript | DraftTabs | null>(null);
-  const [showDraftDialog, setShowDraftDialog] = useState(false);
+  // Compute workspace visibility state
+  const workspaceState = useMemo(() => {
+    const apiTabCount = tabs.filter(t => t.kind === 'api').length;
+    const scriptTabCount = tabs.filter(t => (t.kind ?? 'script') === 'script').length;
+    
+    const showApiWelcome = activeWorkspace === 'api' && apiTabCount === 0;
+    const showScriptWelcome = activeWorkspace === 'script' && scriptTabCount === 0 && tabs.length === 0;
+    const showWelcome = showApiWelcome || showScriptWelcome;
+    
+    return { showWelcome, showApiWelcome, showScriptWelcome };
+  }, [tabs, activeWorkspace]);
   
-  // File System Access API warning state
-  const [showBraveWarning, setShowBraveWarning] = useState(false);
-  const [fileSystemWarningBrowser, setFileSystemWarningBrowser] = useState<'brave' | 'vivaldi' | null>(null);
+  // Custom hooks for app initialization and management
+  useAppInitialization();
+  useThemeSync();
+  usePortalEventListeners();
+  useWindowTitle(activeTab);
   
-  // Debounce timer for auto-save
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Set dark mode on mount based on preferences
-  useEffect(() => {
-    if (preferences.theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else if (preferences.theme === 'light') {
-      document.documentElement.classList.remove('dark');
-    } else {
-      // System preference
-      const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      if (isDark) {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
-    }
-  }, [preferences.theme]);
-
-  // Load preferences, history, and user snippets on mount
-  useEffect(() => {
-    loadPreferences();
-    loadHistory();
-    loadApiHistory();
-    loadApiEnvironments();
-    loadUserSnippets();
-  }, [loadPreferences, loadHistory, loadApiHistory, loadApiEnvironments, loadUserSnippets]);
-
-  // Check for File System Access API availability and Brave browser
-  useEffect(() => {
-    // Check if user has already dismissed this warning
-    const dismissed = localStorage.getItem('lm-ide-fs-api-warning-dismissed')
-      ?? localStorage.getItem('lm-ide-brave-fs-api-warning-dismissed');
-    if (dismissed === 'true') {
-      return;
-    }
-
-    const checkBrowser = async () => {
-      if (await isVivaldiBrowser()) {
-        setFileSystemWarningBrowser('vivaldi');
-        setTimeout(() => {
-          setShowBraveWarning(true);
-        }, 500);
-        return;
-      }
-
-      const fsApiSupported = isFileSystemAccessSupported();
-      if (!fsApiSupported) {
-        const isBrave = await isBraveBrowser();
-        if (isBrave) {
-          setFileSystemWarningBrowser('brave');
-          setTimeout(() => {
-            setShowBraveWarning(true);
-          }, 500);
-        }
-      }
-    };
-
-    checkBrowser().catch((error) => {
-      console.error('Error checking browser for File System Access warning:', error);
-    });
-  }, []);
-
-  // Handle Brave warning dismissal
-  const handleBraveWarningDismiss = useCallback(() => {
-    localStorage.setItem('lm-ide-fs-api-warning-dismissed', 'true');
-    localStorage.setItem('lm-ide-brave-fs-api-warning-dismissed', 'true');
-    setShowBraveWarning(false);
-  }, []);
-
-  // Check for saved draft on mount
-  useEffect(() => {
-    const checkDraft = async () => {
-      const draft = await loadDraft();
-      if (draft) {
-        setPendingDraft(draft);
-        setShowDraftDialog(true);
-      }
-    };
-    checkDraft();
-  }, [loadDraft]);
+  const {
+    pendingResourceId,
+    pendingDataSourceId,
+    pendingCollectMethod,
+    pendingModuleId,
+    pendingModuleType,
+    setPendingResourceId,
+    setPendingDataSourceId,
+    setPendingCollectMethod,
+    setPendingModuleId,
+    setPendingModuleType,
+  } = useUrlParamsHandler();
+  
+  const {
+    pendingDraft,
+    showDraftDialog,
+    handleRestoreDraft,
+    handleDiscardDraft,
+  } = useDraftManagement();
+  
+  const {
+    showBraveWarning,
+    setShowBraveWarning,
+    fileSystemWarningBrowser,
+    handleBraveWarningDismiss,
+  } = useBrowserFileSystemWarning();
 
   // Restore file handles after draft is restored or on mount
   useEffect(() => {
@@ -284,79 +250,6 @@ export function App() {
   useEffect(() => {
     refreshPortals();
   }, [refreshPortals]);
-
-  // Listen for portal disconnection messages from the service worker
-  useEffect(() => {
-    const handleMessage = (message: { type: string; payload?: { portalId: string; hostname: string } }) => {
-      if (message.type === 'PORTAL_DISCONNECTED' && message.payload) {
-        handlePortalDisconnected(message.payload.portalId, message.payload.hostname);
-      }
-      // Don't return true - we're not using sendResponse
-      return false;
-    };
-
-    chrome.runtime.onMessage.addListener(handleMessage);
-    
-    return () => {
-      chrome.runtime.onMessage.removeListener(handleMessage);
-    };
-  }, [handlePortalDisconnected]);
-
-  // Apply URL parameters after portals are loaded
-  useEffect(() => {
-    // Only apply once, and only when we have portals
-    if (urlParamsApplied || portals.length === 0) return;
-    
-    const params = new URLSearchParams(window.location.search);
-    const portalParam = params.get('portal');
-    const resourceIdParam = params.get('resourceId');
-    const dataSourceIdParam = params.get('dataSourceId');
-    const collectMethodParam = params.get('collectMethod');
-    const moduleTypeParam = params.get('moduleType');
-    const moduleIdParam = params.get('moduleId');
-    
-    if (portalParam) {
-      const matchingPortal = portals.find(p => p.id === portalParam || p.hostname === portalParam);
-      if (matchingPortal) {
-        setSelectedPortal(matchingPortal.id);
-
-        let hasModuleContext = false;
-        if (moduleTypeParam && moduleIdParam) {
-          const moduleType = ALL_LOGIC_MODULE_TYPES.find((type) => type === moduleTypeParam) || null;
-          const moduleId = parseInt(moduleIdParam, 10);
-          if (moduleType && !Number.isNaN(moduleId)) {
-            setPendingModuleType(moduleType);
-            setPendingModuleId(moduleId);
-            hasModuleContext = true;
-          }
-        }
-
-        if (resourceIdParam) {
-          const resourceId = parseInt(resourceIdParam, 10);
-          setPendingResourceId(resourceId);
-        }
-        if (!hasModuleContext) {
-          if (dataSourceIdParam) {
-            const dataSourceId = parseInt(dataSourceIdParam, 10);
-            if (!Number.isNaN(dataSourceId)) {
-              setPendingDataSourceId(dataSourceId);
-            }
-          }
-          if (collectMethodParam) {
-            setPendingCollectMethod(collectMethodParam);
-          }
-        }
-      }
-    }
-    
-    // Mark as applied so we don't do this again
-    setUrlParamsApplied(true);
-    
-    // Clear URL params to avoid confusion on refresh
-    if (portalParam || resourceIdParam || dataSourceIdParam || collectMethodParam || moduleTypeParam || moduleIdParam) {
-      window.history.replaceState({}, '', window.location.pathname);
-    }
-  }, [portals, urlParamsApplied, setSelectedPortal]);
 
   // Auto-open scripts for device datasource links (script/batchscript only)
   useEffect(() => {
@@ -417,7 +310,7 @@ export function App() {
     };
 
     openFromDeviceDatasource();
-  }, [pendingDataSourceId, pendingCollectMethod, openModuleScripts, selectedPortalId]);
+  }, [pendingDataSourceId, pendingCollectMethod, openModuleScripts, selectedPortalId, setPendingDataSourceId, setPendingCollectMethod]);
 
   // Auto-open scripts for module links (LMX module tabs)
   useEffect(() => {
@@ -450,7 +343,7 @@ export function App() {
     };
 
     openFromModuleContext();
-  }, [pendingModuleId, pendingModuleType, openModuleScripts, portals, selectedPortalId]);
+  }, [pendingModuleId, pendingModuleType, openModuleScripts, portals, selectedPortalId, setPendingModuleId, setPendingModuleType]);
 
   // Apply resource context when a resourceId is present
   useEffect(() => {
@@ -479,74 +372,7 @@ export function App() {
     };
 
     applyResourceContext();
-  }, [pendingResourceId, portals, selectedPortalId, switchToPortalWithContext]);
-
-  // Update window title with character count and tab info
-  useEffect(() => {
-    const charCount = activeTab?.content.length ?? 0;
-    const warning = charCount > 64000 ? ' ⚠️ LIMIT EXCEEDED' : '';
-    const tabName = activeTab?.displayName ?? 'No file';
-    document.title = `${tabName} - LMDA Composer (${charCount.toLocaleString()} chars)${warning}`;
-  }, [activeTab]);
-
-  // Auto-save draft with debounce (watches all tabs)
-  useEffect(() => {
-    // Clear previous timeout
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-    }
-    
-    // Set new timeout for auto-save
-    saveTimeoutRef.current = setTimeout(() => {
-      saveDraft();
-    }, 2000); // Save after 2 seconds of inactivity
-
-    return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
-    };
-  }, [tabs, saveDraft]);
-
-  // Save draft immediately when user leaves the page (beforeunload)
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      // Clear any pending debounce timer
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
-      // Save immediately - use sync approach since async may not complete
-      saveDraft();
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [saveDraft]);
-
-  // Handle draft restore - supports both legacy single-file and multi-tab drafts
-  const handleRestoreDraft = useCallback(() => {
-    if (pendingDraft) {
-      if ('tabs' in pendingDraft) {
-        // Multi-tab draft
-        restoreDraftTabs(pendingDraft);
-      } else {
-        // Legacy single-file draft
-        restoreDraft(pendingDraft);
-      }
-      // Save immediately after restore to persist the restored state
-      // This prevents data loss if user leaves before debounce timer
-      setTimeout(() => saveDraft(), 100);
-    }
-    setShowDraftDialog(false);
-    setPendingDraft(null);
-  }, [pendingDraft, restoreDraft, restoreDraftTabs, saveDraft]);
-
-  // Handle discard draft
-  const handleDiscardDraft = useCallback(() => {
-    clearDraft();
-    setShowDraftDialog(false);
-    setPendingDraft(null);
-  }, [clearDraft]);
+  }, [pendingResourceId, portals, selectedPortalId, switchToPortalWithContext, setPendingResourceId]);
 
   return (
     <div className="flex flex-col h-screen bg-background text-foreground overflow-hidden">
@@ -555,16 +381,16 @@ export function App() {
 
       {/* File Permission Banner - shown when files need permission re-request */}
       {tabsNeedingPermission.length > 0 && (
-        <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 border-b border-amber-500/20">
-          <FileWarning className="size-4 text-amber-500 shrink-0" />
-          <span className="text-sm text-amber-500 flex-1">
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-yellow-500/10 border-b border-yellow-500/20">
+          <FileWarning className="size-4 text-yellow-500 shrink-0" />
+          <span className="text-sm text-yellow-500 flex-1">
             {tabsNeedingPermission.length} file{tabsNeedingPermission.length !== 1 ? 's' : ''} need permission to save directly
           </span>
           <Button 
             variant="outline" 
             size="sm"
             onClick={requestFilePermissions}
-            className="border-amber-500/30 text-amber-500 hover:bg-amber-500/10"
+            className="border-yellow-500/30 text-yellow-500 hover:bg-yellow-500/10"
           >
             Restore Access
           </Button>
@@ -572,10 +398,15 @@ export function App() {
       )}
 
       {/* Main Content Area */}
-      {/* When no tabs are open, show WelcomeScreen full-height */}
-      {tabs.length === 0 ? (
+      {workspaceState.showWelcome ? (
         <div className="flex-1 min-h-0">
-          <WelcomeScreenV2 />
+          {workspaceState.showApiWelcome ? (
+            <Suspense fallback={panelLoadingFallback}>
+              <ApiWelcomeScreenLazy />
+            </Suspense>
+          ) : (
+            <EditorWelcomeScreen />
+          )}
         </div>
       ) : (
         <div className="flex-1 min-h-0 flex flex-col">
@@ -587,14 +418,14 @@ export function App() {
             direction="horizontal"
             className="flex-1 min-h-0"
           >
-            <ResizablePanel defaultSize={rightSidebarOpen ? "78.5%" : "100%"} minSize="50%">
+            <ResizablePanel defaultSize={rightSidebarOpen ? PANEL_SIZES.MAIN_WITH_SIDEBAR : PANEL_SIZES.MAIN_FULL} minSize={PANEL_SIZES.MIN_MAIN}>
               {activeTab?.kind === 'api' ? (
                 <Suspense fallback={panelLoadingFallback}>
                   <ApiExplorerPanelLazy />
                 </Suspense>
               ) : (
                 <ResizablePanelGroup direction="vertical" className="h-full">
-                  <ResizablePanel defaultSize="80%" minSize="20%">
+                  <ResizablePanel defaultSize={PANEL_SIZES.EDITOR} minSize={PANEL_SIZES.MIN}>
                     <Suspense fallback={panelLoadingFallback}>
                       <EditorPanelLazy />
                     </Suspense>
@@ -602,7 +433,7 @@ export function App() {
 
                   <ResizableHandle withHandle />
 
-                  <ResizablePanel defaultSize="40%" minSize="20%">
+                  <ResizablePanel defaultSize={PANEL_SIZES.OUTPUT} minSize={PANEL_SIZES.MIN}>
                     <div className="h-full border-t border-border">
                       <OutputPanel />
                     </div>
@@ -614,7 +445,7 @@ export function App() {
             {rightSidebarOpen && (
               <>
                 <ResizableHandle withVerticalHandle />
-                <ResizablePanel defaultSize="21.5%" minSize="21.5%" maxSize="40%">
+                <ResizablePanel defaultSize={PANEL_SIZES.SIDEBAR} minSize={PANEL_SIZES.SIDEBAR} maxSize={PANEL_SIZES.SIDEBAR_MAX}>
                   {activeTab?.kind === 'api' ? (
                     <Suspense fallback={panelLoadingFallback}>
                       <ApiRightSidebarLazy />
@@ -647,7 +478,7 @@ export function App() {
       <ModuleSnippetsDialog />
       {activeTab && activeTab.source?.type === 'module' && loadedModuleForCommit && (
         <Suspense fallback={null}>
-          <ModuleCommitConfirmationDialogLazy
+          <PushToPortalDialogLazy
             open={moduleCommitConfirmationOpen}
             onOpenChange={setModuleCommitConfirmationOpen}
             onConfirm={async (reason) => {
@@ -659,10 +490,11 @@ export function App() {
             moduleType={loadedModuleForCommit.moduleType}
             scriptType={activeTab.source.scriptType || 'collection'}
             scriptLanguage={loadedModuleForCommit.scriptType === 'powerShell' ? 'powershell' : 'groovy'}
-            originalScript={activeTab.originalContent || ''}
+            originalScript={getOriginalContent(activeTab, 'portal') || ''}
             newScript={activeTab.content}
-            hasConflict={false}
-            isCommitting={isCommittingModule}
+            hasConflict={moduleCommitConflict?.hasConflict ?? false}
+            conflictMessage={moduleCommitConflict?.message}
+            isPushing={isCommittingModule}
           />
         </Suspense>
       )}
@@ -671,7 +503,36 @@ export function App() {
           <ModuleLineageDialogLazy activeTab={activeTab} />
         </Suspense>
       )}
+      {/* Pull From Portal Dialog */}
+      {activeTab && activeTab.source?.type === 'module' && pullLatestDialogOpen && (
+        <Suspense fallback={null}>
+          <PullFromPortalDialogLazy
+            tabId={activeTab.id}
+            moduleName={activeTab.source.moduleName || activeTab.displayName}
+            moduleType={activeTab.source.moduleType || 'datasource'}
+          />
+        </Suspense>
+      )}
       <ModuleDetailsDialog />
+      <OpenModuleDirectoryDialog />
+      {/* Save Options Dialog (for portal documents) */}
+      <Suspense fallback={null}>
+        <SaveOptionsDialogLazy
+          open={saveOptionsDialogOpen}
+          onOpenChange={(open) => setSaveOptionsDialogOpen(open)}
+          tab={saveOptionsDialogTabId ? tabs.find(t => t.id === saveOptionsDialogTabId) ?? null : null}
+          onSaveLocal={async () => {
+            if (saveOptionsDialogTabId) {
+              await saveFileAs(saveOptionsDialogTabId);
+            }
+          }}
+          onSaveModuleDirectory={async () => {
+            if (saveOptionsDialogTabId) {
+              await saveModuleDirectory(saveOptionsDialogTabId);
+            }
+          }}
+        />
+      </Suspense>
       <BraveFileSystemWarning
         open={showBraveWarning}
         onOpenChange={setShowBraveWarning}
@@ -680,7 +541,7 @@ export function App() {
       />
 
       {/* Draft Restore Dialog */}
-      <AlertDialog open={showDraftDialog} onOpenChange={setShowDraftDialog}>
+      <AlertDialog open={showDraftDialog} onOpenChange={() => {}}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogMedia className="bg-primary/10">

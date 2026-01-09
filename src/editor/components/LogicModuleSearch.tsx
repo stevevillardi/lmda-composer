@@ -12,6 +12,8 @@ import {
   CaseSensitive,
   RefreshCw,
   X,
+  FileCode,
+  Tag,
 } from 'lucide-react';
 import {
   ActiveDiscoveryIcon,
@@ -36,8 +38,17 @@ import { Progress } from '@/components/ui/progress';
 import { LoadingState } from './shared/LoadingState';
 import { CopyButton } from './shared/CopyButton';
 import { cn } from '@/lib/utils';
-import { COLORS } from '../constants/colors';
 import { LOGIC_MODULE_TYPES } from '../constants/logic-module-types';
+import {
+  parseAlertThresholds,
+  ALERT_LEVEL_TEXT_STYLES,
+  type AlertLevel,
+} from '@/shared/alert-threshold-utils';
+import {
+  WarningAlertIcon,
+  ErrorAlertIcon,
+  CriticalAlertIcon,
+} from '../constants/icons';
 import { buildMonacoOptions, getMonacoTheme } from '@/editor/utils/monaco-settings';
 
 import '../monaco-loader';
@@ -53,6 +64,13 @@ const ALERT_FOR_NO_DATA_LABELS: Record<number, string> = {
   2: 'Trigger warning alert',
   3: 'Trigger error alert',
   4: 'Trigger critical alert',
+};
+
+// Alert level icon components
+const ALERT_LEVEL_ICONS: Record<AlertLevel, React.ComponentType<{ className?: string }>> = {
+  warning: WarningAlertIcon,
+  error: ErrorAlertIcon,
+  critical: CriticalAlertIcon,
 };
 
 function formatPollInterval(seconds?: number): string {
@@ -76,62 +94,6 @@ function formatIntervalDetail(
   return `${interval} polls (~${minuteLabel})`;
 }
 
-type AlertLevel = 'warning' | 'error' | 'critical';
-
-const ALERT_LEVEL_LABELS: Record<AlertLevel, string> = {
-  warning: 'Warning',
-  error: 'Error',
-  critical: 'Critical',
-};
-
-const ALERT_LEVEL_STYLES: Record<AlertLevel, string> = {
-  warning: COLORS.WARNING_STRONG.text,
-  error: COLORS.ERROR_STRONG.text,
-  critical: COLORS.CRITICAL_STRONG.text,
-};
-
-function parseAlertThresholds(expression: string | undefined): Array<{ level: AlertLevel; operator: string; value: number }> | null {
-  if (!expression?.trim()) return null;
-  const tokens = expression.trim().split(/\s+/);
-  if (tokens.length < 2) return null;
-
-  const operator = tokens[0];
-  const values = tokens.slice(1).map((value) => Number(value)).filter((value) => !Number.isNaN(value));
-  if (values.length === 0) return null;
-
-  const thresholds: Array<{ level: AlertLevel; operator: string; value: number }> = [];
-
-  if (values.length === 1) {
-    thresholds.push({ level: 'warning', operator, value: values[0] });
-    return thresholds;
-  }
-
-  if (values.length === 2) {
-    const [warningValue, errorValue] = values;
-    if (warningValue === errorValue) {
-      thresholds.push({ level: 'error', operator, value: errorValue });
-      return thresholds;
-    }
-    thresholds.push({ level: 'warning', operator, value: warningValue });
-    thresholds.push({ level: 'error', operator, value: errorValue });
-    return thresholds;
-  }
-
-  const [warningValue, errorValue, criticalValue] = values;
-  if (errorValue === criticalValue && warningValue !== errorValue) {
-    thresholds.push({ level: 'warning', operator, value: warningValue });
-    thresholds.push({ level: 'critical', operator, value: errorValue });
-    return thresholds;
-  }
-  if (warningValue === errorValue && errorValue === criticalValue) {
-    thresholds.push({ level: 'critical', operator, value: criticalValue });
-    return thresholds;
-  }
-  thresholds.push({ level: 'warning', operator, value: warningValue });
-  thresholds.push({ level: 'error', operator, value: errorValue });
-  thresholds.push({ level: 'critical', operator, value: criticalValue });
-  return thresholds;
-}
 
 function dedupeLineHighlights(matches: ScriptMatchRange[]): ScriptMatchRange[] {
   const seen = new Set<number>();
@@ -184,6 +146,7 @@ export function LogicModuleSearch() {
   const collectionDecorationsRef = useRef<string[]>([]);
 
   const monacoTheme = useMemo(() => getMonacoTheme(preferences), [preferences]);
+  
 
   const previewOptions = useMemo(() => buildMonacoOptions(preferences, {
     readOnly: true,
@@ -206,6 +169,24 @@ export function LogicModuleSearch() {
       setCollapsedGroups({});
     }
   }, [moduleSearchOpen]);
+
+  // Automatic index hygiene: build on first open, refresh if stale (24 hours)
+  useEffect(() => {
+    if (!moduleSearchOpen || !selectedPortalId) return;
+    // Don't auto-refresh if already loading/indexing
+    if (moduleSearchProgress?.stage === 'indexing') return;
+
+    const indexedAt = moduleSearchIndexInfo?.indexedAt;
+    const STALE_THRESHOLD_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+    if (!indexedAt) {
+      // No index exists - build on first open
+      refreshModuleSearchIndex();
+    } else if (Date.now() - indexedAt > STALE_THRESHOLD_MS) {
+      // Index is stale - refresh automatically
+      refreshModuleSearchIndex();
+    }
+  }, [moduleSearchOpen, selectedPortalId, moduleSearchIndexInfo?.indexedAt, moduleSearchProgress?.stage, refreshModuleSearchIndex]);
 
   const groupedScriptResults = useMemo(() => {
     const grouped = new Map<LogicModuleType, ScriptSearchResult[]>();
@@ -452,66 +433,85 @@ export function LogicModuleSearch() {
                 onOpenChange={(open) =>
                   setCollapsedGroups((prev) => ({ ...prev, [type.value]: !open }))
                 }
+                className="border border-border/40 rounded-md bg-card/20 overflow-hidden"
               >
-                <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted/50">
+                <CollapsibleTrigger className="flex w-full items-center justify-between px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted/50 transition-colors">
                   <span className="flex items-center gap-2">
                     {isOpen ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
                     <Icon className="size-3.5" />
                     {type.label}
                   </span>
-                  <Badge variant="outline" className="text-xs">
+                  <Badge variant="secondary" className="text-[10px] h-4 px-1.5 font-normal bg-muted text-muted-foreground">
                     {results.length}
                   </Badge>
                 </CollapsibleTrigger>
-                <CollapsibleContent className="space-y-1 pt-1">
+                <CollapsibleContent className="border-t border-border/40">
                   {results.map((result) => {
                     const isSelected = selectedScriptSearchResult?.module.id === result.module.id;
                     const collectionCount = result.collectionMatches.length;
                     const adCount = result.adMatches.length;
+                    const isNameOnlyMatch = result.nameMatch === true;
                     return (
                       <button
                         key={`${result.module.id}-${result.module.name}`}
                         className={cn(
-                          'w-full text-left rounded-md border border-transparent px-2.5 py-2 transition',
-                          isSelected ? 'bg-accent text-accent-foreground' : 'hover:bg-muted/60'
+                          'w-full text-left px-3 py-2.5 transition-all border-l-2',
+                          isSelected 
+                            ? 'bg-accent/50 border-primary' 
+                            : 'border-transparent hover:bg-muted/30 hover:border-border/50'
                         )}
                         onClick={() => setSelectedScriptSearchResult(result)}
                       >
                         <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <div className="text-sm font-medium truncate">
-                              {result.module.displayName || result.module.name}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1.5">
+                              <div className={cn("text-sm truncate", isSelected ? "font-medium text-foreground" : "font-normal text-foreground/90")}>
+                                {result.module.displayName || result.module.name}
+                              </div>
                             </div>
-                            <div className="text-xs text-muted-foreground font-mono truncate">
+                            <div className="text-xs text-muted-foreground/70 font-mono truncate mt-0.5">
                               {result.module.name}
                             </div>
                           </div>
-                          <div className="flex items-center gap-1">
-                            {adCount > 0 && (
+                          <div className="flex items-center gap-1 shrink-0">
+                            {isNameOnlyMatch ? (
                               <Badge
-                                variant="secondary"
-                                className="text-[10px] flex items-center gap-1"
-                                aria-label={`${adCount} Active Discovery matches`}
+                                variant="outline"
+                                className="text-[9px] h-4 px-1 flex items-center gap-1 border-muted-foreground/30 text-muted-foreground"
+                                aria-label="Matched by module name"
                               >
-                                <ActiveDiscoveryIcon className="size-3" />
-                                {adCount}
+                                <Tag className="size-2.5" />
+                                Name
                               </Badge>
-                            )}
-                            {collectionCount > 0 && (
-                              <Badge
-                                variant="secondary"
-                                className="text-[10px] flex items-center gap-1"
-                                aria-label={`${collectionCount} Collection matches`}
-                              >
-                                <CollectionIcon className="size-3" />
-                                {collectionCount}
-                              </Badge>
+                            ) : (
+                              <>
+                                {adCount > 0 && (
+                                  <Badge
+                                    variant="secondary"
+                                    className="text-[9px] h-4 px-1 flex items-center gap-1 bg-primary/10 text-primary hover:bg-primary/20"
+                                    aria-label={`${adCount} Active Discovery matches`}
+                                  >
+                                    <ActiveDiscoveryIcon className="size-2.5" />
+                                    {adCount}
+                                  </Badge>
+                                )}
+                                {collectionCount > 0 && (
+                                  <Badge
+                                    variant="secondary"
+                                    className="text-[9px] h-4 px-1 flex items-center gap-1 bg-teal-500/10 text-teal-600 hover:bg-teal-500/20"
+                                    aria-label={`${collectionCount} Collection matches`}
+                                  >
+                                    <CollectionIcon className="size-2.5" />
+                                    {collectionCount}
+                                  </Badge>
+                                )}
+                              </>
                             )}
                           </div>
                         </div>
                         {result.module.appliesTo && (
-                          <div className="text-[11px] text-muted-foreground font-mono truncate mt-1">
-                            appliesTo: {result.module.appliesTo}
+                          <div className="text-[10px] text-muted-foreground/50 font-mono truncate mt-1.5">
+                            {result.module.appliesTo}
                           </div>
                         )}
                       </button>
@@ -541,48 +541,55 @@ export function LogicModuleSearch() {
 
     return (
       <div className="space-y-3 p-3">
-        {Array.from(groupedDatapointResults.entries()).map(([key, results]) => {
-          const moduleName = results[0]?.moduleDisplayName || results[0]?.moduleName || 'Datasource';
-          const isOpen = !collapsedGroups[key];
-          return (
-            <Collapsible
-              key={key}
-              open={isOpen}
-              onOpenChange={(open) =>
-                setCollapsedGroups((prev) => ({ ...prev, [key]: !open }))
-              }
-            >
-              <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted/50">
-                <span className="flex items-center gap-2">
-                  {isOpen ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
-                  <DatapointsIcon className="size-3.5" />
-                  {moduleName}
-                </span>
-                <Badge variant="outline" className="text-xs">
-                  {results.length}
-                </Badge>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="space-y-1 pt-1">
-                {results.map((result) => {
-                  const isSelected = selectedDatapointSearchResult?.dataPoint.id === result.dataPoint.id;
-                  return (
-                    <button
-                      key={`${key}-${result.dataPoint.id}`}
-                      className={cn(
-                        'w-full text-left rounded-md border border-transparent px-2.5 py-2 transition',
-                        isSelected ? 'bg-accent text-accent-foreground' : 'hover:bg-muted/60'
-                      )}
-                      onClick={() => setSelectedDatapointSearchResult(result)}
-                    >
-                      <div className="text-sm font-medium truncate">{result.dataPoint.name}</div>
-                      <div className="text-xs text-muted-foreground truncate">{result.dataPoint.description}</div>
-                    </button>
-                  );
-                })}
-              </CollapsibleContent>
-            </Collapsible>
-          );
-        })}
+          {Array.from(groupedDatapointResults.entries()).map(([key, results]) => {
+            const moduleName = results[0]?.moduleDisplayName || results[0]?.moduleName || 'Datasource';
+            const isOpen = !collapsedGroups[key];
+            return (
+              <Collapsible
+                key={key}
+                open={isOpen}
+                onOpenChange={(open) =>
+                  setCollapsedGroups((prev) => ({ ...prev, [key]: !open }))
+                }
+                className="border border-border/40 rounded-md bg-card/20 overflow-hidden"
+              >
+                <CollapsibleTrigger className="flex w-full items-center justify-between px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted/50 transition-colors">
+                  <span className="flex items-center gap-2">
+                    {isOpen ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
+                    <DatapointsIcon className="size-3.5" />
+                    {moduleName}
+                  </span>
+                  <Badge variant="secondary" className="text-[10px] h-4 px-1.5 font-normal bg-muted text-muted-foreground">
+                    {results.length}
+                  </Badge>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="border-t border-border/40">
+                  {results.map((result) => {
+                    const isSelected = selectedDatapointSearchResult?.dataPoint.id === result.dataPoint.id;
+                    return (
+                      <button
+                        key={`${key}-${result.dataPoint.id}`}
+                        className={cn(
+                          'w-full text-left px-3 py-2 transition-all border-l-2',
+                          isSelected 
+                            ? 'bg-accent/50 border-primary' 
+                            : 'border-transparent hover:bg-muted/30 hover:border-border/50'
+                        )}
+                        onClick={() => setSelectedDatapointSearchResult(result)}
+                      >
+                        <div className={cn("text-sm truncate", isSelected ? "font-medium text-foreground" : "font-normal text-foreground/90")}>
+                          {result.dataPoint.name}
+                        </div>
+                        <div className="text-xs text-muted-foreground/70 truncate mt-0.5">
+                          {result.dataPoint.description}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </CollapsibleContent>
+              </Collapsible>
+            );
+          })}
       </div>
     );
   };
@@ -591,15 +598,19 @@ export function LogicModuleSearch() {
     if (moduleSearchMode === 'datapoints') {
       if (!selectedDatapointSearchResult) {
         return (
-          <Empty>
-            <EmptyMedia>
-              <DatapointsIcon className="size-8 text-muted-foreground" />
-            </EmptyMedia>
-            <EmptyHeader>
-              <EmptyTitle>Select a datapoint</EmptyTitle>
-              <EmptyDescription>Pick a result to view datapoint details.</EmptyDescription>
-            </EmptyHeader>
-          </Empty>
+          <div className="flex h-full items-center justify-center p-8 animate-in fade-in duration-300">
+            <Empty className="border-none bg-transparent shadow-none w-full max-w-sm">
+              <EmptyMedia variant="icon" className="mx-auto bg-muted/50 mb-4">
+                <DatapointsIcon className="size-5 text-muted-foreground/70" />
+              </EmptyMedia>
+              <EmptyHeader>
+                <EmptyTitle className="text-base font-medium">Select a datapoint</EmptyTitle>
+                <EmptyDescription className="mx-auto mt-1.5">
+                  Pick a result to view datapoint details
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          </div>
         );
       }
 
@@ -651,14 +662,18 @@ export function LogicModuleSearch() {
                     <span className="text-muted-foreground">Alert Thresholds</span>
                     {alertThresholds ? (
                       <div className="text-right flex flex-wrap justify-end gap-2">
-                        {alertThresholds.map((threshold) => (
-                          <span
-                            key={`${threshold.level}-${threshold.value}-${threshold.operator}`}
-                            className={cn('font-medium', ALERT_LEVEL_STYLES[threshold.level])}
-                          >
-                            {ALERT_LEVEL_LABELS[threshold.level]} {threshold.operator} {threshold.value}
-                          </span>
-                        ))}
+                        {alertThresholds.map((threshold) => {
+                          const AlertIcon = ALERT_LEVEL_ICONS[threshold.level];
+                          return (
+                            <span
+                              key={`${threshold.level}-${threshold.value}-${threshold.operator}`}
+                              className={cn('font-medium flex items-center gap-1', ALERT_LEVEL_TEXT_STYLES[threshold.level])}
+                            >
+                              <AlertIcon className="size-3.5" />
+                              {threshold.operator} {threshold.value}
+                            </span>
+                          );
+                        })}
                       </div>
                     ) : (
                       <span className="text-right text-muted-foreground">No threshold set</span>
@@ -699,15 +714,20 @@ export function LogicModuleSearch() {
 
     if (!selectedScriptSearchResult) {
       return (
-        <Empty>
-          <EmptyMedia>
-            <Search className="size-8 text-muted-foreground" />
-          </EmptyMedia>
-          <EmptyHeader>
-            <EmptyTitle>Select a module</EmptyTitle>
-            <EmptyDescription>Pick a result to preview the matching scripts.</EmptyDescription>
-          </EmptyHeader>
-        </Empty>
+        <div className="flex h-full items-center justify-center p-8 animate-in fade-in duration-300">
+          <Empty className="border-none bg-transparent shadow-none w-full max-w-sm">
+            <EmptyMedia variant="icon" className="mx-auto bg-muted/50 mb-4">
+              <FileCode className="size-5 text-muted-foreground/70" />
+            </EmptyMedia>
+            <EmptyHeader>
+              <EmptyTitle className="text-base font-medium">Search Across All Modules</EmptyTitle>
+              <EmptyDescription className="mx-auto mt-1.5 max-w-xs">
+                Find LogicModules by name or search within script content.
+                Select a result to preview matches.
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        </div>
       );
     }
 
@@ -745,6 +765,15 @@ export function LogicModuleSearch() {
             </div>
           )}
         </div>
+
+        {selectedScriptSearchResult.nameMatch && (
+          <div className="px-4 py-2.5 bg-muted/50 border-b border-border flex items-center gap-2">
+            <Tag className="size-3.5 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">
+              Matched by module name — no script content matches found
+            </span>
+          </div>
+        )}
 
         <div className={`flex-1 flex min-h-0 ${showDualPane ? 'flex-row' : 'flex-col'}`}>
           {hasADScript && (
@@ -991,7 +1020,7 @@ export function LogicModuleSearch() {
                   : ''}
               </span>
               {moduleSearchIndexInfo?.isStale && (
-                <Badge variant="outline" className="text-[10px] text-amber-500 border-amber-500/30">
+                <Badge variant="outline" className="text-[10px] text-yellow-500 border-yellow-500/30">
                   Stale
                 </Badge>
               )}
@@ -1000,10 +1029,10 @@ export function LogicModuleSearch() {
                 size="xs"
                 onClick={refreshModuleSearchIndex}
                 className="gap-1 text-xs"
-                disabled={!selectedPortalId}
+                disabled={!selectedPortalId || moduleSearchProgress?.stage === 'indexing'}
               >
-                <RefreshCw className="size-3" />
-                Refresh index
+                <RefreshCw className={cn('size-3', moduleSearchProgress?.stage === 'indexing' && 'animate-spin')} />
+                {moduleSearchProgress?.stage === 'indexing' ? 'Indexing...' : 'Refresh index'}
               </Button>
             </div>
             {moduleSearchProgress && (
@@ -1032,6 +1061,7 @@ export function LogicModuleSearch() {
                 value={moduleSearchModuleTypes}
                 onValueChange={handleModuleTypesChange}
                 variant="outline"
+                multiple={true}
                 className="w-full justify-start flex-wrap"
               >
                 {LOGIC_MODULE_TYPES.map((type) => {
@@ -1054,8 +1084,8 @@ export function LogicModuleSearch() {
         </div>
 
         <div className="flex-1 flex min-h-0 border-t border-border">
-          <div className="w-96 shrink-0 border-r border-border flex flex-col min-h-0">
-            <div className="px-4 py-2 border-b border-border bg-secondary/20 text-xs text-muted-foreground flex items-center justify-between">
+          <div className="w-96 shrink-0 border-r border-border flex flex-col min-h-0 bg-muted/5">
+            <div className="px-4 py-2 border-b border-border bg-background text-xs text-muted-foreground flex items-center justify-between">
               <span>
                 {moduleSearchMode === 'scripts'
                   ? `${moduleScriptSearchResults.length} module${moduleScriptSearchResults.length === 1 ? '' : 's'}`

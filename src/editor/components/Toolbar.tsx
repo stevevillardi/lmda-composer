@@ -1,23 +1,18 @@
 import { useMemo, useState } from 'react';
-import { 
-  Play, 
-  type LucideIcon,
-  Send,
-  Loader2,
-  StopCircle,
-  PanelRightClose,
-  PanelRightOpen,
-  Upload,
-  History,
-  Settings,
-} from 'lucide-react';
 import {
   WarningIcon,
-  TerminalIcon,
-  TargetIcon,
-  ActivityIcon,
-  LayersIcon,
+  RunIcon,
+  SendIcon,
+  LoadingIcon,
+  StopIcon,
+  SidebarCloseIcon,
+  SidebarOpenIcon,
+  CommitIcon,
+  HistoryIcon,
+  SettingsIcon,
+  ImportIcon,
 } from '../constants/icons';
+import { MODE_ITEMS } from '../constants/mode-config';
 import { toast } from 'sonner';
 import { useEditorStore } from '../stores/editor-store';
 import { DEFAULT_GROOVY_TEMPLATE, DEFAULT_POWERSHELL_TEMPLATE } from '../config/script-templates';
@@ -52,19 +47,9 @@ import { ContextDropdown } from './ContextDropdown';
 import { ActionsDropdown } from './ActionsDropdown';
 import { getPortalBindingStatus } from '../utils/portal-binding';
 import { normalizeMode } from '../utils/mode-utils';
+import { normalizeScript } from '../stores/helpers/slice-helpers';
+import { hasAssociatedFileHandle } from '../utils/document-helpers';
 
-interface ModeItem {
-  value: ScriptMode;
-  label: string;
-  icon: LucideIcon;
-}
-
-const MODE_ITEMS: ModeItem[] = [
-  { value: 'freeform', label: 'Freeform', icon: TerminalIcon },
-  { value: 'ad', label: 'Active Discovery', icon: TargetIcon },
-  { value: 'collection', label: 'Collection', icon: ActivityIcon },
-  { value: 'batchcollection', label: 'Batch Collection', icon: LayersIcon },
-];
 
 export function Toolbar() {
   const {
@@ -96,12 +81,19 @@ export function Toolbar() {
     setModuleLineageDialogOpen,
     isFetchingLineage,
     setModuleDetailsDialogOpen,
+    // Pull latest
+    canPullLatest,
+    setPullLatestDialogOpen,
+    isPullingLatest,
+    // Module details
+    moduleDetailsDraftByTabId,
   } = useEditorStore();
 
   // Get active tab data
   const activeTab = useMemo(() => {
     return tabs.find(t => t.id === activeTabId) ?? null;
   }, [tabs, activeTabId]);
+  
 
   const portalBinding = useMemo(() => {
     if (!activeTab || activeTab.source?.type !== 'module') return null;
@@ -117,13 +109,19 @@ export function Toolbar() {
   const isWindowsCollector = selectedCollector?.arch?.toLowerCase().includes('win') ?? true;
   const powerShellBlocked = language === 'powershell' && !isWindowsCollector;
   
-  // Check if content has been modified from default templates
-  const isModified = useMemo(() => {
+  // Check if content has been modified from default templates (only for scratch files)
+  // For saved local files, we don't need to warn since the file is already persisted
+  const shouldWarnOnLanguageSwitch = useMemo(() => {
     if (!activeTab) return false;
-    const normalize = (s: string) => s.trim().replace(/\r\n/g, '\n');
-    const content = normalize(activeTab.content);
-    const defaultGroovy = normalize(DEFAULT_GROOVY_TEMPLATE);
-    const defaultPs = normalize(DEFAULT_POWERSHELL_TEMPLATE);
+    
+    // If the tab has a file handle (saved local file), don't warn - the file is already saved
+    // Switching language will just disconnect the handle and the original file remains
+    if (hasAssociatedFileHandle(activeTab)) return false;
+    
+    // For scratch files, check if content differs from default templates
+    const content = normalizeScript(activeTab.content);
+    const defaultGroovy = normalizeScript(DEFAULT_GROOVY_TEMPLATE);
+    const defaultPs = normalizeScript(DEFAULT_POWERSHELL_TEMPLATE);
     return content !== defaultGroovy && content !== defaultPs;
   }, [activeTab]);
 
@@ -134,11 +132,11 @@ export function Toolbar() {
   const handleLanguageClick = (newLanguage: ScriptLanguage) => {
     if (newLanguage === language) return;
     
-    if (isModified) {
-      // Show confirmation dialog if content has been modified
+    if (shouldWarnOnLanguageSwitch) {
+      // Show confirmation dialog if content has been modified from default template
       setPendingLanguage(newLanguage);
     } else {
-      // Default content, switch directly
+      // Default content or saved file, switch directly
       setLanguage(newLanguage);
     }
   };
@@ -172,6 +170,13 @@ export function Toolbar() {
   // Check if active tab is a module tab
   const isModuleTab = activeTab?.source?.type === 'module';
   const hasLineage = !!activeTab?.source?.lineageId;
+  
+  // Get dirty field count for module details
+  const moduleDetailsDirtyCount = useMemo(() => {
+    if (!activeTabId) return 0;
+    const draft = moduleDetailsDraftByTabId[activeTabId];
+    return draft?.dirtyFields?.size ?? 0;
+  }, [activeTabId, moduleDetailsDraftByTabId]);
   
   // Check if we can commit module changes (has changes and portal selected)
   const canCommit = activeTabId && canCommitModule(activeTabId);
@@ -253,19 +258,15 @@ export function Toolbar() {
           <Button
             onClick={() => executeApiRequest(activeTabId ?? undefined)}
             disabled={!canSendApi}
-            size="sm"
+            size="toolbar"
             variant="execute"
-            className={cn(
-              "gap-1.5 text-xs",
-              SIZES.BUTTON_TOOLBAR,
-              "px-4 font-medium"
-            )}
+            className="px-4 font-medium"
             aria-label={isExecutingApi ? 'Sending request' : 'Send request'}
           >
             {isExecutingApi ? (
-              <Loader2 className={cn(SIZES.ICON_MEDIUM, "animate-spin")} />
+              <LoadingIcon className={SIZES.ICON_MEDIUM} />
             ) : (
-              <Send className={SIZES.ICON_MEDIUM} />
+              <SendIcon className={SIZES.ICON_MEDIUM} />
             )}
             {isExecutingApi ? 'Sending...' : 'Send Request'}
           </Button>
@@ -274,7 +275,7 @@ export function Toolbar() {
               render={
                 <Button
                   variant={rightSidebarOpen ? 'secondary' : 'ghost'}
-                  size="icon-sm"
+                  size="toolbar-icon"
                   onClick={() => {
                     setRightSidebarOpen(!rightSidebarOpen);
                   }}
@@ -283,9 +284,9 @@ export function Toolbar() {
                   aria-pressed={rightSidebarOpen}
                 >
                   {rightSidebarOpen ? (
-                    <PanelRightClose className={SIZES.ICON_MEDIUM} />
+                    <SidebarCloseIcon className={SIZES.ICON_MEDIUM} />
                   ) : (
-                    <PanelRightOpen className={SIZES.ICON_MEDIUM} />
+                    <SidebarOpenIcon className={SIZES.ICON_MEDIUM} />
                   )}
                 </Button>
               }
@@ -321,78 +322,94 @@ export function Toolbar() {
         <Label className="text-xs text-muted-foreground whitespace-nowrap hidden lg:block">
           Language:
         </Label>
-        <div 
-          className="flex items-center rounded-md border border-input bg-background/50 p-0.5 gap-0.5"
-          role="group"
-          aria-label="Script language selector"
-        >
-          <Button
-            variant={language === 'groovy' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => handleLanguageClick('groovy')}
-            disabled={tabs.length === 0}
-            className={cn(
-              SIZES.BUTTON_SIDEBAR,
-              "px-3 text-xs font-medium",
-              language === 'groovy' && "shadow-sm"
-            )}
-            aria-pressed={language === 'groovy'}
-            aria-label="Groovy language"
-          >
-            Groovy
-          </Button>
-          <Button
-            variant={language === 'powershell' ? 'default' : 'ghost'}
-            size="sm"
-            onClick={() => handleLanguageClick('powershell')}
-            disabled={tabs.length === 0}
-            className={cn(
-              SIZES.BUTTON_SIDEBAR,
-              "px-3 text-xs font-medium",
-              language === 'powershell' && "shadow-sm"
-            )}
-            aria-pressed={language === 'powershell'}
-            aria-label="PowerShell language"
-          >
-            PowerShell
-          </Button>
-        </div>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <div 
+                className="flex items-center rounded-md border border-input bg-background/50 p-0.5 gap-0.5"
+                role="group"
+                aria-label="Script language selector"
+              >
+                <Button
+                  variant={language === 'groovy' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => handleLanguageClick('groovy')}
+                  disabled={tabs.length === 0}
+                  className={cn(
+                    SIZES.BUTTON_SIDEBAR,
+                    "px-3 text-xs font-medium",
+                    language === 'groovy' && "shadow-sm"
+                  )}
+                  aria-pressed={language === 'groovy'}
+                  aria-label="Groovy language"
+                >
+                  Groovy
+                </Button>
+                <Button
+                  variant={language === 'powershell' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => handleLanguageClick('powershell')}
+                  disabled={tabs.length === 0}
+                  className={cn(
+                    SIZES.BUTTON_SIDEBAR,
+                    "px-3 text-xs font-medium",
+                    language === 'powershell' && "shadow-sm"
+                  )}
+                  aria-pressed={language === 'powershell'}
+                  aria-label="PowerShell language"
+                >
+                  PowerShell
+                </Button>
+              </div>
+            }
+          />
+          <TooltipContent>Select script language</TooltipContent>
+        </Tooltip>
 
         {/* Mode Selector */}
         <div className="flex items-center gap-2">
           <Label className="text-xs text-muted-foreground whitespace-nowrap hidden lg:block">
             Mode:
           </Label>
-          <Select 
-            value={mode} 
-            onValueChange={(value) => setMode(value as ScriptMode)}
-            items={MODE_ITEMS}
-            disabled={tabs.length === 0}
-          >
-            <SelectTrigger size="sm" className="w-[180px] text-xs" disabled={tabs.length === 0} aria-label="Script execution mode">
-              <div className="flex items-center gap-2">
-                {(() => {
-                  const selectedMode = MODE_ITEMS.find(m => m.value === mode);
-                  const Icon = selectedMode?.icon;
-                  return Icon ? <Icon className="size-4 shrink-0" /> : null;
-                })()}
-                <SelectValue />
-              </div>
-            </SelectTrigger>
-            <SelectContent align="start">
-              {MODE_ITEMS.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <SelectItem key={item.value} value={item.value}>
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Select 
+                  value={mode} 
+                  onValueChange={(value) => setMode(value as ScriptMode)}
+                  items={MODE_ITEMS}
+                  disabled={tabs.length === 0}
+                >
+                  <SelectTrigger size="sm" className="w-[180px] text-xs" disabled={tabs.length === 0} aria-label="Script execution mode">
                     <div className="flex items-center gap-2">
-                      <Icon className="size-4" />
-                      <span>{item.label}</span>
+                      {(() => {
+                        const selectedMode = MODE_ITEMS.find(m => m.value === mode);
+                        const Icon = selectedMode?.icon;
+                        return Icon ? <Icon className="size-4 shrink-0" /> : null;
+                      })()}
+                      <SelectValue />
                     </div>
-                  </SelectItem>
-                );
-              })}
-            </SelectContent>
-          </Select>
+                  </SelectTrigger>
+                  <SelectContent align="start">
+                    {MODE_ITEMS.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <SelectItem key={item.value} value={item.value}>
+                          <div className="flex items-center gap-2">
+                            <Icon className="size-4" />
+                            <span>{item.label}</span>
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              }
+            />
+            <TooltipContent>
+              {tabs.length === 0 ? 'Open a file to select mode' : 'Select execution mode'}
+            </TooltipContent>
+          </Tooltip>
         </div>
       </div>
 
@@ -406,8 +423,8 @@ export function Toolbar() {
             <TooltipTrigger
               render={
                 <Button
-                  variant="outline"
-                  size="sm"
+                  variant="toolbar-outline"
+                  size="toolbar"
                   onClick={async () => {
                     if (!activeTabId) return;
                     try {
@@ -426,13 +443,12 @@ export function Toolbar() {
                     }
                   }}
                   disabled={isFetchingLineage || !isPortalBoundActive}
-                  className={cn("gap-1.5 text-xs", SIZES.BUTTON_TOOLBAR)}
                   aria-label="View module lineage"
                 >
                   {isFetchingLineage ? (
-                    <Loader2 className={cn(SIZES.ICON_MEDIUM, "animate-spin")} />
+                    <LoadingIcon className={SIZES.ICON_MEDIUM} />
                   ) : (
-                    <History className={SIZES.ICON_MEDIUM} />
+                    <HistoryIcon className={SIZES.ICON_MEDIUM} />
                   )}
                   {isFetchingLineage ? 'Loading...' : 'View Lineage'}
                 </Button>
@@ -454,66 +470,102 @@ export function Toolbar() {
             <TooltipTrigger
               render={
                 <Button
-                  variant="outline"
-                  size="sm"
+                  variant="toolbar-outline"
+                  size="toolbar"
                   onClick={() => {
                     setModuleDetailsDialogOpen(true);
                   }}
                   disabled={!isPortalBoundActive}
-                  className={cn("gap-1.5 text-xs", SIZES.BUTTON_TOOLBAR)}
                   aria-label="Open module details"
                 >
-                  <Settings className={SIZES.ICON_MEDIUM} />
+                  <SettingsIcon className={SIZES.ICON_MEDIUM} />
                   Module Details
+                  {moduleDetailsDirtyCount > 0 && (
+                    <span 
+                      className="ml-1.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center text-[10px] font-semibold rounded-full bg-yellow-500 text-white"
+                      aria-label={`${moduleDetailsDirtyCount} unsaved changes`}
+                    >
+                      {moduleDetailsDirtyCount}
+                    </span>
+                  )}
                 </Button>
               }
             />
             <TooltipContent>
               {!isPortalBoundActive
                 ? 'Portal mismatch: switch to the bound portal to edit details'
-                : 'Edit module metadata (name, description, appliesTo, etc.)'}
+                : moduleDetailsDirtyCount > 0
+                  ? `Edit module metadata (${moduleDetailsDirtyCount} pending change${moduleDetailsDirtyCount !== 1 ? 's' : ''})`
+                  : 'Edit module metadata (name, description, appliesTo, etc.)'}
             </TooltipContent>
           </Tooltip>
         )}
 
-        {/* Commit Button - shown for module tabs, disabled unless there are changes */}
+
+        {/* Pull Latest Button - shown for module tabs that can pull */}
+        {isModuleTab && activeTabId && canPullLatest(activeTabId) && (
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant="toolbar-outline"
+                  size="toolbar"
+                  onClick={() => {
+                    if (!activeTabId) return;
+                    setPullLatestDialogOpen(true);
+                  }}
+                  disabled={isPullingLatest}
+                  aria-label="Pull latest from portal"
+                >
+                  {isPullingLatest ? (
+                    <LoadingIcon className={SIZES.ICON_MEDIUM} />
+                  ) : (
+                    <ImportIcon className={SIZES.ICON_MEDIUM} />
+                  )}
+                  {isPullingLatest ? 'Pulling...' : 'Pull'}
+                </Button>
+              }
+            />
+            <TooltipContent>
+              Pull latest version from LogicMonitor portal
+            </TooltipContent>
+          </Tooltip>
+        )}
+
+        {/* Push to Portal Button - shown for module tabs, disabled unless there are changes */}
         {isModuleTab && (
           <Tooltip>
             <TooltipTrigger
               render={
                 <Button
                   variant="commit"
-                  size="sm"
+                  size="toolbar"
                   onClick={async () => {
                     if (!activeTabId) return;
                     try {
                       await fetchModuleForCommit(activeTabId);
                       setModuleCommitConfirmationOpen(true);
                     } catch (error) {
-                      toast.error('Failed to prepare commit', {
+                      toast.error('Failed to prepare push', {
                         description: error instanceof Error ? error.message : 'Unknown error',
                       });
                     }
                   }}
                   disabled={!canCommit}
-                  className={cn(
-                    "gap-1.5 text-xs",
-                    SIZES.BUTTON_TOOLBAR,
-                    "px-3 font-medium"
-                  )}
-                  aria-label="Commit changes to module"
+                  className="px-3 font-medium"
+                  aria-label="Push changes to LogicMonitor portal"
                 >
-                  <Upload className={SIZES.ICON_MEDIUM} />
-                  Commit
+                  <CommitIcon className={SIZES.ICON_MEDIUM} />
+                  Push to Portal
                 </Button>
               }
             />
             <TooltipContent>
               {!isPortalBoundActive
-                ? 'Portal mismatch: switch to the bound portal to commit'
+                ? 'Portal mismatch: switch to the bound portal to push'
                 : canCommit
-                  ? 'Commit changes back to LogicMonitor module'
-                  : 'No changes to commit'}
+                  ? 'Push changes to LogicMonitor portal'
+                  : 'No changes to push'}
             </TooltipContent>
           </Tooltip>
         )}
@@ -528,19 +580,15 @@ export function Toolbar() {
         <Button
           onClick={handleRunClick}
           disabled={!canExecute}
-          size="sm"
+          size="toolbar"
           variant="execute"
-          className={cn(
-            "gap-1.5 text-xs",
-            SIZES.BUTTON_TOOLBAR,
-            "px-4 font-medium"
-          )}
+          className="px-4 font-medium"
           aria-label={isExecuting ? 'Running script' : 'Run script'}
         >
           {isExecuting ? (
-            <Loader2 className={cn(SIZES.ICON_MEDIUM, "animate-spin")} />
+            <LoadingIcon className={SIZES.ICON_MEDIUM} />
           ) : (
-            <Play className={SIZES.ICON_MEDIUM} />
+            <RunIcon className={SIZES.ICON_MEDIUM} />
           )}
           {isExecuting ? 'Running...' : 'Run Script'}
         </Button>
@@ -552,12 +600,11 @@ export function Toolbar() {
               render={
                 <Button
                   variant="destructive"
-                  size="sm"
+                  size="toolbar"
                   onClick={() => setCancelDialogOpen(true)}
-                  className={cn("gap-1.5 text-xs", SIZES.BUTTON_TOOLBAR)}
                   aria-label="Cancel script execution"
                 >
-                  <StopCircle className={SIZES.ICON_MEDIUM} />
+                  <StopIcon className={SIZES.ICON_MEDIUM} />
                   Cancel
                 </Button>
               }
@@ -574,7 +621,7 @@ export function Toolbar() {
             render={
               <Button
                 variant={rightSidebarOpen ? 'secondary' : 'ghost'}
-                size="icon-sm"
+                size="toolbar-icon"
                 onClick={() => {
                   setRightSidebarOpen(!rightSidebarOpen);
                 }}
@@ -583,9 +630,9 @@ export function Toolbar() {
                 aria-pressed={rightSidebarOpen}
               >
                 {rightSidebarOpen ? (
-                  <PanelRightClose className={SIZES.ICON_MEDIUM} />
+                  <SidebarCloseIcon className={SIZES.ICON_MEDIUM} />
                 ) : (
-                  <PanelRightOpen className={SIZES.ICON_MEDIUM} />
+                  <SidebarOpenIcon className={SIZES.ICON_MEDIUM} />
                 )}
               </Button>
             }
@@ -604,7 +651,7 @@ export function Toolbar() {
       <AlertDialog open={pendingLanguage !== null} onOpenChange={(open) => !open && cancelLanguageSwitch()}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogMedia className="bg-amber-500/10">
+            <AlertDialogMedia className="bg-yellow-500/10">
               <WarningIcon className="size-8" />
             </AlertDialogMedia>
             <AlertDialogTitle>
@@ -635,7 +682,7 @@ export function Toolbar() {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogMedia className="bg-destructive/10">
-              <StopCircle className="size-8 text-destructive" />
+              <StopIcon className="size-8 text-destructive" />
             </AlertDialogMedia>
             <AlertDialogTitle>Cancel Script Execution?</AlertDialogTitle>
             <AlertDialogDescription>

@@ -20,8 +20,8 @@ import { buildMonacoOptions, getMonacoTheme } from '../utils/monaco-settings';
 import '../monaco-loader';
 
 const LANGUAGE_COLORS: Record<string, string> = {
-  groovy: 'bg-orange-500/10 text-orange-500 border-orange-500/20',
-  powershell: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
+  groovy: 'bg-yellow-700/10 text-yellow-700 border-yellow-700/20',
+  powershell: 'bg-cyan-500/10 text-cyan-500 border-cyan-500/20',
   both: 'bg-purple-500/10 text-purple-500 border-purple-500/20',
 };
 
@@ -116,7 +116,7 @@ export function SnippetPreviewDialog({
         </DialogHeader>
 
         {/* Code preview */}
-        <div className="flex-1 min-h-0 border rounded-lg bg-secondary/30 overflow-hidden">
+        <div className="flex-1 min-h-0 border-y border-border bg-background/50 overflow-hidden">
           <Editor
             height="100%"
             language={monacoLanguage === 'powershell' ? 'powershell' : 'groovy'}
@@ -131,18 +131,18 @@ export function SnippetPreviewDialog({
           />
         </div>
 
-        <DialogFooter className="shrink-0">
+        <DialogFooter className="shrink-0 p-4 border-t border-border bg-muted/20">
           {!isCompatible && (
-            <p className="text-xs text-amber-500 mr-auto">
-              This snippet is for {snippet.language === 'groovy' ? 'Groovy' : 'PowerShell'} only.
-              Switch language to insert it.
+            <p className="text-xs text-yellow-500 mr-auto flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-yellow-500 block" />
+              Snippet incompatible with current language ({snippet.language === 'groovy' ? 'Groovy' : 'PowerShell'} only)
             </p>
           )}
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={onClose} size="sm">
             Close
           </Button>
-          <Button onClick={handleInsert} disabled={!isCompatible}>
-            <Play className="size-4 mr-2" />
+          <Button onClick={handleInsert} disabled={!isCompatible} size="sm">
+            <Play className="size-3.5 mr-1.5" />
             {snippet.category === 'template' ? 'Use Template' : 'Insert Pattern'}
           </Button>
         </DialogFooter>

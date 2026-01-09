@@ -30,6 +30,107 @@ LMDA Composer follows semantic versioning (SemVer):
 
 ---
 
+## v1.4.0 — Datapoints & Config Checks Editing
+
+<div style="display: flex; align-items: center; gap: 0.75rem; margin: 1rem 0;">
+  <Badge text="v1.4.0" variant="note" />
+  <span style="font-size: 0.875rem; color: var(--sl-color-gray-3);">January 2026</span>
+</div>
+
+This release adds full editing capabilities for DataSource datapoints and ConfigSource config checks directly within LMDA Composer.
+
+### Datapoint Editing
+
+<CardGrid>
+  <FeatureCard title="Full CRUD Operations" icon="edit" color="blue">
+    Add, edit, and delete datapoints for DataSource modules without leaving the editor.
+  </FeatureCard>
+  <FeatureCard title="Normal & Complex Types" icon="layers" color="purple">
+    Support for both standard collection datapoints and expression-based complex datapoints.
+  </FeatureCard>
+  <FeatureCard title="Alert Thresholds" icon="bell" color="orange">
+    Configure Warning, Error, and Critical thresholds with visual severity indicators.
+  </FeatureCard>
+  <FeatureCard title="Rich Table View" icon="document" color="green">
+    Expandable rows showing description, alert messages, and no-data settings.
+  </FeatureCard>
+</CardGrid>
+
+### Config Check Editing
+
+<CardGrid>
+  <FeatureCard title="Five Check Types" icon="check-circle" color="blue">
+    Any Change, Groovy Script, Fetch Failure, Missing Field, and Value Check.
+  </FeatureCard>
+  <FeatureCard title="Change Exclusions" icon="filter" color="purple">
+    Multi-value inputs for regex patterns, line prefixes, and contains strings.
+  </FeatureCard>
+  <FeatureCard title="Groovy Script Editor" icon="code" color="green">
+    Full script editing for custom validation logic.
+  </FeatureCard>
+  <FeatureCard title="Alert Configuration" icon="settings" color="orange">
+    Severity levels, clear on acknowledgement, and auto-clear intervals.
+  </FeatureCard>
+</CardGrid>
+
+### UI Enhancements
+
+<CardGrid>
+  <FeatureCard title="Severity Icons" icon="warning" color="yellow">
+    Distinct icons for Warning (circle), Error (triangle), and Critical (octagon) alerts.
+  </FeatureCard>
+  <FeatureCard title="Threshold Badges" icon="tag" color="cyan">
+    Color-coded alert threshold display matching LogicMonitor's visual style.
+  </FeatureCard>
+  <FeatureCard title="Change Indicators" icon="git-branch" color="green">
+    Visual indicators for added, modified, and removed items in the commit dialog.
+  </FeatureCard>
+  <FeatureCard title="Improved Diffing" icon="code" color="purple">
+    Pre-sorted arrays and consistent object key ordering for accurate change detection.
+  </FeatureCard>
+</CardGrid>
+
+### Keyboard & Navigation
+
+<CardGrid>
+  <FeatureCard title="Shortcut Chords" icon="keyboard" color="blue">
+    Cmd+K chord pattern avoids browser extension keyboard conflicts.
+  </FeatureCard>
+  <FeatureCard title="Empty State Status Bar" icon="information" color="purple">
+    Shows portal context and connection status when no tabs are open.
+  </FeatureCard>
+  <FeatureCard title="Documentation Links" icon="book" color="green">
+    In-app links to full documentation from the status bar help popup.
+  </FeatureCard>
+</CardGrid>
+
+### File Management
+
+<CardGrid>
+  <FeatureCard title="Open Module Directory" icon="folder" color="blue">
+    Open saved module folders directly with Cmd+K, F to restore module binding.
+  </FeatureCard>
+  <FeatureCard title="Save Modules to Disk" icon="save" color="green">
+    Portal-bound modules can be saved with metadata (module.json) for offline work.
+  </FeatureCard>
+  <FeatureCard title="Git-Friendly Workflow" icon="git-branch" color="purple">
+    Module directory structure supports version control for team collaboration.
+  </FeatureCard>
+  <FeatureCard title="Duplicate Handle Fix" icon="check-circle" color="cyan">
+    Fixed issues with duplicate file handles when reopening the same filename.
+  </FeatureCard>
+</CardGrid>
+
+### API Explorer
+
+<CardGrid>
+  <FeatureCard title="API Welcome Screen" icon="rocket" color="orange">
+    New welcome screen with quick actions for API exploration and endpoint discovery.
+  </FeatureCard>
+</CardGrid>
+
+---
+
 ## v1.3.5 — Initial Public Release
 
 <div style="display: flex; align-items: center; gap: 0.75rem; margin: 1rem 0;">

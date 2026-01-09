@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Search, Plus, Code2, FileText, Edit2, Trash2, Play, Eye } from 'lucide-react';
+import { Search, Plus, Code2, FileText, Edit2, Trash2, Play, Eye, ChevronDown, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEditorStore } from '../stores/editor-store';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { Empty, EmptyMedia, EmptyHeader, EmptyTitle, EmptyDescription } from '@/components/ui/empty';
 import { cn } from '@/lib/utils';
 import { BUILT_IN_SNIPPETS } from '../data/built-in-snippets';
@@ -23,8 +24,8 @@ import { SnippetPreviewDialog } from './SnippetPreviewDialog';
 import { ConfirmationDialog } from './ConfirmationDialog';
 
 const LANGUAGE_COLORS: Record<string, string> = {
-  groovy: 'bg-orange-500/10 text-orange-500 border-orange-500/20',
-  powershell: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
+  groovy: 'bg-yellow-700/10 text-yellow-700 border-yellow-700/20',
+  powershell: 'bg-cyan-500/10 text-cyan-500 border-cyan-500/20',
   both: 'bg-purple-500/10 text-purple-500 border-purple-500/20',
 };
 
@@ -98,6 +99,10 @@ export function SnippetLibraryPanel() {
   const [previewSnippet, setPreviewSnippet] = useState<Snippet | null>(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [snippetToDelete, setSnippetToDelete] = useState<Snippet | null>(null);
+  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({
+    template: true,
+    pattern: true,
+  });
 
   const handleInsert = (snippet: Snippet) => {
     insertSnippet(snippet);
@@ -132,6 +137,10 @@ export function SnippetLibraryPanel() {
     }
   };
 
+  const toggleGroup = (type: string) => {
+    setCollapsedGroups((prev) => ({ ...prev, [type]: !prev[type] }));
+  };
+
   const renderSnippetCard = (snippet: Snippet) => {
     const isCompatible =
       snippet.language === 'both' || snippet.language === currentLanguage;
@@ -146,148 +155,116 @@ export function SnippetLibraryPanel() {
     };
 
     return (
-      <div
+      <button
         key={snippet.id}
         className={cn(
-          'group p-3 rounded-lg border transition-colors',
+          'w-full text-left px-3 py-2.5 transition-all border-l-2 group relative',
           isCompatible
-            ? 'border-border hover:border-primary/50 hover:bg-secondary/30 focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-1'
-            : 'border-border/50 opacity-60'
+            ? 'border-transparent hover:bg-muted/30 hover:border-l-primary'
+            : 'border-transparent opacity-60 bg-muted/20 cursor-not-allowed'
         )}
-        tabIndex={isCompatible ? 0 : -1}
+        onClick={() => isCompatible && handleInsert(snippet)}
+        disabled={!isCompatible}
         onKeyDown={handleKeyDown}
-        role="button"
         aria-label={`${snippet.name} snippet${isCompatible ? '' : ' (incompatible language)'}`}
-        aria-disabled={!isCompatible}
       >
-        <div className="flex items-start justify-between gap-2">
+        <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              {snippet.category === 'template' ? (
-                <FileText className="size-3.5 text-muted-foreground shrink-0" />
-              ) : (
-                <Code2 className="size-3.5 text-muted-foreground shrink-0" />
-              )}
-              <span className="text-sm font-medium truncate">{snippet.name}</span>
+              <span className={cn("text-sm truncate font-medium", isCompatible ? "text-foreground" : "text-muted-foreground")}>
+                {snippet.name}
+              </span>
+              <div className="flex items-center gap-1.5">
+                <Badge
+                  variant="outline"
+                  className={cn('text-[9px] h-4 px-1 font-normal bg-opacity-10 border-opacity-20', LANGUAGE_COLORS[snippet.language])}
+                >
+                  {snippet.language === 'both' ? 'Both' : snippet.language}
+                </Badge>
+                {!snippet.isBuiltIn && (
+                  <Badge variant="secondary" className="text-[9px] h-4 px-1 font-normal">
+                    User
+                  </Badge>
+                )}
+              </div>
             </div>
-            <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
+            <p className="text-xs text-muted-foreground line-clamp-1">
               {snippet.description}
             </p>
-            <div className="flex items-center gap-1.5 flex-wrap">
-              <Badge
-                variant="outline"
-                className={cn('text-[10px]', LANGUAGE_COLORS[snippet.language])}
-              >
-                {snippet.language === 'both' ? 'Both' : snippet.language}
-              </Badge>
-              {!snippet.isBuiltIn && (
-                <Badge variant="outline" className="text-[10px]">
-                  User
-                </Badge>
-              )}
-            </div>
           </div>
-          <div className="flex items-center gap-1 shrink-0">
-            {!snippet.isBuiltIn && (
-              <>
-                <Tooltip>
-                  <TooltipTrigger
-                    render={
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        className="opacity-0 group-hover:opacity-100"
-                        onClick={() => handleEdit(snippet)}
-                      >
-                        <Edit2 className="size-3" />
-                      </Button>
-                    }
-                  />
-                  <TooltipContent>Edit snippet</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger
-                    render={
-                      <Button
-                        variant="ghost"
-                        size="icon-xs"
-                        className="opacity-0 group-hover:opacity-100 text-destructive hover:text-destructive"
-                        onClick={() => handleDeleteClick(snippet)}
-                        aria-label={`Delete snippet ${snippet.name}`}
-                      >
-                        <Trash2 className="size-3" />
-                      </Button>
-                    }
-                  />
-                  <TooltipContent>Delete snippet</TooltipContent>
-                </Tooltip>
-              </>
-            )}
-            {/* Preview button */}
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <Button
-                    variant="ghost"
-                    size="icon-xs"
-                    className="opacity-0 group-hover:opacity-100"
-                    onClick={() => handlePreview(snippet)}
-                  >
-                    <Eye className="size-3" />
-                  </Button>
-                }
-              />
-              <TooltipContent>Preview snippet</TooltipContent>
-            </Tooltip>
-            {/* Insert button */}
-            <Tooltip>
-              <TooltipTrigger
-                render={
-                  <Button
-                    variant="ghost"
-                    size="icon-xs"
-                    className={cn(
-                      'transition-opacity',
-                      isCompatible
-                        ? 'opacity-0 group-hover:opacity-100'
-                        : 'opacity-50 cursor-not-allowed'
-                    )}
-                    onClick={() => isCompatible && handleInsert(snippet)}
-                    disabled={!isCompatible}
-                    aria-label={isCompatible 
-                      ? (snippet.category === 'template' ? 'Use as template' : 'Insert pattern')
-                      : `This snippet is for ${snippet.language === 'groovy' ? 'Groovy' : 'PowerShell'} only`}
-                  >
-                    <Play className="size-3" />
-                  </Button>
-                }
-              />
-              <TooltipContent>
-                {isCompatible
-                  ? snippet.category === 'template'
-                    ? 'Use as template (replaces script)'
-                    : 'Insert pattern'
-                  : `This snippet is for ${snippet.language === 'groovy' ? 'Groovy' : 'PowerShell'} only. Switch language to use it.`}
-              </TooltipContent>
-            </Tooltip>
+          
+          <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+             <Tooltip>
+                <TooltipTrigger
+                  render={
+                    <div
+                      className="p-1 rounded-md hover:bg-background/80 cursor-pointer"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handlePreview(snippet);
+                      }}
+                    >
+                      <Eye className="size-3.5 text-muted-foreground" />
+                    </div>
+                  }
+                />
+                <TooltipContent side="left">Preview snippet</TooltipContent>
+              </Tooltip>
+              
+              {!snippet.isBuiltIn && (
+                <>
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <div
+                          className="p-1 rounded-md hover:bg-background/80 cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleEdit(snippet);
+                          }}
+                        >
+                          <Edit2 className="size-3.5 text-muted-foreground" />
+                        </div>
+                      }
+                    />
+                    <TooltipContent side="left">Edit snippet</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <div
+                          className="p-1 rounded-md hover:bg-destructive/10 hover:text-destructive cursor-pointer"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteClick(snippet);
+                          }}
+                        >
+                          <Trash2 className="size-3.5 text-muted-foreground hover:text-destructive" />
+                        </div>
+                      }
+                    />
+                    <TooltipContent side="left">Delete snippet</TooltipContent>
+                  </Tooltip>
+                </>
+              )}
           </div>
         </div>
-      </div>
+      </button>
     );
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-muted/5">
       {/* Header with filters */}
-      <div className="p-2 border-b border-border space-y-2">
+      <div className="p-3 border-b border-border space-y-3 bg-background">
         {/* Search */}
         <div className="relative">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
           <Input
             placeholder="Search snippets..."
             value={snippetsSearchQuery}
             onChange={(e) => setSnippetsSearchQuery(e.target.value)}
-            className="pl-8 h-8 text-xs"
+            className="pl-8 h-8 text-xs bg-muted/30 border-input shadow-sm focus-visible:bg-background transition-colors"
           />
         </div>
 
@@ -296,14 +273,14 @@ export function SnippetLibraryPanel() {
           value={snippetCategoryFilter}
           onValueChange={(v) => setSnippetCategoryFilter(v as 'all' | 'template' | 'pattern')}
         >
-          <TabsList className="w-full h-7" variant="default">
-            <TabsTrigger value="all" className="flex-1 text-xs h-6">
+          <TabsList className="w-full h-8 bg-muted/50 p-0.5" variant="default">
+            <TabsTrigger value="all" className="flex-1 text-xs h-7 data-[state=active]:bg-background data-[state=active]:shadow-sm">
               All
             </TabsTrigger>
-            <TabsTrigger value="template" className="flex-1 text-xs h-6">
+            <TabsTrigger value="template" className="flex-1 text-xs h-7 data-[state=active]:bg-background data-[state=active]:shadow-sm">
               Templates
             </TabsTrigger>
-            <TabsTrigger value="pattern" className="flex-1 text-xs h-6">
+            <TabsTrigger value="pattern" className="flex-1 text-xs h-7 data-[state=active]:bg-background data-[state=active]:shadow-sm">
               Patterns
             </TabsTrigger>
           </TabsList>
@@ -314,13 +291,8 @@ export function SnippetLibraryPanel() {
           <Select
             value={snippetLanguageFilter}
             onValueChange={(v) => setSnippetLanguageFilter(v as 'all' | 'groovy' | 'powershell')}
-            items={[
-              { value: 'all', label: 'All Languages' },
-              { value: 'groovy', label: 'Groovy' },
-              { value: 'powershell', label: 'PowerShell' },
-            ]}
           >
-            <SelectTrigger className="h-7 text-xs flex-1">
+            <SelectTrigger className="h-7 text-xs flex-1 bg-transparent border-input/60 hover:bg-accent/50 focus:ring-offset-0">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -333,13 +305,8 @@ export function SnippetLibraryPanel() {
           <Select
             value={snippetSourceFilter}
             onValueChange={(v) => setSnippetSourceFilter(v as 'all' | 'builtin' | 'user')}
-            items={[
-              { value: 'all', label: 'All Sources' },
-              { value: 'builtin', label: 'Built-in' },
-              { value: 'user', label: 'My Snippets' },
-            ]}
           >
-            <SelectTrigger className="h-7 text-xs flex-1">
+            <SelectTrigger className="h-7 text-xs flex-1 bg-transparent border-input/60 hover:bg-accent/50 focus:ring-offset-0">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -354,10 +321,10 @@ export function SnippetLibraryPanel() {
         <Button
           variant="outline"
           size="sm"
-          className="w-full h-7 text-xs"
+          className="w-full h-8 text-xs border-dashed hover:border-primary/50 hover:bg-accent/30 hover:text-primary transition-colors"
           onClick={() => setCreateSnippetDialogOpen(true)}
         >
-          <Plus className="size-3 mr-1.5" />
+          <Plus className="size-3.5 mr-1.5" />
           Create Snippet
         </Button>
       </div>
@@ -366,43 +333,67 @@ export function SnippetLibraryPanel() {
       <div className="flex-1 min-h-0 overflow-auto">
         <div className="p-2 space-y-4">
           {filteredSnippets.length === 0 ? (
-            <Empty className="py-8 border-0">
-              <EmptyMedia variant="icon">
-                <Code2 />
-              </EmptyMedia>
-              <EmptyHeader>
-                <EmptyTitle>No Snippets Found</EmptyTitle>
-                <EmptyDescription>
-                  Try adjusting your filters or create a new snippet
-                </EmptyDescription>
-              </EmptyHeader>
-            </Empty>
+            <div className="flex flex-col h-full bg-muted/5">
+              <Empty className="py-8 border-0 bg-transparent flex flex-col justify-center">
+                <EmptyMedia variant="icon" className="bg-muted/50 mb-4">
+                  <Code2 className="size-5 text-muted-foreground/70" />
+                </EmptyMedia>
+                <EmptyHeader>
+                  <EmptyTitle className="text-base font-medium">No Snippets Found</EmptyTitle>
+                  <EmptyDescription className="mt-1.5 px-6">
+                    Try adjusting your filters or create a new snippet
+                  </EmptyDescription>
+                </EmptyHeader>
+              </Empty>
+            </div>
           ) : (
             <>
               {snippetCategoryFilter === 'all' && templates.length > 0 && (
-                <div>
-                  <h3 className="text-xs font-medium text-muted-foreground mb-2 px-1">
-                    Templates ({templates.length})
-                  </h3>
-                  <div className="space-y-2">
+                <Collapsible
+                  open={collapsedGroups.template}
+                  onOpenChange={() => toggleGroup('template')}
+                  className="border border-border/40 rounded-md bg-card/20 overflow-hidden"
+                >
+                  <CollapsibleTrigger className="flex w-full items-center justify-between px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted/50 transition-colors">
+                    <span className="flex items-center gap-2">
+                      {collapsedGroups.template ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
+                      <FileText className="size-3.5" />
+                      Templates
+                    </span>
+                    <Badge variant="secondary" className="text-[10px] h-4 px-1.5 font-normal bg-muted text-muted-foreground">
+                      {templates.length}
+                    </Badge>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="border-t border-border/40 divide-y divide-border/30">
                     {templates.map(renderSnippetCard)}
-                  </div>
-                </div>
+                  </CollapsibleContent>
+                </Collapsible>
               )}
 
               {snippetCategoryFilter === 'all' && patterns.length > 0 && (
-                <div>
-                  <h3 className="text-xs font-medium text-muted-foreground mb-2 px-1">
-                    Patterns ({patterns.length})
-                  </h3>
-                  <div className="space-y-2">
+                 <Collapsible
+                  open={collapsedGroups.pattern}
+                  onOpenChange={() => toggleGroup('pattern')}
+                  className="border border-border/40 rounded-md bg-card/20 overflow-hidden"
+                >
+                  <CollapsibleTrigger className="flex w-full items-center justify-between px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted/50 transition-colors">
+                    <span className="flex items-center gap-2">
+                      {collapsedGroups.pattern ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
+                      <Code2 className="size-3.5" />
+                      Patterns
+                    </span>
+                    <Badge variant="secondary" className="text-[10px] h-4 px-1.5 font-normal bg-muted text-muted-foreground">
+                      {patterns.length}
+                    </Badge>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="border-t border-border/40 divide-y divide-border/30">
                     {patterns.map(renderSnippetCard)}
-                  </div>
-                </div>
+                  </CollapsibleContent>
+                </Collapsible>
               )}
 
               {snippetCategoryFilter !== 'all' && (
-                <div className="space-y-2">
+                <div className="border border-border/40 rounded-md bg-card/20 overflow-hidden divide-y divide-border/30">
                   {filteredSnippets.map(renderSnippetCard)}
                 </div>
               )}

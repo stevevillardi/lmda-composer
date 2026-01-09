@@ -2,6 +2,7 @@ import {
   Download,
   FileInput,
   FilePlus,
+  Folder,
   Save,
   Settings,
   CommandIcon,
@@ -31,9 +32,9 @@ import {
   DropdownMenuGroup,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Separator } from '@/components/ui/separator';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Kbd } from '@/components/ui/kbd';
+import { DropdownMenuSectionHeader } from './shared';
 
 export function ActionsDropdown() {
   const {
@@ -41,7 +42,9 @@ export function ActionsDropdown() {
     activeTabId,
     selectedPortalId,
     portals,
+    activeWorkspace,
     setActiveTab,
+    setActiveWorkspace,
     setModuleBrowserOpen,
     setModuleSearchOpen,
     setSettingsDialogOpen,
@@ -52,6 +55,7 @@ export function ActionsDropdown() {
     toggleRightSidebar,
     createNewFile,
     openFileFromDisk,
+    openModuleFolderFromDisk,
     saveFile,
     saveFileAs,
     exportToFile,
@@ -71,7 +75,9 @@ export function ActionsDropdown() {
     : null;
   const isPortalBoundActive = portalBinding?.isActive ?? true;
   const canCommit = activeTabId && isModuleTab && canCommitModule(activeTabId);
-  const isApiActive = activeTab?.kind === 'api';
+  // Determine if we're in API mode based on active workspace
+  // This ensures welcome screens show the correct menu items
+  const isApiActive = activeWorkspace === 'api';
   const canSendApi = Boolean(
     selectedPortalId &&
     activeTab?.kind === 'api' &&
@@ -87,21 +93,21 @@ export function ActionsDropdown() {
   };
 
   const switchToScriptView = () => {
+    setActiveWorkspace('script');
     const lastScript = getLastTabIdByKind('script');
     if (lastScript) {
       setActiveTab(lastScript);
-    } else {
-      createNewFile();
     }
+    // If no script tabs exist, the workspace will show EditorWelcomeScreen
   };
 
   const switchToApiView = () => {
+    setActiveWorkspace('api');
     const lastApi = getLastTabIdByKind('api');
     if (lastApi) {
       setActiveTab(lastApi);
-    } else {
-      openApiExplorerTab();
     }
+    // If no API tabs exist, the workspace will show ApiWelcomeScreen
   };
 
   return (
@@ -112,9 +118,8 @@ export function ActionsDropdown() {
             <DropdownMenuTrigger
               render={
                 <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 gap-1.5"
+                  variant="toolbar-outline"
+                  size="toolbar"
                 >
                   <CommandIcon className="size-4" />
                   <span className="hidden sm:inline text-xs">Actions</span>
@@ -128,20 +133,16 @@ export function ActionsDropdown() {
 
       <DropdownMenuContent align="end" className="w-72">
         <DropdownMenuGroup>
-          <div className="relative flex items-center gap-2 my-2">
-            <Separator className="flex-1" />
-            <span className="shrink-0 px-2 text-xs text-muted-foreground select-none">
-              {isApiActive ? 'API Actions' : 'File Actions'}
-            </span>
-            <Separator className="flex-1" />
-          </div>
+          <DropdownMenuSectionHeader>
+            {isApiActive ? 'API Actions' : 'File Actions'}
+          </DropdownMenuSectionHeader>
 
           {isApiActive ? (
             <>
               <DropdownMenuItem onClick={() => openApiExplorerTab()}>
                 <Braces className="size-4 mr-2" />
                 <span className="flex-1">New API Request</span>
-                <Kbd className="ml-auto">⌘K</Kbd>
+                <Kbd className="ml-auto">⌘K</Kbd> <Kbd>N</Kbd>
               </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => executeApiRequest(activeTabId ?? undefined)}
@@ -154,7 +155,7 @@ export function ActionsDropdown() {
               <DropdownMenuItem onClick={switchToScriptView}>
                 <ArrowLeftRight className="size-4 mr-2" />
                 <span className="flex-1">Switch to Script Editor</span>
-                <Kbd className="ml-auto">⌘⇧M</Kbd>
+                <Kbd className="ml-auto">⌘K</Kbd> <Kbd>M</Kbd>
               </DropdownMenuItem>
             </>
           ) : (
@@ -172,12 +173,12 @@ export function ActionsDropdown() {
               }}>
                 <FilePlus className="size-4 mr-2" />
                 <span className="flex-1">New File</span>
-                <Kbd className="ml-auto">⌘K</Kbd>
+                <Kbd className="ml-auto">⌘K</Kbd> <Kbd>N</Kbd>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={switchToApiView}>
                 <Braces className="size-4 mr-2" />
                 <span className="flex-1">Switch to API Explorer</span>
-                <Kbd className="ml-auto">⌘⇧M</Kbd>
+                <Kbd className="ml-auto">⌘K</Kbd> <Kbd>M</Kbd>
               </DropdownMenuItem>
 
               <DropdownMenuItem onClick={() => {
@@ -185,20 +186,19 @@ export function ActionsDropdown() {
               }}>
                 <FileInput className="size-4 mr-2" />
                 <span className="flex-1">Open File...</span>
-                <Kbd className="ml-auto">⌘O</Kbd>
+                <Kbd className="ml-auto">⌘K</Kbd> <Kbd>O</Kbd>
+              </DropdownMenuItem>
+
+              <DropdownMenuItem onClick={() => {
+                void openModuleFolderFromDisk();
+              }}>
+                <Folder className="size-4 mr-2" />
+                <span className="flex-1">Open Module Folder...</span>
+                <Kbd className="ml-auto">⌘K</Kbd> <Kbd>F</Kbd>
               </DropdownMenuItem>
 
               <DropdownMenuItem 
-                onClick={async () => {
-                  try {
-                    await saveFile();
-                    toast.success('File saved');
-                  } catch (error) {
-                    toast.error('Failed to save file', {
-                      description: error instanceof Error ? error.message : 'Unknown error',
-                    });
-                  }
-                }}
+                onClick={() => void saveFile()}
                 disabled={!hasOpenTabs}
               >
                 <Save className="size-4 mr-2" />
@@ -207,21 +207,12 @@ export function ActionsDropdown() {
               </DropdownMenuItem>
 
               <DropdownMenuItem 
-                onClick={async () => {
-                  try {
-                    await saveFileAs();
-                    toast.success('File saved');
-                  } catch (error) {
-                    toast.error('Failed to save file', {
-                      description: error instanceof Error ? error.message : 'Unknown error',
-                    });
-                  }
-                }}
+                onClick={() => void saveFileAs()}
                 disabled={!hasOpenTabs}
               >
                 <Download className="size-4 mr-2" />
                 <span className="flex-1">Save As...</span>
-                <Kbd className="ml-auto">⌘⇧S</Kbd>
+                <Kbd className="ml-auto">⌘K</Kbd> <Kbd>⇧S</Kbd>
               </DropdownMenuItem>
 
               <DropdownMenuItem 
@@ -235,7 +226,7 @@ export function ActionsDropdown() {
               >
                 <Download className="size-4 mr-2" />
                 <span className="flex-1">Export (Download)</span>
-                <Kbd className="ml-auto">⌘⇧E</Kbd>
+                <Kbd className="ml-auto">⌘K</Kbd> <Kbd>E</Kbd>
               </DropdownMenuItem>
             </>
           )}
@@ -247,12 +238,8 @@ export function ActionsDropdown() {
               <Tooltip>
                 <TooltipTrigger
                   render={
-                    <div className="relative flex items-center gap-2 my-2 cursor-help">
-                      <Separator className="flex-1" />
-                      <span className="shrink-0 px-2 text-xs text-muted-foreground select-none">
-                        Portal Actions
-                      </span>
-                      <Separator className="flex-1" />
+                    <div className="cursor-help">
+                      <DropdownMenuSectionHeader>Portal Actions</DropdownMenuSectionHeader>
                     </div>
                   }
                 />
@@ -261,13 +248,7 @@ export function ActionsDropdown() {
                 </TooltipContent>
               </Tooltip>
             ) : (
-              <div className="relative flex items-center gap-2 my-2">
-                <Separator className="flex-1" />
-                <span className="shrink-0 px-2 text-xs text-muted-foreground select-none">
-                  Portal Actions
-                </span>
-                <Separator className="flex-1" />
-              </div>
+              <DropdownMenuSectionHeader>Portal Actions</DropdownMenuSectionHeader>
             )}
 
             <DropdownMenuGroup>
@@ -279,7 +260,7 @@ export function ActionsDropdown() {
               >
                 <CloudDownload className="size-4 mr-2" />
                 <span className="flex-1">Import from LMX</span>
-                <Kbd className="ml-auto">⌘⇧I</Kbd>
+                <Kbd className="ml-auto">⌘K</Kbd> <Kbd>I</Kbd>
               </DropdownMenuItem>
 
               <DropdownMenuItem 
@@ -290,7 +271,7 @@ export function ActionsDropdown() {
               >
                 <FolderSearch className="size-4 mr-2" />
                 <span className="flex-1">Search LogicModules</span>
-                <Kbd className="ml-auto">⌘⇧F</Kbd>
+                <Kbd className="ml-auto">⌘K</Kbd> <Kbd>S</Kbd>
               </DropdownMenuItem>
 
               <DropdownMenuItem 
@@ -301,7 +282,7 @@ export function ActionsDropdown() {
               >
                 <Hammer className="size-4 mr-2" />
                 <span className="flex-1">AppliesTo Toolbox</span>
-                <Kbd className="ml-auto">⌘⇧A</Kbd>
+                <Kbd className="ml-auto">⌘K</Kbd> <Kbd>A</Kbd>
               </DropdownMenuItem>
 
               <DropdownMenuItem 
@@ -312,17 +293,18 @@ export function ActionsDropdown() {
               >
                 <Wrench className="size-4 mr-2" />
                 <span className="flex-1">Debug Commands</span>
-                <Kbd className="ml-auto">⌘⇧D</Kbd>
+                <Kbd className="ml-auto">⌘K</Kbd> <Kbd>D</Kbd>
               </DropdownMenuItem>
 
               <DropdownMenuItem 
                 onClick={() => {
                   setModuleSnippetsDialogOpen(true);
                 }}
+                disabled={!selectedPortalId}
               >
                 <Puzzle className="size-4 mr-2" />
                 <span className="flex-1">Module Snippets</span>
-                <Kbd className="ml-auto">⌘⇧L</Kbd>
+                <Kbd className="ml-auto">⌘K</Kbd> <Kbd>L</Kbd>
               </DropdownMenuItem>
 
               {isModuleTab && (
@@ -344,7 +326,7 @@ export function ActionsDropdown() {
                         disabled={!selectedPortalId || !canCommit}
                       >
                         <Upload className="size-4 mr-2" />
-                        <span className="flex-1">Commit to Module</span>
+                        <span className="flex-1">Push to Portal</span>
                       </DropdownMenuItem>
                     }
                   />
@@ -363,13 +345,7 @@ export function ActionsDropdown() {
           </>
         )}
 
-        <div className="relative flex items-center gap-2 my-2">
-          <Separator className="flex-1" />
-          <span className="shrink-0 px-2 text-xs text-muted-foreground select-none">
-            Layout
-          </span>
-          <Separator className="flex-1" />
-        </div>
+        <DropdownMenuSectionHeader>Layout</DropdownMenuSectionHeader>
 
         <DropdownMenuGroup>
           <DropdownMenuItem 
@@ -384,13 +360,7 @@ export function ActionsDropdown() {
           </DropdownMenuItem>
         </DropdownMenuGroup>
 
-        <div className="relative flex items-center gap-2 my-2">
-          <Separator className="flex-1" />
-          <span className="shrink-0 px-2 text-xs text-muted-foreground select-none">
-            Settings & Help
-          </span>
-          <Separator className="flex-1" />
-        </div>
+        <DropdownMenuSectionHeader>Settings & Help</DropdownMenuSectionHeader>
 
         <DropdownMenuGroup>
           <DropdownMenuItem onClick={() => {

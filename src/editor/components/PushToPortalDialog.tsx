@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Upload, Loader2, AlertCircle, type LucideIcon, Info, FolderTree, Shield, Filter, Target, Database, Bell } from 'lucide-react';
+import { Upload, Loader2, AlertCircle, type LucideIcon, Info, FolderTree, Shield, Filter, Target, Database, Bell, FileCode, FolderSearch, Settings } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -20,7 +21,7 @@ import { useEditorStore } from '../stores/editor-store';
 import type { LogicModuleType, ScriptLanguage } from '@/shared/types';
 import { MODULE_TYPE_SCHEMAS } from '@/shared/module-type-schemas';
 
-interface ModuleCommitConfirmationDialogProps {
+interface PushToPortalDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onConfirm: (reason?: string) => Promise<void>;
@@ -32,7 +33,7 @@ interface ModuleCommitConfirmationDialogProps {
   newScript: string;
   hasConflict?: boolean;
   conflictMessage?: string;
-  isCommitting?: boolean;
+  isPushing?: boolean;
 }
 
 const MODULE_TYPE_LABELS: Record<LogicModuleType, string> = {
@@ -45,7 +46,7 @@ const MODULE_TYPE_LABELS: Record<LogicModuleType, string> = {
   eventsource: 'EventSource',
 };
 
-export function ModuleCommitConfirmationDialog({
+export function PushToPortalDialog({
   open,
   onOpenChange,
   onConfirm,
@@ -57,11 +58,18 @@ export function ModuleCommitConfirmationDialog({
   newScript,
   hasConflict = false,
   conflictMessage,
-  isCommitting = false,
-}: ModuleCommitConfirmationDialogProps) {
-  const [commitError, setCommitError] = useState<string | null>(null);
-  const [commitReason, setCommitReason] = useState('');
-  const { preferences, activeTabId, moduleDetailsDraftByTabId, accessGroups } = useEditorStore();
+  isPushing = false,
+}: PushToPortalDialogProps) {
+  const [pushError, setPushError] = useState<string | null>(null);
+  const [pushReason, setPushReason] = useState('');
+  
+  // Backwards compatibility alias
+  const isCommitting = isPushing;
+  const commitReason = pushReason;
+  const setCommitReason = setPushReason;
+  const commitError = pushError;
+  const setCommitError = setPushError;
+  const { preferences, activeTabId, moduleDetailsDraftByTabId, accessGroups, directoryScriptsForCommit, selectedScriptsForCommit, toggleScriptForCommit } = useEditorStore();
   
   // Get module details changes
   const moduleDetailsDraft = activeTabId ? moduleDetailsDraftByTabId[activeTabId] : null;
@@ -69,6 +77,11 @@ export function ModuleCommitConfirmationDialog({
   const hasScriptChanges = originalScript.trim() !== newScript.trim();
   const hasAdConfigPayload = scriptType === 'ad' && hasScriptChanges && !!moduleDetailsDraft?.draft?.autoDiscoveryConfig;
   const scriptTypeLabel = scriptType === 'ad' ? 'Active Discovery Script' : 'Collection Script';
+  
+  // Directory scripts support
+  const hasDirectoryScripts = directoryScriptsForCommit && directoryScriptsForCommit.length > 0;
+  const scriptsWithChanges = directoryScriptsForCommit?.filter(s => s.hasChanges) ?? [];
+  const hasSelectedScripts = selectedScriptsForCommit.size > 0;
   const normalizeAccessGroupIds = (value: unknown): number[] => {
     if (Array.isArray(value)) {
       return value
@@ -166,6 +179,109 @@ export function ModuleCommitConfirmationDialog({
       .filter(Boolean);
   };
 
+  // Sort object keys recursively for consistent JSON output
+  const sortObjectKeys = (obj: unknown): unknown => {
+    if (Array.isArray(obj)) {
+      return obj.map(sortObjectKeys);
+    }
+    if (obj !== null && typeof obj === 'object') {
+      const sorted: Record<string, unknown> = {};
+      Object.keys(obj as Record<string, unknown>)
+        .sort()
+        .forEach((key) => {
+          sorted[key] = sortObjectKeys((obj as Record<string, unknown>)[key]);
+        });
+      return sorted;
+    }
+    return obj;
+  };
+
+  // Sort datapoints by name and sort keys within each datapoint for consistent diffs
+  const sortDatapoints = <T extends { name?: string }>(datapoints: T[]): T[] => {
+    const sorted = [...datapoints].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    return sorted.map((dp) => sortObjectKeys(dp)) as T[];
+  };
+
+  // Datapoint change status for display
+  type DatapointChangeStatus = 'added' | 'removed' | 'modified' | 'unchanged';
+  
+  interface DatapointDisplayItem {
+    name: string;
+    status: DatapointChangeStatus;
+  }
+
+  // Compare datapoints and return items with change status
+  const compareDatapoints = (
+    originalDps: Array<Record<string, unknown>>,
+    modifiedDps: Array<Record<string, unknown>>
+  ): DatapointDisplayItem[] => {
+    const originalByName = new Map(originalDps.map(dp => [dp.name as string, dp]));
+    const modifiedByName = new Map(modifiedDps.map(dp => [dp.name as string, dp]));
+    
+    const allNames = new Set([...originalByName.keys(), ...modifiedByName.keys()]);
+    const sortedNames = [...allNames].sort((a, b) => a.localeCompare(b));
+    
+    return sortedNames.map(name => {
+      const original = originalByName.get(name);
+      const modified = modifiedByName.get(name);
+      
+      if (!original && modified) {
+        return { name, status: 'added' as const };
+      }
+      if (original && !modified) {
+        return { name, status: 'removed' as const };
+      }
+      // Both exist - check if modified
+      if (!deepEqual(original, modified)) {
+        return { name, status: 'modified' as const };
+      }
+      return { name, status: 'unchanged' as const };
+    });
+  };
+
+  // Config check change status for display (same pattern as datapoints)
+  type ConfigCheckChangeStatus = 'added' | 'removed' | 'modified' | 'unchanged';
+  
+  interface ConfigCheckDisplayItem {
+    name: string;
+    status: ConfigCheckChangeStatus;
+  }
+
+  // Sort config checks by name and sort keys within each check
+  const sortConfigChecks = <T extends { name?: string }>(checks: T[]): T[] => {
+    const sorted = [...checks].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+    return sorted.map((c) => sortObjectKeys(c)) as T[];
+  };
+
+  // Compare config checks and return items with change status
+  const compareConfigChecks = (
+    originalChecks: Array<Record<string, unknown>>,
+    modifiedChecks: Array<Record<string, unknown>>
+  ): ConfigCheckDisplayItem[] => {
+    const originalByName = new Map(originalChecks.map(c => [c.name as string, c]));
+    const modifiedByName = new Map(modifiedChecks.map(c => [c.name as string, c]));
+    
+    const allNames = new Set([...originalByName.keys(), ...modifiedByName.keys()]);
+    const sortedNames = [...allNames].sort((a, b) => a.localeCompare(b));
+    
+    return sortedNames.map(name => {
+      const original = originalByName.get(name);
+      const modified = modifiedByName.get(name);
+      
+      if (!original && modified) {
+        return { name, status: 'added' as const };
+      }
+      if (original && !modified) {
+        return { name, status: 'removed' as const };
+      }
+      // Both exist - check if modified
+      if (!deepEqual(original, modified)) {
+        return { name, status: 'modified' as const };
+      }
+      return { name, status: 'unchanged' as const };
+    });
+  };
+
   const readableModuleDetailsChanges = useMemo(() => {
     if (!moduleDetailsDraft || !hasModuleDetailsChanges) return [];
     const changes: Array<{
@@ -176,6 +292,8 @@ export function ModuleCommitConfirmationDialog({
       modified: string;
       originalLines?: string[];
       modifiedLines?: string[];
+      datapointItems?: DatapointDisplayItem[];
+      configCheckItems?: ConfigCheckDisplayItem[];
     }> = [];
 
     const pushChange = (key: string, section: string, label: string, original: unknown, modified: unknown) => {
@@ -325,6 +443,36 @@ export function ModuleCommitConfirmationDialog({
           });
           break;
         }
+        case 'dataPoints': {
+          const originalDps = Array.isArray(original) ? (original as Array<Record<string, unknown>>) : [];
+          const modifiedDps = Array.isArray(modified) ? (modified as Array<Record<string, unknown>>) : [];
+          const datapointItems = compareDatapoints(originalDps, modifiedDps);
+          const changedCount = datapointItems.filter(dp => dp.status !== 'unchanged').length;
+          changes.push({
+            key: field,
+            section: 'Datapoints',
+            label: `Datapoints (${changedCount} changed)`,
+            original: `${originalDps.length} datapoint${originalDps.length !== 1 ? 's' : ''}`,
+            modified: `${modifiedDps.length} datapoint${modifiedDps.length !== 1 ? 's' : ''}`,
+            datapointItems,
+          });
+          break;
+        }
+        case 'configChecks': {
+          const originalChecks = Array.isArray(original) ? (original as Array<Record<string, unknown>>) : [];
+          const modifiedChecks = Array.isArray(modified) ? (modified as Array<Record<string, unknown>>) : [];
+          const configCheckItems = compareConfigChecks(originalChecks, modifiedChecks);
+          const changedCount = configCheckItems.filter(c => c.status !== 'unchanged').length;
+          changes.push({
+            key: field,
+            section: 'Config Checks',
+            label: `Config Checks (${changedCount} changed)`,
+            original: `${originalChecks.length} check${originalChecks.length !== 1 ? 's' : ''}`,
+            modified: `${modifiedChecks.length} check${modifiedChecks.length !== 1 ? 's' : ''}`,
+            configCheckItems,
+          });
+          break;
+        }
         default:
           pushChange(field, 'Module', field, original, modified);
       }
@@ -356,6 +504,12 @@ export function ModuleCommitConfirmationDialog({
           payload.accessGroupIds = normalizeAccessGroupIds(draftValue);
         } else if (field === 'autoDiscoveryConfig') {
           payload.autoDiscoveryConfig = draftValue;
+        } else if (field === 'dataPoints' && Array.isArray(draftValue)) {
+          // Sort datapoints by name for consistent diff display
+          payload.dataPoints = sortDatapoints(draftValue as Array<{ name?: string }>);
+        } else if (field === 'configChecks' && Array.isArray(draftValue)) {
+          // Sort config checks by name for consistent diff display
+          payload.configChecks = sortConfigChecks(draftValue as Array<{ name?: string }>);
         } else {
           payload[field] = draftValue;
         }
@@ -388,6 +542,12 @@ export function ModuleCommitConfirmationDialog({
           payload.accessGroupIds = normalizeAccessGroupIds(originalValue);
         } else if (field === 'autoDiscoveryConfig') {
           payload.autoDiscoveryConfig = originalValue || {};
+        } else if (field === 'dataPoints' && Array.isArray(originalValue)) {
+          // Sort datapoints by name for consistent diff display
+          payload.dataPoints = sortDatapoints(originalValue as Array<{ name?: string }>);
+        } else if (field === 'configChecks' && Array.isArray(originalValue)) {
+          // Sort config checks by name for consistent diff display
+          payload.configChecks = sortConfigChecks(originalValue as Array<{ name?: string }>);
         } else {
           payload[field] = originalValue;
         }
@@ -435,6 +595,80 @@ export function ModuleCommitConfirmationDialog({
     );
   };
 
+  const renderDatapointItems = (items?: DatapointDisplayItem[]) => {
+    if (!items || items.length === 0) {
+      return <span className="text-xs text-muted-foreground">(none)</span>;
+    }
+    
+    const statusStyles: Record<DatapointChangeStatus, string> = {
+      added: 'bg-teal-500/15 text-teal-600 border-teal-500/30',
+      removed: 'bg-red-500/15 text-red-600 border-red-500/30 line-through',
+      modified: 'bg-yellow-500/15 text-yellow-600 border-yellow-500/30',
+      unchanged: '',
+    };
+    
+    const statusIndicators: Record<DatapointChangeStatus, string> = {
+      added: '+',
+      removed: '−',
+      modified: '~',
+      unchanged: '',
+    };
+
+    return (
+      <div className="flex flex-wrap gap-1">
+        {items.map((item) => (
+          <Badge 
+            key={item.name} 
+            variant={item.status === 'unchanged' ? 'secondary' : 'outline'} 
+            className={`text-[11px] font-mono ${statusStyles[item.status]}`}
+          >
+            {statusIndicators[item.status] && (
+              <span className="mr-0.5 font-bold">{statusIndicators[item.status]}</span>
+            )}
+            {item.name}
+          </Badge>
+        ))}
+      </div>
+    );
+  };
+
+  const renderConfigCheckItems = (items?: ConfigCheckDisplayItem[]) => {
+    if (!items || items.length === 0) {
+      return <span className="text-xs text-muted-foreground">(none)</span>;
+    }
+    
+    const statusStyles: Record<ConfigCheckChangeStatus, string> = {
+      added: 'bg-teal-500/15 text-teal-600 border-teal-500/30',
+      removed: 'bg-red-500/15 text-red-600 border-red-500/30 line-through',
+      modified: 'bg-yellow-500/15 text-yellow-600 border-yellow-500/30',
+      unchanged: '',
+    };
+    
+    const statusIndicators: Record<ConfigCheckChangeStatus, string> = {
+      added: '+',
+      removed: '−',
+      modified: '~',
+      unchanged: '',
+    };
+
+    return (
+      <div className="flex flex-wrap gap-1">
+        {items.map((item) => (
+          <Badge 
+            key={item.name} 
+            variant={item.status === 'unchanged' ? 'secondary' : 'outline'} 
+            className={`text-[11px] font-mono ${statusStyles[item.status]}`}
+          >
+            {statusIndicators[item.status] && (
+              <span className="mr-0.5 font-bold">{statusIndicators[item.status]}</span>
+            )}
+            {item.name}
+          </Badge>
+        ))}
+      </div>
+    );
+  };
+
   const sectionIcons: Record<string, LucideIcon> = {
     Basic: Info,
     Organization: FolderTree,
@@ -442,6 +676,7 @@ export function ModuleCommitConfirmationDialog({
     'Applies To': Filter,
     'Active Discovery': Target,
     Datapoints: Database,
+    'Config Checks': Settings,
     'Alert Settings': Bell,
   };
 
@@ -466,7 +701,7 @@ export function ModuleCommitConfirmationDialog({
 
   useEffect(() => {
     if (commitError) {
-      toast.error('Commit failed', {
+      toast.error('Push failed', {
         description: commitError,
       });
     }
@@ -478,7 +713,7 @@ export function ModuleCommitConfirmationDialog({
       const trimmedReason = commitReason.trim();
       await onConfirm(trimmedReason.length > 0 ? trimmedReason : undefined);
     } catch (error) {
-      setCommitError(error instanceof Error ? error.message : 'Failed to commit changes');
+      setCommitError(error instanceof Error ? error.message : 'Failed to push changes');
     }
   };
 
@@ -487,7 +722,7 @@ export function ModuleCommitConfirmationDialog({
   };
 
   const hasDetailsSection = hasModuleDetailsChanges || hasAdConfigPayload;
-  const hasChanges = hasScriptChanges || hasModuleDetailsChanges;
+  const hasChanges = hasScriptChanges || hasModuleDetailsChanges || hasSelectedScripts;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -495,16 +730,16 @@ export function ModuleCommitConfirmationDialog({
         <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Upload className="size-5" />
-            Commit Changes to Module
+            Push Changes to Portal
           </DialogTitle>
           <DialogDescription>
             {hasScriptChanges && hasModuleDetailsChanges
-              ? `This will update the ${scriptTypeLabel.toLowerCase()} and module metadata in LogicMonitor for module "${moduleName}".`
+              ? `This will push the ${scriptTypeLabel.toLowerCase()} and module metadata to LogicMonitor for module "${moduleName}".`
               : hasScriptChanges
-              ? `This will update the ${scriptTypeLabel.toLowerCase()} in LogicMonitor for module "${moduleName}".`
+              ? `This will push the ${scriptTypeLabel.toLowerCase()} to LogicMonitor for module "${moduleName}".`
               : hasModuleDetailsChanges
-              ? `This will update module metadata in LogicMonitor for module "${moduleName}".`
-              : `This will update the module in LogicMonitor for module "${moduleName}".`}
+              ? `This will push module metadata to LogicMonitor for module "${moduleName}".`
+              : `This will push the changes to LogicMonitor for module "${moduleName}".`}
           </DialogDescription>
         </DialogHeader>
 
@@ -512,7 +747,7 @@ export function ModuleCommitConfirmationDialog({
           <div className="space-y-4">
           {/* Module info */}
           <div className="flex items-center gap-2 flex-wrap">
-            <Label className="text-sm font-medium">Module:</Label>
+            <Label className="text-sm font-medium select-none">Module:</Label>
             <Badge variant="outline">{moduleName}</Badge>
             <Badge variant="secondary">{MODULE_TYPE_LABELS[moduleType]}</Badge>
             <Badge variant="default">{scriptTypeLabel}</Badge>
@@ -524,37 +759,140 @@ export function ModuleCommitConfirmationDialog({
               <AlertCircle className="size-4" />
               <AlertDescription>
                 <div className="font-medium mb-1">Conflict Detected</div>
-                {conflictMessage || 'The module has been changed externally. Review the changes below before committing.'}
+                {conflictMessage || 'The module has been changed externally. Review the changes below before pushing.'}
               </AlertDescription>
             </Alert>
           )}
 
           <div className="space-y-2">
-            <Label className="text-sm font-medium">Commit Reason (optional)</Label>
+            <Label className="text-sm font-medium select-none">Change Reason (optional)</Label>
             <Textarea
               value={commitReason}
               onChange={(event) => setCommitReason(event.target.value.slice(0, 4096))}
-              placeholder="Add a reason for this commit (visible in LogicMonitor history)"
+              placeholder="Add a reason for this change (visible in LogicMonitor history)"
               rows={1}
               className="min-h-9 resize-y"
             />
-            <div className="text-xs text-muted-foreground">
+            <div className="text-xs text-muted-foreground select-none">
               {commitReason.length} / 4096
             </div>
           </div>
 
-          {/* Script comparison */}
-          {(hasScriptChanges || hasModuleDetailsChanges) && (
+          {/* Directory Scripts Selection - shown when pushing from a saved module directory */}
+          {hasDirectoryScripts && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <FolderSearch className="size-4 text-muted-foreground" />
+                <Label className="text-sm font-medium select-none">Scripts to Push</Label>
+                <Badge variant="secondary" className="text-xs select-none">
+                  {scriptsWithChanges.length} changed
+                </Badge>
+              </div>
+              <div className="border border-border rounded-md divide-y divide-border">
+                {directoryScriptsForCommit!.map((script) => (
+                  <label
+                    key={script.scriptType}
+                    className="flex items-center gap-3 p-3 hover:bg-muted/40 cursor-pointer transition-colors"
+                  >
+                    <Checkbox
+                      checked={selectedScriptsForCommit.has(script.scriptType)}
+                      onCheckedChange={() => toggleScriptForCommit(script.scriptType)}
+                      disabled={!script.hasChanges}
+                      aria-label={`Include ${script.scriptType === 'ad' ? 'Active Discovery' : 'Collection'} script`}
+                    />
+                    <div className="flex items-center gap-2 flex-1">
+                      <FileCode className="size-4 text-muted-foreground" />
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium select-none">
+                          {script.scriptType === 'ad' ? 'Active Discovery Script' : 'Collection Script'}
+                        </span>
+                        <span className="text-xs text-muted-foreground select-none">
+                          {script.fileName}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge variant={script.language === 'powershell' ? 'default' : 'secondary'} className="text-xs">
+                        {script.language === 'powershell' ? 'PowerShell' : 'Groovy'}
+                      </Badge>
+                      {script.hasChanges ? (
+                        <Badge variant="outline" className="text-xs text-yellow-600 border-amber-600/50">
+                          Modified
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-xs text-muted-foreground">
+                          No changes
+                        </Badge>
+                      )}
+                    </div>
+                  </label>
+                ))}
+              </div>
+              {!hasSelectedScripts && scriptsWithChanges.length > 0 && (
+                <p className="text-xs text-muted-foreground select-none">
+                  Select at least one script to push, or push module details only.
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Script comparison - Directory mode shows selected scripts, single mode shows active tab */}
+          {(hasScriptChanges || hasModuleDetailsChanges || hasDirectoryScripts) && (
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Script Changes</Label>
-              {hasScriptChanges ? (
+              <Label className="text-sm font-medium select-none">Script Preview</Label>
+              {hasDirectoryScripts ? (
+                // Directory mode - show diffs for selected scripts
+                selectedScriptsForCommit.size > 0 ? (
+                  <Tabs defaultValue={Array.from(selectedScriptsForCommit)[0]} className="flex flex-col gap-2">
+                    <TabsList variant="line" className="h-7">
+                      {directoryScriptsForCommit!
+                        .filter(s => selectedScriptsForCommit.has(s.scriptType))
+                        .map((script) => (
+                          <TabsTrigger key={script.scriptType} value={script.scriptType} className="h-6 text-xs px-2">
+                            {script.scriptType === 'ad' ? 'Active Discovery' : 'Collection'}
+                          </TabsTrigger>
+                        ))}
+                    </TabsList>
+                    {directoryScriptsForCommit!
+                      .filter(s => selectedScriptsForCommit.has(s.scriptType))
+                      .map((script) => (
+                        <TabsContent key={script.scriptType} value={script.scriptType}>
+                          <div className="border border-border rounded-md overflow-hidden">
+                            <div className="grid grid-cols-2 border-b border-border bg-muted/30">
+                              <div className="px-4 py-2 text-xs font-medium text-muted-foreground border-r border-border select-none">
+                                Portal (Current)
+                              </div>
+                              <div className="px-4 py-2 text-xs font-medium text-muted-foreground select-none">
+                                Local (Disk)
+                              </div>
+                            </div>
+                            <DiffEditor
+                              original={script.portalContent}
+                              modified={script.diskContent}
+                              language={script.language}
+                              height="350px"
+                              theme={monacoTheme}
+                              readOnly={true}
+                            />
+                          </div>
+                        </TabsContent>
+                      ))}
+                  </Tabs>
+                ) : (
+                  <div className="flex items-center gap-2 border border-dashed border-border rounded-md p-3 bg-muted/20 text-xs text-muted-foreground select-none">
+                    <Info className="size-4" />
+                    No scripts selected. Select scripts above or push module details only.
+                  </div>
+                )
+              ) : hasScriptChanges ? (
+                // Single script mode - show active tab diff
                 originalScript !== undefined && newScript !== undefined ? (
                   <div className="border border-border rounded-md overflow-hidden">
                     <div className="grid grid-cols-2 border-b border-border bg-muted/30">
-                      <div className="px-4 py-2 text-xs font-medium text-muted-foreground border-r border-border">
+                      <div className="px-4 py-2 text-xs font-medium text-muted-foreground border-r border-border select-none">
                         Original
                       </div>
-                      <div className="px-4 py-2 text-xs font-medium text-muted-foreground">
+                      <div className="px-4 py-2 text-xs font-medium text-muted-foreground select-none">
                         Modified
                       </div>
                     </div>
@@ -568,12 +906,12 @@ export function ModuleCommitConfirmationDialog({
                     />
                   </div>
                 ) : (
-                  <p className="text-xs text-muted-foreground">Loading diff...</p>
+                  <p className="text-xs text-muted-foreground select-none">Loading diff...</p>
                 )
               ) : (
-                <div className="flex items-center gap-2 border border-dashed border-border rounded-md p-3 bg-muted/20 text-xs text-muted-foreground">
+                <div className="flex items-center gap-2 border border-dashed border-border rounded-md p-3 bg-muted/20 text-xs text-muted-foreground select-none">
                   <Info className="size-4" />
-                  No script changes will be committed for this update.
+                  No script changes will be pushed for this update.
                 </div>
               )}
             </div>
@@ -583,7 +921,7 @@ export function ModuleCommitConfirmationDialog({
           {hasDetailsSection && (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <Label className="text-sm font-medium">
+                <Label className="text-sm font-medium select-none">
                   Module Details Changes ({readableModuleDetailsChanges.length} item{readableModuleDetailsChanges.length !== 1 ? 's' : ''})
                 </Label>
               </div>
@@ -599,7 +937,7 @@ export function ModuleCommitConfirmationDialog({
                 <TabsContent value="readable">
                   <div className="space-y-4 border border-border rounded-md p-4 bg-muted/20">
                     {readableModuleDetailsChanges.length === 0 && hasAdConfigPayload && (
-                      <div className="text-xs text-muted-foreground">
+                      <div className="text-xs text-muted-foreground select-none">
                         Active Discovery config is included to support the script update.
                       </div>
                     )}
@@ -611,34 +949,79 @@ export function ModuleCommitConfirmationDialog({
                           className={index === 0 ? 'space-y-3' : 'space-y-3 border-t border-border/60 pt-4'}
                         >
                           <div className="flex items-center justify-between border-b border-border/60 pb-2">
-                            <div className="flex items-center gap-2 text-sm font-semibold">
+                            <div className="flex items-center gap-2 text-sm font-semibold select-none">
                               <Icon className="size-4 text-muted-foreground" />
                               {group.section}
                             </div>
-                            <div className="text-xs text-muted-foreground">
+                            <div className="text-xs text-muted-foreground select-none">
                               {group.items.length} change{group.items.length !== 1 ? 's' : ''}
                             </div>
                           </div>
                           <div className="space-y-3 pt-3">
                             {group.items.map((change) => (
-                              <div key={change.key} className="grid grid-cols-1 md:grid-cols-[220px_1fr_1fr] gap-3">
-                                <div className="space-y-1">
-                                  <div className="text-xs text-muted-foreground">Field</div>
-                                  <div className="text-sm font-medium">{change.label}</div>
-                                </div>
-                                <div className="space-y-1">
-                                  <div className="text-xs text-muted-foreground">Original</div>
+                              change.datapointItems ? (
+                                // Special rendering for datapoints - unified view with change indicators
+                                <div key={change.key} className="space-y-2">
+                                  <div className="flex items-center justify-between">
+                                    <div className="text-sm font-medium select-none">{change.label}</div>
+                                    <div className="flex items-center gap-3 text-[11px] select-none">
+                                      <span className="flex items-center gap-1 text-teal-600">
+                                        <span className="font-bold">+</span> Added
+                                      </span>
+                                      <span className="flex items-center gap-1 text-yellow-600">
+                                        <span className="font-bold">~</span> Modified
+                                      </span>
+                                      <span className="flex items-center gap-1 text-red-600">
+                                        <span className="font-bold">−</span> Removed
+                                      </span>
+                                    </div>
+                                  </div>
                                   <div className="font-mono text-xs bg-background p-2 rounded border">
-                                    {change.originalLines ? renderFilterLines(change.originalLines) : change.original}
+                                    {renderDatapointItems(change.datapointItems)}
                                   </div>
                                 </div>
-                                <div className="space-y-1">
-                                  <div className="text-xs text-muted-foreground">Modified</div>
-                                  <div className="font-mono text-xs bg-background p-2 rounded border border-blue-500/50">
-                                    {change.modifiedLines ? renderFilterLines(change.modifiedLines) : change.modified}
+                              ) : change.configCheckItems ? (
+                                // Special rendering for config checks - unified view with change indicators
+                                <div key={change.key} className="space-y-2">
+                                  <div className="flex items-center justify-between">
+                                    <div className="text-sm font-medium select-none">{change.label}</div>
+                                    <div className="flex items-center gap-3 text-[11px] select-none">
+                                      <span className="flex items-center gap-1 text-teal-600">
+                                        <span className="font-bold">+</span> Added
+                                      </span>
+                                      <span className="flex items-center gap-1 text-yellow-600">
+                                        <span className="font-bold">~</span> Modified
+                                      </span>
+                                      <span className="flex items-center gap-1 text-red-600">
+                                        <span className="font-bold">−</span> Removed
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="font-mono text-xs bg-background p-2 rounded border">
+                                    {renderConfigCheckItems(change.configCheckItems)}
                                   </div>
                                 </div>
-                              </div>
+                              ) : (
+                                // Standard two-column rendering for other fields
+                                <div key={change.key} className="grid grid-cols-1 md:grid-cols-[220px_1fr_1fr] gap-3">
+                                  <div className="space-y-1">
+                                    <div className="text-xs text-muted-foreground select-none">Field</div>
+                                    <div className="text-sm font-medium select-none">{change.label}</div>
+                                  </div>
+                                  <div className="space-y-1">
+                                    <div className="text-xs text-muted-foreground select-none">Original</div>
+                                    <div className="font-mono text-xs bg-background p-2 rounded border">
+                                      {change.originalLines ? renderFilterLines(change.originalLines) : change.original}
+                                    </div>
+                                  </div>
+                                  <div className="space-y-1">
+                                    <div className="text-xs text-muted-foreground select-none">Modified</div>
+                                    <div className="font-mono text-xs bg-background p-2 rounded border border-cyan-500/50">
+                                      {change.modifiedLines ? renderFilterLines(change.modifiedLines) : change.modified}
+                                    </div>
+                                  </div>
+                                </div>
+                              )
                             ))}
                           </div>
                         </div>
@@ -649,10 +1032,10 @@ export function ModuleCommitConfirmationDialog({
                 <TabsContent value="payload">
                   <div className="border border-border rounded-md overflow-hidden">
                     <div className="grid grid-cols-2 border-b border-border bg-muted/30">
-                      <div className="px-4 py-2 text-xs font-medium text-muted-foreground border-r border-border">
+                      <div className="px-4 py-2 text-xs font-medium text-muted-foreground border-r border-border select-none">
                         Original Payload (changed fields)
                       </div>
-                      <div className="px-4 py-2 text-xs font-medium text-muted-foreground">
+                      <div className="px-4 py-2 text-xs font-medium text-muted-foreground select-none">
                         Updated Payload (changed fields)
                       </div>
                     </div>
@@ -704,12 +1087,12 @@ export function ModuleCommitConfirmationDialog({
             {isCommitting ? (
               <>
                 <Loader2 className="size-4 mr-2 animate-spin" />
-                Committing...
+                Pushing...
               </>
             ) : (
               <>
                 <Upload className="size-4 mr-2" />
-                Commit Changes
+                Push to Portal
               </>
             )}
           </Button>

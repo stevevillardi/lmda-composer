@@ -205,32 +205,77 @@ export function ApiKeyValueEditor({
       </div>
 
       {rows.length === 0 ? (
-        <div className="text-xs text-muted-foreground py-3 text-center border border-dashed border-border rounded-md">
-          {emptyLabel}
+        <div className="text-xs text-muted-foreground py-6 text-center border-0 bg-transparent flex flex-col items-center justify-center h-24">
+          <p className="text-sm font-medium text-muted-foreground/80 mb-1">
+            {emptyLabel}
+          </p>
+          {suggestions.length > 0 ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="xs" className="mt-2 bg-background/50">
+                  <Plus className="size-3.5 mr-1" />
+                  Add Field
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="center" className="w-72">
+                {availableSuggestions.length === 0 ? (
+                  <div className="px-2 py-2 text-xs text-muted-foreground">
+                    All available fields are already added.
+                  </div>
+                ) : (
+                  availableSuggestions.map((item) => (
+                    <DropdownMenuItem key={item.key} onClick={() => handleAddSuggestion(item.key)}>
+                      <div className="flex flex-col gap-0.5">
+                        <div className="text-xs font-medium text-foreground">
+                          {item.key}
+                          {item.required && (
+                            <span className="ml-1 text-[10px] text-muted-foreground">required</span>
+                          )}
+                        </div>
+                        {item.description && (
+                          <span className="text-[11px] text-muted-foreground line-clamp-2">
+                            {item.description}
+                          </span>
+                        )}
+                      </div>
+                    </DropdownMenuItem>
+                  ))
+                )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleAdd}>Custom…</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : (
+            <Button variant="outline" size="xs" onClick={handleAdd} className="mt-2 bg-background/50">
+              <Plus className="size-3.5 mr-1" />
+              Add Field
+            </Button>
+          )}
         </div>
       ) : (
         <div className="space-y-2">
           {rows.map((row) => (
-            <div key={row.id} className="grid grid-cols-[1fr_1fr_auto] gap-2">
+            <div key={row.id} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-center group">
               <Input
                 value={row.key}
                 onChange={(event) => handleRowChange(row.id, 'key', event.target.value)}
                 placeholder="Key"
-                className="h-8"
+                className="h-8 bg-muted/30 border-input/60 focus-visible:bg-background transition-colors font-mono text-xs"
               />
               <Input
                 value={row.value}
                 onChange={(event) => handleRowChange(row.id, 'value', event.target.value)}
                 placeholder="Value"
-                className="h-8"
+                className="h-8 bg-muted/30 border-input/60 focus-visible:bg-background transition-colors font-mono text-xs"
               />
               <Button
                 variant="ghost"
                 size="icon-sm"
                 onClick={() => handleRemove(row.id)}
                 aria-label="Remove row"
+                className="text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:text-destructive hover:bg-destructive/10"
               >
-                <Trash2 className="size-4" />
+                <Trash2 className="size-3.5" />
               </Button>
             </div>
           ))}

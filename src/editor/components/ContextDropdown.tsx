@@ -38,6 +38,14 @@ import {
 } from '@/components/ui/popover';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { 
+  Empty, 
+  EmptyHeader, 
+  EmptyMedia, 
+  EmptyTitle, 
+  EmptyDescription, 
+  EmptyContent 
+} from '@/components/ui/empty';
 import { cn } from '@/lib/utils';
 
 export function ContextDropdown({
@@ -88,10 +96,19 @@ export function ContextDropdown({
   const selectedPortal = portals.find(p => p.id === selectedPortalId);
   const selectedCollector = collectors.find(c => c.id === selectedCollectorId);
   const selectedCollectorArch = selectedCollector?.arch;
+  const isPortalActive = selectedPortal?.status === 'active';
   const selectedDevice = useMemo(() => {
     if (!hostname) return null;
     return devices.find(device => device.name === hostname) ?? null;
   }, [devices, hostname]);
+
+  // If portal becomes inactive, clear dependent context so we don't show stale collector/device state.
+  useEffect(() => {
+    if (!selectedPortalId) return;
+    if (isPortalActive) return;
+    if (selectedCollectorId) setSelectedCollector(null);
+    if (hostname) setHostname('');
+  }, [hostname, isPortalActive, selectedCollectorId, selectedPortalId, setHostname, setSelectedCollector]);
 
   // Build items arrays for Select
   const portalItems = [
@@ -119,9 +136,9 @@ export function ContextDropdown({
   // Build summary text for dropdown trigger
   const getSummaryText = () => {
     if (!selectedPortal) return 'No connected portal';
-    if (!showCollector) return selectedPortal.hostname;
+    if (!showCollector || !isPortalActive) return selectedPortal.hostname;
     if (!selectedCollector) return selectedPortal.hostname;
-    const device = showDevice && hostname ? ` → ${formatDeviceLabel(hostname)}` : '';
+    const device = showDevice && isPortalActive && hostname ? ` → ${formatDeviceLabel(hostname)}` : '';
     return `${selectedPortal.hostname} → ${selectedCollector.description || selectedCollector.hostname}${device}`;
   };
 
@@ -169,6 +186,16 @@ export function ContextDropdown({
                   className="h-8 gap-1.5 max-w-[280px]"
                 >
                   <Globe className="size-3.5 shrink-0" />
+                  <Circle
+                    className={cn(
+                      'size-2 shrink-0',
+                      selectedPortal?.status === 'active'
+                        ? 'fill-green-500 text-teal-500'
+                        : selectedPortal
+                          ? 'fill-red-500 text-red-500'
+                          : 'fill-muted-foreground text-muted-foreground'
+                    )}
+                  />
                   <span className="truncate text-xs">{getSummaryText()}</span>
                   <ChevronDown className="size-3 shrink-0 text-muted-foreground" />
                 </Button>
@@ -201,16 +228,44 @@ export function ContextDropdown({
         </TooltipContent>
       </Tooltip>
 
-      <PopoverContent className="w-[360px] p-0" align="start">
-        <div className="p-3 border-b border-border">
-          <h4 className="font-medium text-sm">Execution Context</h4>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {showCollector ? 'Select where to run your scripts' : 'Select your portal'}
-          </p>
-        </div>
+      <PopoverContent className="w-[360px] p-0 bg-background/95 backdrop-blur-xl" align="start">
+        {portals.length === 0 ? (
+          // Empty state when no portals detected
+          <Empty className="border-none bg-transparent p-6 flex flex-col justify-center">
+            <EmptyHeader>
+              <EmptyMedia variant="icon" className="bg-muted/50">
+                <Globe className="size-5 text-muted-foreground/70" />
+              </EmptyMedia>
+              <EmptyTitle className="text-base font-medium">No portals detected</EmptyTitle>
+              <EmptyDescription>
+                Open a LogicMonitor portal tab in your browser and sign in. 
+                The extension will automatically detect your session.
+              </EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRefreshPortals}
+                disabled={isRefreshingPortals}
+                className="w-full bg-background/50"
+              >
+                <RefreshCw className={cn("size-3.5 mr-2", isRefreshingPortals && "animate-spin")} />
+                {isRefreshingPortals ? 'Checking...' : 'Check for Portals'}
+              </Button>
+            </EmptyContent>
+          </Empty>
+        ) : (
+          <>
+            <div className="p-3 border-b border-border bg-secondary/30">
+              <h4 className="font-medium text-sm">Execution Context</h4>
+              <p className="text-xs text-muted-foreground mt-0.5">
+                {showCollector ? 'Select where to run your scripts' : 'Select your portal'}
+              </p>
+            </div>
 
-        <div className="p-3 space-y-4">
-          {/* Portal Selector */}
+            <div className="p-3 space-y-4">
+              {/* Portal Selector */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <Label className="text-xs">Portal</Label>
@@ -253,9 +308,9 @@ export function ContextDropdown({
                     className={cn(
                       'size-2 shrink-0',
                       selectedPortal?.status === 'active'
-                        ? 'fill-green-500 text-green-500'
+                        ? 'fill-green-500 text-teal-500'
                         : selectedPortal
-                          ? 'fill-yellow-500 text-yellow-500'
+                          ? 'fill-red-500 text-red-500'
                           : 'fill-muted-foreground text-muted-foreground'
                     )}
                   />
@@ -275,8 +330,8 @@ export function ContextDropdown({
                           className={cn(
                             'size-2',
                             portal.status === 'active'
-                              ? 'fill-green-500 text-green-500'
-                              : 'fill-yellow-500 text-yellow-500'
+                              ? 'fill-green-500 text-teal-500'
+                              : 'fill-red-500 text-red-500'
                           )}
                         />
                         <span>{portal.hostname}</span>
@@ -288,7 +343,37 @@ export function ContextDropdown({
             </Select>
           </div>
 
-          {showCollector && (
+          {selectedPortal && !isPortalActive && (
+            <>
+              <Separator />
+              <Empty className="border border-border/50 bg-background/40 p-4 rounded-lg">
+                <EmptyHeader>
+                  <EmptyMedia variant="icon" className="bg-muted/50">
+                    <Globe className="size-5 text-muted-foreground/70" />
+                  </EmptyMedia>
+                  <EmptyTitle className="text-sm font-medium">Portal detected, but no active session</EmptyTitle>
+                  <EmptyDescription className="text-xs">
+                    We can see <span className="font-medium">{selectedPortal.hostname}</span>, but it looks like you may be
+                    logged out (or the tab is on the login screen). Open that portal tab, sign in, then refresh.
+                  </EmptyDescription>
+                </EmptyHeader>
+                <EmptyContent className="mt-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRefreshPortals}
+                    disabled={isRefreshingPortals}
+                    className="w-full bg-background/50"
+                  >
+                    <RefreshCw className={cn("size-3.5 mr-2", isRefreshingPortals && "animate-spin")} />
+                    {isRefreshingPortals ? 'Checking...' : 'Refresh portal status'}
+                  </Button>
+                </EmptyContent>
+              </Empty>
+            </>
+          )}
+
+          {showCollector && isPortalActive && (
             <>
               <Separator />
               <div className="space-y-1.5">
@@ -336,7 +421,7 @@ export function ContextDropdown({
                             'size-4 shrink-0',
                             selectedCollector.isDown 
                               ? 'text-red-500' 
-                              : 'text-green-500'
+                              : 'text-teal-500'
                           )}
                         />
                       )}
@@ -361,7 +446,7 @@ export function ContextDropdown({
                                 'size-4 shrink-0',
                                 collector.isDown 
                                   ? 'text-red-500' 
-                                  : 'text-green-500'
+                                  : 'text-teal-500'
                               )}
                             />
                             <div className="flex flex-col min-w-0 flex-1">
@@ -387,7 +472,7 @@ export function ContextDropdown({
             </>
           )}
 
-          {showDevice && (
+          {showDevice && isPortalActive && (
             <>
               <Separator />
               <div className="space-y-1.5">
@@ -439,7 +524,7 @@ export function ContextDropdown({
                         <Server className={cn(
                           "size-4 shrink-0",
                           selectedDevice?.hostStatus === 'normal'
-                            ? "text-green-500"
+                            ? "text-teal-500"
                             : "text-red-500"
                         )} />
                       </InputGroupAddon>
@@ -496,22 +581,26 @@ export function ContextDropdown({
                         </div>
                       ) : (
                         filteredDevices.map((device) => (
-                          <ComboboxItem key={device.id} value={device.name}>
+                          <ComboboxItem 
+                            key={device.id} 
+                            value={device.name}
+                            className="group relative px-2.5 py-2 mx-1 my-0.5 rounded-sm border-l-2 border-transparent aria-selected:bg-accent/50 aria-selected:border-primary aria-selected:text-accent-foreground cursor-pointer transition-all hover:bg-accent/40 hover:border-l-primary/50"
+                          >
                             <div className="flex items-center gap-2 w-full">
                               <Server className={cn(
-                                "size-4 shrink-0",
+                                "size-3.5 shrink-0 transition-colors",
                                 device.hostStatus === 'normal' 
-                                  ? "text-green-500" 
+                                  ? "text-teal-500" 
                                   : "text-red-500"
                               )} />
                               <div className="flex flex-col min-w-0 flex-1">
-                                <span className="font-medium truncate">
+                                <span className="font-medium text-xs truncate">
                                   {device.displayName}
                                   {device.hostStatus !== 'normal' && (
-                                    <span className="text-red-500 text-xs ml-1.5">(offline)</span>
+                                    <span className="text-red-500 ml-1.5">(offline)</span>
                                   )}
                                 </span>
-                                <span className="text-xs text-muted-foreground truncate">{device.name}</span>
+                                <span className="text-[10px] text-muted-foreground truncate group-aria-selected:text-muted-foreground/80">{device.name}</span>
                               </div>
                             </div>
                           </ComboboxItem>
@@ -523,7 +612,9 @@ export function ContextDropdown({
               </div>
             </>
           )}
-        </div>
+            </div>
+          </>
+        )}
       </PopoverContent>
     </Popover>
   );

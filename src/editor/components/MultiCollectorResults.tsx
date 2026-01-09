@@ -205,7 +205,7 @@ export function MultiCollectorResults({ command, executedCommand, onBack }: Mult
             <div>
               <div className="flex items-center gap-2">
                 {command.type === 'healthcheck' && (
-                  <HeartPulse className="size-5 text-emerald-500" />
+                  <HeartPulse className="size-5 text-teal-500" />
                 )}
                 <code className="font-mono font-semibold">{command.command}</code>
                 <Badge variant={isExecutingDebugCommand ? 'default' : 'secondary'}>
@@ -407,7 +407,7 @@ export function MultiCollectorResults({ command, executedCommand, onBack }: Mult
 
                 <div className="flex items-center gap-2 mb-3">
                   {result.success ? (
-                    <Badge variant="default" className="bg-green-500">Success</Badge>
+                    <Badge variant="default" className="bg-teal-500">Success</Badge>
                   ) : (
                     <Badge variant="destructive">Error</Badge>
                   )}

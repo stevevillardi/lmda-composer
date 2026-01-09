@@ -31,7 +31,8 @@ export interface ModuleTypeSchema {
   autoDiscoveryEditableFields?: string[];
   autoDiscoveryDefaults?: Record<string, unknown>;
   fieldAliases?: Record<string, string>;
-  readOnlyList?: 'datapoints' | 'configChecks';
+  /** Editable list type for this module - datapoints for datasources, configChecks for configsources */
+  editableList?: 'datapoints' | 'configChecks';
   supportsAlertSettings?: boolean;
   alertSettingsFields?: string[];
 }
@@ -93,7 +94,7 @@ const LOGSOURCE_COLLECTION_INTERVALS: CollectIntervalOption[] = DATASOURCE_COLLE
 
 export const MODULE_TYPE_SCHEMAS: Record<LogicModuleType, ModuleTypeSchema> = {
   datasource: {
-    editableFields: ['name', 'displayName', 'description', 'appliesTo', 'group', 'technology', 'tags', 'collectInterval', 'accessGroupIds'],
+    editableFields: ['name', 'displayName', 'description', 'appliesTo', 'group', 'technology', 'tags', 'collectInterval', 'accessGroupIds', 'dataPoints'],
     requiredFields: ['name', 'collectInterval'],
     sections: ['basic', 'organization', 'access', 'appliesTo', 'activeDiscovery', 'datapoints'],
     accessGroupSupport: true,
@@ -103,10 +104,10 @@ export const MODULE_TYPE_SCHEMAS: Record<LogicModuleType, ModuleTypeSchema> = {
     intervalFormat: 'seconds',
     intervalLabel: 'Collect Interval',
     supportsAutoDiscovery: true,
-    readOnlyList: 'datapoints',
+    editableList: 'datapoints',
   },
   configsource: {
-    editableFields: ['name', 'displayName', 'description', 'appliesTo', 'group', 'technology', 'tags', 'collectInterval', 'accessGroupIds'],
+    editableFields: ['name', 'displayName', 'description', 'appliesTo', 'group', 'technology', 'tags', 'collectInterval', 'accessGroupIds', 'configChecks'],
     requiredFields: ['name', 'collectInterval'],
     sections: ['basic', 'organization', 'access', 'appliesTo', 'activeDiscovery', 'configChecks'],
     accessGroupSupport: true,
@@ -129,7 +130,7 @@ export const MODULE_TYPE_SCHEMAS: Record<LogicModuleType, ModuleTypeSchema> = {
       instanceAutoGroupMethodParams: null,
       filters: [],
     },
-    readOnlyList: 'configChecks',
+    editableList: 'configChecks',
   },
   topologysource: {
     editableFields: ['name', 'description', 'appliesTo', 'group', 'technology', 'tags', 'collectInterval', 'accessGroupIds'],

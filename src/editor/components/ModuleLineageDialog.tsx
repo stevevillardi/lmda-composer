@@ -104,8 +104,8 @@ export function ModuleLineageDialog({ activeTab }: ModuleLineageDialogProps) {
 
   return (
     <Dialog open={moduleLineageDialogOpen} onOpenChange={setModuleLineageDialogOpen}>
-      <DialogContent className="max-w-[95vw]! sm:max-w-[1500px]! max-h-[90vh] flex flex-col gap-0 p-0">
-        <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0">
+      <DialogContent className="max-w-[95vw]! sm:max-w-[1500px]! max-h-[90vh] flex flex-col gap-0 p-0 rounded-xl overflow-hidden" showCloseButton>
+        <DialogHeader className="px-6 pt-6 pb-4 border-b shrink-0 bg-background">
           <DialogTitle className="flex items-center gap-2">
             <History className="size-5" />
             View Lineage
@@ -115,11 +115,11 @@ export function ModuleLineageDialog({ activeTab }: ModuleLineageDialogProps) {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto px-6 py-4 min-h-0">
+        <div className="flex-1 overflow-y-auto px-6 py-4 min-h-0 bg-muted/5">
           <div className="space-y-4">
             <div className="flex items-center gap-2 flex-wrap">
               <Label className="text-sm font-medium">Module:</Label>
-              <Badge variant="outline">{moduleName}</Badge>
+              <Badge variant="outline" className="bg-background/50 backdrop-blur-sm">{moduleName}</Badge>
               {moduleType && <Badge variant="secondary">{MODULE_TYPE_LABELS[moduleType]}</Badge>}
               <Badge variant="default">{scriptTypeLabel}</Badge>
             </div>
@@ -137,7 +137,7 @@ export function ModuleLineageDialog({ activeTab }: ModuleLineageDialogProps) {
                 onValueChange={handleVersionChange}
                 disabled={isFetchingLineage || lineageVersions.length === 0}
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full bg-background/50">
                   <SelectValue>
                     {selectedVersion
                       ? formatVersionLabel(selectedVersion)
@@ -153,24 +153,26 @@ export function ModuleLineageDialog({ activeTab }: ModuleLineageDialogProps) {
                         <span className="font-mono text-xs">
                           {formatVersionLabel(version)}
                         </span>
-                        {version.isLatest && <Badge variant="secondary">Latest</Badge>}
+                        {version.isLatest && <Badge variant="secondary" className="h-4 px-1 text-[10px]">Latest</Badge>}
                       </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
               {selectedVersion && (
-                <div className="text-xs text-muted-foreground flex items-center gap-2">
-                  <Clock className="size-3.5" />
-                  <span>
-                    {formattedUpdatedAt || 'Unknown update time'}
-                    {selectedVersion.authorUsername ? ` • ${selectedVersion.authorUsername}` : ''}
-                  </span>
-                </div>
-              )}
-              {selectedVersion?.commitMessage && (
-                <div className="text-xs text-muted-foreground">
-                  {selectedVersion.commitMessage}
+                <div className="p-3 rounded-md border border-border/40 bg-card/40 backdrop-blur-sm">
+                  <div className="text-xs text-muted-foreground flex items-center gap-2 mb-1.5">
+                    <Clock className="size-3.5" />
+                    <span>
+                      {formattedUpdatedAt || 'Unknown update time'}
+                      {selectedVersion.authorUsername ? ` • ${selectedVersion.authorUsername}` : ''}
+                    </span>
+                  </div>
+                  {selectedVersion.commitMessage && (
+                    <div className="text-xs text-foreground/90 font-medium">
+                      {selectedVersion.commitMessage}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -178,9 +180,9 @@ export function ModuleLineageDialog({ activeTab }: ModuleLineageDialogProps) {
             <div className="space-y-2">
               <Label className="text-sm font-medium">Script Comparison</Label>
               {selectedVersion ? (
-                <div className="border border-border rounded-md overflow-hidden">
-                  <div className="grid grid-cols-2 border-b border-border bg-muted/30">
-                    <div className="px-4 py-2 text-xs font-medium text-muted-foreground border-r border-border">
+                <div className="border border-border/60 rounded-md overflow-hidden bg-card/40 backdrop-blur-sm shadow-sm">
+                  <div className="grid grid-cols-2 border-b border-border/60 bg-muted/20">
+                    <div className="px-4 py-2 text-xs font-medium text-muted-foreground border-r border-border/60">
                       Current
                     </div>
                     <div className="px-4 py-2 text-xs font-medium text-muted-foreground">
@@ -197,15 +199,17 @@ export function ModuleLineageDialog({ activeTab }: ModuleLineageDialogProps) {
                   />
                 </div>
               ) : (
-                <p className="text-xs text-muted-foreground">
-                  {isFetchingLineage ? 'Loading versions...' : 'Select a version to compare.'}
-                </p>
+                <div className="flex flex-col items-center justify-center p-8 border border-dashed border-border/60 rounded-md bg-muted/5">
+                  <p className="text-xs text-muted-foreground">
+                    {isFetchingLineage ? 'Loading versions...' : 'Select a version to compare.'}
+                  </p>
+                </div>
               )}
             </div>
           </div>
         </div>
 
-        <DialogFooter className="px-6 pb-6 pt-4 border-t shrink-0">
+        <DialogFooter className="px-6 pb-6 pt-4 border-t border-border/60 shrink-0 bg-background/50 backdrop-blur-sm">
           <Button type="button" variant="ghost" onClick={() => setModuleLineageDialogOpen(false)}>
             Close
           </Button>
@@ -215,7 +219,7 @@ export function ModuleLineageDialog({ activeTab }: ModuleLineageDialogProps) {
             onClick={handleRestore}
             disabled={!selectedVersion || !selectedVersionScript}
           >
-            <RotateCcw className="size-4 mr-2" />
+            <RotateCcw className="size-4" />
             Restore Version
           </Button>
         </DialogFooter>

@@ -67,8 +67,6 @@ interface APIModule {
     method?: {
       name?: string;
       groovyScript?: string;
-      linuxScript?: string;
-      winScript?: string;
     };
     instanceAutoGroupMethod?: string; // none|netscaler|netscalerservicegroup|regex|esx|ilp
     instanceAutoGroupMethodParams?: string;
@@ -86,8 +84,6 @@ interface APIModule {
     name?: string;
     groovyScript?: string;
     scriptType?: string;
-    linuxScript?: string;
-    windowsScript?: string;
   };
   // LogSource uses collectionAttribute with nested script object
   collectionAttribute?: {
@@ -295,77 +291,64 @@ function buildUpdatePayload(
 /**
  * Function injected into the page context to fetch a single module by ID
  */
-function fetchModuleByIdFromAPI(
+async function fetchModuleByIdFromAPI(
   csrfToken: string | null,
   endpoint: string,
   moduleId: number,
   apiVersion: string
 ): Promise<APIModule | null | { error: string; status?: number; responseText?: string }> {
-  return new Promise((resolve) => {
-    const url = `/santaba/rest${endpoint}/${moduleId}`;
-    const xhr = new XMLHttpRequest();
-    xhr.open('GET', url, true);
-    try {
+  // Embedded lmFetch helper
+  const lmFetch = <T = unknown>(url: string, opts: { csrfToken?: string | null; apiVersion?: string } = {}): Promise<{ ok: boolean; status: number; data?: T; text?: string; error?: string }> =>
+    new Promise((resolve) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('GET', url, true);
       xhr.setRequestHeader('Content-Type', 'application/json');
-      xhr.setRequestHeader('X-version', apiVersion);
-      // Note: fetchModulesFromAPI doesn't use X-Requested-With, so we'll match that pattern
-      if (csrfToken) {
-        xhr.setRequestHeader('X-CSRF-Token', csrfToken);
-      }
-    } catch (headerError) {
-      console.error(`[fetchModuleByIdFromAPI] Error setting headers:`, headerError);
-      resolve({ error: `Failed to set headers: ${headerError instanceof Error ? headerError.message : 'Unknown'}` });
-      return;
-    }
-
-    xhr.onload = () => {
-      if (xhr.status === 200) {
-        try {
-          const response = JSON.parse(xhr.responseText);
-          // Try different response formats
-          const module = response.data || response.items?.[0] || response;
-          if (module && module.id) {
-            resolve(module as APIModule);
-          } else {
-            console.error(`[fetchModuleByIdFromAPI] Invalid module structure:`, response);
-            resolve({ error: 'Invalid module structure', status: xhr.status, responseText: xhr.responseText });
-          }
-        } catch (error) {
-          console.error('[fetchModuleByIdFromAPI] Error parsing module response:', error, 'Response text:', xhr.responseText);
-          resolve({ error: 'Parse error', status: xhr.status, responseText: xhr.responseText });
-        }
-      } else if (xhr.status === 404) {
-        console.error(`[fetchModuleByIdFromAPI] Module not found: ${endpoint}/${moduleId}, status: ${xhr.status}`);
-        resolve({ error: 'Module not found', status: 404 });
-      } else {
-        console.error(`[fetchModuleByIdFromAPI] Failed to fetch module: ${endpoint}/${moduleId}, status: ${xhr.status}, response:`, xhr.responseText);
-        resolve({ error: `HTTP ${xhr.status}`, status: xhr.status, responseText: xhr.responseText });
-      }
-    };
-
-    xhr.onerror = () => {
-      console.error(`[fetchModuleByIdFromAPI] XHR error for ${url}`);
-      resolve({ error: 'Network error' });
-    };
-    
-    xhr.ontimeout = () => {
-      console.error(`[fetchModuleByIdFromAPI] XHR timeout for ${url}`);
-      resolve({ error: 'Request timeout' });
-    };
-    
-    try {
+      xhr.setRequestHeader('X-version', opts.apiVersion || '3');
+      if (opts.csrfToken) xhr.setRequestHeader('X-CSRF-Token', opts.csrfToken);
+      xhr.onload = () => {
+        const ok = xhr.status >= 200 && xhr.status < 300;
+        let data: T | undefined;
+        try { data = JSON.parse(xhr.responseText) as T; } catch { /* empty */ }
+        resolve({ ok, status: xhr.status, data, text: xhr.responseText });
+      };
+      xhr.onerror = () => resolve({ ok: false, status: 0, error: 'Network error' });
       xhr.send();
-    } catch (sendError) {
-      console.error(`[fetchModuleByIdFromAPI] Error calling xhr.send():`, sendError);
-      resolve({ error: `Failed to send request: ${sendError instanceof Error ? sendError.message : 'Unknown error'}` });
+    });
+
+  const url = `/santaba/rest${endpoint}/${moduleId}`;
+  const result = await lmFetch<{ data?: APIModule; items?: APIModule[]; id?: number } & APIModule>(
+    url,
+    { csrfToken, apiVersion }
+  );
+
+  if (result.error) {
+    console.error(`[fetchModuleByIdFromAPI] XHR error for ${url}`);
+    return { error: result.error };
+  }
+
+  if (result.ok && result.data) {
+    // Try different response formats
+    const module = result.data.data || result.data.items?.[0] || result.data;
+    if (module && module.id) {
+      return module as APIModule;
     }
-  });
+    console.error(`[fetchModuleByIdFromAPI] Invalid module structure:`, result.data);
+    return { error: 'Invalid module structure', status: result.status, responseText: result.text };
+  }
+
+  if (result.status === 404) {
+    console.error(`[fetchModuleByIdFromAPI] Module not found: ${endpoint}/${moduleId}, status: ${result.status}`);
+    return { error: 'Module not found', status: 404 };
+  }
+
+  console.error(`[fetchModuleByIdFromAPI] Failed to fetch module: ${endpoint}/${moduleId}, status: ${result.status}, response:`, result.text);
+  return { error: `HTTP ${result.status}`, status: result.status, responseText: result.text };
 }
 
 /**
  * Function injected into the page context to update a module
  */
-function updateModuleInAPI(
+async function updateModuleInAPI(
   csrfToken: string | null,
   endpoint: string,
   moduleId: number,
@@ -373,68 +356,77 @@ function updateModuleInAPI(
   apiVersion: string,
   reason?: string | null
 ): Promise<{ success: boolean; error?: string }> {
-  return new Promise((resolve) => {
-    const xhr = new XMLHttpRequest();
-    const reasonParam = reason ? `?reason=${encodeURIComponent(reason.slice(0, 4096))}` : '';
-    xhr.open('PATCH', `/santaba/rest${endpoint}/${moduleId}${reasonParam}`, true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.setRequestHeader('X-version', apiVersion);
-    xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
-    if (csrfToken) {
-      xhr.setRequestHeader('X-CSRF-Token', csrfToken);
-    }
+  // Embedded lmFetch helper with X-Requested-With support
+  const lmFetch = <T = unknown>(url: string, opts: { method?: string; csrfToken?: string | null; body?: unknown; apiVersion?: string; xRequestedWith?: boolean } = {}): Promise<{ ok: boolean; status: number; data?: T }> =>
+    new Promise((resolve) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open(opts.method || 'GET', url, true);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.setRequestHeader('X-version', opts.apiVersion || '3');
+      if (opts.csrfToken) xhr.setRequestHeader('X-CSRF-Token', opts.csrfToken);
+      if (opts.xRequestedWith) xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+      xhr.onload = () => {
+        const ok = xhr.status >= 200 && xhr.status < 300;
+        let data: T | undefined;
+        try { data = JSON.parse(xhr.responseText) as T; } catch { /* empty */ }
+        resolve({ ok, status: xhr.status, data });
+      };
+      xhr.onerror = () => resolve({ ok: false, status: 0 });
+      xhr.send(opts.body ? JSON.stringify(opts.body) : undefined);
+    });
 
-    xhr.onload = () => {
-      if (xhr.status === 200 || xhr.status === 204) {
-        resolve({ success: true });
-      } else {
-        try {
-          const errorData = JSON.parse(xhr.responseText);
-          const baseMessage = errorData.errorMessage || errorData.message || `Failed to update module: ${xhr.status}`;
-          const detailMessage = errorData.errorDetail ? `\n${errorData.errorDetail}` : '';
-          const codeMessage = errorData.errorCode ? `\nError code: ${errorData.errorCode}` : '';
-          const errorMessage = `${baseMessage}${detailMessage}${codeMessage}`;
-          resolve({ success: false, error: errorMessage });
-        } catch {
-          resolve({ success: false, error: `Failed to update module: ${xhr.status}` });
-        }
-      }
-    };
+  const reasonParam = reason ? `?reason=${encodeURIComponent(reason.slice(0, 4096))}` : '';
+  const result = await lmFetch<{ errorMessage?: string; message?: string; errorDetail?: string; errorCode?: number }>(
+    `/santaba/rest${endpoint}/${moduleId}${reasonParam}`,
+    { method: 'PATCH', csrfToken, body: payload, apiVersion, xRequestedWith: true }
+  );
 
-    xhr.onerror = () => resolve({ success: false, error: 'Network error' });
-    xhr.send(JSON.stringify(payload));
-  });
+  if (result.ok) {
+    return { success: true };
+  }
+
+  if (result.data) {
+    const baseMessage = result.data.errorMessage || result.data.message || `Failed to update module: ${result.status}`;
+    const detailMessage = result.data.errorDetail ? `\n${result.data.errorDetail}` : '';
+    const codeMessage = result.data.errorCode ? `\nError code: ${result.data.errorCode}` : '';
+    return { success: false, error: `${baseMessage}${detailMessage}${codeMessage}` };
+  }
+
+  return { success: false, error: result.status === 0 ? 'Network error' : `Failed to update module: ${result.status}` };
 }
 
-function fetchLineageVersionsFromAPI(
+async function fetchLineageVersionsFromAPI(
   csrfToken: string | null,
   lineageId: string,
   apiVersion: string
 ): Promise<LineageResponse | { error: string; status?: number; responseText?: string }> {
-  return new Promise((resolve) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open('POST', `/santaba/rest/exchange/store/lineages/${lineageId}`, true);
-    xhr.setRequestHeader('Content-Type', 'application/json');
-    xhr.setRequestHeader('X-version', apiVersion);
-    if (csrfToken) {
-      xhr.setRequestHeader('X-CSRF-Token', csrfToken);
-    }
+  // Embedded lmFetch helper
+  const lmFetch = <T = unknown>(url: string, opts: { method?: string; csrfToken?: string | null; body?: unknown; apiVersion?: string } = {}): Promise<{ ok: boolean; status: number; data?: T; text?: string }> =>
+    new Promise((resolve) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open(opts.method || 'GET', url, true);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.setRequestHeader('X-version', opts.apiVersion || '3');
+      if (opts.csrfToken) xhr.setRequestHeader('X-CSRF-Token', opts.csrfToken);
+      xhr.onload = () => {
+        const ok = xhr.status >= 200 && xhr.status < 300;
+        let data: T | undefined;
+        try { data = JSON.parse(xhr.responseText) as T; } catch { /* empty */ }
+        resolve({ ok, status: xhr.status, data, text: xhr.responseText });
+      };
+      xhr.onerror = () => resolve({ ok: false, status: 0, text: '' });
+      xhr.send(opts.body ? JSON.stringify(opts.body) : undefined);
+    });
 
-    xhr.onload = () => {
-      if (xhr.status === 200) {
-        try {
-          resolve(JSON.parse(xhr.responseText) as LineageResponse);
-        } catch (error) {
-          resolve({ error: 'Parse error', status: xhr.status, responseText: xhr.responseText });
-        }
-      } else {
-        resolve({ error: `HTTP ${xhr.status}`, status: xhr.status, responseText: xhr.responseText });
-      }
-    };
+  const result = await lmFetch<LineageResponse>(
+    `/santaba/rest/exchange/store/lineages/${lineageId}`,
+    { method: 'POST', csrfToken, body: {}, apiVersion }
+  );
 
-    xhr.onerror = () => resolve({ error: 'Network error' });
-    xhr.send('{}');
-  });
+  if (result.ok && result.data) {
+    return result.data;
+  }
+  return { error: result.data ? 'Parse error' : `HTTP ${result.status}`, status: result.status, responseText: result.text };
 }
 
 /**
@@ -702,59 +694,46 @@ export async function fetchModuleDetails(
 /**
  * Function injected into the page context to fetch access groups list
  */
-function fetchAccessGroupsFromAPI(
+async function fetchAccessGroupsFromAPI(
   csrfToken: string | null,
   apiVersion: string
 ): Promise<{ items: AccessGroup[]; total?: number } | { error: string; status?: number; responseText?: string }> {
-  return new Promise((resolve) => {
-    const url = `/santaba/rest/setting/accessgroup?size=1000`;
-    const xhr = new XMLHttpRequest();
-    xhr.open('GET', url, true);
-    try {
+  // Embedded lmFetch helper
+  const lmFetch = <T = unknown>(url: string, opts: { method?: string; csrfToken?: string | null; apiVersion?: string } = {}): Promise<{ ok: boolean; status: number; data?: T; text?: string; error?: string }> =>
+    new Promise((resolve) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open(opts.method || 'GET', url, true);
       xhr.setRequestHeader('Content-Type', 'application/json');
-      xhr.setRequestHeader('X-version', apiVersion);
-      if (csrfToken) {
-        xhr.setRequestHeader('X-CSRF-Token', csrfToken);
-      }
-    } catch (headerError) {
-      console.error(`[fetchAccessGroupsFromAPI] Error setting headers:`, headerError);
-      resolve({ error: `Failed to set headers: ${headerError instanceof Error ? headerError.message : 'Unknown'}` });
-      return;
-    }
-
-    xhr.onload = () => {
-      if (xhr.status === 200) {
-        try {
-          const response = JSON.parse(xhr.responseText);
-          const items = response.items || response.data?.items || [];
-          resolve({ items, total: response.total });
-        } catch (error) {
-          console.error('[fetchAccessGroupsFromAPI] Error parsing response:', error, 'Response text:', xhr.responseText);
-          resolve({ error: 'Parse error', status: xhr.status, responseText: xhr.responseText });
-        }
-      } else {
-        console.error(`[fetchAccessGroupsFromAPI] Failed to fetch access groups, status: ${xhr.status}, response:`, xhr.responseText);
-        resolve({ error: `HTTP ${xhr.status}`, status: xhr.status, responseText: xhr.responseText });
-      }
-    };
-
-    xhr.onerror = () => {
-      console.error(`[fetchAccessGroupsFromAPI] XHR error for ${url}`);
-      resolve({ error: 'Network error' });
-    };
-    
-    xhr.ontimeout = () => {
-      console.error(`[fetchAccessGroupsFromAPI] XHR timeout for ${url}`);
-      resolve({ error: 'Request timeout' });
-    };
-    
-    try {
+      xhr.setRequestHeader('X-version', opts.apiVersion || '3');
+      if (opts.csrfToken) xhr.setRequestHeader('X-CSRF-Token', opts.csrfToken);
+      xhr.onload = () => {
+        const ok = xhr.status >= 200 && xhr.status < 300;
+        let data: T | undefined;
+        try { data = JSON.parse(xhr.responseText) as T; } catch { /* empty */ }
+        resolve({ ok, status: xhr.status, data, text: xhr.responseText });
+      };
+      xhr.onerror = () => resolve({ ok: false, status: 0, error: 'Network error' });
       xhr.send();
-    } catch (sendError) {
-      console.error(`[fetchAccessGroupsFromAPI] Error calling xhr.send():`, sendError);
-      resolve({ error: `Failed to send request: ${sendError instanceof Error ? sendError.message : 'Unknown error'}` });
-    }
-  });
+    });
+
+  const url = `/santaba/rest/setting/accessgroup?size=1000`;
+  const result = await lmFetch<{ items?: AccessGroup[]; data?: { items?: AccessGroup[] }; total?: number }>(
+    url,
+    { csrfToken, apiVersion }
+  );
+
+  if (result.ok && result.data) {
+    const items = result.data.items || result.data.data?.items || [];
+    return { items, total: result.data.total };
+  }
+  
+  if (result.error) {
+    console.error(`[fetchAccessGroupsFromAPI] XHR error for ${url}`);
+    return { error: result.error };
+  }
+  
+  console.error(`[fetchAccessGroupsFromAPI] Failed to fetch access groups, status: ${result.status}, response:`, result.text);
+  return { error: `HTTP ${result.status}`, status: result.status, responseText: result.text };
 }
 
 /**

@@ -39,7 +39,7 @@ export function OnboardingApp() {
     []
   );
 
-  const themeRef = useRef<'light' | 'dark' | 'system'>('dark');
+  const themeRef = useRef<'light' | 'dark' | 'system'>('system');
 
   useEffect(() => {
     const media = window.matchMedia('(prefers-color-scheme: dark)');
@@ -53,7 +53,7 @@ export function OnboardingApp() {
     chrome.storage.local.get('lm-ide-preferences').then((result) => {
       const stored = result as Record<string, { theme?: string } | undefined>;
       const theme = stored['lm-ide-preferences']?.theme;
-      themeRef.current = theme === 'light' || theme === 'system' ? theme : 'dark';
+      themeRef.current = theme === 'light' || theme === 'dark' ? theme : 'system';
       applyTheme();
     }).catch(() => {
       applyTheme();
@@ -67,9 +67,12 @@ export function OnboardingApp() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-24 -right-24 h-64 w-64 rounded-full bg-[oklch(0.8_0.15_60/0.35)] blur-3xl dark:bg-[oklch(0.55_0.18_60/0.25)]" />
-        <div className="absolute top-40 -left-24 h-72 w-72 rounded-full bg-[oklch(0.75_0.12_220/0.35)] blur-3xl dark:bg-[oklch(0.45_0.12_220/0.3)]" />
-        <div className="absolute bottom-0 right-1/3 h-48 w-48 rounded-full bg-[oklch(0.78_0.1_30/0.3)] blur-3xl dark:bg-[oklch(0.5_0.12_30/0.25)]" />
+        {/* Purple accent glow - top right */}
+        <div className="absolute -top-24 -right-24 h-64 w-64 rounded-full bg-purple-400/25 blur-3xl dark:bg-purple-500/15" />
+        {/* Teal accent glow - left side */}
+        <div className="absolute top-40 -left-24 h-72 w-72 rounded-full bg-teal-400/25 blur-3xl dark:bg-teal-500/15" />
+        {/* Cyan accent glow - bottom */}
+        <div className="absolute bottom-0 right-1/3 h-48 w-48 rounded-full bg-cyan-400/20 blur-3xl dark:bg-cyan-500/10" />
       </div>
 
       <div className="relative mx-auto max-w-7xl px-6 py-4">
@@ -87,7 +90,7 @@ export function OnboardingApp() {
           <div className="fixed bottom-4 right-4 z-20 max-w-xs animate-in slide-in-from-bottom-4 fade-in duration-300">
             <div className="rounded-xl border border-border bg-card shadow-lg">
               <div className="flex items-start gap-3 p-4">
-                <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-500/10 text-blue-500">
+                <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-cyan-500/10 text-cyan-500">
                   <Terminal className="size-4" />
                 </span>
                 <div className="flex-1 space-y-1">
@@ -99,7 +102,7 @@ export function OnboardingApp() {
                     href="https://logicmonitor.github.io/lm-powershell-module-docs/"
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-1 text-xs font-medium text-blue-500 hover:text-blue-400 transition-colors"
+                    className="inline-flex items-center gap-1 text-xs font-medium text-cyan-500 hover:text-cyan-400 transition-colors"
                   >
                     Learn more
                     <ExternalLink className="size-3" />
@@ -220,7 +223,7 @@ export function OnboardingApp() {
         <footer className="mt-6 space-y-3">
           <div className="rounded-lg border border-border/50 bg-card/50 p-3 text-xs text-muted-foreground">
             <p>
-              <span className="font-semibold text-amber-600 dark:text-amber-500">Independent Project:</span>{' '}
+              <span className="font-semibold text-yellow-600 dark:text-yellow-500">Independent Project:</span>{' '}
               LMDA Composer is an independent project created and maintained by LogicMonitor users. While not an official LogicMonitor product, it&apos;s designed by people who use and understand the platform. We hope you find this tool valuable for your LogicMonitor scripting workflows!
             </p>
           </div>

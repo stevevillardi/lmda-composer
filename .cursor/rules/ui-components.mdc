@@ -1,0 +1,317 @@
+---
+description: UI component patterns with shadcn/ui, Tailwind CSS v4, and styling conventions for LMDA Composer
+globs:
+  - "src/components/**/*.tsx"
+  - "src/editor/components/**/*.tsx"
+  - "src/styles/**/*.css"
+alwaysApply: false
+---
+
+# UI Components and Styling
+
+## Component Library Stack
+
+- **Base UI** - Unstyled React primitives (`@base-ui/react`)
+- **shadcn/ui** - Styled component patterns built on Base UI
+- **Tailwind CSS v4** - Utility-first CSS framework
+- **lucide-react** - Icon library
+
+## Class Merging with `cn()`
+
+Always use the `cn()` utility for conditional class merging:
+
+```typescript
+import { cn } from '@/lib/utils';
+
+// Merging base + conditional classes
+<Button 
+  className={cn(
+    'gap-2',
+    isActive && 'bg-primary',
+    variant === 'warning' && 'text-amber-500'
+  )}
+>
+```
+
+The `cn()` function uses `clsx` + `tailwind-merge` to properly handle Tailwind class conflicts.
+
+## Button Variants
+
+### Semantic Action Variants
+Use semantic variants for action buttons:
+
+```typescript
+// Execute/Run actions (green)
+<Button variant="execute" onClick={handleRun}>
+  <PlayIcon /> Run Script
+</Button>
+
+// Commit/Push actions (blue)
+<Button variant="commit" onClick={handleCommit}>
+  <UploadIcon /> Push to Portal
+</Button>
+
+// Warning/Destructive actions (amber/red)
+<Button variant="warning" onClick={handleOverwrite}>
+  <AlertIcon /> Overwrite Local
+</Button>
+
+<Button variant="destructive" onClick={handleDelete}>
+  <TrashIcon /> Delete
+</Button>
+```
+
+### Size Variants
+Use appropriate sizes for context:
+
+```typescript
+// Toolbar buttons
+<Button size="toolbar" variant="toolbar-outline">
+  <SettingsIcon /> Settings
+</Button>
+
+// Dialog actions
+<Button size="default">Submit</Button>
+
+// Compact UI
+<Button size="sm">Cancel</Button>
+<Button size="xs">Clear</Button>
+
+// Icon-only buttons
+<Button size="icon-sm" variant="ghost">
+  <XIcon />
+</Button>
+```
+
+### Available Variants
+From `src/components/ui/button.tsx`:
+
+| Variant | Use Case |
+|---------|----------|
+| `default` | Primary actions |
+| `outline` | Secondary actions |
+| `secondary` | Alternative actions |
+| `ghost` | Minimal emphasis |
+| `destructive` | Delete/remove actions |
+| `link` | Text links |
+| `commit` | Push/commit/sync actions (blue) |
+| `execute` | Run/execute actions (green) |
+| `warning` | Overwrite/force actions (amber) |
+| `toolbar-outline` | Toolbar secondary buttons |
+| `toolbar-ghost` | Toolbar minimal buttons |
+
+## Tailwind CSS v4 Patterns
+
+### OKLCH Color Variables
+Colors are defined using OKLCH in CSS variables:
+
+```css
+/* src/styles/globals.css */
+:root {
+  --primary: oklch(0.21 0.034 264.665);
+  --destructive: oklch(0.577 0.245 27.325);
+  --success: oklch(0.627 0.194 149);
+  --warning: oklch(0.769 0.188 84);
+}
+
+.dark {
+  --primary: oklch(0.928 0.006 264.531);
+  --destructive: oklch(0.704 0.191 22.216);
+}
+```
+
+### Dark Mode Variant
+Use the custom dark variant:
+
+```css
+@custom-variant dark (&:is(.dark *));
+```
+
+In Tailwind classes:
+
+```typescript
+// Automatic dark mode handling via CSS variables
+<div className="bg-background text-foreground">
+
+// Explicit dark overrides when needed
+<div className="bg-gray-100 dark:bg-gray-800">
+```
+
+### Common Color Utilities
+
+```typescript
+// Status colors
+<Badge className="bg-green-500/10 text-green-500">Success</Badge>
+<Badge className="bg-amber-500/10 text-amber-500">Warning</Badge>
+<Badge className="bg-red-500/10 text-red-500">Error</Badge>
+<Badge className="bg-blue-500/10 text-blue-500">Info</Badge>
+
+// Muted backgrounds
+<div className="bg-muted text-muted-foreground">
+<div className="bg-card text-card-foreground">
+```
+
+## Icon Usage
+
+### Import from Project Icons File
+For commonly used icons, import from the project icons file:
+
+```typescript
+import { 
+  RunIcon, 
+  LoadingIcon, 
+  CommitIcon,
+  SuccessIcon,
+  ErrorIcon,
+} from '../constants/icons';
+```
+
+### Direct lucide-react Imports
+For less common icons:
+
+```typescript
+import { 
+  ChevronDown, 
+  Search, 
+  X, 
+  Settings 
+} from 'lucide-react';
+```
+
+### Icon Sizing
+Icons in buttons are auto-sized via button variant classes:
+
+```typescript
+// Sizes controlled by button variant
+<Button size="sm">
+  <PlayIcon /> {/* Automatically sized */}
+</Button>
+
+// Explicit sizing when needed
+<PlayIcon className="size-4" />
+<SettingsIcon className="size-5" />
+```
+
+## Dialog Patterns
+
+### Alert Dialog with Media
+Use `AlertDialogMedia` for icon headers:
+
+```typescript
+<AlertDialog open={isOpen} onOpenChange={setIsOpen}>
+  <AlertDialogContent>
+    <AlertDialogHeader>
+      <AlertDialogMedia className="bg-amber-500/10">
+        <AlertTriangle className="size-8 text-amber-500" />
+      </AlertDialogMedia>
+      <AlertDialogTitle>Unsaved Changes</AlertDialogTitle>
+      <AlertDialogDescription>
+        You have unsaved changes. What would you like to do?
+      </AlertDialogDescription>
+    </AlertDialogHeader>
+    <AlertDialogFooter>
+      <AlertDialogCancel>Cancel</AlertDialogCancel>
+      <AlertDialogAction variant="warning">Discard</AlertDialogAction>
+    </AlertDialogFooter>
+  </AlertDialogContent>
+</AlertDialog>
+```
+
+## Tooltip Pattern
+
+Use tooltips for icon-only buttons and additional context:
+
+```typescript
+<Tooltip>
+  <TooltipTrigger
+    render={
+      <Button size="icon-sm" variant="ghost">
+        <SettingsIcon />
+      </Button>
+    }
+  />
+  <TooltipContent>Open settings</TooltipContent>
+</Tooltip>
+```
+
+## Form Patterns
+
+### Label + Input Groups
+Use consistent spacing and labeling:
+
+```typescript
+<div className="space-y-2">
+  <Label htmlFor="hostname">Hostname</Label>
+  <Input 
+    id="hostname" 
+    placeholder="device.example.com"
+    value={hostname}
+    onChange={(e) => setHostname(e.target.value)}
+  />
+</div>
+```
+
+### Select Components
+Use the Select component with proper structure:
+
+```typescript
+<Select value={selectedValue} onValueChange={setSelectedValue}>
+  <SelectTrigger className="w-48">
+    <SelectValue placeholder="Select option" />
+  </SelectTrigger>
+  <SelectContent>
+    <SelectItem value="option1">Option 1</SelectItem>
+    <SelectItem value="option2">Option 2</SelectItem>
+  </SelectContent>
+</Select>
+```
+
+## Loading States
+
+### Spinner for Async Actions
+Use the Spinner component or loading icon:
+
+```typescript
+{isLoading ? (
+  <Button disabled>
+    <LoadingIcon className="animate-spin" />
+    Loading...
+  </Button>
+) : (
+  <Button onClick={handleAction}>
+    Submit
+  </Button>
+)}
+```
+
+### Skeleton for Content Loading
+Use Skeleton for placeholder content:
+
+```typescript
+{isLoading ? (
+  <div className="space-y-2">
+    <Skeleton className="h-4 w-full" />
+    <Skeleton className="h-4 w-3/4" />
+  </div>
+) : (
+  <ContentComponent data={data} />
+)}
+```
+
+## Empty States
+
+Use the Empty component pattern:
+
+```typescript
+<Empty className="border-none h-full">
+  <EmptyHeader>
+    <EmptyMedia variant="icon">
+      <PlayIcon className="size-5" />
+    </EmptyMedia>
+    <EmptyTitle>No output yet</EmptyTitle>
+    <EmptyDescription>
+      Run a script to see output here
+    </EmptyDescription>
+  </EmptyHeader>
+</Empty>
+```

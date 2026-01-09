@@ -21,7 +21,7 @@ export function ErrorState({
   className,
 }: ErrorStateProps) {
   const Icon = icon === 'error' ? XCircle : AlertTriangle;
-  const iconColor = icon === 'error' ? 'text-destructive' : 'text-amber-500';
+  const iconColor = icon === 'error' ? 'text-destructive' : 'text-yellow-500';
 
   return (
     <Empty className={cn('h-full border-0', className)}>

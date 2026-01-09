@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { Settings, Palette, Code, Type, Braces } from 'lucide-react';
+import { useEffect, useState, useCallback } from 'react';
+import { Settings, Palette, Code, Braces } from 'lucide-react';
 import { useEditorStore } from '../stores/editor-store';
 import { Button } from '@/components/ui/button';
 import {
@@ -10,6 +10,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
@@ -20,12 +21,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-} from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { DEFAULT_PREFERENCES } from '@/shared/types';
 import type { ScriptLanguage, ScriptMode, UserPreferences } from '@/shared/types';
@@ -38,7 +33,7 @@ interface SettingRowProps {
 
 function SettingRow({ label, description, children }: SettingRowProps) {
   return (
-    <div className="flex items-center justify-between gap-6 py-3 px-1">
+    <div className="flex items-center justify-between gap-6 py-3 border-b border-border/50 last:border-b-0">
       <div className="flex-1 space-y-0.5">
         <Label className="text-sm font-medium">{label}</Label>
         {description && (
@@ -49,6 +44,55 @@ function SettingRow({ label, description, children }: SettingRowProps) {
         {children}
       </div>
     </div>
+  );
+}
+
+interface NumberInputProps {
+  value: number;
+  onChange: (value: number) => void;
+  min: number;
+  max: number;
+  className?: string;
+}
+
+function NumberInput({ value, onChange, min, max, className }: NumberInputProps) {
+  const [localValue, setLocalValue] = useState(String(value));
+
+  // Sync local value when external value changes
+  useEffect(() => {
+    setLocalValue(String(value));
+  }, [value]);
+
+  const handleBlur = useCallback(() => {
+    const parsed = Number(localValue);
+    if (localValue === '' || Number.isNaN(parsed)) {
+      // Reset to current value if empty or invalid
+      setLocalValue(String(value));
+    } else {
+      // Clamp and apply
+      const clamped = Math.max(min, Math.min(max, parsed));
+      setLocalValue(String(clamped));
+      onChange(clamped);
+    }
+  }, [localValue, value, min, max, onChange]);
+
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleBlur();
+    }
+  }, [handleBlur]);
+
+  return (
+    <Input
+      type="text"
+      inputMode="numeric"
+      pattern="[0-9]*"
+      value={localValue}
+      onChange={(e) => setLocalValue(e.target.value)}
+      onBlur={handleBlur}
+      onKeyDown={handleKeyDown}
+      className={className}
+    />
   );
 }
 
@@ -90,7 +134,7 @@ export function SettingsDialog() {
 
   return (
     <Dialog open={settingsDialogOpen} onOpenChange={setSettingsDialogOpen}>
-      <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Settings className="size-5" />
@@ -101,196 +145,155 @@ export function SettingsDialog() {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto py-2">
-          <div className="space-y-6">
-            {/* Appearance Card */}
-            <Card size="sm">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <div className="p-2 rounded-lg bg-primary/10">
-                    <Palette className="size-5 text-primary" />
-                  </div>
-                  Appearance
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <SettingRow label="Theme">
-                  <Select
-                    value={preferences.theme}
-                    onValueChange={(value) => setPreferences({ theme: value as UserPreferences['theme'] })}
-                    items={themeItems}
-                  >
-                    <SelectTrigger className="w-[120px] h-8">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {themeItems.map((item) => (
-                        <SelectItem key={item.value} value={item.value}>
-                          {item.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </SettingRow>
-              </CardContent>
-            </Card>
+        <Tabs defaultValue="general" className="mt-2">
+          <TabsList className="w-full">
+            <TabsTrigger value="general" className="flex-1 gap-1.5">
+              <Palette className="size-4" />
+              General
+            </TabsTrigger>
+            <TabsTrigger value="editor" className="flex-1 gap-1.5">
+              <Code className="size-4" />
+              Editor
+            </TabsTrigger>
+            <TabsTrigger value="api" className="flex-1 gap-1.5">
+              <Braces className="size-4" />
+              API Explorer
+            </TabsTrigger>
+          </TabsList>
 
-            {/* Defaults Card */}
-            <Card size="sm">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <div className="p-2 rounded-lg bg-primary/10">
-                    <Type className="size-5 text-primary" />
-                  </div>
-                  Defaults
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <SettingRow label="Language">
-                  <Select
-                    value={preferences.defaultLanguage}
-                    onValueChange={(value) => setPreferences({ defaultLanguage: value as ScriptLanguage })}
-                    items={languageItems}
-                  >
-                    <SelectTrigger className="w-[130px] h-8">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {languageItems.map((item) => (
-                        <SelectItem key={item.value} value={item.value}>
-                          {item.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </SettingRow>
-                <SettingRow label="Mode">
-                  <Select
-                    value={preferences.defaultMode}
-                    onValueChange={(value) => setPreferences({ defaultMode: value as ScriptMode })}
-                    items={modeItems}
-                  >
-                    <SelectTrigger className="w-[160px] h-8">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {modeItems.map((item) => (
-                        <SelectItem key={item.value} value={item.value}>
-                          {item.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </SettingRow>
-              </CardContent>
-            </Card>
+          {/* General Tab - Appearance + Defaults */}
+          <TabsContent value="general" className="mt-4 space-y-1">
+            <SettingRow label="Theme">
+              <Select
+                value={preferences.theme}
+                onValueChange={(value) => setPreferences({ theme: value as UserPreferences['theme'] })}
+                items={themeItems}
+              >
+                <SelectTrigger className="w-[140px] h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {themeItems.map((item) => (
+                    <SelectItem key={item.value} value={item.value}>
+                      {item.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </SettingRow>
 
-            {/* Editor Card */}
-            <Card size="sm">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <div className="p-2 rounded-lg bg-primary/10">
-                    <Code className="size-5 text-primary" />
-                  </div>
-                  Editor
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <SettingRow label="Font Size" description={`${preferences.fontSize}px`}>
-                  <Slider
-                    value={[preferences.fontSize]}
-                    onValueChange={(value) => setPreferences({ fontSize: Array.isArray(value) ? value[0] : value })}
-                    min={10}
-                    max={24}
-                    step={1}
-                    className="w-[120px]"
-                  />
-                </SettingRow>
+            <SettingRow label="Default Language" description="Language for new files">
+              <Select
+                value={preferences.defaultLanguage}
+                onValueChange={(value) => setPreferences({ defaultLanguage: value as ScriptLanguage })}
+                items={languageItems}
+              >
+                <SelectTrigger className="w-[140px] h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {languageItems.map((item) => (
+                    <SelectItem key={item.value} value={item.value}>
+                      {item.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </SettingRow>
 
-                <SettingRow label="Tab Size" description={`${preferences.tabSize} spaces`}>
-                  <Slider
-                    value={[preferences.tabSize]}
-                    onValueChange={(value) => setPreferences({ tabSize: Array.isArray(value) ? value[0] : value })}
-                    min={2}
-                    max={8}
-                    step={2}
-                    className="w-[120px]"
-                  />
-                </SettingRow>
+            <SettingRow label="Default Mode" description="Script mode for new files">
+              <Select
+                value={preferences.defaultMode}
+                onValueChange={(value) => setPreferences({ defaultMode: value as ScriptMode })}
+                items={modeItems}
+              >
+                <SelectTrigger className="w-[160px] h-8">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {modeItems.map((item) => (
+                    <SelectItem key={item.value} value={item.value}>
+                      {item.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </SettingRow>
+          </TabsContent>
 
-                <SettingRow label="Word Wrap">
-                  <Switch
-                    checked={preferences.wordWrap}
-                    onCheckedChange={(checked) => setPreferences({ wordWrap: checked })}
-                  />
-                </SettingRow>
+          {/* Editor Tab */}
+          <TabsContent value="editor" className="mt-4 space-y-1">
+            <SettingRow label="Font Size" description={`${preferences.fontSize}px`}>
+              <Slider
+                value={[preferences.fontSize]}
+                onValueChange={(value) => setPreferences({ fontSize: Array.isArray(value) ? value[0] : value })}
+                min={10}
+                max={24}
+                step={1}
+                className="w-[120px]"
+              />
+            </SettingRow>
 
-                <SettingRow label="Minimap">
-                  <Switch
-                    checked={preferences.minimap}
-                    onCheckedChange={(checked) => setPreferences({ minimap: checked })}
-                  />
-                </SettingRow>
+            <SettingRow label="Tab Size" description={`${preferences.tabSize} spaces`}>
+              <Slider
+                value={[preferences.tabSize]}
+                onValueChange={(value) => setPreferences({ tabSize: Array.isArray(value) ? value[0] : value })}
+                min={2}
+                max={8}
+                step={2}
+                className="w-[120px]"
+              />
+            </SettingRow>
 
-                <SettingRow label="History Size" description={`${preferences.maxHistorySize} entries`}>
-                  <Slider
-                    value={[preferences.maxHistorySize]}
-                    onValueChange={(value) => setPreferences({ maxHistorySize: Array.isArray(value) ? value[0] : value })}
-                    min={10}
-                    max={100}
-                    step={10}
-                    className="w-[120px]"
-                  />
-                </SettingRow>
-              </CardContent>
-            </Card>
+            <SettingRow label="Word Wrap" description="Wrap long lines">
+              <Switch
+                checked={preferences.wordWrap}
+                onCheckedChange={(checked) => setPreferences({ wordWrap: checked })}
+              />
+            </SettingRow>
 
-            {/* API Explorer Card */}
-            <Card size="sm">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <div className="p-2 rounded-lg bg-primary/10">
-                    <Braces className="size-5 text-primary" />
-                  </div>
-                  API Explorer
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <SettingRow label="History Limit" description="Max responses stored per portal">
-                  <Input
-                    type="number"
-                    min={1}
-                    max={50}
-                    value={preferences.apiHistoryLimit}
-                    onChange={(event) => {
-                      const value = Number(event.target.value);
-                      if (!Number.isNaN(value)) {
-                        setPreferences({ apiHistoryLimit: Math.max(1, Math.min(50, value)) });
-                      }
-                    }}
-                    className="w-[120px] h-8"
-                  />
-                </SettingRow>
-                <SettingRow label="Response Size Limit (KB)" description="Trim saved responses to this size">
-                  <Input
-                    type="number"
-                    min={32}
-                    max={1024}
-                    value={Math.round(preferences.apiResponseSizeLimit / 1024)}
-                    onChange={(event) => {
-                      const value = Number(event.target.value);
-                      if (!Number.isNaN(value)) {
-                        const clamped = Math.max(32, Math.min(1024, value));
-                        setPreferences({ apiResponseSizeLimit: clamped * 1024 });
-                      }
-                    }}
-                    className="w-[120px] h-8"
-                  />
-                </SettingRow>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+            <SettingRow label="Minimap" description="Show code minimap">
+              <Switch
+                checked={preferences.minimap}
+                onCheckedChange={(checked) => setPreferences({ minimap: checked })}
+              />
+            </SettingRow>
+
+            <SettingRow label="History Size" description={`${preferences.maxHistorySize} entries`}>
+              <Slider
+                value={[preferences.maxHistorySize]}
+                onValueChange={(value) => setPreferences({ maxHistorySize: Array.isArray(value) ? value[0] : value })}
+                min={10}
+                max={100}
+                step={10}
+                className="w-[120px]"
+              />
+            </SettingRow>
+          </TabsContent>
+
+          {/* API Explorer Tab */}
+          <TabsContent value="api" className="mt-4 space-y-1">
+            <SettingRow label="History Limit" description="Max responses stored per portal (1–50)">
+              <NumberInput
+                value={preferences.apiHistoryLimit}
+                onChange={(value) => setPreferences({ apiHistoryLimit: value })}
+                min={1}
+                max={50}
+                className="w-[80px] h-8 text-center"
+              />
+            </SettingRow>
+
+            <SettingRow label="Response Size Limit" description="Trim saved responses in KB (32–1024)">
+              <NumberInput
+                value={Math.round(preferences.apiResponseSizeLimit / 1024)}
+                onChange={(value) => setPreferences({ apiResponseSizeLimit: value * 1024 })}
+                min={32}
+                max={1024}
+                className="w-[80px] h-8 text-center"
+              />
+            </SettingRow>
+          </TabsContent>
+        </Tabs>
 
         <DialogFooter className="mt-4">
           <Button variant="outline" onClick={handleReset}>

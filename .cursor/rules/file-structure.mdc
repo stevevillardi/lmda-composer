@@ -1,0 +1,263 @@
+---
+description: File and folder naming conventions and project structure for LMDA Composer
+globs:
+  - "src/**/*"
+alwaysApply: false
+---
+
+# File Structure and Naming Conventions
+
+## Directory Structure Overview
+
+```
+src/
+├── background/              # Service Worker context
+│   ├── handlers/            # Message handlers (grouped by domain)
+│   │   ├── index.ts         # Barrel export
+│   │   ├── types.ts         # Handler types
+│   │   ├── portal-handlers.ts
+│   │   ├── execution-handlers.ts
+│   │   ├── module-handlers.ts
+│   │   └── snippets-handlers.ts
+│   ├── service-worker.ts    # Entry point, message routing
+│   ├── portal-manager.ts    # Portal discovery, CSRF, collectors
+│   ├── script-executor.ts   # Script execution orchestration
+│   ├── module-loader.ts     # Module fetching
+│   ├── rate-limiter.ts      # Rate limiting
+│   └── *.ts                 # Other domain-specific logic
+│
+├── content/                 # Content Script (minimal)
+│   └── index.ts             # Single entry point
+│
+├── editor/                  # Editor UI context
+│   ├── App.tsx              # Main application component
+│   ├── index.tsx            # React entry point
+│   ├── index.html           # HTML template
+│   ├── components/          # React components
+│   │   ├── Toolbar.tsx
+│   │   ├── EditorPanel.tsx
+│   │   ├── OutputPanel.tsx
+│   │   ├── api/             # API Explorer components
+│   │   ├── health-check/    # Health check feature
+│   │   ├── shared/          # Shared sub-components
+│   │   └── *.tsx
+│   ├── hooks/               # Custom React hooks
+│   │   ├── useAppInitialization.ts
+│   │   ├── useDraftManagement.ts
+│   │   └── *.ts
+│   ├── stores/              # Zustand state management
+│   │   ├── editor-store.ts  # Root store
+│   │   ├── slices/          # Domain slices
+│   │   └── helpers/         # Store utilities
+│   ├── utils/               # Pure utility functions
+│   │   ├── document-store.ts
+│   │   ├── document-helpers.ts
+│   │   ├── chrome-messaging.ts
+│   │   └── *.ts
+│   ├── constants/           # Static configuration
+│   │   ├── icons.tsx
+│   │   ├── sizes.ts
+│   │   ├── colors.ts
+│   │   └── mode-config.ts
+│   ├── config/              # Runtime configuration
+│   │   └── script-templates.ts
+│   └── data/                # Static data files
+│
+├── components/              # Shared UI components
+│   └── ui/                  # shadcn/ui primitives
+│       ├── button.tsx
+│       ├── dialog.tsx
+│       ├── select.tsx
+│       └── *.tsx
+│
+├── shared/                  # Shared across contexts
+│   ├── types.ts             # Domain types
+│   ├── api-utils.ts         # API utilities
+│   ├── logic-modules.ts     # Module utilities
+│   └── module-type-schemas.ts
+│
+├── lib/                     # Generic utilities
+│   └── utils.ts             # cn() function
+│
+├── styles/                  # Global styles
+│   └── globals.css          # Tailwind + theme
+│
+├── onboarding/              # Onboarding page
+│   ├── index.html
+│   ├── index.tsx
+│   └── OnboardingApp.tsx
+│
+└── manifest.json            # Extension manifest
+```
+
+## Naming Conventions
+
+### Directories
+Use **lowercase with dashes** for directories:
+
+```
+✓ components/api-explorer/
+✓ components/health-check/
+✓ handlers/module-handlers.ts
+✗ components/ApiExplorer/
+✗ components/HealthCheck/
+```
+
+### React Components
+Use **PascalCase** for component files:
+
+```
+✓ Toolbar.tsx
+✓ EditorPanel.tsx
+✓ LogicModuleBrowser.tsx
+✓ ApiWelcomeScreen.tsx
+✗ toolbar.tsx
+✗ editor-panel.tsx
+```
+
+### Non-Component Files
+Use **camelCase** or **kebab-case** for utilities, hooks, and configs:
+
+```
+✓ useAppInitialization.ts    # Hooks use camelCase with 'use' prefix
+✓ useDraftManagement.ts
+✓ document-helpers.ts        # Utilities use kebab-case
+✓ chrome-messaging.ts
+✓ slice-helpers.ts
+✓ script-templates.ts        # Configs use kebab-case
+```
+
+### Slice Files
+Use **kebab-case** with `-slice` suffix:
+
+```
+✓ ui-slice.ts
+✓ portal-slice.ts
+✓ tabs-slice.ts
+✓ module-slice.ts
+```
+
+### Test Files
+Use source name + `.test` suffix:
+
+```
+✓ output-parser.test.ts
+✓ portal-binding.test.ts
+✓ editor-store-devices.test.ts
+```
+
+## Export Patterns
+
+### Named Exports Preferred
+Use named exports over default exports:
+
+```typescript
+// Good - named exports
+export function Toolbar() { ... }
+export function EditorPanel() { ... }
+export const useEditorStore = create<EditorState>(...);
+
+// Avoid - default exports (except for lazy loading)
+export default function Toolbar() { ... }
+```
+
+### Barrel Exports for Handlers
+Use `index.ts` for barrel exports in handler directories:
+
+```typescript
+// src/background/handlers/index.ts
+export * from './portal-handlers';
+export * from './execution-handlers';
+export * from './module-handlers';
+export * from './snippets-handlers';
+export * from './types';
+```
+
+### Component Co-location
+Keep related files together:
+
+```
+components/
+├── health-check/
+│   ├── HealthCheckSummaryCards.tsx
+│   ├── HealthCheckDetails.tsx
+│   ├── charts/
+│   │   ├── TaskDistributionChart.tsx
+│   │   └── LongRunningChart.tsx
+│   ├── types.ts              # Feature-specific types
+│   └── utils.ts              # Feature-specific utilities
+```
+
+## Import Organization
+
+Order imports consistently:
+
+```typescript
+// 1. React and external libraries
+import { useState, useEffect, useMemo } from 'react';
+import { toast } from 'sonner';
+
+// 2. Internal absolute imports (alphabetical)
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
+import type { Portal, Collector } from '@/shared/types';
+
+// 3. Relative imports (parent directories first)
+import { useEditorStore } from '../stores/editor-store';
+import { SIZES } from '../constants/sizes';
+import { formatDuration } from './utils';
+```
+
+## File Size Guidelines
+
+### When to Split Files
+
+| File Size | Action |
+|-----------|--------|
+| < 200 lines | Keep as-is |
+| 200-500 lines | Consider splitting if multiple responsibilities |
+| 500-1000 lines | Should split into focused modules |
+| > 1000 lines | Must split - use section comments to identify boundaries |
+
+### Slice Organization
+For large slices, use section comments to identify split boundaries:
+
+```typescript
+// ==========================================================================
+// Module Browser Actions
+// ==========================================================================
+
+// ... browser-related actions
+
+// ==========================================================================
+// Module Search Actions
+// ==========================================================================
+
+// ... search-related actions
+```
+
+## Special Files
+
+### Entry Points
+Each context has a clear entry point:
+
+| Context | Entry Point |
+|---------|-------------|
+| Service Worker | `src/background/service-worker.ts` |
+| Editor UI | `src/editor/index.tsx` → `App.tsx` |
+| Content Script | `src/content/index.ts` |
+| Onboarding | `src/onboarding/index.tsx` |
+
+### Configuration Files
+Project configuration at root level:
+
+```
+/
+├── package.json
+├── tsconfig.json
+├── tsconfig.node.json
+├── vite.config.ts
+├── components.json          # shadcn/ui config
+└── .cursor/
+    └── rules/               # Cursor rules
+```

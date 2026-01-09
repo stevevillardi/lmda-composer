@@ -16,7 +16,7 @@ The Module Details Editor allows you to view and modify metadata for module-boun
     Click the **Module Details** button in the main toolbar.
   </FeatureCard>
   <FeatureCard title="Command Palette" icon="search" color="purple">
-    Press <kbd>Ctrl</kbd>+<kbd>K</kbd> and type "Module Details".
+    Press <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> and type "Module Details".
   </FeatureCard>
 </CardGrid>
 
@@ -48,7 +48,10 @@ The left sidebar contains section links:
     Discovery configuration (DataSources only)
   </FeatureCard>
   <FeatureCard title="Datapoints" icon="seti:db" color="orange">
-    Datapoint definitions and settings
+    Datapoint definitions and settings (DataSources)
+  </FeatureCard>
+  <FeatureCard title="Config Checks" icon="seti:todo" color="yellow">
+    Configuration validation rules (ConfigSources)
   </FeatureCard>
   <FeatureCard title="Alert Settings" icon="bell" color="pink">
     Alert thresholds and notifications
@@ -155,31 +158,221 @@ For DataSources with instance discovery:
 
 ## Datapoints Section
 
-Manage collected metrics:
+<Badge text="DataSources Only" variant="note" />
 
-### Datapoint List
+Edit datapoints directly within LMDA Composer. The datapoints editor provides full CRUD operations for managing metric collection.
+
+### Datapoint Types
+
+<Tabs>
+  <TabItem label="Normal Datapoints" icon="document">
+    Standard datapoints that collect metrics from script output:
+    - **Source**: Output key from collection script, exit code, or response time
+    - **Metric Type**: Gauge (current value), Counter (cumulative), or Derive (rate of change)
+    - **Interpretation Method**: How to transform the raw value (none, percent, bits to bytes, etc.)
+  </TabItem>
+  <TabItem label="Complex Datapoints" icon="code">
+    Expression-based datapoints that derive values from other datapoints:
+    - **Source**: Expression using other datapoint names
+    - **Metric Type**: Always Gauge (calculated values)
+    - **Syntax**: Use datapoint names directly, e.g., `UsedMemory / TotalMemory * 100`
+  </TabItem>
+</Tabs>
+
+### Datapoints Table
+
+The main datapoints table displays:
 
 | Column | Description |
 |--------|-------------|
-| Name | Datapoint identifier |
-| Type | Gauge, counter, or derive |
-| Description | Documentation text |
-| Alert Enabled | Whether alerting is active |
+| Name | Unique datapoint identifier |
+| Type | Normal or Complex with icon indicator |
+| Post-Processor | Method and parameter (e.g., `expression: UsedMem / TotalMem`) |
+| Alert Thresholds | Color-coded severity badges with operator and values |
 
-### Managing Datapoints
+Click a row to expand and see additional details:
+- Description (with line break support)
+- Alert message subject and body
+- No Data alert settings
+- Trigger and clear intervals
+
+### Adding Datapoints
 
 <Steps>
 
-1. **Add**: Click **Add Datapoint**, enter name, select type, configure collection
+1. Click the **Add Datapoint** dropdown button
 
-2. **Edit**: Click a datapoint to modify description, post-processor, thresholds
+2. Select **Normal** or **Complex** datapoint type
 
-3. **Remove**: Select and click **Remove**, then confirm
+3. The editor sheet opens with type-appropriate options:
+   - For Normal: Configure source (output key, exit code, response time), metric type, and interpretation
+   - For Complex: Enter expression using other datapoint names
+
+4. Configure alert thresholds if needed (Warning, Error, Critical)
+
+5. Add optional description and alert message customizations
+
+6. Click **Save** to add to the datapoints list
+
+</Steps>
+
+### Editing Datapoints
+
+Click the **Edit** (pencil) button on any datapoint row to open the editor sheet. All fields are editable:
+
+<CardGrid>
+  <FeatureCard title="Basic Settings" icon="settings" color="blue">
+    Name, description, source configuration, and metric type.
+  </FeatureCard>
+  <FeatureCard title="Alert Thresholds" icon="bell" color="orange">
+    Warning, Error, and Critical thresholds with custom operators.
+  </FeatureCard>
+  <FeatureCard title="Alert Messages" icon="edit" color="purple">
+    Custom subject and body templates with token support.
+  </FeatureCard>
+  <FeatureCard title="No Data Handling" icon="clock" color="cyan">
+    Alert level and intervals for missing data scenarios.
+  </FeatureCard>
+</CardGrid>
+
+### Removing Datapoints
+
+<Steps>
+
+1. Click the **Delete** (trash) button on the datapoint row
+
+2. Confirm the deletion in the dialog
+
+3. The datapoint is marked for removal (committed on next push)
 
 </Steps>
 
 <Aside type="caution" title="Data Loss">
-  Removing a datapoint also removes historical data for that metric. This cannot be undone.
+  Removing a datapoint also removes historical data for that metric in LogicMonitor. This cannot be undone.
+</Aside>
+
+<Aside type="note" title="Common Options Only">
+  The datapoint editor shows the most commonly used options. For advanced settings like dynamic thresholds or complex alert tuning, use the LMX module page in your portal.
+</Aside>
+
+---
+
+## Config Checks Section
+
+<Badge text="ConfigSources Only" variant="note" />
+
+Config Checks define validation rules for configuration data collected by ConfigSources. Each check can trigger alerts based on configuration changes, missing values, or custom Groovy logic.
+
+### Config Check Types
+
+<Tabs>
+  <TabItem label="Any Change" icon="git-branch">
+    Alerts on any configuration change with optional exclusions:
+    - **Ignore regex patterns**: Lines matching regex are excluded from diff
+    - **Ignore lines starting with**: Exclude lines with specific prefixes (e.g., `#`, `//`)
+    - **Ignore lines containing**: Exclude lines with specific text
+    - **Ignore blank lines**: Skip blank line differences
+    - **Ignore whitespace**: Skip spacing changes
+    
+    Multiple patterns can be added for regex, prefix, and contains exclusions.
+  </TabItem>
+  <TabItem label="Groovy Script" icon="code">
+    Custom validation logic using Groovy:
+    - Access configuration via the `config` variable
+    - Return `1` to trigger alert, `0` for no alert
+    - Full Groovy scripting capabilities
+  </TabItem>
+  <TabItem label="Config Cannot Be Retrieved" icon="warning">
+    Alerts when the configuration cannot be collected:
+    - No additional options required
+    - Triggers on fetch failure
+  </TabItem>
+  <TabItem label="Missing Field" icon="search">
+    Alerts when a specific field is missing:
+    - Specify the variable/field name to check
+    - Triggers when the field is absent from config
+  </TabItem>
+  <TabItem label="Value Check" icon="check-circle">
+    Alerts on value changes or range violations:
+    - **Value Changed**: Alerts when the field value changes
+    - **Value Range**: Alerts when value is outside bounds (gt, lt, gte, lte, eq, ne operators)
+  </TabItem>
+</Tabs>
+
+### Config Checks Table
+
+The main table displays:
+
+| Column | Description |
+|--------|-------------|
+| Name | Unique check identifier |
+| Type | Check type with icon indicator |
+| Alert Level | Color-coded severity badge (Warning/Error/Critical) |
+| Clear on ACK | Whether acknowledging clears the alert |
+| Clear After | Auto-clear interval in minutes (0 = never) |
+
+Click a row to expand and see:
+- Description
+- Script content or check configuration details
+
+### Adding Config Checks
+
+<Steps>
+
+1. Click the **Add Config Check** dropdown button
+
+2. Select the check type:
+   - **Any Change** - Diff-based detection with exclusions
+   - **Groovy Script** - Custom validation logic
+   - **Config Cannot Be Retrieved** - Fetch failure detection
+   - **Missing Field** - Required field validation
+   - **Value Check** - Value change or range monitoring
+
+3. The editor sheet opens with type-specific options
+
+4. Configure:
+   - **Name**: Unique identifier for the check
+   - **Description**: Documentation text
+   - **Alert Level**: Warning, Error, or Critical
+   - **Clear on Acknowledgement**: Auto-clear when ACK'd
+   - **Clear After**: Minutes until auto-clear (0 = never)
+
+5. Configure type-specific settings (patterns, script, variable, etc.)
+
+6. Click **Save** to add to the config checks list
+
+</Steps>
+
+### Editing Config Checks
+
+Click the **Edit** (pencil) button on any row to open the editor sheet. All fields are editable.
+
+<CardGrid>
+  <FeatureCard title="Basic Settings" icon="settings" color="blue">
+    Name, description, and check type.
+  </FeatureCard>
+  <FeatureCard title="Alert Configuration" icon="bell" color="orange">
+    Severity level, clear behavior, and intervals.
+  </FeatureCard>
+  <FeatureCard title="Check Logic" icon="code" color="purple">
+    Type-specific configuration (exclusions, scripts, variables).
+  </FeatureCard>
+</CardGrid>
+
+### Removing Config Checks
+
+<Steps>
+
+1. Click the **Delete** (trash) button on the row
+
+2. Confirm the deletion in the dialog
+
+3. The check is marked for removal (committed on next push)
+
+</Steps>
+
+<Aside type="caution" title="Alert History">
+  Removing a config check may affect alert history and escalation chains associated with that check.
 </Aside>
 
 ---

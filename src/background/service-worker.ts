@@ -2,56 +2,56 @@ import { PortalManager } from './portal-manager';
 import { ScriptExecutor, type ExecutorContext } from './script-executor';
 import { ApiExecutor } from './api-executor';
 import { ModuleLoader } from './module-loader';
-import {
-  getIndexInfo,
-  rebuildModuleIndex,
-  searchDatapointsFromIndex,
-  searchModuleScriptsFromIndex,
-} from './module-search-index';
 import { isValidSender } from './sender-validation';
-import { clearRateLimitState } from './rate-limiter';
-import {
-  fetchCustomFunctions,
-  createCustomFunction,
-  updateCustomFunction,
-  deleteCustomFunction,
-} from './applies-to-functions-api';
-import {
-  fetchModuleById,
-  commitModuleScript,
-  fetchLineageVersions,
-  fetchModuleDetails,
-  fetchAccessGroups,
-} from './module-api';
-import {
-  getCache as getModuleSnippetsCache,
-  saveSnippets,
-  getCachedSource,
-  saveSource,
-  clearCache as clearModuleSnippetsCache,
-  parseSnippetResponse,
-} from './module-snippets-cache';
+import { clearRateLimitState, initRateLimitState } from './rate-limiter';
 // Initialize the health check script
 import './health-check-script';
 import type { 
   EditorToSWMessage, 
   ContentToSWMessage,
-  DeviceContext,
-  ExecuteScriptRequest,
-  ExecuteApiRequest,
-  FetchModulesRequest,
-  FetchDevicesRequest,
-  FetchDeviceByIdRequest,
-  FetchDevicePropertiesRequest,
-  TestAppliesToRequest,
-  ExecuteDebugCommandRequest,
-  SearchModuleScriptsRequest,
-  SearchDatapointsRequest,
-  LogicModuleType,
-  ModuleIndexInfo,
-  ModuleSearchProgress,
-  RefreshModuleIndexRequest,
 } from '@/shared/types';
+
+// Import handlers
+import {
+  type HandlerContext,
+  // Portal handlers
+  handleDiscoverPortals,
+  handleCsrfToken,
+  handleGetCollectors,
+  handleGetDevices,
+  handleGetDeviceById,
+  handleGetDeviceProperties,
+  handleOpenEditor,
+  openEditorWindow,
+  // Execution handlers
+  handleExecuteScript,
+  handleExecuteApiRequest,
+  handleCancelExecution,
+  handleTestAppliesTo,
+  handleExecuteDebugCommand,
+  handleCancelDebugCommand,
+  // Module handlers
+  handleFetchModules,
+  handleFetchModule,
+  handleFetchLineageVersions,
+  handleFetchModuleDetails,
+  handleFetchAccessGroups,
+  handleCommitModuleScript,
+  handleSearchModuleScripts,
+  handleSearchDatapoints,
+  handleCancelModuleSearch,
+  handleRefreshModuleIndex,
+  // Custom function handlers
+  handleFetchCustomFunctions,
+  handleCreateCustomFunction,
+  handleUpdateCustomFunction,
+  handleDeleteCustomFunction,
+  // Snippets handlers
+  handleGetModuleSnippetsCache,
+  handleClearModuleSnippetsCache,
+  handleFetchModuleSnippets,
+  handleFetchModuleSnippetSource,
+} from './handlers';
 
 // Initialize managers
 const portalManager = new PortalManager();
@@ -60,6 +60,11 @@ const moduleLoader = new ModuleLoader(portalManager);
 // Load persisted portal state on service worker startup
 portalManager.initialize().catch((err) => {
   console.error('Failed to initialize PortalManager:', err);
+});
+
+// Load persisted rate limit state on service worker startup
+initRateLimitState().catch((err) => {
+  console.error('Failed to initialize rate limit state:', err);
 });
 
 // Create executor context that bridges to PortalManager
@@ -72,7 +77,18 @@ const executorContext: ExecutorContext = {
 const scriptExecutor = new ScriptExecutor(executorContext);
 const apiExecutor = new ApiExecutor(executorContext);
 
+// Active module searches for cancellation
 const activeModuleSearches = new Map<string, AbortController>();
+
+// Handler context for all message handlers
+const handlerContext: HandlerContext = {
+  portalManager,
+  scriptExecutor,
+  apiExecutor,
+  moduleLoader,
+  activeModuleSearches,
+};
+
 const ACTION_ICON_PATHS = {
   16: 'src/assets/icon16.png',
   48: 'src/assets/icon48.png',
@@ -85,15 +101,6 @@ async function ensureActionIcon(): Promise<void> {
   } catch (error) {
     console.warn('Failed to set action icon:', error);
   }
-}
-
-function sendModuleSearchProgress(progress: ModuleSearchProgress) {
-  chrome.runtime.sendMessage({
-    type: 'MODULE_SEARCH_PROGRESS',
-    payload: progress,
-  }).catch(() => {
-    // Ignore errors if no listener (editor window might be closed)
-  });
 }
 
 // Handle messages from content scripts and editor
@@ -121,896 +128,134 @@ async function handleMessage(
 ) {
   try {
     switch (message.type) {
-      case 'DISCOVER_PORTALS': {
-        const portals = await portalManager.discoverPortals();
-        sendResponse({ type: 'PORTALS_UPDATE', payload: portals });
+      // Portal handlers
+      case 'DISCOVER_PORTALS':
+        await handleDiscoverPortals(undefined, sendResponse, handlerContext);
         break;
-      }
 
-      case 'CSRF_TOKEN': {
-        const { portalId, token } = message.payload;
-        portalManager.updateCsrfToken(portalId, token);
-        sendResponse({ success: true });
+      case 'CSRF_TOKEN':
+        handleCsrfToken(message.payload, sendResponse, handlerContext);
         break;
-      }
 
-      case 'OPEN_EDITOR': {
-        const context = (message as ContentToSWMessage).payload as DeviceContext | undefined;
-        await openEditorWindow(context);
-        sendResponse({ success: true });
+      case 'OPEN_EDITOR':
+        await handleOpenEditor((message as ContentToSWMessage).payload, sendResponse, handlerContext);
         break;
-      }
 
-      case 'GET_COLLECTORS': {
-        const { portalId } = message.payload;
-        const collectors = await portalManager.getCollectors(portalId);
-        sendResponse({ type: 'COLLECTORS_UPDATE', payload: collectors });
+      case 'GET_COLLECTORS':
+        await handleGetCollectors(message.payload, sendResponse, handlerContext);
         break;
-      }
 
-      case 'GET_DEVICES': {
-        const { portalId, collectorId } = message.payload as FetchDevicesRequest;
-        const response = await portalManager.getDevices(portalId, collectorId);
-        sendResponse({ type: 'DEVICES_UPDATE', payload: response });
+      case 'GET_DEVICES':
+        await handleGetDevices(message.payload, sendResponse, handlerContext);
         break;
-      }
 
-      case 'GET_DEVICE_BY_ID': {
-        const { portalId, resourceId } = message.payload as FetchDeviceByIdRequest;
-        const device = await portalManager.getDeviceById(portalId, resourceId);
-        if (device) {
-          sendResponse({ type: 'DEVICE_BY_ID_LOADED', payload: device });
-        } else {
-          sendResponse({ type: 'ERROR', payload: { code: 'DEVICE_NOT_FOUND', message: `Device ${resourceId} not found` } });
-        }
+      case 'GET_DEVICE_BY_ID':
+        await handleGetDeviceById(message.payload, sendResponse, handlerContext);
         break;
-      }
 
-      case 'GET_DEVICE_PROPERTIES': {
-        const { portalId, deviceId } = message.payload as FetchDevicePropertiesRequest;
-        const properties = await portalManager.getDeviceProperties(portalId, deviceId);
-        sendResponse({ type: 'DEVICE_PROPERTIES_LOADED', payload: properties });
+      case 'GET_DEVICE_PROPERTIES':
+        await handleGetDeviceProperties(message.payload, sendResponse, handlerContext);
         break;
-      }
 
-      case 'EXECUTE_SCRIPT': {
-        const request = message.payload as ExecuteScriptRequest;
-        const result = await scriptExecutor.execute(request);
-        sendResponse({ type: 'EXECUTION_UPDATE', payload: result });
+      // Execution handlers
+      case 'EXECUTE_SCRIPT':
+        await handleExecuteScript(message.payload, sendResponse, handlerContext);
         break;
-      }
 
-      case 'EXECUTE_API_REQUEST': {
-        const request = message.payload as ExecuteApiRequest;
-        const result = await apiExecutor.execute(request);
-        sendResponse({ type: 'API_RESPONSE', payload: result });
+      case 'EXECUTE_API_REQUEST':
+        await handleExecuteApiRequest(message.payload, sendResponse, handlerContext);
         break;
-      }
 
-      case 'CANCEL_EXECUTION': {
-        const { executionId } = message.payload;
-        const cancelled = scriptExecutor.cancelExecution(executionId);
-        sendResponse({ success: cancelled });
+      case 'CANCEL_EXECUTION':
+        handleCancelExecution(message.payload, sendResponse, handlerContext);
         break;
-      }
 
-      case 'FETCH_MODULES': {
-        const { portalId, moduleType, offset, size, search } = message.payload as FetchModulesRequest;
-        const response = await moduleLoader.fetchModules(portalId, moduleType, offset, size, search);
-        sendResponse({ type: 'MODULES_FETCHED', payload: response });
+      case 'TEST_APPLIES_TO':
+        await handleTestAppliesTo(message.payload, sendResponse, handlerContext);
         break;
-      }
 
-      case 'TEST_APPLIES_TO': {
-        const { portalId, currentAppliesTo, testFrom } = message.payload as TestAppliesToRequest;
-        const response = await portalManager.testAppliesTo(portalId, currentAppliesTo, testFrom);
-        if (response.result) {
-          sendResponse({ type: 'APPLIES_TO_RESULT', payload: response.result });
-        } else if (response.error) {
-          sendResponse({ type: 'APPLIES_TO_ERROR', payload: response.error });
-        } else {
-          sendResponse({ type: 'ERROR', payload: { code: 'UNKNOWN', message: 'Unknown error testing AppliesTo' } });
-        }
+      case 'EXECUTE_DEBUG_COMMAND':
+        handleExecuteDebugCommand(message.payload, sendResponse, handlerContext);
         break;
-      }
 
-      case 'FETCH_CUSTOM_FUNCTIONS': {
-        const { portalId } = message.payload as { portalId: string };
-        try {
-          const portal = portalManager.getPortal(portalId);
-          if (!portal) {
-            sendResponse({ 
-              type: 'CUSTOM_FUNCTION_ERROR', 
-              payload: { error: 'Portal not found', code: 404 } 
-            });
-            break;
-          }
-          const csrfToken = await portalManager.getCsrfToken(portalId);
-          const functions = await fetchCustomFunctions(portal.hostname, csrfToken);
-          sendResponse({ type: 'CUSTOM_FUNCTIONS_LOADED', payload: functions });
-        } catch (error) {
-          sendResponse({ 
-            type: 'CUSTOM_FUNCTION_ERROR', 
-            payload: { 
-              error: error instanceof Error ? error.message : 'Failed to fetch custom functions',
-              code: 500
-            } 
-          });
-        }
+      case 'CANCEL_DEBUG_COMMAND':
+        handleCancelDebugCommand(message.payload, sendResponse, handlerContext);
         break;
-      }
 
-      case 'CREATE_CUSTOM_FUNCTION': {
-        const { portalId, name, code, description } = message.payload as { 
-          portalId: string; 
-          name: string; 
-          code: string; 
-          description?: string;
-        };
-        try {
-          const portal = portalManager.getPortal(portalId);
-          if (!portal) {
-            sendResponse({ 
-              type: 'CUSTOM_FUNCTION_ERROR', 
-              payload: { error: 'Portal not found', code: 404 } 
-            });
-            break;
-          }
-          const csrfToken = await portalManager.getCsrfToken(portalId);
-          const createdFunction = await createCustomFunction(portal.hostname, csrfToken, { name, code, description });
-          sendResponse({ type: 'CUSTOM_FUNCTION_CREATED', payload: createdFunction });
-        } catch (error) {
-          sendResponse({ 
-            type: 'CUSTOM_FUNCTION_ERROR', 
-            payload: { 
-              error: error instanceof Error ? error.message : 'Failed to create custom function',
-              code: 500
-            } 
-          });
-        }
+      // Module handlers
+      case 'FETCH_MODULES':
+        await handleFetchModules(message.payload, sendResponse, handlerContext);
         break;
-      }
 
-      case 'UPDATE_CUSTOM_FUNCTION': {
-        const { portalId, functionId, name, code, description } = message.payload as { 
-          portalId: string; 
-          functionId: number; 
-          name: string; 
-          code: string; 
-          description?: string;
-        };
-        try {
-          const portal = portalManager.getPortal(portalId);
-          if (!portal) {
-            sendResponse({ 
-              type: 'CUSTOM_FUNCTION_ERROR', 
-              payload: { error: 'Portal not found', code: 404 } 
-            });
-            break;
-          }
-          const csrfToken = await portalManager.getCsrfToken(portalId);
-          const updatedFunction = await updateCustomFunction(portal.hostname, csrfToken, functionId, { name, code, description });
-          sendResponse({ type: 'CUSTOM_FUNCTION_UPDATED', payload: updatedFunction });
-        } catch (error) {
-          sendResponse({ 
-            type: 'CUSTOM_FUNCTION_ERROR', 
-            payload: { 
-              error: error instanceof Error ? error.message : 'Failed to update custom function',
-              code: 500
-            } 
-          });
-        }
+      case 'FETCH_MODULE':
+        await handleFetchModule(message.payload, sendResponse, handlerContext);
         break;
-      }
 
-      case 'DELETE_CUSTOM_FUNCTION': {
-        const { portalId, functionId } = message.payload as { portalId: string; functionId: number };
-        try {
-          const portal = portalManager.getPortal(portalId);
-          if (!portal) {
-            sendResponse({ 
-              type: 'CUSTOM_FUNCTION_ERROR', 
-              payload: { error: 'Portal not found', code: 404 } 
-            });
-            break;
-          }
-          const csrfToken = await portalManager.getCsrfToken(portalId);
-          await deleteCustomFunction(portal.hostname, csrfToken, functionId);
-          sendResponse({ type: 'CUSTOM_FUNCTION_DELETED', payload: { functionId } });
-        } catch (error) {
-          sendResponse({ 
-            type: 'CUSTOM_FUNCTION_ERROR', 
-            payload: { 
-              error: error instanceof Error ? error.message : 'Failed to delete custom function',
-              code: 500
-            } 
-          });
-        }
+      case 'FETCH_LINEAGE_VERSIONS':
+        await handleFetchLineageVersions(message.payload, sendResponse, handlerContext);
         break;
-      }
 
-      case 'EXECUTE_DEBUG_COMMAND': {
-        const request = message.payload as ExecuteDebugCommandRequest & { executionId?: string };
-        const executionId = request.executionId || crypto.randomUUID();
-        
-        // Execute debug command asynchronously and send progress updates
-        scriptExecutor.executeDebugCommand(
-          { ...request, executionId },
-          (collectorId, attempt, maxAttempts) => {
-            // Send progress update
-            chrome.runtime.sendMessage({
-              type: 'DEBUG_COMMAND_UPDATE',
-              payload: { collectorId, attempt, maxAttempts },
-              executionId
-            }).catch(() => {
-              // Ignore errors if no listener (editor window might be closed)
-            });
-          },
-          () => {
-            // Individual collector complete - we'll send final complete message when all done
-          }
-        ).then((results) => {
-          // Send final results
-          chrome.runtime.sendMessage({
-            type: 'DEBUG_COMMAND_COMPLETE',
-            payload: { results },
-            executionId
-          }).catch(() => {
-            // Ignore errors if no listener
-          });
-        }).catch((error) => {
-          chrome.runtime.sendMessage({
-            type: 'ERROR',
-            payload: {
-              code: 'DEBUG_COMMAND_ERROR',
-              message: error instanceof Error ? error.message : 'Unknown error executing debug command'
-            },
-            executionId
-          }).catch(() => {
-            // Ignore errors if no listener
-          });
-        });
-        
-        sendResponse({ success: true, executionId });
-        return true;
-      }
-
-      case 'CANCEL_DEBUG_COMMAND': {
-        const { executionId } = message.payload as { executionId: string };
-        const cancelled = scriptExecutor.cancelDebugExecution(executionId);
-        sendResponse({ success: cancelled });
+      case 'FETCH_MODULE_DETAILS':
+        await handleFetchModuleDetails(message.payload, sendResponse, handlerContext);
         break;
-      }
 
-      case 'FETCH_MODULE': {
-        const { portalId, moduleType, moduleId } = message.payload as { 
-          portalId: string; 
-          moduleType: LogicModuleType; 
-          moduleId: number;
-        };
-        try {
-          const portal = portalManager.getPortal(portalId);
-          const tabId = await portalManager.getValidTabIdForPortal(portalId);
-          if (!portal || !tabId) {
-            sendResponse({ 
-              type: 'MODULE_ERROR', 
-              payload: { error: 'Portal not found or no tabs available', code: 404 } 
-            });
-            break;
-          }
-          const csrfToken = await portalManager.getCsrfToken(portalId);
-          const module = await fetchModuleById(portal.hostname, csrfToken, moduleType, moduleId, tabId);
-          if (module) {
-            sendResponse({ type: 'MODULE_FETCHED', payload: module });
-          } else {
-            sendResponse({ 
-              type: 'MODULE_ERROR', 
-              payload: { error: 'Module not found', code: 404 } 
-            });
-          }
-        } catch (error) {
-          sendResponse({ 
-            type: 'MODULE_ERROR', 
-            payload: { 
-              error: error instanceof Error ? error.message : 'Failed to fetch module',
-              code: 500
-            } 
-          });
-        }
+      case 'FETCH_ACCESS_GROUPS':
+        await handleFetchAccessGroups(message.payload, sendResponse, handlerContext);
         break;
-      }
 
-      case 'FETCH_LINEAGE_VERSIONS': {
-        const { portalId, moduleType, lineageId } = message.payload as {
-          portalId: string;
-          moduleType: LogicModuleType;
-          lineageId: string;
-        };
-        try {
-          const portal = portalManager.getPortal(portalId);
-          const tabId = await portalManager.getValidTabIdForPortal(portalId);
-          if (!portal || !tabId) {
-            sendResponse({
-              type: 'LINEAGE_ERROR',
-              payload: { error: 'Portal not found or no tabs available', code: 404 },
-            });
-            break;
-          }
-          const csrfToken = await portalManager.getCsrfToken(portalId);
-          const versions = await fetchLineageVersions(
-            portal.hostname,
-            csrfToken,
-            moduleType,
-            lineageId,
-            tabId
-          );
-          if (versions) {
-            sendResponse({ type: 'LINEAGE_VERSIONS_FETCHED', payload: { versions } });
-          } else {
-            sendResponse({
-              type: 'LINEAGE_ERROR',
-              payload: { error: 'Failed to fetch lineage versions', code: 500 },
-            });
-          }
-        } catch (error) {
-          sendResponse({
-            type: 'LINEAGE_ERROR',
-            payload: {
-              error: error instanceof Error ? error.message : 'Failed to fetch lineage versions',
-              code: 500,
-            },
-          });
-        }
+      case 'COMMIT_MODULE_SCRIPT':
+        await handleCommitModuleScript(message.payload, sendResponse, handlerContext);
         break;
-      }
 
-      case 'SEARCH_MODULE_SCRIPTS': {
-        const { portalId, query, matchType, caseSensitive, moduleTypes, searchId, forceReindex } =
-          message.payload as SearchModuleScriptsRequest;
-        const executionId = searchId || crypto.randomUUID();
-        const existing = activeModuleSearches.get(executionId);
-        if (existing) {
-          existing.abort();
-          activeModuleSearches.delete(executionId);
-        }
-        const abortController = new AbortController();
-        activeModuleSearches.set(executionId, abortController);
-
-        try {
-          let indexInfo: ModuleIndexInfo = await getIndexInfo(portalId);
-          if (!indexInfo.indexedAt || forceReindex) {
-            indexInfo = await rebuildModuleIndex(portalId, moduleLoader, {
-              searchId: executionId,
-              abortSignal: abortController.signal,
-              onProgress: sendModuleSearchProgress,
-            });
-          }
-
-          const results = await searchModuleScriptsFromIndex(
-            portalId,
-            moduleTypes,
-            query,
-            matchType,
-            caseSensitive,
-            {
-              searchId: executionId,
-              abortSignal: abortController.signal,
-              onProgress: sendModuleSearchProgress,
-            }
-          );
-          sendResponse({ type: 'MODULE_SCRIPT_SEARCH_RESULTS', payload: { results, indexInfo } });
-        } catch (error) {
-          sendResponse({
-            type: 'MODULE_SCRIPT_SEARCH_ERROR',
-            payload: {
-              error: error instanceof Error ? error.message : 'Failed to search module scripts',
-              code: 500,
-            },
-          });
-        } finally {
-          activeModuleSearches.delete(executionId);
-        }
+      case 'SEARCH_MODULE_SCRIPTS':
+        await handleSearchModuleScripts(message.payload, sendResponse, handlerContext);
         break;
-      }
 
-      case 'SEARCH_DATAPOINTS': {
-        const { portalId, query, matchType, caseSensitive, searchId, forceReindex } =
-          message.payload as SearchDatapointsRequest;
-        const executionId = searchId || crypto.randomUUID();
-        const existing = activeModuleSearches.get(executionId);
-        if (existing) {
-          existing.abort();
-          activeModuleSearches.delete(executionId);
-        }
-        const abortController = new AbortController();
-        activeModuleSearches.set(executionId, abortController);
-
-        try {
-          let indexInfo: ModuleIndexInfo = await getIndexInfo(portalId);
-          if (!indexInfo.indexedAt || forceReindex) {
-            indexInfo = await rebuildModuleIndex(portalId, moduleLoader, {
-              searchId: executionId,
-              abortSignal: abortController.signal,
-              onProgress: sendModuleSearchProgress,
-            });
-          }
-
-          const results = await searchDatapointsFromIndex(
-            portalId,
-            query,
-            matchType,
-            caseSensitive,
-            {
-              searchId: executionId,
-              abortSignal: abortController.signal,
-              onProgress: sendModuleSearchProgress,
-            }
-          );
-          sendResponse({ type: 'DATAPOINT_SEARCH_RESULTS', payload: { results, indexInfo } });
-        } catch (error) {
-          sendResponse({
-            type: 'DATAPOINT_SEARCH_ERROR',
-            payload: {
-              error: error instanceof Error ? error.message : 'Failed to search datapoints',
-              code: 500,
-            },
-          });
-        } finally {
-          activeModuleSearches.delete(executionId);
-        }
+      case 'SEARCH_DATAPOINTS':
+        await handleSearchDatapoints(message.payload, sendResponse, handlerContext);
         break;
-      }
 
-      case 'CANCEL_MODULE_SEARCH': {
-        const { searchId } = message.payload as { searchId: string };
-        const execution = activeModuleSearches.get(searchId);
-        if (execution) {
-          execution.abort();
-          activeModuleSearches.delete(searchId);
-          sendResponse({ success: true });
-        } else {
-          sendResponse({ success: false });
-        }
+      case 'CANCEL_MODULE_SEARCH':
+        handleCancelModuleSearch(message.payload, sendResponse, handlerContext);
         break;
-      }
 
-      case 'REFRESH_MODULE_INDEX': {
-        const { portalId, searchId } = message.payload as RefreshModuleIndexRequest;
-        const executionId = searchId || crypto.randomUUID();
-        const existing = activeModuleSearches.get(executionId);
-        if (existing) {
-          existing.abort();
-          activeModuleSearches.delete(executionId);
-        }
-        const abortController = new AbortController();
-        activeModuleSearches.set(executionId, abortController);
-        try {
-          const indexInfo = await rebuildModuleIndex(portalId, moduleLoader, {
-            searchId: executionId,
-            abortSignal: abortController.signal,
-            onProgress: sendModuleSearchProgress,
-          });
-          sendResponse({ type: 'MODULE_INDEX_REFRESHED', payload: indexInfo });
-        } catch (error) {
-          sendResponse({
-            type: 'MODULE_SCRIPT_SEARCH_ERROR',
-            payload: {
-              error: error instanceof Error ? error.message : 'Failed to refresh module index',
-              code: 500,
-            },
-          });
-        } finally {
-          activeModuleSearches.delete(executionId);
-        }
+      case 'REFRESH_MODULE_INDEX':
+        await handleRefreshModuleIndex(message.payload, sendResponse, handlerContext);
         break;
-      }
 
-      case 'FETCH_MODULE_DETAILS': {
-        const { portalId, moduleType, moduleId, tabId } = message.payload as {
-          portalId: string;
-          moduleType: LogicModuleType;
-          moduleId: number;
-          tabId: number;
-        };
-        try {
-          const portal = portalManager.getPortal(portalId);
-          if (!portal) {
-            sendResponse({
-              type: 'MODULE_DETAILS_ERROR',
-              payload: { error: 'Portal not found', code: 404 },
-            });
-            break;
-          }
-          const csrfToken = await portalManager.getCsrfToken(portalId);
-          const module = await fetchModuleDetails(
-            portal.hostname,
-            csrfToken,
-            moduleType,
-            moduleId,
-            tabId
-          );
-          if (module) {
-            sendResponse({ type: 'MODULE_DETAILS_FETCHED', payload: { module } });
-          } else {
-            sendResponse({
-              type: 'MODULE_DETAILS_ERROR',
-              payload: { error: 'Module not found', code: 404 },
-            });
-          }
-        } catch (error) {
-          sendResponse({
-            type: 'MODULE_DETAILS_ERROR',
-            payload: {
-              error: error instanceof Error ? error.message : 'Failed to fetch module details',
-              code: 500,
-            },
-          });
-        }
+      // Custom function handlers
+      case 'FETCH_CUSTOM_FUNCTIONS':
+        await handleFetchCustomFunctions(message.payload, sendResponse, handlerContext);
         break;
-      }
 
-      case 'FETCH_ACCESS_GROUPS': {
-        const { portalId, tabId } = message.payload as {
-          portalId: string;
-          tabId: number;
-        };
-        try {
-          const portal = portalManager.getPortal(portalId);
-          if (!portal) {
-            sendResponse({
-              type: 'ACCESS_GROUPS_ERROR',
-              payload: { error: 'Portal not found', code: 404 },
-            });
-            break;
-          }
-          const csrfToken = await portalManager.getCsrfToken(portalId);
-          const accessGroups = await fetchAccessGroups(
-            portal.hostname,
-            csrfToken,
-            tabId
-          );
-          sendResponse({ type: 'ACCESS_GROUPS_FETCHED', payload: { accessGroups } });
-        } catch (error) {
-          sendResponse({
-            type: 'ACCESS_GROUPS_ERROR',
-            payload: {
-              error: error instanceof Error ? error.message : 'Failed to fetch access groups',
-              code: 500,
-            },
-          });
-        }
+      case 'CREATE_CUSTOM_FUNCTION':
+        await handleCreateCustomFunction(message.payload, sendResponse, handlerContext);
         break;
-      }
 
-      case 'COMMIT_MODULE_SCRIPT': {
-        const { portalId, moduleType, moduleId, scriptType, newScript, moduleDetails, reason } = message.payload as { 
-          portalId: string; 
-          moduleType: LogicModuleType; 
-          moduleId: number;
-          scriptType: 'collection' | 'ad';
-          newScript?: string;
-          moduleDetails?: Partial<{
-            name: string;
-            displayName?: string;
-            description?: string;
-            appliesTo?: string;
-            group?: string;
-            technology?: string;
-            tags?: string | string[];
-            collectInterval?: number;
-            accessGroupIds?: number[] | string;
-          }>;
-          reason?: string;
-        };
-        console.log(`[SW] COMMIT_MODULE_SCRIPT: portalId=${portalId}, moduleType=${moduleType}, moduleId=${moduleId}, scriptType=${scriptType}, hasScriptChanges=${newScript !== undefined}, hasModuleDetails=${!!moduleDetails}, hasReason=${!!reason}`);
-        try {
-          const portal = portalManager.getPortal(portalId);
-          const tabId = await portalManager.getValidTabIdForPortal(portalId);
-          if (!portal || !tabId) {
-            console.error(`[SW] Portal not found or no tabs: portalId=${portalId}, tabIds=${portal?.tabIds.length || 0}`);
-            sendResponse({ 
-              type: 'MODULE_ERROR', 
-              payload: { error: 'Portal not found or no tabs available', code: 404 } 
-            });
-            break;
-          }
-          console.log(`[SW] Portal found, tabIds:`, portal.tabIds);
-          const csrfToken = await portalManager.getCsrfToken(portalId);
-          console.log(`[SW] CSRF token:`, csrfToken ? 'present' : 'missing');
-          const result = await commitModuleScript(
-            portal.hostname, 
-            csrfToken, 
-            moduleType, 
-            moduleId, 
-            scriptType, 
-            newScript,
-            tabId,
-            moduleDetails,
-            reason
-          );
-          console.log(`[SW] Commit result:`, result);
-          if (result.success) {
-            sendResponse({ type: 'MODULE_COMMITTED', payload: { moduleId, moduleType } });
-          } else {
-            sendResponse({ 
-              type: 'MODULE_ERROR', 
-              payload: { 
-                error: result.error || 'Failed to commit module script',
-                code: 500
-              } 
-            });
-          }
-        } catch (error) {
-          console.error(`[SW] Error in COMMIT_MODULE_SCRIPT:`, error);
-          sendResponse({ 
-            type: 'MODULE_ERROR', 
-            payload: { 
-              error: error instanceof Error ? error.message : 'Failed to commit module script',
-              code: 500
-            } 
-          });
-        }
+      case 'UPDATE_CUSTOM_FUNCTION':
+        await handleUpdateCustomFunction(message.payload, sendResponse, handlerContext);
         break;
-      }
 
-      case 'GET_MODULE_SNIPPETS_CACHE': {
-        try {
-          const cache = await getModuleSnippetsCache();
-          sendResponse({ type: 'MODULE_SNIPPETS_CACHE', payload: cache });
-        } catch (error) {
-          sendResponse({
-            type: 'MODULE_SNIPPETS_ERROR',
-            payload: {
-              error: error instanceof Error ? error.message : 'Failed to get module snippets cache',
-              code: 500,
-            },
-          });
-        }
+      case 'DELETE_CUSTOM_FUNCTION':
+        await handleDeleteCustomFunction(message.payload, sendResponse, handlerContext);
         break;
-      }
 
-      case 'CLEAR_MODULE_SNIPPETS_CACHE': {
-        try {
-          await clearModuleSnippetsCache();
-          sendResponse({ success: true });
-        } catch (error) {
-          sendResponse({
-            type: 'MODULE_SNIPPETS_ERROR',
-            payload: {
-              error: error instanceof Error ? error.message : 'Failed to clear module snippets cache',
-              code: 500,
-            },
-          });
-        }
+      // Snippets handlers
+      case 'GET_MODULE_SNIPPETS_CACHE':
+        await handleGetModuleSnippetsCache(undefined, sendResponse, handlerContext);
         break;
-      }
 
-      case 'FETCH_MODULE_SNIPPETS': {
-        const { portalId, collectorId } = message.payload as { portalId: string; collectorId: number };
-        try {
-          const portal = portalManager.getPortal(portalId);
-          if (!portal) {
-            sendResponse({
-              type: 'MODULE_SNIPPETS_ERROR',
-              payload: { error: 'Portal not found', code: 404 },
-            });
-            break;
-          }
-
-          // Execute Groovy script to fetch snippets from collector
-          const groovyScript = `
-import groovy.xml.*
-import groovy.util.*
-import groovy.json.*
-import com.santaba.agent.util.Settings
-import com.santaba.agent.http.AgentHttpService
-import java.util.zip.GZIPInputStream
-
-def ahs = new AgentHttpService(Settings.getProperties())
-def con = ahs.getMedia("/santaba/api/getStoredScripts")
-
-// Handle potential gzip encoding
-def response
-if (con.getContentEncoding() == "gzip") {
-    response = new GZIPInputStream(con.getInputStream()).getText()
-} else {
-    response = con.getInputStream().getText()
-}
-
-def feed = new XmlSlurper().parseText(response)
-
-def snippets = []
-feed.scripts.children().findAll { it.status.text() == "active" }.each { script ->
-    snippets << [
-        name: script.name.text(),
-        version: script.version.text(),
-        language: script.language.text(),
-        description: script.description.text()?.take(200) ?: ""
-    ]
-}
-
-println JsonOutput.toJson(snippets)
-return 0
-`;
-
-          const executionId = crypto.randomUUID();
-          const result = await scriptExecutor.execute({
-            portalId,
-            collectorId,
-            script: groovyScript,
-            language: 'groovy',
-            mode: 'freeform',
-            executionId,
-          });
-
-          if (result.status === 'error' || result.error) {
-            sendResponse({
-              type: 'MODULE_SNIPPETS_ERROR',
-              payload: { error: result.error || 'Failed to fetch module snippets', code: 500 },
-            });
-            break;
-          }
-
-          // Parse the JSON output from the script
-          // The output format is: "returns 0\noutput:\n[...JSON...]"
-          // We need to extract just the JSON array
-          const rawOutput = result.rawOutput.trim();
-          let rawSnippets: Array<{ name: string; version: string; language: string; description?: string }>;
-          
-          try {
-            // Find the JSON array in the output (starts with '[')
-            const jsonStart = rawOutput.indexOf('[');
-            const jsonEnd = rawOutput.lastIndexOf(']');
-            
-            if (jsonStart === -1 || jsonEnd === -1) {
-              throw new Error('No JSON array found in output');
-            }
-            
-            const jsonString = rawOutput.substring(jsonStart, jsonEnd + 1);
-            rawSnippets = JSON.parse(jsonString);
-          } catch (parseError) {
-            sendResponse({
-              type: 'MODULE_SNIPPETS_ERROR',
-              payload: { error: `Failed to parse module snippets response: ${parseError instanceof Error ? parseError.message : 'Unknown error'}`, code: 500 },
-            });
-            break;
-          }
-
-          // Process and group snippets
-          const snippets = parseSnippetResponse(rawSnippets);
-
-          // Get collector description for meta
-          const collectors = await portalManager.getCollectors(portalId);
-          const collector = collectors.find(c => c.id === collectorId);
-          const collectorDescription = collector?.description || `Collector #${collectorId}`;
-
-          // Save to cache
-          const meta = {
-            fetchedAt: Date.now(),
-            fetchedFromPortal: portal.hostname,
-            fetchedFromCollector: collectorId,
-            collectorDescription,
-          };
-          await saveSnippets(snippets, meta);
-
-          sendResponse({
-            type: 'MODULE_SNIPPETS_FETCHED',
-            payload: { snippets, meta },
-          });
-        } catch (error) {
-          sendResponse({
-            type: 'MODULE_SNIPPETS_ERROR',
-            payload: {
-              error: error instanceof Error ? error.message : 'Failed to fetch module snippets',
-              code: 500,
-            },
-          });
-        }
+      case 'CLEAR_MODULE_SNIPPETS_CACHE':
+        await handleClearModuleSnippetsCache(undefined, sendResponse, handlerContext);
         break;
-      }
 
-      case 'FETCH_MODULE_SNIPPET_SOURCE': {
-        const { portalId, collectorId, name, version } = message.payload as {
-          portalId: string;
-          collectorId: number;
-          name: string;
-          version: string;
-        };
-
-        try {
-          // Check cache first
-          const cached = await getCachedSource(name, version);
-          if (cached) {
-            sendResponse({ type: 'MODULE_SNIPPET_SOURCE_FETCHED', payload: cached });
-            break;
-          }
-
-          const portal = portalManager.getPortal(portalId);
-          if (!portal) {
-            sendResponse({
-              type: 'MODULE_SNIPPETS_ERROR',
-              payload: { error: 'Portal not found', code: 404 },
-            });
-            break;
-          }
-
-          // Execute Groovy script to fetch specific snippet source
-          const snippetNameEscaped = name.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-          const snippetVersionEscaped = version.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
-          
-          const groovyScript = `
-import groovy.xml.*
-import groovy.util.*
-import com.santaba.agent.util.Settings
-import com.santaba.agent.http.AgentHttpService
-import java.util.zip.GZIPInputStream
-
-def snippetName = "${snippetNameEscaped}"
-def snippetVersion = "${snippetVersionEscaped}"
-def language = "groovy"
-
-def ahs = new AgentHttpService(Settings.getProperties())
-def encodedName = URLEncoder.encode(snippetName, "UTF-8")
-def encodedVersion = URLEncoder.encode(snippetVersion, "UTF-8")
-def endpoint = "/santaba/api/getStoredScripts?language=" + language + "&name=" + encodedName + "&version=" + encodedVersion
-def con = ahs.getMedia(endpoint)
-
-// Handle potential gzip encoding
-def response
-if (con.getContentEncoding() == "gzip") {
-    response = new GZIPInputStream(con.getInputStream()).getText()
-} else {
-    response = con.getInputStream().getText()
-}
-
-def xml = new XmlSlurper().parseText(response)
-
-xml.scripts.children().each { script ->
-    println script.payload.text()
-}
-return 0
-`;
-
-          const executionId = crypto.randomUUID();
-          const result = await scriptExecutor.execute({
-            portalId,
-            collectorId,
-            script: groovyScript,
-            language: 'groovy',
-            mode: 'freeform',
-            executionId,
-          });
-
-          if (result.status === 'error' || result.error) {
-            sendResponse({
-              type: 'MODULE_SNIPPETS_ERROR',
-              payload: { error: result.error || 'Failed to fetch module snippet source', code: 500 },
-            });
-            break;
-          }
-
-          const source = {
-            name,
-            version,
-            code: result.rawOutput,
-            fetchedAt: Date.now(),
-          };
-
-          // Cache the source
-          await saveSource(source);
-
-          sendResponse({ type: 'MODULE_SNIPPET_SOURCE_FETCHED', payload: source });
-        } catch (error) {
-          sendResponse({
-            type: 'MODULE_SNIPPETS_ERROR',
-            payload: {
-              error: error instanceof Error ? error.message : 'Failed to fetch module snippet source',
-              code: 500,
-            },
-          });
-        }
+      case 'FETCH_MODULE_SNIPPETS':
+        await handleFetchModuleSnippets(message.payload, sendResponse, handlerContext);
         break;
-      }
+
+      case 'FETCH_MODULE_SNIPPET_SOURCE':
+        await handleFetchModuleSnippetSource(message.payload, sendResponse, handlerContext);
+        break;
 
       default:
         console.warn('Unknown message type:', message);
@@ -1031,45 +276,6 @@ return 0
 function openOnboardingPage() {
   const url = chrome.runtime.getURL('src/onboarding/index.html');
   chrome.tabs.create({ url, active: true });
-}
-
-// Open the editor in a new tab
-async function openEditorWindow(context?: DeviceContext) {
-  const url = new URL(chrome.runtime.getURL('src/editor/index.html'));
-  
-  if (context) {
-    if (context.portalId) url.searchParams.set('portal', context.portalId);
-    if (context.resourceId) url.searchParams.set('resourceId', context.resourceId.toString());
-    if (context.dataSourceId) url.searchParams.set('dataSourceId', context.dataSourceId.toString());
-    if (context.collectMethod) url.searchParams.set('collectMethod', context.collectMethod);
-    if (context.moduleType && context.moduleId) {
-      url.searchParams.set('moduleType', context.moduleType);
-      url.searchParams.set('moduleId', context.moduleId.toString());
-    }
-  }
-
-  // Check if there's already an LogicMonitor IDE tab open
-  const existingTabs = await chrome.tabs.query({ 
-    url: chrome.runtime.getURL('src/editor/index.html') + '*' 
-  });
-
-  if (existingTabs.length > 0 && existingTabs[0].id) {
-    // Update the existing tab's URL with new context (this triggers re-read of params)
-    // Then focus it
-    await chrome.tabs.update(existingTabs[0].id, { 
-      url: url.toString(),
-      active: true 
-    });
-    if (existingTabs[0].windowId) {
-      await chrome.windows.update(existingTabs[0].windowId, { focused: true });
-    }
-  } else {
-    // Open in a new tab
-    await chrome.tabs.create({
-      url: url.toString(),
-      active: true,
-    });
-  }
 }
 
 chrome.runtime.onInstalled.addListener((details) => {
