@@ -77,6 +77,7 @@ export function DebugCommandsDialog() {
   } = useEditorStore();
 
   const [searchQuery, setSearchQuery] = useState('');
+  const [collectorSearchQuery, setCollectorSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedCommand, setSelectedCommand] = useState<DebugCommand | null>(null);
   const [parameters, setParameters] = useState<Record<string, string>>({});
@@ -90,6 +91,7 @@ export function DebugCommandsDialog() {
   useEffect(() => {
     if (debugCommandsDialogOpen) {
       setSearchQuery('');
+      setCollectorSearchQuery('');
       setSelectedCategory(null);
       setSelectedCommand(null);
       setParameters({});
@@ -132,7 +134,19 @@ export function DebugCommandsDialog() {
 
   const collectorsByGroup = useMemo(() => {
     const grouped: Record<string, typeof collectors> = {};
-    for (const collector of collectors) {
+    
+    // Filter collectors first
+    const filteredCollectors = collectors.filter(c => {
+      if (!collectorSearchQuery.trim()) return true;
+      const query = collectorSearchQuery.toLowerCase();
+      return (
+        c.description.toLowerCase().includes(query) ||
+        c.hostname.toLowerCase().includes(query) ||
+        (c.collectorGroupName && c.collectorGroupName.toLowerCase().includes(query))
+      );
+    });
+
+    for (const collector of filteredCollectors) {
       const groupName =
         collector.collectorGroupName && collector.collectorGroupName !== '@default'
           ? collector.collectorGroupName
@@ -143,7 +157,7 @@ export function DebugCommandsDialog() {
       grouped[groupName].push(collector);
     }
     return grouped;
-  }, [collectors]);
+  }, [collectors, collectorSearchQuery]);
 
   const collectorGroupOrder = useMemo(() => {
     const groups = Object.keys(collectorsByGroup);
@@ -388,10 +402,8 @@ export function DebugCommandsDialog() {
                   onClick={() => handleSelectCommand(HEALTH_CHECK_COMMAND)}
                   className={cn(
                     "w-full p-3 rounded-lg border-2 text-left transition-all",
-                    "bg-linear-to-r from-emerald-500/10 to-cyan-500/10",
-                    "hover:from-emerald-500/20 hover:to-cyan-500/20",
-                    "border-teal-500/30 hover:border-teal-500/50",
-                    selectedCommand?.id === 'healthcheck' && "border-teal-500 from-emerald-500/20 to-cyan-500/20"
+                    "bg-card/40 backdrop-blur-sm border-teal-500/30 hover:bg-teal-500/10 hover:border-teal-500/50",
+                    selectedCommand?.id === 'healthcheck' && "border-teal-500 bg-teal-500/10"
                   )}
                 >
                   <div className="flex items-center gap-2 mb-1">
@@ -592,6 +604,19 @@ export function DebugCommandsDialog() {
                                 </Button>
                               </div>
                             </div>
+
+                            <div className="mb-3">
+                              <div className="relative">
+                                <Search className="absolute left-2 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+                                <Input 
+                                  placeholder="Filter collectors..." 
+                                  value={collectorSearchQuery}
+                                  onChange={(e) => setCollectorSearchQuery(e.target.value)}
+                                  className="pl-8 h-8 text-xs"
+                                />
+                              </div>
+                            </div>
+
                             {collectors.length === 0 ? (
                               <div className="p-4 text-center text-sm text-muted-foreground border rounded-md">
                                 No collectors available. Please select a portal first.

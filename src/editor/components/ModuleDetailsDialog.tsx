@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Settings, Loader2, AlertCircle, AlertTriangle, RefreshCw } from 'lucide-react';
+import { Settings, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -9,7 +9,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { ConfirmationDialog } from './ConfirmationDialog';
 import { ModuleDetailsSidebar } from './ModuleDetailsSidebar';
 import { useEditorStore } from '../stores/editor-store';
@@ -141,44 +141,46 @@ export function ModuleDetailsDialog() {
     }
   }, [moduleDetailsDialogOpen, availableSections, activeSection]);
   
-  // Check for validation errors
-  const hasValidationErrors = useMemo(() => {
-    if (!draft || !activeTab?.source?.moduleType) return false;
+  // Check for validation errors and track invalid sections
+  const invalidSections = useMemo(() => {
+    const sections = new Set<string>();
+    if (!draft || !activeTab?.source?.moduleType) return sections;
+    
     const schema = MODULE_TYPE_SCHEMAS[activeTab.source.moduleType as LogicModuleType];
     const draftData = draft.draft;
     
     // Name validation
     if (schema.requiredFields.includes('name') && !draftData.name?.trim()) {
-      return true;
+      sections.add('basic');
     }
     
     // Collect interval validation
     if (schema.requiredFields.includes('collectInterval')) {
       const interval = draftData.collectInterval;
       if (interval === undefined || interval === null || (typeof interval === 'number' && interval <= 0)) {
-        return true;
+        sections.add('basic');
       }
     }
     
     // Description max 1024 characters
     if (draftData.description && draftData.description.length > 1024) {
-      return true;
+      sections.add('basic');
     }
     
     // Technology (Technical Notes) max 4096 characters
     if (draftData.technology && draftData.technology.length > 4096) {
-      return true;
+      sections.add('organization');
     }
 
     // Clear After ACK validation (EventSource)
     if (schema.requiredFields.includes('alertEffectiveIval')) {
       const value = draftData.alertEffectiveIval;
       if (value === undefined || value === null || (typeof value === 'number' && (value < 5 || value > 5760))) {
-        return true;
+        sections.add('alertSettings');
       }
     }
     
-    return false;
+    return sections;
   }, [draft, activeTab]);
 
   // Load module details when dialog opens
@@ -259,46 +261,46 @@ export function ModuleDetailsDialog() {
                 onSectionChange={(section) => setActiveSection(section)}
                 sections={availableSections}
                 dirtySections={dirtySections}
+                invalidSections={invalidSections}
               />
 
             {/* Main Content Area */}
             <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
               {/* Conflict Warning Banner */}
               {moduleDetailsConflict?.hasConflict && (
-                <div className="shrink-0 p-4 bg-warning/10 border-b border-warning/30">
-                  <div className="flex items-start gap-3">
-                    <AlertTriangle className="size-5 text-warning shrink-0 mt-0.5" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-warning">
-                        Portal Changes Detected
-                      </p>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {moduleDetailsConflict.message}
-                        {moduleDetailsConflict.conflictingFields && moduleDetailsConflict.conflictingFields.length > 0 && (
-                          <span className="block mt-1">
-                            Changed fields: {moduleDetailsConflict.conflictingFields.join(', ')}
-                          </span>
-                        )}
-                      </p>
-                      <div className="flex gap-2 mt-3">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => activeTabId && resolveModuleDetailsConflict(activeTabId, 'keep-local')}
-                        >
-                          Keep My Changes
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={() => activeTabId && resolveModuleDetailsConflict(activeTabId, 'use-portal')}
-                        >
-                          <RefreshCw className="size-3.5 mr-1.5" />
-                          Use Portal Version
-                        </Button>
+                <div className="shrink-0 p-4 border-b">
+                  <Alert variant="warning">
+                    <AlertTitle>Portal Changes Detected</AlertTitle>
+                    <AlertDescription className="mt-2">
+                      <div className="space-y-3">
+                        <p>
+                          {moduleDetailsConflict.message}
+                          {moduleDetailsConflict.conflictingFields && moduleDetailsConflict.conflictingFields.length > 0 && (
+                            <span className="block mt-1">
+                              Changed fields: {moduleDetailsConflict.conflictingFields.join(', ')}
+                            </span>
+                          )}
+                        </p>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => activeTabId && resolveModuleDetailsConflict(activeTabId, 'keep-local')}
+                          >
+                            Keep My Changes
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => activeTabId && resolveModuleDetailsConflict(activeTabId, 'use-portal')}
+                          >
+                            <RefreshCw className="size-3.5 mr-1.5" />
+                            Use Portal Version
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                  </div>
+                    </AlertDescription>
+                  </Alert>
                 </div>
               )}
 
@@ -367,7 +369,7 @@ export function ModuleDetailsDialog() {
                 <Button variant="ghost" onClick={handleClose}>
                   Cancel
                 </Button>
-                <Button onClick={handleSave} disabled={!hasChanges || hasValidationErrors}>
+                <Button onClick={handleSave} disabled={!hasChanges || invalidSections.size > 0}>
                   Stage Changes
                 </Button>
               </div>

@@ -433,18 +433,19 @@ export function LogicModuleSearch() {
                 onOpenChange={(open) =>
                   setCollapsedGroups((prev) => ({ ...prev, [type.value]: !open }))
                 }
+                className="border border-border/40 rounded-md bg-card/20 overflow-hidden"
               >
-                <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted/50">
+                <CollapsibleTrigger className="flex w-full items-center justify-between px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted/50 transition-colors">
                   <span className="flex items-center gap-2">
                     {isOpen ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
                     <Icon className="size-3.5" />
                     {type.label}
                   </span>
-                  <Badge variant="outline" className="text-xs">
+                  <Badge variant="secondary" className="text-[10px] h-4 px-1.5 font-normal bg-muted text-muted-foreground">
                     {results.length}
                   </Badge>
                 </CollapsibleTrigger>
-                <CollapsibleContent className="space-y-1 pt-1">
+                <CollapsibleContent className="border-t border-border/40">
                   {results.map((result) => {
                     const isSelected = selectedScriptSearchResult?.module.id === result.module.id;
                     const collectionCount = result.collectionMatches.length;
@@ -454,19 +455,21 @@ export function LogicModuleSearch() {
                       <button
                         key={`${result.module.id}-${result.module.name}`}
                         className={cn(
-                          'w-full text-left rounded-md border border-transparent px-2.5 py-2 transition',
-                          isSelected ? 'bg-accent text-accent-foreground' : 'hover:bg-muted/60'
+                          'w-full text-left px-3 py-2.5 transition-all border-l-2',
+                          isSelected 
+                            ? 'bg-accent/50 border-primary' 
+                            : 'border-transparent hover:bg-muted/30 hover:border-border/50'
                         )}
                         onClick={() => setSelectedScriptSearchResult(result)}
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-1.5">
-                              <div className="text-sm font-medium truncate">
+                              <div className={cn("text-sm truncate", isSelected ? "font-medium text-foreground" : "font-normal text-foreground/90")}>
                                 {result.module.displayName || result.module.name}
                               </div>
                             </div>
-                            <div className="text-xs text-muted-foreground font-mono truncate">
+                            <div className="text-xs text-muted-foreground/70 font-mono truncate mt-0.5">
                               {result.module.name}
                             </div>
                           </div>
@@ -474,10 +477,10 @@ export function LogicModuleSearch() {
                             {isNameOnlyMatch ? (
                               <Badge
                                 variant="outline"
-                                className="text-[10px] flex items-center gap-1"
+                                className="text-[9px] h-4 px-1 flex items-center gap-1 border-muted-foreground/30 text-muted-foreground"
                                 aria-label="Matched by module name"
                               >
-                                <Tag className="size-3" />
+                                <Tag className="size-2.5" />
                                 Name
                               </Badge>
                             ) : (
@@ -485,20 +488,20 @@ export function LogicModuleSearch() {
                                 {adCount > 0 && (
                                   <Badge
                                     variant="secondary"
-                                    className="text-[10px] flex items-center gap-1"
+                                    className="text-[9px] h-4 px-1 flex items-center gap-1 bg-primary/10 text-primary hover:bg-primary/20"
                                     aria-label={`${adCount} Active Discovery matches`}
                                   >
-                                    <ActiveDiscoveryIcon className="size-3" />
+                                    <ActiveDiscoveryIcon className="size-2.5" />
                                     {adCount}
                                   </Badge>
                                 )}
                                 {collectionCount > 0 && (
                                   <Badge
                                     variant="secondary"
-                                    className="text-[10px] flex items-center gap-1"
+                                    className="text-[9px] h-4 px-1 flex items-center gap-1 bg-teal-500/10 text-teal-600 hover:bg-teal-500/20"
                                     aria-label={`${collectionCount} Collection matches`}
                                   >
-                                    <CollectionIcon className="size-3" />
+                                    <CollectionIcon className="size-2.5" />
                                     {collectionCount}
                                   </Badge>
                                 )}
@@ -507,8 +510,8 @@ export function LogicModuleSearch() {
                           </div>
                         </div>
                         {result.module.appliesTo && (
-                          <div className="text-[11px] text-muted-foreground font-mono truncate mt-1">
-                            appliesTo: {result.module.appliesTo}
+                          <div className="text-[10px] text-muted-foreground/50 font-mono truncate mt-1.5">
+                            {result.module.appliesTo}
                           </div>
                         )}
                       </button>
@@ -538,48 +541,55 @@ export function LogicModuleSearch() {
 
     return (
       <div className="space-y-3 p-3">
-        {Array.from(groupedDatapointResults.entries()).map(([key, results]) => {
-          const moduleName = results[0]?.moduleDisplayName || results[0]?.moduleName || 'Datasource';
-          const isOpen = !collapsedGroups[key];
-          return (
-            <Collapsible
-              key={key}
-              open={isOpen}
-              onOpenChange={(open) =>
-                setCollapsedGroups((prev) => ({ ...prev, [key]: !open }))
-              }
-            >
-              <CollapsibleTrigger className="flex w-full items-center justify-between rounded-md px-2 py-1.5 text-xs font-medium text-muted-foreground hover:bg-muted/50">
-                <span className="flex items-center gap-2">
-                  {isOpen ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
-                  <DatapointsIcon className="size-3.5" />
-                  {moduleName}
-                </span>
-                <Badge variant="outline" className="text-xs">
-                  {results.length}
-                </Badge>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="space-y-1 pt-1">
-                {results.map((result) => {
-                  const isSelected = selectedDatapointSearchResult?.dataPoint.id === result.dataPoint.id;
-                  return (
-                    <button
-                      key={`${key}-${result.dataPoint.id}`}
-                      className={cn(
-                        'w-full text-left rounded-md border border-transparent px-2.5 py-2 transition',
-                        isSelected ? 'bg-accent text-accent-foreground' : 'hover:bg-muted/60'
-                      )}
-                      onClick={() => setSelectedDatapointSearchResult(result)}
-                    >
-                      <div className="text-sm font-medium truncate">{result.dataPoint.name}</div>
-                      <div className="text-xs text-muted-foreground truncate">{result.dataPoint.description}</div>
-                    </button>
-                  );
-                })}
-              </CollapsibleContent>
-            </Collapsible>
-          );
-        })}
+          {Array.from(groupedDatapointResults.entries()).map(([key, results]) => {
+            const moduleName = results[0]?.moduleDisplayName || results[0]?.moduleName || 'Datasource';
+            const isOpen = !collapsedGroups[key];
+            return (
+              <Collapsible
+                key={key}
+                open={isOpen}
+                onOpenChange={(open) =>
+                  setCollapsedGroups((prev) => ({ ...prev, [key]: !open }))
+                }
+                className="border border-border/40 rounded-md bg-card/20 overflow-hidden"
+              >
+                <CollapsibleTrigger className="flex w-full items-center justify-between px-3 py-2 text-xs font-medium text-muted-foreground hover:bg-muted/50 transition-colors">
+                  <span className="flex items-center gap-2">
+                    {isOpen ? <ChevronDown className="size-3.5" /> : <ChevronRight className="size-3.5" />}
+                    <DatapointsIcon className="size-3.5" />
+                    {moduleName}
+                  </span>
+                  <Badge variant="secondary" className="text-[10px] h-4 px-1.5 font-normal bg-muted text-muted-foreground">
+                    {results.length}
+                  </Badge>
+                </CollapsibleTrigger>
+                <CollapsibleContent className="border-t border-border/40">
+                  {results.map((result) => {
+                    const isSelected = selectedDatapointSearchResult?.dataPoint.id === result.dataPoint.id;
+                    return (
+                      <button
+                        key={`${key}-${result.dataPoint.id}`}
+                        className={cn(
+                          'w-full text-left px-3 py-2 transition-all border-l-2',
+                          isSelected 
+                            ? 'bg-accent/50 border-primary' 
+                            : 'border-transparent hover:bg-muted/30 hover:border-border/50'
+                        )}
+                        onClick={() => setSelectedDatapointSearchResult(result)}
+                      >
+                        <div className={cn("text-sm truncate", isSelected ? "font-medium text-foreground" : "font-normal text-foreground/90")}>
+                          {result.dataPoint.name}
+                        </div>
+                        <div className="text-xs text-muted-foreground/70 truncate mt-0.5">
+                          {result.dataPoint.description}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </CollapsibleContent>
+              </Collapsible>
+            );
+          })}
       </div>
     );
   };
@@ -588,15 +598,19 @@ export function LogicModuleSearch() {
     if (moduleSearchMode === 'datapoints') {
       if (!selectedDatapointSearchResult) {
         return (
-          <Empty>
-            <EmptyMedia>
-              <DatapointsIcon className="size-8 text-muted-foreground" />
-            </EmptyMedia>
-            <EmptyHeader>
-              <EmptyTitle>Select a datapoint</EmptyTitle>
-              <EmptyDescription>Pick a result to view datapoint details.</EmptyDescription>
-            </EmptyHeader>
-          </Empty>
+          <div className="flex h-full items-center justify-center p-8 animate-in fade-in duration-300">
+            <Empty className="border-none bg-transparent shadow-none w-full max-w-sm">
+              <EmptyMedia variant="icon" className="mx-auto bg-muted/50 mb-4">
+                <DatapointsIcon className="size-5 text-muted-foreground/70" />
+              </EmptyMedia>
+              <EmptyHeader>
+                <EmptyTitle className="text-base font-medium">Select a datapoint</EmptyTitle>
+                <EmptyDescription className="mx-auto mt-1.5">
+                  Pick a result to view datapoint details
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          </div>
         );
       }
 
@@ -700,17 +714,16 @@ export function LogicModuleSearch() {
 
     if (!selectedScriptSearchResult) {
       return (
-        <div className="flex h-full items-center justify-center p-6">
-          <Empty>
-            <EmptyMedia>
-              <FileCode className="size-10 text-muted-foreground" />
+        <div className="flex h-full items-center justify-center p-8 animate-in fade-in duration-300">
+          <Empty className="border-none bg-transparent shadow-none w-full max-w-sm">
+            <EmptyMedia variant="icon" className="mx-auto bg-muted/50 mb-4">
+              <FileCode className="size-5 text-muted-foreground/70" />
             </EmptyMedia>
             <EmptyHeader>
-              <EmptyTitle>Search Across All Modules</EmptyTitle>
-              <EmptyDescription className="max-w-sm text-center">
+              <EmptyTitle className="text-base font-medium">Search Across All Modules</EmptyTitle>
+              <EmptyDescription className="mx-auto mt-1.5 max-w-xs">
                 Find LogicModules by name or search within script content.
-                Select a result from the list to preview Active Discovery
-                and Collection scripts with matches highlighted.
+                Select a result to preview matches.
               </EmptyDescription>
             </EmptyHeader>
           </Empty>
@@ -1071,8 +1084,8 @@ export function LogicModuleSearch() {
         </div>
 
         <div className="flex-1 flex min-h-0 border-t border-border">
-          <div className="w-96 shrink-0 border-r border-border flex flex-col min-h-0">
-            <div className="px-4 py-2 border-b border-border bg-secondary/20 text-xs text-muted-foreground flex items-center justify-between">
+          <div className="w-96 shrink-0 border-r border-border flex flex-col min-h-0 bg-muted/5">
+            <div className="px-4 py-2 border-b border-border bg-background text-xs text-muted-foreground flex items-center justify-between">
               <span>
                 {moduleSearchMode === 'scripts'
                   ? `${moduleScriptSearchResults.length} module${moduleScriptSearchResults.length === 1 ? '' : 's'}`

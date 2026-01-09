@@ -118,33 +118,37 @@ export function ApiPathAutocomplete({
         onChange={handleInputChange}
       />
       <ComboboxContent className="w-[500px]">
-        <ComboboxList>
-          <ComboboxEmpty>No matching endpoints</ComboboxEmpty>
+        <ComboboxList className="p-1">
+          <ComboboxEmpty className="py-6 text-center text-xs text-muted-foreground">
+            No matching endpoints found
+          </ComboboxEmpty>
           {groupedEndpoints.map((group) => (
             <ComboboxGroup key={group.tag}>
-              <ComboboxLabel>{group.tag}</ComboboxLabel>
+              <ComboboxLabel className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider px-2 py-1.5 bg-muted/30">
+                {group.tag}
+              </ComboboxLabel>
               {group.endpoints.map((endpoint) => (
                 <ComboboxItem
                   key={endpoint.id}
                   value={endpoint.path}
-                  className="flex flex-col items-start gap-0.5 py-2"
+                  className="flex flex-col items-start gap-1 py-2 px-2.5 mx-1 my-0.5 rounded-md border-l-2 border-transparent aria-selected:bg-accent/50 aria-selected:border-primary aria-selected:text-accent-foreground cursor-pointer transition-all"
                 >
-                  <div className="flex items-center gap-2 w-full">
+                  <div className="flex items-center gap-2 w-full min-w-0">
                     <span
                       className={cn(
-                        'text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0',
-                        methodStyle.bgSubtle,
-                        methodStyle.text
+                        'text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0 uppercase tracking-tight min-w-[36px] text-center',
+                        COLORS.METHOD[endpoint.method].bgSubtle,
+                        COLORS.METHOD[endpoint.method].text
                       )}
                     >
                       {endpoint.method}
                     </span>
-                    <span className="font-mono text-xs truncate">
+                    <span className="font-mono text-xs truncate text-foreground/90">
                       {endpoint.path}
                     </span>
                   </div>
                   {endpoint.summary && (
-                    <span className="text-[11px] text-muted-foreground truncate w-full pl-9">
+                    <span className="text-[10px] text-muted-foreground truncate w-full pl-[46px]">
                       {endpoint.summary}
                     </span>
                   )}

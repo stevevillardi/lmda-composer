@@ -21,7 +21,7 @@ export function ApiExplorerPanel() {
 
           <ResizableHandle withHandle />
 
-          <ResizablePanel defaultSize="42%" minSize="20%">
+          <ResizablePanel defaultSize="35%" minSize="20%">
             <ApiResponseViewer />
           </ResizablePanel>
         </ResizablePanelGroup>

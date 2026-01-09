@@ -225,16 +225,16 @@ export function ApiResponseViewer() {
   })();
 
   const renderHeader = (showFullscreen: boolean, showClose: boolean) => (
-    <div className="flex items-center justify-between px-3 py-2 border-b border-border">
+    <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-secondary/30">
       <div className="flex items-center gap-2">
-        <span className="text-xs text-muted-foreground select-none">Response</span>
+        <span className="text-xs font-medium text-muted-foreground select-none uppercase tracking-wide">Response</span>
         {response && (
           <Tooltip>
             <TooltipTrigger
               render={
                 <Badge
                   className={cn(
-                    "text-[10px] font-semibold select-none",
+                    "text-[10px] font-semibold select-none h-5 px-1.5",
                     statusStyle?.bgSubtle,
                     statusStyle?.text
                   )}
@@ -250,7 +250,7 @@ export function ApiResponseViewer() {
           <Tooltip>
             <TooltipTrigger
               render={
-                <Badge className="text-[10px] font-semibold bg-yellow-500/15 text-yellow-500 select-none">
+                <Badge className="text-[10px] font-semibold bg-yellow-500/15 text-yellow-500 select-none h-5 px-1.5 border-yellow-500/20">
                   Response truncated
                 </Badge>
               }
@@ -264,7 +264,7 @@ export function ApiResponseViewer() {
           <Tooltip>
             <TooltipTrigger
               render={
-                <span className="text-xs text-muted-foreground select-none">
+                <span className="text-xs text-muted-foreground select-none font-mono">
                   {response.durationMs}ms
                 </span>
               }
@@ -319,38 +319,38 @@ export function ApiResponseViewer() {
   );
 
   const renderTabs = (isFullscreen: boolean) => (
-    <Tabs value={activeView} onValueChange={setActiveView} className="flex-1 min-h-0 flex flex-col">
+    <Tabs value={activeView} onValueChange={setActiveView} className="flex-1 min-h-0 flex flex-col bg-muted/5">
       <div className={cn(
-        "px-3 pt-2 pb-1",
+        "px-3 pt-2 pb-1 bg-background border-b border-border",
         isFullscreen && "bg-card"
       )}>
         <div className={cn(
           isFullscreen && "bg-muted/50 rounded-lg px-2 py-1 inline-block"
         )}>
-          <TabsList variant="line">
-            <TabsTrigger value="json">
-              <Braces className="size-3.5 mr-1" />
+          <TabsList className="w-full h-8 bg-muted/50 p-0.5" variant="default">
+            <TabsTrigger value="json" className="flex-1 text-xs h-7 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              <Braces className="size-3.5 mr-1.5" />
               JSON
             </TabsTrigger>
-            <TabsTrigger value="raw">
-              <FileText className="size-3.5 mr-1" />
+            <TabsTrigger value="raw" className="flex-1 text-xs h-7 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              <FileText className="size-3.5 mr-1.5" />
               Raw
             </TabsTrigger>
-            <TabsTrigger value="headers">
-              <ListTree className="size-3.5 mr-1" />
+            <TabsTrigger value="headers" className="flex-1 text-xs h-7 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              <ListTree className="size-3.5 mr-1.5" />
               Headers
             </TabsTrigger>
-            <TabsTrigger value="snippets">
-              <Code2 className="size-3.5 mr-1" />
+            <TabsTrigger value="snippets" className="flex-1 text-xs h-7 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              <Code2 className="size-3.5 mr-1.5" />
               Snippets
             </TabsTrigger>
           </TabsList>
         </div>
       </div>
 
-      <TabsContent value="json" className="flex-1 min-h-0 px-3 pb-3">
+      <TabsContent value="json" className="flex-1 min-h-0 px-2 pb-2 pt-0">
         {response ? (
-          <div className="h-full border border-border rounded-md overflow-hidden">
+          <div className="h-full border border-border/60 rounded-md overflow-hidden bg-background/50 shadow-sm">
             <Editor
               height="100%"
               language="json"
@@ -360,56 +360,56 @@ export function ApiResponseViewer() {
             />
           </div>
         ) : (
-          <Empty className="h-full border border-dashed border-border">
+          <Empty className="h-full border-0 bg-transparent flex flex-col justify-center">
             <EmptyHeader>
-              <EmptyMedia variant="icon">
-                <Braces className="size-5" />
+              <EmptyMedia variant="icon" className="bg-muted/50 mb-4">
+                <Braces className="size-5 text-muted-foreground/70" />
               </EmptyMedia>
-              <EmptyTitle>No response yet</EmptyTitle>
+              <EmptyTitle className="text-base font-medium">No response yet</EmptyTitle>
               <EmptyDescription>Send a request to view the formatted JSON response.</EmptyDescription>
             </EmptyHeader>
           </Empty>
         )}
       </TabsContent>
 
-      <TabsContent value="raw" className="flex-1 min-h-0 px-3 pb-3">
+      <TabsContent value="raw" className="flex-1 min-h-0 px-2 pb-2 pt-0">
         {response ? (
-          <div className="h-full min-w-0 border border-border rounded-md flex flex-col overflow-hidden">
+          <div className="h-full min-w-0 border border-border/60 rounded-md flex flex-col overflow-hidden bg-background/50 shadow-sm">
             <ScrollArea className="flex-1 min-h-0">
               <pre className="p-3 text-xs font-mono whitespace-pre-wrap break-all text-foreground">
                 {response.body}
               </pre>
             </ScrollArea>
             {responseCap && (
-              <div className="border-t border-border px-3 py-2 text-xs text-muted-foreground">
+              <div className="border-t border-border px-3 py-2 text-xs text-muted-foreground bg-muted/20">
                 Results capped at {responseCap.itemsFetched ?? 0} item{responseCap.itemsFetched === 1 ? '' : 's'} across {responseCap.pagesFetched ?? 0} page{responseCap.pagesFetched === 1 ? '' : 's'}.
               </div>
             )}
           </div>
         ) : (
-          <Empty className="h-full border border-dashed border-border">
+          <Empty className="h-full border-0 bg-transparent flex flex-col justify-center">
             <EmptyHeader>
-              <EmptyMedia variant="icon">
-                <FileText className="size-5" />
+              <EmptyMedia variant="icon" className="bg-muted/50 mb-4">
+                <FileText className="size-5 text-muted-foreground/70" />
               </EmptyMedia>
-              <EmptyTitle>No raw response</EmptyTitle>
+              <EmptyTitle className="text-base font-medium">No raw response</EmptyTitle>
               <EmptyDescription>Run an API request to view the raw payload.</EmptyDescription>
             </EmptyHeader>
           </Empty>
         )}
       </TabsContent>
 
-      <TabsContent value="headers" className="flex-1 min-h-0 px-3 pb-3">
+      <TabsContent value="headers" className="flex-1 min-h-0 px-2 pb-2 pt-0">
         {response ? (
-          <ScrollArea className="h-full border border-border rounded-md">
-            <div className="p-3 space-y-2 text-xs font-mono">
+          <ScrollArea className="h-full border border-border/60 rounded-md bg-card/40 shadow-sm backdrop-blur-sm">
+            <div className="p-2 space-y-1">
               {Object.entries(response.headers).map(([key, value]) => (
-                <div key={key} className="flex items-center justify-between gap-4">
-                  <span className="text-muted-foreground select-none">{key}</span>
+                <div key={key} className="flex items-center justify-between gap-4 p-2 hover:bg-muted/40 rounded-sm group transition-colors">
+                  <span className="text-xs font-mono text-muted-foreground select-none">{key}</span>
                   <div className="flex items-center gap-2 min-w-0">
                     <Tooltip>
                       <TooltipTrigger
-                        render={<span className="text-foreground truncate">{value}</span>}
+                        render={<span className="text-xs font-mono text-foreground truncate">{value}</span>}
                       />
                       <TooltipContent>{value}</TooltipContent>
                     </Tooltip>
@@ -417,6 +417,7 @@ export function ApiResponseViewer() {
                       text={`${key}: ${value}`}
                       size="sm"
                       variant="ghost"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity"
                       onCopy={() => toast.success('Header copied')}
                     />
                   </div>
@@ -425,26 +426,26 @@ export function ApiResponseViewer() {
             </div>
           </ScrollArea>
         ) : (
-          <Empty className="h-full border border-dashed border-border">
+          <Empty className="h-full border-0 bg-transparent flex flex-col justify-center">
             <EmptyHeader>
-              <EmptyMedia variant="icon">
-                <ListTree className="size-5" />
+              <EmptyMedia variant="icon" className="bg-muted/50 mb-4">
+                <ListTree className="size-5 text-muted-foreground/70" />
               </EmptyMedia>
-              <EmptyTitle>No headers yet</EmptyTitle>
+              <EmptyTitle className="text-base font-medium">No headers yet</EmptyTitle>
               <EmptyDescription>Run a request to view response headers.</EmptyDescription>
             </EmptyHeader>
           </Empty>
         )}
       </TabsContent>
 
-      <TabsContent value="snippets" className="flex-1 min-h-0 px-3 pb-3 flex flex-col">
+      <TabsContent value="snippets" className="flex-1 min-h-0 px-2 pb-2 flex flex-col pt-0">
         {snippets ? (
-          <ScrollArea className="flex-1 min-h-0 border border-border rounded-md">
+          <ScrollArea className="flex-1 min-h-0 border border-border/60 rounded-md bg-muted/5">
             <div className="p-3 space-y-5 min-w-0">
               {Object.entries(snippets).map(([label, snippet]) => (
                 <div key={label}>
                   <div className="flex items-center justify-between mb-2">
-                    <div className="text-xs text-muted-foreground uppercase tracking-wide select-none">
+                    <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide select-none bg-muted/30 px-2 py-0.5 rounded">
                       {label}
                     </div>
                     <CopyButton
@@ -454,7 +455,7 @@ export function ApiResponseViewer() {
                       onCopy={() => toast.success('Snippet copied')}
                     />
                   </div>
-                  <pre className="text-xs font-mono whitespace-pre-wrap break-all text-foreground bg-muted/40 border border-border rounded-md p-3">
+                  <pre className="text-xs font-mono whitespace-pre-wrap break-all text-foreground bg-card/60 border border-border/60 rounded-md p-3 shadow-sm">
                     {snippet}
                   </pre>
                 </div>
@@ -462,12 +463,12 @@ export function ApiResponseViewer() {
             </div>
           </ScrollArea>
         ) : (
-          <Empty className="h-full border border-dashed border-border">
+          <Empty className="h-full border-0 bg-transparent flex flex-col justify-center">
             <EmptyHeader>
-              <EmptyMedia variant="icon">
-                <Code2 className="size-5" />
+              <EmptyMedia variant="icon" className="bg-muted/50 mb-4">
+                <Code2 className="size-5 text-muted-foreground/70" />
               </EmptyMedia>
-              <EmptyTitle>No snippets yet</EmptyTitle>
+              <EmptyTitle className="text-base font-medium">No snippets yet</EmptyTitle>
               <EmptyDescription>Select a request to generate language snippets.</EmptyDescription>
             </EmptyHeader>
           </Empty>

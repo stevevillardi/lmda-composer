@@ -177,29 +177,36 @@ export function ExecutionHistoryDetailsDialog({
         </DialogHeader>
 
         {entry && (
-          <div className="flex-1 min-h-0 p-6 pt-4 flex flex-col gap-3">
-            <Tabs defaultValue="script" className="flex-1 min-h-0">
-              <div className="flex items-center justify-between gap-2">
-                <TabsList variant="line" className="h-7">
-                  <TabsTrigger value="script" className="h-6 text-xs px-2">
+          <div className="flex-1 min-h-0 p-6 pt-4 flex flex-col gap-3 bg-muted/5">
+            <Tabs defaultValue="script" className="flex-1 min-h-0 flex flex-col">
+              <div className="flex items-center justify-between gap-2 shrink-0">
+                <TabsList variant="line" className="h-8 bg-transparent p-0 gap-1 border-b border-border/40 w-full justify-start rounded-none">
+                  <TabsTrigger 
+                    value="script" 
+                    className="h-8 text-xs px-3 data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none bg-transparent hover:bg-muted/30 transition-colors"
+                  >
                     Script
                   </TabsTrigger>
-                  <TabsTrigger value="output" className="h-6 text-xs px-2">
+                  <TabsTrigger 
+                    value="output" 
+                    className="h-8 text-xs px-3 data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:shadow-none rounded-none bg-transparent hover:bg-muted/30 transition-colors"
+                  >
                     Output
                   </TabsTrigger>
                 </TabsList>
                 <Button
-                  variant="secondary"
+                  variant="default"
                   size="sm"
-                  className="h-7 text-xs px-3"
+                  className="h-7 text-xs px-3 ml-auto shrink-0"
                   onClick={() => onLoad(entry)}
                 >
-                  <Play className="size-3 mr-1" />
+                  <Play className="size-3 mr-1.5" />
                   Load Into Editor
                 </Button>
               </div>
-              <TabsContent value="script" className="mt-2 h-full">
-                <div className="rounded-md border border-border bg-muted/30 h-full overflow-hidden">
+              
+              <TabsContent value="script" className="mt-3 flex-1 min-h-0">
+                <div className="rounded-md border border-border bg-background/50 h-full overflow-hidden shadow-sm">
                   <Editor
                     height="100%"
                     language={monacoLanguage}
@@ -215,8 +222,8 @@ export function ExecutionHistoryDetailsDialog({
                 </div>
               </TabsContent>
 
-              <TabsContent value="output" className="mt-2 h-full">
-                <div className="rounded-md border border-border bg-muted/30 h-full overflow-hidden">
+              <TabsContent value="output" className="mt-3 flex-1 min-h-0">
+                <div className="rounded-md border border-border bg-background/50 h-full overflow-hidden shadow-sm">
                   <Editor
                     height="100%"
                     language="plaintext"

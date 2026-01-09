@@ -1,4 +1,4 @@
-import { Info, FolderTree, Shield, Filter, Database, Target, Bell } from 'lucide-react';
+import { Info, FolderTree, Shield, Filter, Database, Target, Bell, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ModuleDetailsSection } from '@/shared/module-type-schemas';
 
@@ -7,6 +7,7 @@ interface ModuleDetailsSidebarProps {
   onSectionChange: (section: ModuleDetailsSection) => void;
   sections: ModuleDetailsSection[];
   dirtySections?: Set<string>;
+  invalidSections?: Set<string>;
 }
 
 interface SectionItem {
@@ -20,6 +21,7 @@ export function ModuleDetailsSidebar({
   onSectionChange,
   sections,
   dirtySections = new Set(),
+  invalidSections = new Set(),
 }: ModuleDetailsSidebarProps) {
   const sectionMetadata: Record<ModuleDetailsSection, SectionItem> = {
     basic: { id: 'basic', label: 'Basic Info', icon: Info },
@@ -39,6 +41,7 @@ export function ModuleDetailsSidebar({
           const section = sectionMetadata[sectionId];
           const Icon = section.icon;
           const isActive = activeSection === section.id;
+          const isInvalid = invalidSections.has(section.id);
           
           return (
             <button
@@ -49,14 +52,20 @@ export function ModuleDetailsSidebar({
                 'hover:bg-accent hover:text-accent-foreground',
                 isActive
                   ? 'bg-accent text-accent-foreground shadow-sm'
-                  : 'text-muted-foreground'
+                  : 'text-muted-foreground',
+                isInvalid && 'text-destructive hover:text-destructive'
               )}
             >
-              <Icon className="size-4 shrink-0" />
+              <Icon className={cn("size-4 shrink-0", isInvalid && "text-destructive")} />
               <span className="flex-1 text-left">{section.label}</span>
-              {dirtySections.has(section.id) && (
-                <span className="size-2 rounded-full bg-primary shrink-0" />
-              )}
+              <div className="flex items-center gap-1">
+                {dirtySections.has(section.id) && !isInvalid && (
+                  <span className="size-2 rounded-full bg-primary shrink-0" />
+                )}
+                {isInvalid && (
+                  <AlertCircle className="size-3.5 text-destructive shrink-0" />
+                )}
+              </div>
             </button>
           );
         })}

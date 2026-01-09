@@ -209,15 +209,15 @@ export function ContextDropdown({
         </TooltipContent>
       </Tooltip>
 
-      <PopoverContent className="w-[360px] p-0" align="start">
+      <PopoverContent className="w-[360px] p-0 bg-background/95 backdrop-blur-xl" align="start">
         {portals.length === 0 ? (
           // Empty state when no portals detected
-          <Empty className="border-none p-6">
+          <Empty className="border-none bg-transparent p-6 flex flex-col justify-center">
             <EmptyHeader>
-              <EmptyMedia variant="icon">
-                <Globe className="size-5" />
+              <EmptyMedia variant="icon" className="bg-muted/50">
+                <Globe className="size-5 text-muted-foreground/70" />
               </EmptyMedia>
-              <EmptyTitle className="text-base">No portals detected</EmptyTitle>
+              <EmptyTitle className="text-base font-medium">No portals detected</EmptyTitle>
               <EmptyDescription>
                 Open a LogicMonitor portal tab in your browser and sign in. 
                 The extension will automatically detect your session.
@@ -229,7 +229,7 @@ export function ContextDropdown({
                 size="sm"
                 onClick={handleRefreshPortals}
                 disabled={isRefreshingPortals}
-                className="w-full"
+                className="w-full bg-background/50"
               >
                 <RefreshCw className={cn("size-3.5 mr-2", isRefreshingPortals && "animate-spin")} />
                 {isRefreshingPortals ? 'Checking...' : 'Check for Portals'}
@@ -238,7 +238,7 @@ export function ContextDropdown({
           </Empty>
         ) : (
           <>
-            <div className="p-3 border-b border-border">
+            <div className="p-3 border-b border-border bg-secondary/30">
               <h4 className="font-medium text-sm">Execution Context</h4>
               <p className="text-xs text-muted-foreground mt-0.5">
                 {showCollector ? 'Select where to run your scripts' : 'Select your portal'}
@@ -532,22 +532,26 @@ export function ContextDropdown({
                         </div>
                       ) : (
                         filteredDevices.map((device) => (
-                          <ComboboxItem key={device.id} value={device.name}>
+                          <ComboboxItem 
+                            key={device.id} 
+                            value={device.name}
+                            className="group relative px-2.5 py-2 mx-1 my-0.5 rounded-sm border-l-2 border-transparent aria-selected:bg-accent/50 aria-selected:border-primary aria-selected:text-accent-foreground cursor-pointer transition-all hover:bg-accent/40 hover:border-l-primary/50"
+                          >
                             <div className="flex items-center gap-2 w-full">
                               <Server className={cn(
-                                "size-4 shrink-0",
+                                "size-3.5 shrink-0 transition-colors",
                                 device.hostStatus === 'normal' 
                                   ? "text-teal-500" 
                                   : "text-red-500"
                               )} />
                               <div className="flex flex-col min-w-0 flex-1">
-                                <span className="font-medium truncate">
+                                <span className="font-medium text-xs truncate">
                                   {device.displayName}
                                   {device.hostStatus !== 'normal' && (
-                                    <span className="text-red-500 text-xs ml-1.5">(offline)</span>
+                                    <span className="text-red-500 ml-1.5">(offline)</span>
                                   )}
                                 </span>
-                                <span className="text-xs text-muted-foreground truncate">{device.name}</span>
+                                <span className="text-[10px] text-muted-foreground truncate group-aria-selected:text-muted-foreground/80">{device.name}</span>
                               </div>
                             </div>
                           </ComboboxItem>
