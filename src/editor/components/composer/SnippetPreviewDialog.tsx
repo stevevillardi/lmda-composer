@@ -17,7 +17,7 @@ import { useEditorStore } from '../../stores/editor-store';
 import { buildMonacoOptions, getMonacoTheme } from '../../utils/monaco-settings';
 
 // Import the loader config to use bundled Monaco (CSP-safe)
-import '../monaco-loader';
+import '../../monaco-loader';
 
 const LANGUAGE_COLORS: Record<string, string> = {
   groovy: 'bg-yellow-700/10 text-yellow-700 border-yellow-700/20',

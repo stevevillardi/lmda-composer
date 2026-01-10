@@ -24,7 +24,7 @@ import {
 } from '@/components/ui/select';
 
 // Import the loader config to use bundled Monaco (CSP-safe)
-import '../monaco-loader';
+import '../../monaco-loader';
 
 export function CreateSnippetDialog() {
   const {

@@ -11,7 +11,7 @@ import { FilePlus, Loader2 } from 'lucide-react';
 import { Kbd } from '@/components/ui/kbd';
 
 // Import the loader config to use bundled Monaco (CSP-safe)
-import '../monaco-loader';
+import '../../monaco-loader';
 
 export function EditorPanel() {
   const { 

@@ -16,7 +16,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import type { LogicModuleInfo, ScriptLanguage, ScriptMode } from '@/shared/types';
 
 // Import the loader config to use bundled Monaco (CSP-safe)
-import '../monaco-loader';
+import '../../monaco-loader';
 
 interface ModulePreviewProps {
   module: LogicModuleInfo;

@@ -19,7 +19,7 @@ import {
 } from '../../constants/icons';
 
 // Import the loader config to use bundled Monaco (CSP-safe)
-import '../monaco-loader';
+import '../../monaco-loader';
 
 /** Returns the appropriate module type icon component for a given LogicModuleType */
 function getModuleTypeIcon(moduleType: LogicModuleType) {
