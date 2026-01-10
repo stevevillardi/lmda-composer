@@ -2,7 +2,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import { ApiEndpointCatalog } from '../src/editor/components/api/ApiEndpointCatalog';
+import { ApiEndpointCatalog } from '../src/editor/components/api-explorer/ApiEndpointCatalog';
 import { useEditorStore } from '../src/editor/stores/editor-store';
 
 let retrySpy = vi.fn();

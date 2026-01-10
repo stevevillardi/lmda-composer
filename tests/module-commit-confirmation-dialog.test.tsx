@@ -2,11 +2,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import { PushToPortalDialog } from '../src/editor/components/PushToPortalDialog';
+import { PushToPortalDialog } from '../src/editor/components/import-from-lmx/PushToPortalDialog';
 import { useEditorStore } from '../src/editor/stores/editor-store';
 import type { EditorTab } from '../src/shared/types';
 
-vi.mock('../src/editor/components/DiffEditor', () => ({
+vi.mock('../src/editor/components/composer/DiffEditor', () => ({
   DiffEditor: () => <div data-testid="diff-editor" />,
 }));
 

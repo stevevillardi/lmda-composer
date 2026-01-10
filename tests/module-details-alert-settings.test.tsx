@@ -2,7 +2,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import { ModuleDetailsAlertSettings } from '../src/editor/components/ModuleDetailsSections/AlertSettings';
+import { ModuleDetailsAlertSettings } from '../src/editor/components/module-details-sections/AlertSettings';
 import { useEditorStore } from '../src/editor/stores/editor-store';
 import type { EditorTab, LogicModuleType } from '../src/shared/types';
 

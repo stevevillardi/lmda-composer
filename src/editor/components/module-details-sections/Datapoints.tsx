@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { ConfirmationDialog } from '../ConfirmationDialog';
+import { ConfirmationDialog } from '../shared/ConfirmationDialog';
 import { DatapointEditorSheet, type DatapointType } from './DatapointEditorSheet';
 import { buildPortalEditUrl } from '@/shared/module-type-schemas';
 import { useEditorStore } from '../../stores/editor-store';

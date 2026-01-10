@@ -1,21 +1,21 @@
 import { useEffect, useMemo, Suspense, lazy } from 'react';
 import { FileWarning, RotateCcw, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Toolbar } from './components/Toolbar';
-import { OutputPanel } from './components/OutputPanel';
-import { StatusBar } from './components/StatusBar';
-import { ExecutionContextDialog } from './components/ExecutionContextDialog';
-import { LogicModuleBrowser } from './components/LogicModuleBrowser';
-import { CommandPalette } from './components/CommandPalette';
-import { SettingsDialog } from './components/SettingsDialog';
-import { RightSidebar } from './components/RightSidebar';
-import { TabBar } from './components/TabBar';
-import { EditorWelcomeScreen } from './components/EditorWelcomeScreen';
-import { BraveFileSystemWarning } from './components/BraveFileSystemWarning';
-import { DebugCommandsDialog } from './components/DebugCommandsDialog';
-import { ModuleDetailsDialog } from './components/ModuleDetailsDialog';
-import { ModuleSnippetsDialog } from './components/ModuleSnippetsDialog';
-import { OpenModuleDirectoryDialog } from './components/OpenModuleDirectoryDialog';
+import { Toolbar } from './components/nav-items/Toolbar';
+import { OutputPanel } from './components/composer/OutputPanel';
+import { StatusBar } from './components/nav-items/StatusBar';
+import { ExecutionContextDialog } from './components/composer/ExecutionContextDialog';
+import { LogicModuleBrowser } from './components/import-from-lmx/LogicModuleBrowser';
+import { CommandPalette } from './components/nav-items/CommandPalette';
+import { SettingsDialog } from './components/nav-items/SettingsDialog';
+import { RightSidebar } from './components/composer/RightSidebar';
+import { TabBar } from './components/composer/TabBar';
+import { EditorWelcomeScreen } from './components/composer/EditorWelcomeScreen';
+import { BraveFileSystemWarning } from './components/nav-items/BraveFileSystemWarning';
+import { DebugCommandsDialog } from './components/collector-debug/DebugCommandsDialog';
+import { ModuleDetailsDialog } from './components/import-from-lmx/ModuleDetailsDialog';
+import { ModuleSnippetsDialog } from './components/portal-actions/ModuleSnippetsDialog';
+import { OpenModuleDirectoryDialog } from './components/composer/OpenModuleDirectoryDialog';
 import { useEditorStore } from './stores/editor-store';
 import { Button } from '@/components/ui/button';
 import {
@@ -48,16 +48,16 @@ import {
 } from './hooks';
 
 // Lazy-loaded components
-const EditorPanelLazy = lazy(() => import('./components/EditorPanel').then((mod) => ({ default: mod.EditorPanel })));
-const LogicModuleSearchLazy = lazy(() => import('./components/LogicModuleSearch').then((mod) => ({ default: mod.LogicModuleSearch })));
-const ApiExplorerPanelLazy = lazy(() => import('./components/api/ApiExplorerPanel').then((mod) => ({ default: mod.ApiExplorerPanel })));
-const ApiRightSidebarLazy = lazy(() => import('./components/api/ApiRightSidebar').then((mod) => ({ default: mod.ApiRightSidebar })));
-const ApiWelcomeScreenLazy = lazy(() => import('./components/api/ApiWelcomeScreen').then((mod) => ({ default: mod.ApiWelcomeScreen })));
-const AppliesToTesterLazy = lazy(() => import('./components/AppliesToTester').then((mod) => ({ default: mod.AppliesToTester })));
-const PushToPortalDialogLazy = lazy(() => import('./components/PushToPortalDialog').then((mod) => ({ default: mod.PushToPortalDialog })));
-const PullFromPortalDialogLazy = lazy(() => import('./components/PullFromPortalDialog').then((mod) => ({ default: mod.PullFromPortalDialog })));
-const ModuleLineageDialogLazy = lazy(() => import('./components/ModuleLineageDialog').then((mod) => ({ default: mod.ModuleLineageDialog })));
-const SaveOptionsDialogLazy = lazy(() => import('./components/SaveOptionsDialog').then((mod) => ({ default: mod.SaveOptionsDialog })));
+const EditorPanelLazy = lazy(() => import('./components/composer/EditorPanel').then((mod) => ({ default: mod.EditorPanel })));
+const LogicModuleSearchLazy = lazy(() => import('./components/portal-actions/LogicModuleSearch').then((mod) => ({ default: mod.LogicModuleSearch })));
+const ApiExplorerPanelLazy = lazy(() => import('./components/api-explorer/ApiExplorerPanel').then((mod) => ({ default: mod.ApiExplorerPanel })));
+const ApiRightSidebarLazy = lazy(() => import('./components/api-explorer/ApiRightSidebar').then((mod) => ({ default: mod.ApiRightSidebar })));
+const ApiWelcomeScreenLazy = lazy(() => import('./components/api-explorer/ApiWelcomeScreen').then((mod) => ({ default: mod.ApiWelcomeScreen })));
+const AppliesToTesterLazy = lazy(() => import('./components/applies-to-tester/AppliesToTester').then((mod) => ({ default: mod.AppliesToTester })));
+const PushToPortalDialogLazy = lazy(() => import('./components/import-from-lmx/PushToPortalDialog').then((mod) => ({ default: mod.PushToPortalDialog })));
+const PullFromPortalDialogLazy = lazy(() => import('./components/import-from-lmx/PullFromPortalDialog').then((mod) => ({ default: mod.PullFromPortalDialog })));
+const ModuleLineageDialogLazy = lazy(() => import('./components/import-from-lmx/ModuleLineageDialog').then((mod) => ({ default: mod.ModuleLineageDialog })));
+const SaveOptionsDialogLazy = lazy(() => import('./components/nav-items/SaveOptionsDialog').then((mod) => ({ default: mod.SaveOptionsDialog })));
 
 // Layout constants
 const PANEL_SIZES = {

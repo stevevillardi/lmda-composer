@@ -1,6 +1,6 @@
 import { Filter } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { AppliesToEditorSlim } from '../AppliesToEditorSlim';
+import { AppliesToEditorSlim } from '../applies-to-tester/AppliesToEditorSlim';
 import { useEditorStore } from '../../stores/editor-store';
 import type { LogicModuleType } from '@/shared/types';
 import { MODULE_TYPE_SCHEMAS } from '@/shared/module-type-schemas';
