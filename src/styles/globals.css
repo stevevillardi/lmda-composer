@@ -6,104 +6,104 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-    /* Palette 3 - Light Theme
-       Primary: Purple, Neutrals: Blue-Grey */
-    --background: #FFFFFF;
-    --foreground: #102A43; /* grey-900 */
-    --card: #FFFFFF;
-    --card-foreground: #102A43; /* grey-900 */
-    --popover: #FFFFFF;
-    --popover-foreground: #102A43; /* grey-900 */
-    --primary: #3525E6; /* purple-700 */
-    --primary-foreground: #E6E6FF; /* purple-50 */
-    --secondary: #D9E2EC; /* grey-100 */
-    --secondary-foreground: #243B53; /* grey-800 */
-    --muted: #F0F4F8; /* grey-50 */
-    --muted-foreground: #627D98; /* grey-500 */
-    --accent: #E6E6FF; /* purple-50 */
-    --accent-foreground: #3525E6; /* purple-700 */
-    --destructive: #E12D39; /* red-500 */
-    --border: #D9E2EC; /* grey-100 */
-    --input: #D9E2EC; /* grey-100 */
-    --ring: #5D55FA; /* purple-500 */
-    --chart-1: #5D55FA; /* purple-500 */
-    --chart-2: #27AB83; /* teal-500 */
-    --chart-3: #2BB0ED; /* cyan-500 */
-    --chart-4: #F0B429; /* yellow-500 */
-    --chart-5: #E12D39; /* red-500 */
-    --radius: 0.625rem;
-    --sidebar: #F0F4F8; /* grey-50 */
-    --sidebar-foreground: #102A43; /* grey-900 */
-    --sidebar-primary: #3525E6; /* purple-700 */
-    --sidebar-primary-foreground: #E6E6FF; /* purple-50 */
-    --sidebar-accent: #D9E2EC; /* grey-100 */
-    --sidebar-accent-foreground: #243B53; /* grey-800 */
-    --sidebar-border: #D9E2EC; /* grey-100 */
-    --sidebar-ring: #5D55FA; /* purple-500 */
-    
-    /* Status colors */
-    --success: #27AB83; /* teal-500 */
-    --warning: #F0B429; /* yellow-500 */
-    --error: #E12D39; /* red-500 */
-    --info: #2BB0ED; /* cyan-500 */
-    
-    /* Scrollbar colors */
-    --scrollbar-thumb-hover: #BCCCDC; /* grey-200 */
-    
-    /* Monaco editor highlight colors */
-    --monaco-search-line: rgba(240, 180, 41, 0.18); /* yellow-500 based */
-    --monaco-search-inline: rgba(240, 180, 41, 0.35);
-    --monaco-search-inline-border: rgba(240, 180, 41, 0.7);
+  /* Palette 3 - Light Theme
+     Primary: Purple, Neutrals: Blue-Grey */
+  --background: #FFFFFF;
+  --foreground: #102A43; /* grey-900 */
+  --card: #FFFFFF;
+  --card-foreground: #102A43; /* grey-900 */
+  --popover: #FFFFFF;
+  --popover-foreground: #102A43; /* grey-900 */
+  --primary: #3525E6; /* purple-700 */
+  --primary-foreground: #E6E6FF; /* purple-50 */
+  --secondary: #D9E2EC; /* grey-100 */
+  --secondary-foreground: #243B53; /* grey-800 */
+  --muted: #F0F4F8; /* grey-50 */
+  --muted-foreground: #627D98; /* grey-500 */
+  --accent: #E6E6FF; /* purple-50 */
+  --accent-foreground: #3525E6; /* purple-700 */
+  --destructive: #E12D39; /* red-500 */
+  --border: #D9E2EC; /* grey-100 */
+  --input: #D9E2EC; /* grey-100 */
+  --ring: #5D55FA; /* purple-500 */
+  --chart-1: #5D55FA; /* purple-500 */
+  --chart-2: #27AB83; /* teal-500 */
+  --chart-3: #2BB0ED; /* cyan-500 */
+  --chart-4: #F0B429; /* yellow-500 */
+  --chart-5: #E12D39; /* red-500 */
+  --radius: 0.625rem;
+  --sidebar: #F0F4F8; /* grey-50 */
+  --sidebar-foreground: #102A43; /* grey-900 */
+  --sidebar-primary: #3525E6; /* purple-700 */
+  --sidebar-primary-foreground: #E6E6FF; /* purple-50 */
+  --sidebar-accent: #D9E2EC; /* grey-100 */
+  --sidebar-accent-foreground: #243B53; /* grey-800 */
+  --sidebar-border: #D9E2EC; /* grey-100 */
+  --sidebar-ring: #5D55FA; /* purple-500 */
+  
+  /* Status colors */
+  --success: #27AB83; /* teal-500 */
+  --warning: #F0B429; /* yellow-500 */
+  --error: #E12D39; /* red-500 */
+  --info: #2BB0ED; /* cyan-500 */
+  
+  /* Scrollbar colors */
+  --scrollbar-thumb-hover: #BCCCDC; /* grey-200 */
+  
+  /* Monaco editor highlight colors */
+  --monaco-search-line: rgba(240, 180, 41, 0.18); /* yellow-500 based */
+  --monaco-search-inline: rgba(240, 180, 41, 0.35);
+  --monaco-search-inline-border: rgba(240, 180, 41, 0.7);
 }
 
 .dark {
-    /* Palette 3 - Dark Theme
-       Primary: Purple (lighter shades), Neutrals: Blue-Grey (darker shades) */
-    --background: #102A43; /* grey-900 */
-    --foreground: #F0F4F8; /* grey-50 */
-    --card: #243B53; /* grey-800 */
-    --card-foreground: #F0F4F8; /* grey-50 */
-    --popover: #243B53; /* grey-800 */
-    --popover-foreground: #F0F4F8; /* grey-50 */
-    --primary: #7069FA; /* purple-400 */
-    --primary-foreground: #E6E6FF; /* purple-50 */
-    --secondary: #334E68; /* grey-700 */
-    --secondary-foreground: #F0F4F8; /* grey-50 */
-    --muted: #334E68; /* grey-700 */
-    --muted-foreground: #9FB3C8; /* grey-300 */
-    --accent: rgba(112, 105, 250, 0.15); /* purple-400 at 15% - visible purple tint */
-    --accent-foreground: #C4C6FF; /* purple-100 */
-    --destructive: #EF4E4E; /* red-400 */
-    --border: rgba(255, 255, 255, 0.1);
-    --input: rgba(255, 255, 255, 0.15);
-    --ring: #7069FA; /* purple-400 */
-    --chart-1: #7069FA; /* purple-400 */
-    --chart-2: #3EBD93; /* teal-400 */
-    --chart-3: #40C3F7; /* cyan-400 */
-    --chart-4: #F7C948; /* yellow-400 */
-    --chart-5: #EF4E4E; /* red-400 */
-    --sidebar: #243B53; /* grey-800 */
-    --sidebar-foreground: #F0F4F8; /* grey-50 */
-    --sidebar-primary: #7069FA; /* purple-400 */
-    --sidebar-primary-foreground: #E6E6FF; /* purple-50 */
-    --sidebar-accent: rgba(112, 105, 250, 0.15); /* purple-400 at 15% */
-    --sidebar-accent-foreground: #F0F4F8; /* grey-50 */
-    --sidebar-border: rgba(255, 255, 255, 0.1);
-    --sidebar-ring: #7069FA; /* purple-400 */
-    
-    /* Status colors */
-    --success: #3EBD93; /* teal-400 */
-    --warning: #F7C948; /* yellow-400 */
-    --error: #EF4E4E; /* red-400 */
-    --info: #40C3F7; /* cyan-400 */
-    
-    /* Scrollbar colors */
-    --scrollbar-thumb-hover: rgba(255, 255, 255, 0.4);
-    
-    /* Monaco editor highlight colors - slightly brighter for dark mode */
-    --monaco-search-line: rgba(247, 201, 72, 0.22); /* yellow-400 based */
-    --monaco-search-inline: rgba(247, 201, 72, 0.40);
-    --monaco-search-inline-border: rgba(247, 201, 72, 0.75);
+  /* Palette 3 - Dark Theme
+     Primary: Purple (lighter shades), Neutrals: Blue-Grey (darker shades) */
+  --background: #102A43; /* grey-900 */
+  --foreground: #F0F4F8; /* grey-50 */
+  --card: #243B53; /* grey-800 */
+  --card-foreground: #F0F4F8; /* grey-50 */
+  --popover: #243B53; /* grey-800 */
+  --popover-foreground: #F0F4F8; /* grey-50 */
+  --primary: #7069FA; /* purple-400 */
+  --primary-foreground: #E6E6FF; /* purple-50 */
+  --secondary: #334E68; /* grey-700 */
+  --secondary-foreground: #F0F4F8; /* grey-50 */
+  --muted: #334E68; /* grey-700 */
+  --muted-foreground: #9FB3C8; /* grey-300 */
+  --accent: rgba(112, 105, 250, 0.15); /* purple-400 at 15% - visible purple tint */
+  --accent-foreground: #C4C6FF; /* purple-100 */
+  --destructive: #EF4E4E; /* red-400 */
+  --border: rgba(255, 255, 255, 0.1);
+  --input: rgba(255, 255, 255, 0.15);
+  --ring: #7069FA; /* purple-400 */
+  --chart-1: #7069FA; /* purple-400 */
+  --chart-2: #3EBD93; /* teal-400 */
+  --chart-3: #40C3F7; /* cyan-400 */
+  --chart-4: #F7C948; /* yellow-400 */
+  --chart-5: #EF4E4E; /* red-400 */
+  --sidebar: #243B53; /* grey-800 */
+  --sidebar-foreground: #F0F4F8; /* grey-50 */
+  --sidebar-primary: #7069FA; /* purple-400 */
+  --sidebar-primary-foreground: #E6E6FF; /* purple-50 */
+  --sidebar-accent: rgba(112, 105, 250, 0.15); /* purple-400 at 15% */
+  --sidebar-accent-foreground: #F0F4F8; /* grey-50 */
+  --sidebar-border: rgba(255, 255, 255, 0.1);
+  --sidebar-ring: #7069FA; /* purple-400 */
+  
+  /* Status colors */
+  --success: #3EBD93; /* teal-400 */
+  --warning: #F7C948; /* yellow-400 */
+  --error: #EF4E4E; /* red-400 */
+  --info: #40C3F7; /* cyan-400 */
+  
+  /* Scrollbar colors */
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.4);
+  
+  /* Monaco editor highlight colors - slightly brighter for dark mode */
+  --monaco-search-line: rgba(247, 201, 72, 0.22); /* yellow-400 based */
+  --monaco-search-inline: rgba(247, 201, 72, 0.40);
+  --monaco-search-inline-border: rgba(247, 201, 72, 0.75);
 }
 
 @theme inline {

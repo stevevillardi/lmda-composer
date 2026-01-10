@@ -53,8 +53,8 @@ import {
 } from '@/components/ui/alert-dialog';
 import { cn } from '@/lib/utils';
 import { APPLIES_TO_OPERATORS, getOperatorsByCategory, type AppliesToOperator } from '../data/applies-to-operators';
-import { CreateFunctionDialog } from './AppliesToTester/CreateFunctionDialog';
-import { UpdateFunctionConfirmationDialog } from './AppliesToTester/UpdateFunctionConfirmationDialog';
+import { CreateFunctionDialog } from './applies-to-tester/CreateFunctionDialog';
+import { UpdateFunctionConfirmationDialog } from './applies-to-tester/UpdateFunctionConfirmationDialog';
 import type { AppliesToFunction, CustomAppliesToFunction, AppliesToFunctionWithSource } from '@/shared/types';
 
 export function AppliesToTester() {

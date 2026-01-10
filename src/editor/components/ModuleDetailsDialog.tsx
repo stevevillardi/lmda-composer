@@ -15,14 +15,14 @@ import { ModuleDetailsSidebar } from './ModuleDetailsSidebar';
 import { useEditorStore } from '../stores/editor-store';
 import { MODULE_TYPE_SCHEMAS, type ModuleDetailsSection } from '@/shared/module-type-schemas';
 import type { LogicModuleType } from '@/shared/types';
-import { ModuleDetailsBasicInfo } from './ModuleDetailsSections/BasicInfo';
-import { ModuleDetailsOrganization } from './ModuleDetailsSections/Organization';
-import { ModuleDetailsAccess } from './ModuleDetailsSections/Access';
-import { ModuleDetailsAppliesTo } from './ModuleDetailsSections/AppliesTo';
-import { ModuleDetailsActiveDiscovery } from './ModuleDetailsSections/ActiveDiscovery';
-import { ModuleDetailsDatapoints } from './ModuleDetailsSections/Datapoints';
-import { ModuleDetailsConfigChecks } from './ModuleDetailsSections/ConfigChecks';
-import { ModuleDetailsAlertSettings } from './ModuleDetailsSections/AlertSettings';
+import { ModuleDetailsBasicInfo } from './module-details-sections/BasicInfo';
+import { ModuleDetailsOrganization } from './module-details-sections/Organization';
+import { ModuleDetailsAccess } from './module-details-sections/Access';
+import { ModuleDetailsAppliesTo } from './module-details-sections/AppliesTo';
+import { ModuleDetailsActiveDiscovery } from './module-details-sections/ActiveDiscovery';
+import { ModuleDetailsDatapoints } from './module-details-sections/Datapoints';
+import { ModuleDetailsConfigChecks } from './module-details-sections/ConfigChecks';
+import { ModuleDetailsAlertSettings } from './module-details-sections/AlertSettings';
 import { PortalBindingOverlay } from './PortalBindingOverlay';
 
 export function ModuleDetailsDialog() {

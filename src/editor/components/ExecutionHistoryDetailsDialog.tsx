@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { useEditorStore } from '../stores/editor-store';
 import type { ExecutionHistoryEntry, LogicModuleType } from '@/shared/types';
-import { formatDuration, formatTimestamp, getModeLabel } from './execution-history-utils';
+import { formatDuration, formatTimestamp, getModeLabel } from '../utils/execution-history-utils';
 import { buildMonacoOptions, getMonacoTheme } from '../utils/monaco-settings';
 import {
   CollectionIcon,

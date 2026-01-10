@@ -29,7 +29,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import type { ExecutionHistoryEntry, LogicModuleType } from '@/shared/types';
 import { ExecutionHistoryDetailsDialog } from './ExecutionHistoryDetailsDialog';
-import { formatDuration, formatTimestamp, getModeLabel } from './execution-history-utils';
+import { formatDuration, formatTimestamp, getModeLabel } from '../utils/execution-history-utils';
 import {
   CollectionIcon,
   ConfigSourceIcon,
