@@ -23,6 +23,8 @@ const PAYLOAD_BUILDERS: Partial<Record<LogicModuleType, PayloadBuilder>> = {
   configsource: buildConfigSourcePayload,
   topologysource: buildTopologySourcePayload,
   propertysource: buildPropertySourcePayload,
+  logsource: buildLogSourcePayload,
+  eventsource: buildEventSourcePayload,
 };
 
 /**
@@ -257,4 +259,83 @@ function buildPropertySourcePayload(config: CreateModuleConfig): CreateModulePay
   }
 
   return payload;
+}
+
+/**
+ * Build LogSource-specific payload
+ * 
+ * LogSource specifics:
+ * - Groovy only (no PowerShell support)
+ * - Default collection interval: 5 minutes (300s)
+ * - Uses collectionAttribute.script.embeddedContent for script
+ * - Uses collectionInterval as object { units, offset }
+ * - Uses appliesToScript instead of appliesTo
+ * - Requires logFields and resourceMapping defaults
+ * - collectionMethod: 'SCRIPT'
+ */
+function buildLogSourcePayload(config: CreateModuleConfig): CreateModulePayload {
+  return {
+    name: config.name,
+    // LogSource does not support displayName
+    // LogSource uses appliesToScript instead of appliesTo
+    appliesToScript: 'false()',
+    appliesTo: 'false()',
+    collectionMethod: 'SCRIPT',
+    collectionInterval: {
+      units: 'SECONDS',
+      offset: 300, // 5 minutes default
+    },
+    collectionAttribute: {
+      resourceMappingOp: 'AND',
+      filterOp: null,
+      script: {
+        embeddedContent: '// LogSource collection script\n',
+        type: 'GROOVY',
+      },
+    },
+    logFields: [
+      {
+        key: '_resource.type',
+        method: 'Token',
+        value: '##predef.externalResourceType##',
+        comment: '',
+      },
+    ],
+    resourceMapping: [
+      {
+        index: '',
+        key: 'system.deviceId',
+        method: 'Token',
+        value: '##system.deviceId##',
+        comment: '',
+      },
+    ],
+  };
+}
+
+/**
+ * Build EventSource-specific payload
+ * 
+ * EventSource specifics:
+ * - Groovy only (no PowerShell support)
+ * - Default schedule: 30 minutes (1800s)
+ * - Uses top-level groovyScript and scriptType
+ * - Uses schedule instead of collectInterval
+ * - Requires collector: 'scriptevent'
+ * - Default alert settings
+ */
+function buildEventSourcePayload(config: CreateModuleConfig): CreateModulePayload {
+  return {
+    name: config.name,
+    // EventSource does not support displayName
+    appliesTo: 'false()',
+    collector: 'scriptevent',
+    schedule: 1800, // 30 minutes default
+    scriptType: 'embed',
+    groovyScript: '// EventSource script\n',
+    alertLevel: 'warn',
+    alertEffectiveIval: 60,
+    clearAfterAck: true,
+    suppressDuplicatesES: true,
+  };
 }

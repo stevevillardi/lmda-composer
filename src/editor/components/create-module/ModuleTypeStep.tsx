@@ -11,7 +11,14 @@ interface ModuleTypeStepProps {
 }
 
 // Enabled module types for creation
-const ENABLED_TYPES: LogicModuleType[] = ['datasource', 'configsource', 'topologysource', 'propertysource'];
+const ENABLED_TYPES: LogicModuleType[] = [
+  'datasource',
+  'configsource',
+  'topologysource',
+  'propertysource',
+  'logsource',
+  'eventsource',
+];
 
 export function ModuleTypeStep({ value, onChange }: ModuleTypeStepProps) {
   return (

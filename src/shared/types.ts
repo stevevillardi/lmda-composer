@@ -1004,6 +1004,54 @@ export interface CreateModulePayload {
       format?: string;
     };
   }>;
+  
+  // =========================================================================
+  // LogSource fields
+  // =========================================================================
+  /** collectionAttribute - used by LogSource */
+  collectionAttribute?: {
+    script?: { embeddedContent?: string; type?: string };
+    resourceMappingOp?: string;
+    filterOp?: string | null;
+  };
+  /** logFields - used by LogSource */
+  logFields?: Array<{
+    key: string;
+    method: string;
+    value: string;
+    comment: string;
+  }>;
+  /** resourceMapping - used by LogSource */
+  resourceMapping?: Array<{
+    index?: string;
+    key: string;
+    method: string;
+    value: string;
+    comment: string;
+  }>;
+  /** collectionInterval - used by LogSource (object format) */
+  collectionInterval?: {
+    units: string;
+    offset: number;
+  };
+  /** appliesToScript - LogSource uses this instead of appliesTo */
+  appliesToScript?: string;
+  
+  // =========================================================================
+  // EventSource fields
+  // =========================================================================
+  /** collector - used by EventSource */
+  collector?: string;
+  /** alertLevel - used by EventSource */
+  alertLevel?: string;
+  /** alertEffectiveIval - used by EventSource */
+  alertEffectiveIval?: number;
+  /** clearAfterAck - used by EventSource */
+  clearAfterAck?: boolean;
+  /** suppressDuplicatesES - used by EventSource */
+  suppressDuplicatesES?: boolean;
+  /** schedule - used by EventSource (seconds) */
+  schedule?: number;
 }
 
 /**

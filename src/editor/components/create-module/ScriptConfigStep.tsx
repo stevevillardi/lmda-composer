@@ -14,6 +14,9 @@ import {
 // Module types that support Active Discovery (multi-instance)
 const AD_SUPPORTED_TYPES: LogicModuleType[] = ['datasource', 'configsource'];
 
+// Module types that only support Groovy (no PowerShell)
+const GROOVY_ONLY_TYPES: LogicModuleType[] = ['logsource', 'eventsource'];
+
 interface ScriptConfigStepProps {
   moduleType: LogicModuleType;
   collectionLanguage: ScriptLanguage;
@@ -65,6 +68,7 @@ export function ScriptConfigStep({
   onAdLanguageChange,
 }: ScriptConfigStepProps) {
   const supportsAD = AD_SUPPORTED_TYPES.includes(moduleType);
+  const isGroovyOnly = GROOVY_ONLY_TYPES.includes(moduleType);
 
   return (
     <div className="mx-auto max-w-md space-y-6">
@@ -74,20 +78,30 @@ export function ScriptConfigStep({
           <CollectionIcon className="size-4" />
           Script Language
         </Label>
-        <div className="flex gap-3">
-          <LanguageOption
-            language="groovy"
-            label="Groovy"
-            selected={collectionLanguage === 'groovy'}
-            onSelect={() => onCollectionLanguageChange('groovy')}
-          />
-          <LanguageOption
-            language="powershell"
-            label="PowerShell"
-            selected={collectionLanguage === 'powershell'}
-            onSelect={() => onCollectionLanguageChange('powershell')}
-          />
-        </div>
+        {isGroovyOnly ? (
+          // Groovy-only modules show a static indicator
+          <div className="rounded-lg border border-primary bg-primary/5 px-4 py-3 text-center">
+            <p className="text-sm font-medium text-foreground">Groovy</p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              This module type only supports Groovy scripts
+            </p>
+          </div>
+        ) : (
+          <div className="flex gap-3">
+            <LanguageOption
+              language="groovy"
+              label="Groovy"
+              selected={collectionLanguage === 'groovy'}
+              onSelect={() => onCollectionLanguageChange('groovy')}
+            />
+            <LanguageOption
+              language="powershell"
+              label="PowerShell"
+              selected={collectionLanguage === 'powershell'}
+              onSelect={() => onCollectionLanguageChange('powershell')}
+            />
+          </div>
+        )}
       </div>
 
       {/* Multi-Instance Toggle - only for AD-supported module types */}

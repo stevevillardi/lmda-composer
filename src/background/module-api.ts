@@ -856,6 +856,25 @@ export interface CreateDataSourcePayload {
       format?: string;
     };
   }>;
+  
+  // LogSource fields
+  collectionAttribute?: {
+    script?: { embeddedContent?: string; type?: string };
+    resourceMappingOp?: string;
+    filterOp?: string | null;
+  };
+  logFields?: Array<{ key: string; method: string; value: string; comment: string }>;
+  resourceMapping?: Array<{ index?: string; key: string; method: string; value: string; comment: string }>;
+  collectionInterval?: { units: string; offset: number };
+  appliesToScript?: string;
+  
+  // EventSource fields
+  collector?: string;
+  alertLevel?: string;
+  alertEffectiveIval?: number;
+  clearAfterAck?: boolean;
+  suppressDuplicatesES?: boolean;
+  schedule?: number;
 }
 
 /**

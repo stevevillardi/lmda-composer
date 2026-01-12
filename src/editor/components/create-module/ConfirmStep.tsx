@@ -42,14 +42,20 @@ const AD_SUPPORTED_TYPES: LogicModuleType[] = ['datasource', 'configsource'];
 // Module types that support display name
 const DISPLAY_NAME_SUPPORTED_TYPES: LogicModuleType[] = ['datasource', 'configsource'];
 
+// Module types that only support Groovy
+const GROOVY_ONLY_TYPES: LogicModuleType[] = ['logsource', 'eventsource'];
+
 // Get collect interval description by module type
 function getCollectIntervalDescription(moduleType: LogicModuleType): string {
   switch (moduleType) {
     case 'datasource':
+    case 'logsource':
       return '5 minutes';
     case 'configsource':
     case 'topologysource':
       return '1 hour';
+    case 'eventsource':
+      return '30 minutes';
     case 'propertysource':
       return 'On device discovery';
     default:
@@ -70,6 +76,7 @@ export function ConfirmStep({
   const ModuleIcon = moduleTypeInfo?.icon;
   const supportsAD = AD_SUPPORTED_TYPES.includes(moduleType);
   const supportsDisplayName = DISPLAY_NAME_SUPPORTED_TYPES.includes(moduleType);
+  const isGroovyOnly = GROOVY_ONLY_TYPES.includes(moduleType);
 
   return (
     <div className="mx-auto max-w-md space-y-6">
@@ -102,7 +109,7 @@ export function ConfirmStep({
                 ) : (
                   <CollectionIcon className="size-4" />
                 )}
-                {collectionLanguage === 'groovy' ? 'Groovy' : 'PowerShell'}
+                {isGroovyOnly ? 'Groovy' : (collectionLanguage === 'groovy' ? 'Groovy' : 'PowerShell')}
                 {useBatchScript && <Badge variant="secondary" className="ml-1">Batch</Badge>}
               </span>
             }
@@ -158,6 +165,16 @@ export function ConfirmStep({
             {moduleType === 'configsource' && (
               <li>
                 <strong>Config Check:</strong> Default <code className="text-primary">RetrievalCheck</code> for config retrieval alerts
+              </li>
+            )}
+            {moduleType === 'logsource' && (
+              <li>
+                <strong>Log Fields:</strong> Default resource type mapping included
+              </li>
+            )}
+            {moduleType === 'eventsource' && (
+              <li>
+                <strong>Alert Level:</strong> Warning level with 60-minute effective interval
               </li>
             )}
           </ul>
