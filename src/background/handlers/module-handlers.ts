@@ -19,6 +19,7 @@ import {
   fetchModuleDetails,
   fetchAccessGroups,
   createModule,
+  deleteModule,
 } from '../module-api';
 import {
   getIndexInfo,
@@ -539,6 +540,65 @@ export async function handleCreateModule(
       type: 'MODULE_CREATE_ERROR', 
       payload: { 
         error: error instanceof Error ? error.message : 'Failed to create module',
+        code: 500
+      } 
+    });
+  }
+}
+
+export async function handleDeleteModule(
+  payload: { 
+    portalId: string; 
+    moduleType: LogicModuleType; 
+    moduleId: number;
+  },
+  sendResponse: SendResponse,
+  { portalManager }: HandlerContext
+) {
+  const { portalId, moduleType, moduleId } = payload;
+  try {
+    const portal = portalManager.getPortal(portalId);
+    const tabId = await portalManager.getValidTabIdForPortal(portalId);
+    if (!portal || !tabId) {
+      console.error(`[SW] Portal not found or no tabs: portalId=${portalId}, tabIds=${portal?.tabIds.length || 0}`);
+      sendResponse({ 
+        type: 'MODULE_DELETE_ERROR', 
+        payload: { error: 'Portal not found or no tabs available', code: 404 } 
+      });
+      return;
+    }
+    const csrfToken = await portalManager.getCsrfToken(portalId);
+    const result = await deleteModule(
+      portal.hostname, 
+      csrfToken, 
+      moduleType,
+      moduleId,
+      tabId
+    );
+    if (result.success) {
+      sendResponse({ 
+        type: 'MODULE_DELETED', 
+        payload: { 
+          success: true,
+          moduleId,
+          moduleType,
+        } 
+      });
+    } else {
+      sendResponse({ 
+        type: 'MODULE_DELETE_ERROR', 
+        payload: { 
+          error: result.error || 'Failed to delete module',
+          code: 500
+        } 
+      });
+    }
+  } catch (error) {
+    console.error(`[SW] Error in DELETE_MODULE:`, error);
+    sendResponse({ 
+      type: 'MODULE_DELETE_ERROR', 
+      payload: { 
+        error: error instanceof Error ? error.message : 'Failed to delete module',
         code: 500
       } 
     });

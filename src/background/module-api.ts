@@ -557,6 +557,8 @@ export async function commitModuleScript(
   // Merge module details changes if provided
   if (moduleDetails) {
     const fullModuleDetails = { ...moduleDetails };
+    
+    // Handle autoDiscoveryConfig merge
     if (moduleDetails.autoDiscoveryConfig) {
       fullModuleDetails.autoDiscoveryConfig = {
         ...(currentModule.autoDiscoveryConfig || {}),
@@ -565,6 +567,17 @@ export async function commitModuleScript(
           ...(currentModule.autoDiscoveryConfig?.method || {}),
           ...(moduleDetails.autoDiscoveryConfig.method || {}),
         },
+      };
+    }
+    
+    // Handle collectionAttribute merge for LogSource
+    // This ensures partial updates (like just filterOp) don't lose the script
+    if (moduleDetails.collectionAttribute && moduleType === 'logsource') {
+      fullModuleDetails.collectionAttribute = {
+        ...(currentModule.collectionAttribute || {}),
+        ...moduleDetails.collectionAttribute,
+        // Preserve script if not explicitly provided
+        script: moduleDetails.collectionAttribute.script || currentModule.collectionAttribute?.script,
       };
     }
 
@@ -594,6 +607,15 @@ export async function commitModuleScript(
         ...(currentModule.autoDiscoveryConfig.method || {}),
         ...(payload.autoDiscoveryConfig.method || {}),
       },
+    };
+  }
+  
+  // Ensure LogSource collectionAttribute always includes the script from current module
+  if (moduleType === 'logsource' && payload.collectionAttribute && currentModule.collectionAttribute) {
+    payload.collectionAttribute = {
+      ...currentModule.collectionAttribute,
+      ...payload.collectionAttribute,
+      script: payload.collectionAttribute.script || currentModule.collectionAttribute.script,
     };
   }
 
@@ -836,6 +858,10 @@ export async function fetchAccessGroups(
 export interface CreateDataSourcePayload {
   name: string;
   displayName?: string;
+  description?: string;
+  group?: string;
+  tags?: string;
+  technology?: string;
   appliesTo: string;
   /** collectMethod - used by DataSource, ConfigSource, TopologySource */
   collectMethod?: 'script' | 'batchscript';
@@ -853,17 +879,17 @@ export interface CreateDataSourcePayload {
   };
   /** collectionMethod - used by TopologySource */
   collectionMethod?: string;
-  /** groovyScript - used by PropertySource, EventSource, DiagnosticSource (top-level) */
+  /** groovyScript - used by PropertySource, EventSource, DiagnosticSource (top-level) - also used for PowerShell with scriptType='powerShell' */
   groovyScript?: string;
   /** powershellScript - used by DiagnosticSource (top-level) */
   powershellScript?: string;
   /** scriptType - used by PropertySource, EventSource, DiagnosticSource (top-level) */
   scriptType?: string;
   autoDiscoveryConfig?: {
-    persistentInstance: boolean;
-    scheduleInterval: number;
-    deleteInactiveInstance: boolean;
-    disableInstance: boolean;
+    persistentInstance?: boolean;
+    scheduleInterval?: number;
+    deleteInactiveInstance?: boolean;
+    disableInstance?: boolean;
     method: {
       name: 'ad_script';
       groovyScript?: string;
@@ -871,9 +897,9 @@ export interface CreateDataSourcePayload {
       scriptType?: string;
       type?: string;
     };
-    instanceAutoGroupMethod: string;
-    instanceAutoGroupMethodParams: string | null;
-    filters: unknown[];
+    instanceAutoGroupMethod?: string;
+    instanceAutoGroupMethodParams?: string | null;
+    filters?: unknown[];
   };
   /** DataPoints - required for datasources */
   dataPoints?: Array<{
@@ -907,7 +933,7 @@ export interface CreateDataSourcePayload {
   };
   logFields?: Array<{ id?: string; key: string; method: string; value: string; comment: string }>;
   resourceMapping?: Array<{ id?: string; index?: string | number; key: string; method: string; value: string; comment: string }>;
-  filters?: Array<{ id?: string; index?: string; attribute: 'Message'; operator: string; value: string; comment: string; include: 'y' }>;
+  filters?: Array<{ id?: string; index?: string; attribute: string; operator: string; value: string; comment: string; include: string }>;
   collectionInterval?: { units: string; offset: number };
   appliesToScript?: string;
   
@@ -1060,6 +1086,95 @@ export async function createModule(
     return results[0].result as CreateModuleResult;
   } catch (error) {
     console.error('[createModule] Error creating module:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+}
+
+/**
+ * Injected function to delete a module via the LogicMonitor API
+ */
+function deleteModuleFromAPI(
+  csrfToken: string | null,
+  endpoint: string,
+  moduleId: number,
+  apiVersion: string
+): { success: boolean; error?: string } {
+  const xhr = new XMLHttpRequest();
+  const url = `/santaba/rest${endpoint}/${moduleId}`;
+
+  xhr.open('DELETE', url, false); // Synchronous
+  xhr.setRequestHeader('Content-Type', 'application/json');
+  xhr.setRequestHeader('X-version', apiVersion);
+  if (csrfToken) {
+    xhr.setRequestHeader('X-CSRF-Token', csrfToken);
+  }
+
+  try {
+    xhr.send();
+    if (xhr.status >= 200 && xhr.status < 300) {
+      return { success: true };
+    } else {
+      let errorMessage = `HTTP ${xhr.status}`;
+      try {
+        const response = JSON.parse(xhr.responseText);
+        if (response.errorMessage) {
+          errorMessage = response.errorMessage;
+        }
+      } catch {
+        // Ignore parse errors
+      }
+      return { success: false, error: errorMessage };
+    }
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Network error' };
+  }
+}
+
+export interface DeleteModuleResult {
+  success: boolean;
+  error?: string;
+}
+
+/**
+ * Delete a module from the portal
+ */
+export async function deleteModule(
+  _portalId: string,
+  csrfToken: string | null,
+  moduleType: LogicModuleType,
+  moduleId: number,
+  tabId: number
+): Promise<DeleteModuleResult> {
+  const endpoint = ENDPOINTS[moduleType];
+
+  try {
+    // Check if tab exists and is accessible
+    try {
+      await chrome.tabs.get(tabId);
+    } catch (tabError) {
+      console.error(`[deleteModule] Tab ${tabId} is not accessible:`, tabError);
+      return { success: false, error: `Tab ${tabId} is not accessible. Please refresh the LogicMonitor page.` };
+    }
+
+    const results = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: deleteModuleFromAPI,
+      args: [csrfToken, endpoint, moduleId, API_VERSION],
+    });
+
+    if (!results || results.length === 0) {
+      console.error(`[deleteModule] No results array from injected script`);
+      return { success: false, error: 'Failed to execute delete script' };
+    }
+
+    if (!results[0]?.result) {
+      console.error(`[deleteModule] No result from delete script`);
+      return { success: false, error: 'Failed to delete module' };
+    }
+
+    return results[0].result as DeleteModuleResult;
+  } catch (error) {
+    console.error('[deleteModule] Error deleting module:', error);
     return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }

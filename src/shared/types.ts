@@ -387,8 +387,8 @@ export interface DraftTabs {
   lastModified: number;
   /** Module details drafts indexed by tab ID (serializable format) */
   moduleDetailsDrafts?: Record<string, SerializableModuleDetailsDraft>;
-  /** Active workspace (script or api) at time of save */
-  activeWorkspace?: 'script' | 'api';
+  /** Active workspace (script, api, or devtools) at time of save */
+  activeWorkspace?: 'script' | 'api' | 'devtools';
 }
 
 // API Explorer
@@ -1041,6 +1041,10 @@ export interface CreateModuleRequest {
 export interface CreateModulePayload {
   name: string;
   displayName?: string;
+  description?: string;
+  group?: string;
+  tags?: string;
+  technology?: string;
   appliesTo: string;
   /** collectMethod - used by DataSource, ConfigSource, TopologySource */
   collectMethod?: 'script' | 'batchscript';
@@ -1058,17 +1062,17 @@ export interface CreateModulePayload {
   };
   /** collectionMethod - used by TopologySource */
   collectionMethod?: string;
-  /** groovyScript - used by PropertySource, EventSource, DiagnosticSource (top-level) */
+  /** groovyScript - used by PropertySource, EventSource, DiagnosticSource (top-level) - also used for PowerShell with scriptType='powerShell' */
   groovyScript?: string;
   /** powershellScript - used by DiagnosticSource (top-level) */
   powershellScript?: string;
   /** scriptType - used by PropertySource, EventSource, DiagnosticSource (top-level) */
   scriptType?: string;
   autoDiscoveryConfig?: {
-    persistentInstance: boolean;
-    scheduleInterval: number;
-    deleteInactiveInstance: boolean;
-    disableInstance: boolean;
+    persistentInstance?: boolean;
+    scheduleInterval?: number;
+    deleteInactiveInstance?: boolean;
+    disableInstance?: boolean;
     method: {
       name: 'ad_script';
       groovyScript?: string;
@@ -1076,15 +1080,15 @@ export interface CreateModulePayload {
       scriptType?: string;
       type?: string;
     };
-    instanceAutoGroupMethod: string;
-    instanceAutoGroupMethodParams: string | null;
-    filters: unknown[];
+    instanceAutoGroupMethod?: string;
+    instanceAutoGroupMethodParams?: string | null;
+    filters?: unknown[];
   };
   /** DataPoints - required for datasources */
   dataPoints?: Array<{
     name: string;
     type: number;
-    rawDataFieldName: string;
+    rawDataFieldName?: string;
     description?: string;
     alertExpr?: string;
     alertForNoData?: number;
@@ -1100,6 +1104,10 @@ export interface CreateModulePayload {
     alertTransitionInterval?: number;
     script?: {
       fetch_check?: { fetch: number };
+      value_check?: { value: string; criteria: string };
+      missing_check?: { missing: number };
+      ignore_check?: { ignore: number };
+      groovy_check?: { groovy: string };
       format?: string;
     };
   }>;
@@ -1134,11 +1142,11 @@ export interface CreateModulePayload {
   filters?: Array<{
     id?: string;
     index?: string;
-    attribute: 'Message';
+    attribute: string;
     operator: string;
     value: string;
     comment: string;
-    include: 'y';
+    include: string;
   }>;
   /** collectionInterval - used by LogSource (object format) */
   collectionInterval?: {
@@ -1182,6 +1190,24 @@ export interface CreateModuleResponse {
   portalHostname: string;
 }
 
+/**
+ * Request payload for DELETE_MODULE message
+ */
+export interface DeleteModuleRequest {
+  portalId: string;
+  moduleType: LogicModuleType;
+  moduleId: number;
+}
+
+/**
+ * Response from DELETE_MODULE message
+ */
+export interface DeleteModuleResponse {
+  success: boolean;
+  moduleId: number;
+  moduleType: LogicModuleType;
+}
+
 export type EditorToSWMessage =
   | { type: 'DISCOVER_PORTALS' }
   | { type: 'GET_COLLECTORS'; payload: { portalId: string } }
@@ -1213,7 +1239,8 @@ export type EditorToSWMessage =
   | { type: 'FETCH_MODULE_SNIPPET_SOURCE'; payload: { portalId: string; collectorId: number; name: string; version: string } }
   | { type: 'GET_MODULE_SNIPPETS_CACHE' }
   | { type: 'CLEAR_MODULE_SNIPPETS_CACHE' }
-  | { type: 'CREATE_MODULE'; payload: CreateModuleRequest };
+  | { type: 'CREATE_MODULE'; payload: CreateModuleRequest }
+  | { type: 'DELETE_MODULE'; payload: DeleteModuleRequest };
 
 export type SWToEditorMessage =
   | { type: 'PORTALS_UPDATE'; payload: Portal[] }
@@ -1255,6 +1282,8 @@ export type SWToEditorMessage =
   | { type: 'MODULE_SNIPPETS_ERROR'; payload: { error: string; code?: number } }
   | { type: 'MODULE_CREATED'; payload: CreateModuleResponse }
   | { type: 'MODULE_CREATE_ERROR'; payload: { error: string; code?: number } }
+  | { type: 'MODULE_DELETED'; payload: DeleteModuleResponse }
+  | { type: 'MODULE_DELETE_ERROR'; payload: { error: string; code?: number } }
   | { type: 'ERROR'; payload: { code: string; message: string } };
 
 export type ContentToSWMessage =

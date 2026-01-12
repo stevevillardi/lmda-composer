@@ -61,6 +61,9 @@ const PullFromPortalDialogLazy = lazy(() => import('./components/import-from-lmx
 const ModuleLineageDialogLazy = lazy(() => import('./components/import-from-lmx/ModuleLineageDialog').then((mod) => ({ default: mod.ModuleLineageDialog })));
 const SaveOptionsDialogLazy = lazy(() => import('./components/nav-items/SaveOptionsDialog').then((mod) => ({ default: mod.SaveOptionsDialog })));
 
+// Dev-only components (will be tree-shaken in production)
+const DevToolsPanelLazy = lazy(() => import('./components/dev-tools/DevToolsPanel').then((mod) => ({ default: mod.DevToolsPanel })));
+
 // Layout constants
 const PANEL_SIZES = {
   MAIN_WITH_SIDEBAR: '78.5%',
@@ -119,11 +122,12 @@ export function App() {
     const apiTabCount = tabs.filter(t => t.kind === 'api').length;
     const scriptTabCount = tabs.filter(t => (t.kind ?? 'script') === 'script').length;
     
+    const showDevTools = activeWorkspace === 'devtools' && import.meta.env.DEV;
     const showApiWelcome = activeWorkspace === 'api' && apiTabCount === 0;
     const showScriptWelcome = activeWorkspace === 'script' && scriptTabCount === 0 && tabs.length === 0;
     const showWelcome = showApiWelcome || showScriptWelcome;
     
-    return { showWelcome, showApiWelcome, showScriptWelcome };
+    return { showWelcome, showApiWelcome, showScriptWelcome, showDevTools };
   }, [tabs, activeWorkspace]);
   
   // Custom hooks for app initialization and management
@@ -209,7 +213,13 @@ export function App() {
       )}
 
       {/* Main Content Area */}
-      {workspaceState.showWelcome ? (
+      {workspaceState.showDevTools ? (
+        <div className="min-h-0 flex-1 overflow-auto">
+          <Suspense fallback={panelLoadingFallback}>
+            <DevToolsPanelLazy />
+          </Suspense>
+        </div>
+      ) : workspaceState.showWelcome ? (
         <div className="min-h-0 flex-1">
           {workspaceState.showApiWelcome ? (
             <Suspense fallback={panelLoadingFallback}>

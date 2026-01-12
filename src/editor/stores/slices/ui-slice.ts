@@ -16,8 +16,9 @@ import { normalizeScript } from '../helpers/slice-helpers';
 
 /**
  * Workspace type - determines which view is active.
+ * 'devtools' is only available in development builds.
  */
-export type WorkspaceType = 'script' | 'api';
+export type WorkspaceType = 'script' | 'api' | 'devtools';
 
 /**
  * State managed by the UI slice.

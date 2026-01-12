@@ -239,8 +239,8 @@ export interface TabsSliceDependencies {
   // From UI slice (for preferences, output tab, and workspace)
   preferences: { defaultLanguage: ScriptLanguage; defaultMode: ScriptMode };
   outputTab: string;
-  activeWorkspace: 'script' | 'api';
-  setActiveWorkspace: (workspace: 'script' | 'api') => void;
+  activeWorkspace: 'script' | 'api' | 'devtools';
+  setActiveWorkspace: (workspace: 'script' | 'api' | 'devtools') => void;
   
   // From execution slice (for clearing parsed output when mode changes)
   parsedOutput: ParseResult | null;

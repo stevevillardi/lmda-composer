@@ -20,6 +20,7 @@ import {
   BookOpen,
   ExternalLink,
   Terminal,
+  FlaskConical,
 } from 'lucide-react';
 import { fileToasts, portalToasts } from '../../utils/toast-utils';
 import { DOCS_URLS } from '@/shared/app-config';
@@ -110,6 +111,10 @@ export function ActionsDropdown() {
       setActiveTab(lastApi);
     }
     // If no API tabs exist, the workspace will show ApiWelcomeScreen
+  };
+
+  const switchToDevTools = () => {
+    setActiveWorkspace('devtools');
   };
 
   return (
@@ -360,6 +365,18 @@ export function ActionsDropdown() {
             <Kbd className="ml-auto">⌘B</Kbd>
           </DropdownMenuItem>
         </DropdownMenuGroup>
+
+        {import.meta.env.DEV && (
+          <>
+            <DropdownMenuSectionHeader>Developer</DropdownMenuSectionHeader>
+            <DropdownMenuGroup>
+              <DropdownMenuItem onClick={switchToDevTools}>
+                <FlaskConical className="mr-2 size-4" />
+                <span className="flex-1">Integration Tests</span>
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+          </>
+        )}
 
         <DropdownMenuSectionHeader>Settings & Help</DropdownMenuSectionHeader>
 

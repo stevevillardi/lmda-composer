@@ -38,6 +38,7 @@ import {
   handleFetchAccessGroups,
   handleCommitModuleScript,
   handleCreateModule,
+  handleDeleteModule,
   handleSearchModuleScripts,
   handleSearchDatapoints,
   handleCancelModuleSearch,
@@ -226,6 +227,10 @@ async function handleMessage(
 
       case 'CREATE_MODULE':
         await handleCreateModule(message.payload, sendResponse, handlerContext);
+        break;
+
+      case 'DELETE_MODULE':
+        await handleDeleteModule(message.payload, sendResponse, handlerContext);
         break;
 
       // Custom function handlers
