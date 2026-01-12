@@ -645,7 +645,13 @@ export function TabBar() {
                 <AlertTriangle className="size-8 text-yellow-500" />
               </AlertDialogMedia>
               <AlertDialogTitle>
-                {closeScenario === 'directory-saved' && 'Unsaved Changes'}
+                {closeScenario === 'directory-saved' && (
+                  pendingHasFileDirty && pendingHasPortalChanges
+                    ? 'Unsaved and Unpushed Changes'
+                    : pendingHasFileDirty
+                      ? 'Unsaved Changes'
+                      : 'Unpushed Portal Changes'
+                )}
                 {closeScenario === 'portal-module' && 'Unpushed Portal Changes'}
                 {closeScenario === 'local-file' && 'Unsaved Changes'}
                 {closeScenario === 'scratch' && 'Unsaved File'}
@@ -655,10 +661,9 @@ export function TabBar() {
                   <strong>{pendingTab.displayName}</strong>
                   {closeScenario === 'directory-saved' && (
                     <>
-                      {pendingHasFileDirty && ' has unsaved changes to disk'}
-                      {pendingHasFileDirty && pendingHasPortalChanges && ' and'}
-                      {pendingHasPortalChanges && ' has unpushed changes to the portal'}
-                      .
+                      {pendingHasFileDirty && pendingHasPortalChanges && ' has unsaved changes to disk and unpushed changes to the portal.'}
+                      {pendingHasFileDirty && !pendingHasPortalChanges && ' has unsaved changes to disk.'}
+                      {!pendingHasFileDirty && pendingHasPortalChanges && ' has local changes that haven\'t been pushed to the portal.'}
                     </>
                   )}
                   {closeScenario === 'portal-module' && ' has unpushed portal changes.'}
@@ -666,7 +671,10 @@ export function TabBar() {
                   {closeScenario === 'scratch' && ' has not been saved.'}
                 </span>
                 <span className="mt-1 block text-sm text-muted-foreground">
-                  What would you like to do before closing?
+                  {closeScenario === 'directory-saved' && !pendingHasFileDirty && pendingHasPortalChanges
+                    ? 'Your local files will be preserved.'
+                    : 'What would you like to do before closing?'
+                  }
                 </span>
               </AlertDialogDescription>
             </AlertDialogHeader>
@@ -754,11 +762,30 @@ export function TabBar() {
               
               <AlertDialogAction
                 onClick={handleDiscardAndClose}
-                variant="destructive"
+                variant={closeScenario === 'directory-saved' && !pendingHasFileDirty ? 'outline' : 'destructive'}
                 className="gap-2"
               >
-                <Trash2 className="size-4" />
-                Discard
+                {closeScenario === 'directory-saved' && !pendingHasFileDirty ? (
+                  <>
+                    <X className="size-4" />
+                    Close Without Pushing
+                  </>
+                ) : closeScenario === 'directory-saved' || closeScenario === 'local-file' ? (
+                  <>
+                    <Trash2 className="size-4" />
+                    Discard Changes
+                  </>
+                ) : closeScenario === 'portal-module' ? (
+                  <>
+                    <X className="size-4" />
+                    Close Without Saving
+                  </>
+                ) : (
+                  <>
+                    <Trash2 className="size-4" />
+                    Discard
+                  </>
+                )}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
