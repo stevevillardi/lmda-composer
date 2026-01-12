@@ -10,8 +10,8 @@ interface ModuleTypeStepProps {
   onChange: (type: LogicModuleType) => void;
 }
 
-// Only DataSource is enabled for now
-const ENABLED_TYPES: LogicModuleType[] = ['datasource'];
+// Enabled module types for creation
+const ENABLED_TYPES: LogicModuleType[] = ['datasource', 'configsource', 'topologysource', 'propertysource'];
 
 export function ModuleTypeStep({ value, onChange }: ModuleTypeStepProps) {
   return (

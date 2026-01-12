@@ -24,7 +24,6 @@ import type {
   FetchModulesResponse,
   ModuleDirectoryConfig,
   CreateModuleConfig,
-  CreateModulePayload,
   CreateModuleResponse,
 } from '@/shared/types';
 import type { ModuleDetailsDraft, ModuleMetadata } from './tools-slice';
@@ -39,6 +38,7 @@ import {
 } from '../helpers/slice-helpers';
 import { sendMessage, sendMessageIgnoreError } from '../../utils/chrome-messaging';
 import * as documentStore from '../../utils/document-store';
+import { buildModulePayload } from '../../utils/module-payload-builders';
 
 // ============================================================================
 // Types
@@ -1989,74 +1989,8 @@ export const createModuleSlice: StateCreator<
     set({ isCreatingModule: true });
     
     try {
-      // Build the API payload
-      const collectMethod = config.useBatchScript ? 'batchscript' : 'script';
-      const collectorAttributeName = config.useBatchScript ? 'batchscript' : 'script';
-      
-      // Collection script configuration
-      const collectorAttribute: {
-        name: 'script' | 'batchscript';
-        groovyScript?: string;
-        scriptType?: string;
-      } = {
-        name: collectorAttributeName,
-      };
-      
-      if (config.collectionLanguage === 'powershell') {
-        collectorAttribute.scriptType = 'powerShell';
-      } else {
-        collectorAttribute.groovyScript = '// Collection script\n';
-      }
-      
-      // Build the payload with a default datapoint (exitCode is a common starting point)
-      const modulePayload: CreateModulePayload = {
-        name: config.name,
-        displayName: config.displayName,
-        appliesTo: 'false()',
-        collectMethod,
-        collectInterval: 300, // 5 minutes default
-        hasMultiInstances: config.hasMultiInstances,
-        enableAutoDiscovery: config.hasMultiInstances,
-        collectorAttribute,
-        dataPoints: [
-          {
-            name: 'exitCode',
-            type: 2, // exitCode
-            rawDataFieldName: 'exitCode',
-            description: 'Script exit code (0 = success)',
-            alertExpr: '',
-            alertForNoData: 0,
-          },
-        ],
-      };
-      
-      // Add AD config if multi-instance
-      if (config.hasMultiInstances) {
-        const adMethod: {
-          name: 'ad_script';
-          groovyScript?: string;
-          scriptType?: string;
-        } = {
-          name: 'ad_script',
-        };
-        
-        if (config.adLanguage === 'powershell') {
-          adMethod.scriptType = 'powerShell';
-        } else {
-          adMethod.groovyScript = '// Active Discovery script\n';
-        }
-        
-        modulePayload.autoDiscoveryConfig = {
-          persistentInstance: true,
-          scheduleInterval: 15,
-          deleteInactiveInstance: false,
-          disableInstance: false,
-          method: adMethod,
-          instanceAutoGroupMethod: 'none',
-          instanceAutoGroupMethodParams: null,
-          filters: [],
-        };
-      }
+      // Build the API payload using dedicated builder for this module type
+      const modulePayload = buildModulePayload(config);
       
       // Send the create request
       const result = await sendMessage({

@@ -790,21 +790,33 @@ export async function fetchAccessGroups(
 // ============================================================================
 
 /**
- * Payload structure for creating a new DataSource module
+ * Payload structure for creating a new scripted module
+ * Supports DataSource, ConfigSource, TopologySource, and PropertySource
  */
 export interface CreateDataSourcePayload {
   name: string;
   displayName?: string;
   appliesTo: string;
-  collectMethod: 'script' | 'batchscript';
-  collectInterval: number;
-  hasMultiInstances: boolean;
-  enableAutoDiscovery: boolean;
-  collectorAttribute: {
+  /** collectMethod - used by DataSource, ConfigSource, TopologySource */
+  collectMethod?: 'script' | 'batchscript';
+  /** collectInterval - not used by PropertySource */
+  collectInterval?: number;
+  /** hasMultiInstances - only for DataSource, ConfigSource */
+  hasMultiInstances?: boolean;
+  /** enableAutoDiscovery - only for DataSource, ConfigSource */
+  enableAutoDiscovery?: boolean;
+  /** collectorAttribute - used by DataSource, ConfigSource, TopologySource */
+  collectorAttribute?: {
     name: 'script' | 'batchscript';
     groovyScript?: string;
     scriptType?: string;
   };
+  /** collectionMethod - used by TopologySource */
+  collectionMethod?: string;
+  /** groovyScript - used by PropertySource (top-level) */
+  groovyScript?: string;
+  /** scriptType - used by PropertySource (top-level) */
+  scriptType?: string;
   autoDiscoveryConfig?: {
     persistentInstance: boolean;
     scheduleInterval: number;
@@ -813,19 +825,36 @@ export interface CreateDataSourcePayload {
     method: {
       name: 'ad_script';
       groovyScript?: string;
+      /** DataSource AD uses 'scriptType', ConfigSource AD uses 'type' */
       scriptType?: string;
+      type?: string;
     };
     instanceAutoGroupMethod: string;
     instanceAutoGroupMethodParams: string | null;
     filters: unknown[];
   };
-  /** DataPoints - at least one is required */
-  dataPoints: Array<{
+  /** DataPoints - required for datasources */
+  dataPoints?: Array<{
     name: string;
     type: number;
+    rawDataFieldName?: string;
     description?: string;
     alertExpr?: string;
     alertForNoData?: number;
+  }>;
+  /** ConfigChecks - required for configsources */
+  configChecks?: Array<{
+    name: string;
+    type: string; // 'fetch' | 'ignore' | 'missing' | 'value' | 'groovy'
+    description?: string;
+    alertLevel?: number; // 1=none, 2=warn, 3=error, 4=critical
+    ackClearAlert?: boolean;
+    alertEffectiveIval?: number;
+    alertTransitionInterval?: number;
+    script?: {
+      fetch_check?: { fetch: number };
+      format?: string;
+    };
   }>;
 }
 
@@ -882,7 +911,19 @@ async function createModuleInAPI(
     { method: 'POST', csrfToken, body: payload, apiVersion, xRequestedWith: true }
   );
 
-  // Check for error response first (API returns errorMessage on failure)
+  // Check for HTTP error status first (4xx, 5xx)
+  if (!result.ok) {
+    // Try to extract error details from response
+    if (result.data) {
+      const baseMessage = result.data.errorMessage || result.data.message || `Failed to create module: HTTP ${result.status}`;
+      const detailMessage = result.data.errorDetail ? `\n${result.data.errorDetail}` : '';
+      const codeMessage = result.data.errorCode ? ` (Error code: ${result.data.errorCode})` : '';
+      return { success: false, error: `${baseMessage}${codeMessage}${detailMessage}` };
+    }
+    return { success: false, error: `Failed to create module: HTTP ${result.status}` };
+  }
+
+  // Also check for error response in body (API sometimes returns 200 with error in body)
   if (result.data?.errorMessage || result.data?.errorCode) {
     const baseMessage = result.data.errorMessage || result.data.message || `Failed to create module: ${result.status}`;
     const detailMessage = result.data.errorDetail ? `\n${result.data.errorDetail}` : '';
@@ -890,8 +931,8 @@ async function createModuleInAPI(
     return { success: false, error: `${baseMessage}${codeMessage}${detailMessage}` };
   }
 
-  // Success case - must have ok status AND a valid module ID
-  if (result.ok && result.data?.id && typeof result.data.id === 'number' && result.data.id > 0) {
+  // Success case - must have a valid module ID
+  if (result.data?.id && typeof result.data.id === 'number' && result.data.id > 0) {
     return { 
       success: true, 
       moduleId: result.data.id,
@@ -899,9 +940,9 @@ async function createModuleInAPI(
     };
   }
 
-  // Fallback error handling for other failure cases
+  // Fallback error handling - we got 200 but no valid module ID
   if (result.data) {
-    const baseMessage = result.data.message || `Failed to create module: ${result.status}`;
+    const baseMessage = result.data.message || `Failed to create module: no module ID in response`;
     const detailMessage = result.data.errorDetail ? `\n${result.data.errorDetail}` : '';
     const codeMessage = result.data.errorCode ? `\nError code: ${result.data.errorCode}` : '';
     return { success: false, error: `${baseMessage}${detailMessage}${codeMessage}` };

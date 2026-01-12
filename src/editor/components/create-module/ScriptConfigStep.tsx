@@ -4,14 +4,18 @@
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
-import type { ScriptLanguage } from '@/shared/types';
+import type { LogicModuleType, ScriptLanguage } from '@/shared/types';
 import {
   ActiveDiscoveryIcon,
   CollectionIcon,
   BatchCollectionIcon,
 } from '../../constants/icons';
 
+// Module types that support Active Discovery (multi-instance)
+const AD_SUPPORTED_TYPES: LogicModuleType[] = ['datasource', 'configsource'];
+
 interface ScriptConfigStepProps {
+  moduleType: LogicModuleType;
   collectionLanguage: ScriptLanguage;
   hasMultiInstances: boolean;
   useBatchScript: boolean;
@@ -50,6 +54,7 @@ function LanguageOption({ language, selected, onSelect, label }: LanguageOptionP
 }
 
 export function ScriptConfigStep({
+  moduleType,
   collectionLanguage,
   hasMultiInstances,
   useBatchScript,
@@ -59,13 +64,15 @@ export function ScriptConfigStep({
   onUseBatchScriptChange,
   onAdLanguageChange,
 }: ScriptConfigStepProps) {
+  const supportsAD = AD_SUPPORTED_TYPES.includes(moduleType);
+
   return (
     <div className="mx-auto max-w-md space-y-6">
       {/* Collection Script Language */}
       <div className="space-y-3">
         <Label className="flex items-center gap-2 text-sm font-medium">
           <CollectionIcon className="size-4" />
-          Collection Script Language
+          Script Language
         </Label>
         <div className="flex gap-3">
           <LanguageOption
@@ -83,31 +90,33 @@ export function ScriptConfigStep({
         </div>
       </div>
 
-      {/* Multi-Instance Toggle */}
-      <div className="
-        flex items-center justify-between rounded-lg border border-border bg-card/60 p-4
-      ">
-        <div className="space-y-0.5">
-          <Label htmlFor="multi-instance" className="flex items-center gap-2 text-sm font-medium">
-            <ActiveDiscoveryIcon className="size-4" />
-            Multi-Instance (Active Discovery)
-          </Label>
-          <p className="text-xs text-muted-foreground">
-            Enable if this DataSource monitors multiple instances per device
-          </p>
+      {/* Multi-Instance Toggle - only for AD-supported module types */}
+      {supportsAD && (
+        <div className="
+          flex items-center justify-between rounded-lg border border-border bg-card/60 p-4
+        ">
+          <div className="space-y-0.5">
+            <Label htmlFor="multi-instance" className="flex items-center gap-2 text-sm font-medium">
+              <ActiveDiscoveryIcon className="size-4" />
+              Multi-Instance (Active Discovery)
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              Enable if this module monitors multiple instances per device
+            </p>
+          </div>
+          <Switch
+            id="multi-instance"
+            checked={hasMultiInstances}
+            onCheckedChange={(checked) => {
+              onHasMultiInstancesChange(checked);
+              // Reset batch script when disabling multi-instance
+              if (!checked) {
+                onUseBatchScriptChange(false);
+              }
+            }}
+          />
         </div>
-        <Switch
-          id="multi-instance"
-          checked={hasMultiInstances}
-          onCheckedChange={(checked) => {
-            onHasMultiInstancesChange(checked);
-            // Reset batch script when disabling multi-instance
-            if (!checked) {
-              onUseBatchScriptChange(false);
-            }
-          }}
-        />
-      </div>
+      )}
 
       {/* Multi-Instance Options */}
       {hasMultiInstances && (

@@ -125,6 +125,15 @@ export async function sendMessage<T extends EditorToSWMessage>(
       };
     }
     
+    // Check for MODULE_CREATE_ERROR response from create module operations
+    if (response.type === 'MODULE_CREATE_ERROR') {
+      return {
+        ok: false,
+        error: response.payload?.error || 'Failed to create module',
+        code: response.payload?.code?.toString()
+      };
+    }
+    
     return { ok: true, data: response.payload };
   } catch (error) {
     return { 

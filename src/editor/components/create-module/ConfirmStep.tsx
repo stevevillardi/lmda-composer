@@ -36,6 +36,27 @@ function SummaryRow({ label, value }: SummaryRowProps) {
   );
 }
 
+// Module types that support Active Discovery
+const AD_SUPPORTED_TYPES: LogicModuleType[] = ['datasource', 'configsource'];
+
+// Module types that support display name
+const DISPLAY_NAME_SUPPORTED_TYPES: LogicModuleType[] = ['datasource', 'configsource'];
+
+// Get collect interval description by module type
+function getCollectIntervalDescription(moduleType: LogicModuleType): string {
+  switch (moduleType) {
+    case 'datasource':
+      return '5 minutes';
+    case 'configsource':
+    case 'topologysource':
+      return '1 hour';
+    case 'propertysource':
+      return 'On device discovery';
+    default:
+      return '5 minutes';
+  }
+}
+
 export function ConfirmStep({
   moduleType,
   name,
@@ -47,6 +68,8 @@ export function ConfirmStep({
 }: ConfirmStepProps) {
   const moduleTypeInfo = LOGIC_MODULE_TYPES.find((t) => t.value === moduleType);
   const ModuleIcon = moduleTypeInfo?.icon;
+  const supportsAD = AD_SUPPORTED_TYPES.includes(moduleType);
+  const supportsDisplayName = DISPLAY_NAME_SUPPORTED_TYPES.includes(moduleType);
 
   return (
     <div className="mx-auto max-w-md space-y-6">
@@ -64,12 +87,14 @@ export function ConfirmStep({
             }
           />
           <SummaryRow label="Name" value={name} />
+          {supportsDisplayName && (
+            <SummaryRow
+              label="Display Name"
+              value={displayName || <span className="text-muted-foreground">Same as name</span>}
+            />
+          )}
           <SummaryRow
-            label="Display Name"
-            value={displayName || <span className="text-muted-foreground">Same as name</span>}
-          />
-          <SummaryRow
-            label="Collection Script"
+            label="Script Language"
             value={
               <span className="flex items-center gap-1.5">
                 {useBatchScript ? (
@@ -82,10 +107,12 @@ export function ConfirmStep({
               </span>
             }
           />
-          <SummaryRow
-            label="Instance Type"
-            value={hasMultiInstances ? 'Multi-Instance' : 'Single Instance'}
-          />
+          {supportsAD && (
+            <SummaryRow
+              label="Instance Type"
+              value={hasMultiInstances ? 'Multi-Instance' : 'Single Instance'}
+            />
+          )}
           {hasMultiInstances && adLanguage && (
             <SummaryRow
               label="AD Script"
@@ -110,12 +137,29 @@ export function ConfirmStep({
               <strong>AppliesTo:</strong> <code className="text-primary">false()</code> — module is
               deactivated until you configure targeting
             </li>
-            <li>
-              <strong>Collect Interval:</strong> 5 minutes
-            </li>
+            {moduleType !== 'propertysource' && (
+              <li>
+                <strong>Collect Interval:</strong> {getCollectIntervalDescription(moduleType)}
+              </li>
+            )}
+            {moduleType === 'propertysource' && (
+              <li>
+                <strong>Schedule:</strong> Runs on device discovery and property changes
+              </li>
+            )}
             <li>
               <strong>Scripts:</strong> Empty stubs ready for your code
             </li>
+            {moduleType === 'datasource' && (
+              <li>
+                <strong>DataPoint:</strong> Default <code className="text-primary">exitCode</code> datapoint included
+              </li>
+            )}
+            {moduleType === 'configsource' && (
+              <li>
+                <strong>Config Check:</strong> Default <code className="text-primary">RetrievalCheck</code> for config retrieval alerts
+              </li>
+            )}
           </ul>
         </AlertDescription>
       </Alert>

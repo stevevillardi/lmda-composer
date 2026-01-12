@@ -232,6 +232,7 @@ export function CreateModuleWizard() {
           )}
           {currentStep === 1 && (
             <BasicInfoStep
+              moduleType={moduleType}
               name={name}
               displayName={displayName}
               onNameChange={setName}
@@ -240,6 +241,7 @@ export function CreateModuleWizard() {
           )}
           {currentStep === 2 && (
             <ScriptConfigStep
+              moduleType={moduleType}
               collectionLanguage={collectionLanguage}
               hasMultiInstances={hasMultiInstances}
               useBatchScript={useBatchScript}

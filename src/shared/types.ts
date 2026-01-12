@@ -939,20 +939,32 @@ export interface CreateModuleRequest {
 
 /**
  * Payload structure for creating a new module via API
+ * Supports DataSource, ConfigSource, TopologySource, and PropertySource
  */
 export interface CreateModulePayload {
   name: string;
   displayName?: string;
   appliesTo: string;
-  collectMethod: 'script' | 'batchscript';
-  collectInterval: number;
-  hasMultiInstances: boolean;
-  enableAutoDiscovery: boolean;
-  collectorAttribute: {
+  /** collectMethod - used by DataSource, ConfigSource, TopologySource */
+  collectMethod?: 'script' | 'batchscript';
+  /** collectInterval - not used by PropertySource */
+  collectInterval?: number;
+  /** hasMultiInstances - only for DataSource, ConfigSource */
+  hasMultiInstances?: boolean;
+  /** enableAutoDiscovery - only for DataSource, ConfigSource */
+  enableAutoDiscovery?: boolean;
+  /** collectorAttribute - used by DataSource, ConfigSource, TopologySource */
+  collectorAttribute?: {
     name: 'script' | 'batchscript';
     groovyScript?: string;
     scriptType?: string;
   };
+  /** collectionMethod - used by TopologySource */
+  collectionMethod?: string;
+  /** groovyScript - used by PropertySource (top-level) */
+  groovyScript?: string;
+  /** scriptType - used by PropertySource (top-level) */
+  scriptType?: string;
   autoDiscoveryConfig?: {
     persistentInstance: boolean;
     scheduleInterval: number;
@@ -961,20 +973,36 @@ export interface CreateModulePayload {
     method: {
       name: 'ad_script';
       groovyScript?: string;
+      /** DataSource AD uses 'scriptType', ConfigSource AD uses 'type' */
       scriptType?: string;
+      type?: string;
     };
     instanceAutoGroupMethod: string;
     instanceAutoGroupMethodParams: string | null;
     filters: unknown[];
   };
-  /** DataPoints - at least one is required */
-  dataPoints: Array<{
+  /** DataPoints - required for datasources */
+  dataPoints?: Array<{
     name: string;
     type: number;
     rawDataFieldName: string;
     description?: string;
     alertExpr?: string;
     alertForNoData?: number;
+  }>;
+  /** ConfigChecks - required for configsources */
+  configChecks?: Array<{
+    name: string;
+    type: string; // 'fetch' | 'ignore' | 'missing' | 'value' | 'groovy'
+    description?: string;
+    alertLevel?: number; // 1=none, 2=warn, 3=error, 4=critical
+    ackClearAlert?: boolean;
+    alertEffectiveIval?: number;
+    alertTransitionInterval?: number;
+    script?: {
+      fetch_check?: { fetch: number };
+      format?: string;
+    };
   }>;
 }
 
