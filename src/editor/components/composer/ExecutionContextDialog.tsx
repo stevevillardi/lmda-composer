@@ -74,12 +74,10 @@ export function ExecutionContextDialog() {
         <DialogContent className="sm:max-w-[525px]">
           <form onSubmit={handleSubmit}>
             <DialogHeader>
-              <div className="mb-2 flex items-center gap-3">
-                <div className="rounded-lg bg-primary/10 p-2">
-                  <Activity className="size-5 text-primary" />
-                </div>
-                <DialogTitle>Collection Script</DialogTitle>
-              </div>
+              <DialogTitle className="flex items-center gap-2">
+                <Activity className="size-5" />
+                Collection Script
+              </DialogTitle>
               <DialogDescription>
                 Collection scripts run once per instance. Enter the instance identifier (wildvalue) 
                 to test your script against a specific instance. This is optional and not required for the script to run.
@@ -109,13 +107,14 @@ export function ExecutionContextDialog() {
             <DialogFooter>
               <Button 
                 type="button" 
-                variant="outline" 
+                variant="ghost" 
                 onClick={cancelExecutionContextDialog}
               >
                 Cancel
               </Button>
               <Button 
                 type="submit"
+                variant="execute"
                 className="gap-1.5"
               >
                 <Play className="size-3.5" />
@@ -135,12 +134,10 @@ export function ExecutionContextDialog() {
         <DialogContent className="sm:max-w-[525px]">
           <form onSubmit={handleSubmit}>
             <DialogHeader>
-              <div className="mb-2 flex items-center gap-3">
-                <div className="rounded-lg bg-primary/10 p-2">
-                  <Database className="size-5 text-primary" />
-                </div>
-                <DialogTitle>Batch Collection Script</DialogTitle>
-              </div>
+              <DialogTitle className="flex items-center gap-2">
+                <Database className="size-5" />
+                Batch Collection Script
+              </DialogTitle>
               <DialogDescription>
                 Batch collection scripts iterate over all discovered instances. Enter the datasource 
                 name or ID to fetch instance properties from the collector. This is optional and not required for the script to run unless you are using the datasourceinstanceProps variable in your script.
@@ -173,13 +170,14 @@ export function ExecutionContextDialog() {
             <DialogFooter>
               <Button 
                 type="button" 
-                variant="outline" 
+                variant="ghost" 
                 onClick={cancelExecutionContextDialog}
               >
                 Cancel
               </Button>
               <Button 
                 type="submit"
+                variant="execute"
                 className="gap-1.5"
               >
                 <Play className="size-3.5" />

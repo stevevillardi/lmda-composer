@@ -208,12 +208,17 @@ export function CreateModuleWizard() {
       >
         {/* Header */}
         <DialogHeader className="shrink-0 border-b px-6 pt-6 pb-4">
-          <DialogTitle className="flex items-center gap-2">
-            <Plus className="size-5" />
-            Create LogicModule
-          </DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="size-5" />
+              Create LogicModule
+            </DialogTitle>
+          </div>
           <DialogDescription>
-            Create a new scripted module in {portal?.displayName || 'your portal'}
+            Create a new scripted module in{' '}
+            <span className="font-medium text-foreground">
+              {portal?.displayName.toLowerCase() + ".logicmonitor.com" || 'your portal'}
+            </span>
           </DialogDescription>
         </DialogHeader>
 

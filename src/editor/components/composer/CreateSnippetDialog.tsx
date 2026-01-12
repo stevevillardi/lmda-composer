@@ -242,7 +242,7 @@ export function CreateSnippetDialog() {
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={handleClose}>
+          <Button variant="ghost" onClick={handleClose}>
             Cancel
           </Button>
           <Button variant="commit" onClick={handleSubmit} disabled={!isValid}>

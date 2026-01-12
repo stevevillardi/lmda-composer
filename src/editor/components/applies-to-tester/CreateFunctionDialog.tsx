@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Save, X, Plus, Code } from 'lucide-react';
+import { Save, Plus, Code } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -213,14 +213,14 @@ export function CreateFunctionDialog({
 
         <DialogFooter>
           <Button
-            variant="outline"
+            variant="ghost"
             onClick={handleCancel}
             disabled={isSaving}
           >
-            <X className="mr-2 size-4" />
             Cancel
           </Button>
           <Button
+            variant="commit"
             onClick={handleSave}
             disabled={isSaving || !!nameError || !!codeError || !name.trim() || !code.trim()}
           >

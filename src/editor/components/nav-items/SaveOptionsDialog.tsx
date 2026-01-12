@@ -8,7 +8,7 @@
  */
 
 import { useState } from 'react';
-import { Save, X, FolderOpen, FileText } from 'lucide-react';
+import { Save, FolderOpen, FileText } from 'lucide-react';
 import {
   Dialog,
   DialogContent,
@@ -151,7 +151,6 @@ export function SaveOptionsDialog({
 
         <DialogFooter>
           <Button variant="ghost" onClick={() => onOpenChange(false)} disabled={isSaving}>
-            <X className="mr-2 size-4" />
             Cancel
           </Button>
         </DialogFooter>
