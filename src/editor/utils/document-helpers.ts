@@ -635,6 +635,11 @@ export const EDITABLE_MODULE_DETAILS_FIELDS = [
   { key: 'alertLevel', label: 'Alert Level' },
   { key: 'clearAfterAck', label: 'Clear After ACK' },
   { key: 'alertEffectiveIval', label: 'Alert Effective Interval' },
+  // LogSource-specific fields
+  { key: 'filters', label: 'Include Filters' },
+  { key: 'logFields', label: 'Log Fields' },
+  { key: 'resourceMapping', label: 'Resource Mappings' },
+  { key: 'collectionAttribute', label: 'Collection Attribute' },
 ] as const;
 
 /**
@@ -662,6 +667,15 @@ export interface ParsedModuleMetadata {
   alertLevel?: string;
   clearAfterAck?: boolean;
   alertEffectiveIval?: number;
+  // LogSource-specific fields
+  filters?: unknown[];
+  logFields?: unknown[];
+  resourceMapping?: unknown[];
+  collectionAttribute?: {
+    resourceMappingOp?: string;
+    filterOp?: string | null;
+    script?: { embeddedContent?: string; type?: string };
+  };
 }
 
 /**
@@ -711,6 +725,18 @@ export function parseModuleDetailsFromResponse(
       }
     : module.autoDiscoveryConfig;
   
+  // LogSource-specific fields
+  const filters = schema.editableList === 'logsource' ? module.filters || [] : undefined;
+  const logFields = schema.editableList === 'logsource' ? module.logFields || [] : undefined;
+  const resourceMapping = schema.editableList === 'logsource' ? module.resourceMapping || [] : undefined;
+  const collectionAttribute = schema.editableList === 'logsource' 
+    ? {
+        resourceMappingOp: module.collectionAttribute?.resourceMappingOp,
+        filterOp: module.collectionAttribute?.filterOp,
+        script: module.collectionAttribute?.script,
+      }
+    : undefined;
+  
   return {
     id: module.id,
     name: module.name || '',
@@ -732,6 +758,11 @@ export function parseModuleDetailsFromResponse(
     alertLevel: module.alertLevel,
     clearAfterAck: module.clearAfterAck,
     alertEffectiveIval: module.alertEffectiveIval,
+    // LogSource-specific
+    filters,
+    logFields,
+    resourceMapping,
+    collectionAttribute,
   };
 }
 

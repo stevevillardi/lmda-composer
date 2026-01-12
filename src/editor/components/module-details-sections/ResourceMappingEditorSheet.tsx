@@ -1,0 +1,218 @@
+import { useState, useEffect } from 'react';
+import { Link2 } from 'lucide-react';
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetFooter,
+} from '@/components/ui/sheet';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import type { LogSourceResourceMapping, LogSourceFieldMethod } from '@/shared/types';
+
+interface ResourceMappingEditorSheetProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  resourceMapping: Partial<LogSourceResourceMapping> | null;
+  onSave: (resourceMapping: LogSourceResourceMapping) => void;
+  isNew: boolean;
+}
+
+// Method options
+const METHOD_OPTIONS: Array<{ label: string; value: LogSourceFieldMethod; description: string; placeholder: string }> = [
+  { 
+    label: 'Static', 
+    value: 'Static', 
+    description: 'A fixed value that does not change',
+    placeholder: 'Enter static value...',
+  },
+  { 
+    label: 'Dynamic (Regex)', 
+    value: 'Regex', 
+    description: 'Extract value from the message field using regex',
+    placeholder: 'Enter regex pattern (e.g., service=*)...',
+  },
+  { 
+    label: 'LM Property (Token)', 
+    value: 'Token', 
+    description: 'Use a LogicMonitor device property',
+    placeholder: 'Enter token (e.g., ##system.deviceId##)...',
+  },
+];
+
+// Create default resource mapping
+function createDefaultResourceMapping(): LogSourceResourceMapping {
+  return {
+    index: 0,
+    key: '',
+    method: 'Token',
+    value: '',
+    comment: '',
+  };
+}
+
+export function ResourceMappingEditorSheet({
+  open,
+  onOpenChange,
+  resourceMapping,
+  onSave,
+  isNew,
+}: ResourceMappingEditorSheetProps) {
+  // Form state
+  const [key, setKey] = useState('');
+  const [method, setMethod] = useState<LogSourceFieldMethod>('Token');
+  const [value, setValue] = useState('');
+  const [comment, setComment] = useState('');
+
+  // Reset form when resourceMapping changes
+  useEffect(() => {
+    if (open) {
+      if (resourceMapping) {
+        setKey(resourceMapping.key || '');
+        setMethod(resourceMapping.method || 'Token');
+        setValue(resourceMapping.value || '');
+        setComment(resourceMapping.comment || '');
+      } else {
+        const defaultMapping = createDefaultResourceMapping();
+        setKey(defaultMapping.key);
+        setMethod(defaultMapping.method);
+        setValue(defaultMapping.value);
+        setComment(defaultMapping.comment);
+      }
+    }
+  }, [open, resourceMapping]);
+
+  // Validation
+  const isValid = key.trim().length > 0 && value.trim().length > 0;
+
+  // Get current method option for placeholder
+  const currentMethodOption = METHOD_OPTIONS.find(m => m.value === method);
+
+  const handleSave = () => {
+    if (!isValid) return;
+
+    const savedMapping: LogSourceResourceMapping = {
+      id: resourceMapping?.id,
+      index: resourceMapping?.index ?? 0,
+      key: key.trim(),
+      method,
+      value: value.trim(),
+      comment: comment.trim(),
+    };
+
+    onSave(savedMapping);
+    onOpenChange(false);
+  };
+
+  const handleCancel = () => {
+    onOpenChange(false);
+  };
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="flex w-[500px] flex-col gap-0 p-0 sm:max-w-[500px]">
+        <SheetHeader className="shrink-0 border-b px-6 py-4">
+          <SheetTitle className="flex items-center gap-2">
+            <Link2 className="size-5" />
+            {isNew ? 'Add Resource Mapping' : 'Edit Resource Mapping'}
+          </SheetTitle>
+          <SheetDescription>
+            {isNew
+              ? 'Create a resource mapping to link log data to a monitored resource.'
+              : 'Edit the resource mapping configuration.'}
+          </SheetDescription>
+        </SheetHeader>
+
+        <div className="flex-1 overflow-y-auto px-6 py-4">
+          <div className="space-y-6">
+            {/* Key */}
+            <div className="space-y-2">
+              <Label htmlFor="key">
+                Key <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="key"
+                value={key}
+                onChange={(e) => setKey(e.target.value)}
+                placeholder="Enter LM property key (e.g., system.hostname)..."
+              />
+              <p className="text-xs text-muted-foreground">
+                The LogicMonitor property key to map the log data to.
+              </p>
+            </div>
+
+            {/* Method */}
+            <div className="space-y-2">
+              <Label htmlFor="method">Method</Label>
+              <Select value={method} onValueChange={(val) => setMethod(val as LogSourceFieldMethod)}>
+                <SelectTrigger id="method">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {METHOD_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      <div className="flex flex-col">
+                        <span>{opt.label}</span>
+                        <span className="text-xs text-muted-foreground">{opt.description}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                How to determine the value for this resource mapping.
+              </p>
+            </div>
+
+            {/* Value */}
+            <div className="space-y-2">
+              <Label htmlFor="value">
+                Value <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="value"
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                placeholder={currentMethodOption?.placeholder || 'Enter value...'}
+              />
+              <p className="text-xs text-muted-foreground">
+                {method === 'Static' && 'The fixed value to use for this mapping.'}
+                {method === 'Regex' && 'The regex pattern to extract a value from the message.'}
+                {method === 'Token' && 'The LM property token (e.g., ##system.deviceId##).'}
+              </p>
+            </div>
+
+            {/* Comment */}
+            <div className="space-y-2">
+              <Label htmlFor="comment">Comment</Label>
+              <Textarea
+                id="comment"
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                placeholder="Optional description of this mapping..."
+                rows={3}
+              />
+              <p className="text-xs text-muted-foreground">
+                Optional comment to describe the purpose of this resource mapping.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <SheetFooter className="shrink-0 border-t px-6 py-4">
+          <Button variant="ghost" onClick={handleCancel}>
+            Cancel
+          </Button>
+          <Button onClick={handleSave} disabled={!isValid}>
+            {isNew ? 'Add Mapping' : 'Save Changes'}
+          </Button>
+        </SheetFooter>
+      </SheetContent>
+    </Sheet>
+  );
+}

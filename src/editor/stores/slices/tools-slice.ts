@@ -27,6 +27,9 @@ import type {
   ExecuteDebugCommandRequest,
   DataPoint,
   ConfigCheck,
+  LogSourceFilter,
+  LogSourceLogField,
+  LogSourceResourceMapping,
 } from '@/shared/types';
 import { APPLIES_TO_FUNCTIONS } from '../../data/applies-to-functions';
 import { MODULE_TYPE_SCHEMAS, getSchemaFieldName } from '@/shared/module-type-schemas';
@@ -190,6 +193,15 @@ export interface ModuleMetadata {
   autoDiscoveryConfig?: AutoDiscoveryConfig;
   dataPoints?: DataPointConfig[];
   configChecks?: ConfigCheckConfig[];
+  // LogSource-specific fields
+  filters?: LogSourceFilter[];
+  logFields?: LogSourceLogField[];
+  resourceMapping?: LogSourceResourceMapping[];
+  collectionAttribute?: {
+    resourceMappingOp?: string;
+    filterOp?: string | null;
+    script?: { embeddedContent?: string; type?: string };
+  };
 }
 
 /**
@@ -365,6 +377,25 @@ export interface ToolsSliceActions {
   addConfigCheck: (tabId: string, configCheck: ConfigCheck) => void;
   updateConfigCheck: (tabId: string, index: number, configCheck: ConfigCheck) => void;
   deleteConfigCheck: (tabId: string, index: number) => void;
+  
+  // LogSource Filter CRUD actions
+  addLogSourceFilter: (tabId: string, filter: LogSourceFilter) => void;
+  updateLogSourceFilter: (tabId: string, index: number, filter: LogSourceFilter) => void;
+  deleteLogSourceFilter: (tabId: string, index: number) => void;
+  
+  // LogSource LogField CRUD actions
+  addLogSourceLogField: (tabId: string, logField: LogSourceLogField) => void;
+  updateLogSourceLogField: (tabId: string, index: number, logField: LogSourceLogField) => void;
+  deleteLogSourceLogField: (tabId: string, index: number) => void;
+  
+  // LogSource ResourceMapping CRUD actions
+  addLogSourceResourceMapping: (tabId: string, mapping: LogSourceResourceMapping) => void;
+  updateLogSourceResourceMapping: (tabId: string, index: number, mapping: LogSourceResourceMapping) => void;
+  deleteLogSourceResourceMapping: (tabId: string, index: number) => void;
+  reorderLogSourceResourceMappings: (tabId: string, fromIndex: number, toIndex: number) => void;
+  
+  // LogSource collectionAttribute update
+  updateCollectionAttribute: (tabId: string, updates: { filterOp?: string | null; resourceMappingOp?: string }) => void;
 }
 
 /**
@@ -1269,7 +1300,13 @@ export const createToolsSlice: StateCreator<
             }
           : module.autoDiscoveryConfig;
         
-        const metadata = {
+        // Extract LogSource-specific fields
+        const filters = schema.editableList === 'logsource' ? module.filters || [] : undefined;
+        const logFields = schema.editableList === 'logsource' ? module.logFields || [] : undefined;
+        const resourceMapping = schema.editableList === 'logsource' ? module.resourceMapping || [] : undefined;
+        const collectionAttribute = schema.editableList === 'logsource' ? module.collectionAttribute || {} : undefined;
+
+        const metadata: ModuleMetadata = {
           id: module.id,
           name: module.name || '',
           displayName: displayNameValue,
@@ -1290,6 +1327,11 @@ export const createToolsSlice: StateCreator<
           alertLevel: module.alertLevel,
           clearAfterAck: module.clearAfterAck,
           alertEffectiveIval: module.alertEffectiveIval,
+          // LogSource-specific fields
+          filters,
+          logFields,
+          resourceMapping,
+          collectionAttribute,
         };
 
         const draft = { ...metadata };
@@ -1524,6 +1566,12 @@ export const createToolsSlice: StateCreator<
             }
           : module.autoDiscoveryConfig;
 
+        // Extract LogSource-specific fields
+        const filters = schema.editableList === 'logsource' ? module.filters || [] : undefined;
+        const logFields = schema.editableList === 'logsource' ? module.logFields || [] : undefined;
+        const resourceMapping = schema.editableList === 'logsource' ? module.resourceMapping || [] : undefined;
+        const collectionAttribute = schema.editableList === 'logsource' ? module.collectionAttribute || {} : undefined;
+
         const metadata: Partial<ModuleMetadata> = {
           id: module.id,
           name: module.name || '',
@@ -1545,6 +1593,11 @@ export const createToolsSlice: StateCreator<
           alertLevel: module.alertLevel,
           clearAfterAck: module.clearAfterAck,
           alertEffectiveIval: module.alertEffectiveIval,
+          // LogSource-specific fields
+          filters,
+          logFields,
+          resourceMapping,
+          collectionAttribute,
         };
 
         const moduleTabIds = getModuleTabIds(tabs, tabId);
@@ -1871,6 +1924,358 @@ export const createToolsSlice: StateCreator<
     const newDraft = { ...draft.draft, configChecks: newConfigChecks as ConfigCheckConfig[] };
     const newDirtyFields = new Set(draft.dirtyFields);
     newDirtyFields.add('configChecks');
+
+    const moduleTabIds = getModuleTabIds(tabs, tabId);
+    const updatedDrafts = { ...moduleDetailsDraftByTabId };
+    moduleTabIds.forEach((id) => {
+      updatedDrafts[id] = {
+        ...draft,
+        draft: newDraft,
+        dirtyFields: new Set(newDirtyFields),
+        tabId: id,
+      };
+    });
+
+    set({ moduleDetailsDraftByTabId: updatedDrafts });
+  },
+
+  // =============================
+  // LogSource Filter CRUD Actions
+  // =============================
+
+  addLogSourceFilter: (tabId: string, filter: LogSourceFilter) => {
+    const { tabs, moduleDetailsDraftByTabId } = get();
+    const draft = moduleDetailsDraftByTabId[tabId];
+    if (!draft) return;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const currentFilters = ((draft.draft as any).filters || []) as LogSourceFilter[];
+    const newFilters = [...currentFilters, filter];
+    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const newDraft = { ...draft.draft, filters: newFilters } as any;
+    const newDirtyFields = new Set(draft.dirtyFields);
+    newDirtyFields.add('filters');
+
+    const moduleTabIds = getModuleTabIds(tabs, tabId);
+    const updatedDrafts = { ...moduleDetailsDraftByTabId };
+    moduleTabIds.forEach((id) => {
+      updatedDrafts[id] = {
+        ...draft,
+        draft: newDraft,
+        dirtyFields: new Set(newDirtyFields),
+        tabId: id,
+      };
+    });
+
+    set({ moduleDetailsDraftByTabId: updatedDrafts });
+  },
+
+  updateLogSourceFilter: (tabId: string, index: number, filter: LogSourceFilter) => {
+    const { tabs, moduleDetailsDraftByTabId } = get();
+    const draft = moduleDetailsDraftByTabId[tabId];
+    if (!draft) return;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const currentFilters = ((draft.draft as any).filters || []) as LogSourceFilter[];
+    if (index < 0 || index >= currentFilters.length) return;
+
+    const newFilters = [...currentFilters];
+    newFilters[index] = filter;
+    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const newDraft = { ...draft.draft, filters: newFilters } as any;
+    const newDirtyFields = new Set(draft.dirtyFields);
+    newDirtyFields.add('filters');
+
+    const moduleTabIds = getModuleTabIds(tabs, tabId);
+    const updatedDrafts = { ...moduleDetailsDraftByTabId };
+    moduleTabIds.forEach((id) => {
+      updatedDrafts[id] = {
+        ...draft,
+        draft: newDraft,
+        dirtyFields: new Set(newDirtyFields),
+        tabId: id,
+      };
+    });
+
+    set({ moduleDetailsDraftByTabId: updatedDrafts });
+  },
+
+  deleteLogSourceFilter: (tabId: string, index: number) => {
+    const { tabs, moduleDetailsDraftByTabId } = get();
+    const draft = moduleDetailsDraftByTabId[tabId];
+    if (!draft) return;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const currentFilters = ((draft.draft as any).filters || []) as LogSourceFilter[];
+    if (index < 0 || index >= currentFilters.length) return;
+
+    const newFilters = currentFilters.filter((_, i) => i !== index);
+    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const newDraft = { ...draft.draft, filters: newFilters } as any;
+    const newDirtyFields = new Set(draft.dirtyFields);
+    newDirtyFields.add('filters');
+
+    const moduleTabIds = getModuleTabIds(tabs, tabId);
+    const updatedDrafts = { ...moduleDetailsDraftByTabId };
+    moduleTabIds.forEach((id) => {
+      updatedDrafts[id] = {
+        ...draft,
+        draft: newDraft,
+        dirtyFields: new Set(newDirtyFields),
+        tabId: id,
+      };
+    });
+
+    set({ moduleDetailsDraftByTabId: updatedDrafts });
+  },
+
+  // ================================
+  // LogSource LogField CRUD Actions
+  // ================================
+
+  addLogSourceLogField: (tabId: string, logField: LogSourceLogField) => {
+    const { tabs, moduleDetailsDraftByTabId } = get();
+    const draft = moduleDetailsDraftByTabId[tabId];
+    if (!draft) return;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const currentLogFields = ((draft.draft as any).logFields || []) as LogSourceLogField[];
+    const newLogFields = [...currentLogFields, logField];
+    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const newDraft = { ...draft.draft, logFields: newLogFields } as any;
+    const newDirtyFields = new Set(draft.dirtyFields);
+    newDirtyFields.add('logFields');
+
+    const moduleTabIds = getModuleTabIds(tabs, tabId);
+    const updatedDrafts = { ...moduleDetailsDraftByTabId };
+    moduleTabIds.forEach((id) => {
+      updatedDrafts[id] = {
+        ...draft,
+        draft: newDraft,
+        dirtyFields: new Set(newDirtyFields),
+        tabId: id,
+      };
+    });
+
+    set({ moduleDetailsDraftByTabId: updatedDrafts });
+  },
+
+  updateLogSourceLogField: (tabId: string, index: number, logField: LogSourceLogField) => {
+    const { tabs, moduleDetailsDraftByTabId } = get();
+    const draft = moduleDetailsDraftByTabId[tabId];
+    if (!draft) return;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const currentLogFields = ((draft.draft as any).logFields || []) as LogSourceLogField[];
+    if (index < 0 || index >= currentLogFields.length) return;
+
+    const newLogFields = [...currentLogFields];
+    newLogFields[index] = logField;
+    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const newDraft = { ...draft.draft, logFields: newLogFields } as any;
+    const newDirtyFields = new Set(draft.dirtyFields);
+    newDirtyFields.add('logFields');
+
+    const moduleTabIds = getModuleTabIds(tabs, tabId);
+    const updatedDrafts = { ...moduleDetailsDraftByTabId };
+    moduleTabIds.forEach((id) => {
+      updatedDrafts[id] = {
+        ...draft,
+        draft: newDraft,
+        dirtyFields: new Set(newDirtyFields),
+        tabId: id,
+      };
+    });
+
+    set({ moduleDetailsDraftByTabId: updatedDrafts });
+  },
+
+  deleteLogSourceLogField: (tabId: string, index: number) => {
+    const { tabs, moduleDetailsDraftByTabId } = get();
+    const draft = moduleDetailsDraftByTabId[tabId];
+    if (!draft) return;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const currentLogFields = ((draft.draft as any).logFields || []) as LogSourceLogField[];
+    if (index < 0 || index >= currentLogFields.length) return;
+
+    const newLogFields = currentLogFields.filter((_, i) => i !== index);
+    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const newDraft = { ...draft.draft, logFields: newLogFields } as any;
+    const newDirtyFields = new Set(draft.dirtyFields);
+    newDirtyFields.add('logFields');
+
+    const moduleTabIds = getModuleTabIds(tabs, tabId);
+    const updatedDrafts = { ...moduleDetailsDraftByTabId };
+    moduleTabIds.forEach((id) => {
+      updatedDrafts[id] = {
+        ...draft,
+        draft: newDraft,
+        dirtyFields: new Set(newDirtyFields),
+        tabId: id,
+      };
+    });
+
+    set({ moduleDetailsDraftByTabId: updatedDrafts });
+  },
+
+  // ======================================
+  // LogSource ResourceMapping CRUD Actions
+  // ======================================
+
+  addLogSourceResourceMapping: (tabId: string, mapping: LogSourceResourceMapping) => {
+    const { tabs, moduleDetailsDraftByTabId } = get();
+    const draft = moduleDetailsDraftByTabId[tabId];
+    if (!draft) return;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const currentMappings = ((draft.draft as any).resourceMapping || []) as LogSourceResourceMapping[];
+    const newMappings = [...currentMappings, mapping];
+    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const newDraft = { ...draft.draft, resourceMapping: newMappings } as any;
+    const newDirtyFields = new Set(draft.dirtyFields);
+    newDirtyFields.add('resourceMapping');
+
+    const moduleTabIds = getModuleTabIds(tabs, tabId);
+    const updatedDrafts = { ...moduleDetailsDraftByTabId };
+    moduleTabIds.forEach((id) => {
+      updatedDrafts[id] = {
+        ...draft,
+        draft: newDraft,
+        dirtyFields: new Set(newDirtyFields),
+        tabId: id,
+      };
+    });
+
+    set({ moduleDetailsDraftByTabId: updatedDrafts });
+  },
+
+  updateLogSourceResourceMapping: (tabId: string, index: number, mapping: LogSourceResourceMapping) => {
+    const { tabs, moduleDetailsDraftByTabId } = get();
+    const draft = moduleDetailsDraftByTabId[tabId];
+    if (!draft) return;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const currentMappings = ((draft.draft as any).resourceMapping || []) as LogSourceResourceMapping[];
+    if (index < 0 || index >= currentMappings.length) return;
+
+    const newMappings = [...currentMappings];
+    newMappings[index] = mapping;
+    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const newDraft = { ...draft.draft, resourceMapping: newMappings } as any;
+    const newDirtyFields = new Set(draft.dirtyFields);
+    newDirtyFields.add('resourceMapping');
+
+    const moduleTabIds = getModuleTabIds(tabs, tabId);
+    const updatedDrafts = { ...moduleDetailsDraftByTabId };
+    moduleTabIds.forEach((id) => {
+      updatedDrafts[id] = {
+        ...draft,
+        draft: newDraft,
+        dirtyFields: new Set(newDirtyFields),
+        tabId: id,
+      };
+    });
+
+    set({ moduleDetailsDraftByTabId: updatedDrafts });
+  },
+
+  deleteLogSourceResourceMapping: (tabId: string, index: number) => {
+    const { tabs, moduleDetailsDraftByTabId } = get();
+    const draft = moduleDetailsDraftByTabId[tabId];
+    if (!draft) return;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const currentMappings = ((draft.draft as any).resourceMapping || []) as LogSourceResourceMapping[];
+    if (index < 0 || index >= currentMappings.length) return;
+
+    // Update indices for remaining mappings
+    const newMappings = currentMappings
+      .filter((_, i) => i !== index)
+      .map((m, i) => ({ ...m, index: i }));
+    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const newDraft = { ...draft.draft, resourceMapping: newMappings } as any;
+    const newDirtyFields = new Set(draft.dirtyFields);
+    newDirtyFields.add('resourceMapping');
+
+    const moduleTabIds = getModuleTabIds(tabs, tabId);
+    const updatedDrafts = { ...moduleDetailsDraftByTabId };
+    moduleTabIds.forEach((id) => {
+      updatedDrafts[id] = {
+        ...draft,
+        draft: newDraft,
+        dirtyFields: new Set(newDirtyFields),
+        tabId: id,
+      };
+    });
+
+    set({ moduleDetailsDraftByTabId: updatedDrafts });
+  },
+
+  reorderLogSourceResourceMappings: (tabId: string, fromIndex: number, toIndex: number) => {
+    const { tabs, moduleDetailsDraftByTabId } = get();
+    const draft = moduleDetailsDraftByTabId[tabId];
+    if (!draft) return;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const currentMappings = ((draft.draft as any).resourceMapping || []) as LogSourceResourceMapping[];
+    if (fromIndex < 0 || fromIndex >= currentMappings.length) return;
+    if (toIndex < 0 || toIndex >= currentMappings.length) return;
+    if (fromIndex === toIndex) return;
+
+    // Create a new array with the item moved
+    const newMappings = [...currentMappings];
+    const [movedItem] = newMappings.splice(fromIndex, 1);
+    newMappings.splice(toIndex, 0, movedItem);
+
+    // Update indices to reflect new order
+    const reindexedMappings = newMappings.map((m, i) => ({ ...m, index: i }));
+    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const newDraft = { ...draft.draft, resourceMapping: reindexedMappings } as any;
+    const newDirtyFields = new Set(draft.dirtyFields);
+    newDirtyFields.add('resourceMapping');
+
+    const moduleTabIds = getModuleTabIds(tabs, tabId);
+    const updatedDrafts = { ...moduleDetailsDraftByTabId };
+    moduleTabIds.forEach((id) => {
+      updatedDrafts[id] = {
+        ...draft,
+        draft: newDraft,
+        dirtyFields: new Set(newDirtyFields),
+        tabId: id,
+      };
+    });
+
+    set({ moduleDetailsDraftByTabId: updatedDrafts });
+  },
+
+  // ======================================
+  // LogSource collectionAttribute Update
+  // ======================================
+
+  updateCollectionAttribute: (tabId: string, updates: { filterOp?: string | null; resourceMappingOp?: string }) => {
+    const { tabs, moduleDetailsDraftByTabId } = get();
+    const draft = moduleDetailsDraftByTabId[tabId];
+    if (!draft) return;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const currentCollectionAttribute = ((draft.draft as any).collectionAttribute || {}) as Record<string, unknown>;
+    const newCollectionAttribute = { ...currentCollectionAttribute, ...updates };
+    
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const newDraft = { ...draft.draft, collectionAttribute: newCollectionAttribute } as any;
+    const newDirtyFields = new Set(draft.dirtyFields);
+    newDirtyFields.add('collectionAttribute');
 
     const moduleTabIds = getModuleTabIds(tabs, tabId);
     const updatedDrafts = { ...moduleDetailsDraftByTabId };

@@ -60,6 +60,19 @@ interface APIModule {
     alertClearTransitionInterval?: number;
     [key: string]: unknown;
   }>;
+  // ConfigSource uses configChecks
+  configChecks?: Array<{
+    id?: number;
+    name: string;
+    type?: string;
+    description?: string;
+    alertLevel?: number;
+    ackClearAlert?: boolean;
+    alertEffectiveIval?: number;
+    alertTransitionInterval?: number;
+    script?: Record<string, unknown>;
+    [key: string]: unknown;
+  }>;
   autoDiscoveryConfig?: {
     persistentInstance?: boolean;
     scheduleInterval?: number; // 0|15|60|1440 minutes
@@ -93,6 +106,8 @@ interface APIModule {
       embeddedContent?: string;
       type?: string;
     };
+    resourceMappingOp?: string;
+    filterOp?: string | null;
   };
   // PropertySource and DiagnosticSource use groovyScript directly
   groovyScript?: string;
@@ -100,6 +115,31 @@ interface APIModule {
   // LogSource specific
   collectionMethod?: string;  // uppercase version (e.g., "SCRIPT")
   appliesToScript?: string;   // LogSource uses this instead of appliesTo
+  // LogSource filters, log fields, and resource mappings
+  filters?: Array<{
+    id?: string;
+    index?: string;
+    attribute: string;
+    operator: string;
+    value?: string;
+    comment?: string;
+    include?: string;
+  }>;
+  logFields?: Array<{
+    id?: string;
+    key: string;
+    method: string;
+    value: string;
+    comment?: string;
+  }>;
+  resourceMapping?: Array<{
+    id?: string;
+    index?: string | number;
+    key: string;
+    method: string;
+    value: string;
+    comment?: string;
+  }>;
 }
 
 interface AccessGroup {
@@ -865,8 +905,9 @@ export interface CreateDataSourcePayload {
     resourceMappingOp?: string;
     filterOp?: string | null;
   };
-  logFields?: Array<{ key: string; method: string; value: string; comment: string }>;
-  resourceMapping?: Array<{ index?: string; key: string; method: string; value: string; comment: string }>;
+  logFields?: Array<{ id?: string; key: string; method: string; value: string; comment: string }>;
+  resourceMapping?: Array<{ id?: string; index?: string | number; key: string; method: string; value: string; comment: string }>;
+  filters?: Array<{ id?: string; index?: string; attribute: 'Message'; operator: string; value: string; comment: string; include: 'y' }>;
   collectionInterval?: { units: string; offset: number };
   appliesToScript?: string;
   

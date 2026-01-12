@@ -1,4 +1,4 @@
-import { Info, FolderTree, Shield, Filter, Database, Target, Bell, AlertCircle } from 'lucide-react';
+import { Info, FolderTree, Shield, Filter, Database, Target, Bell, AlertCircle, Tags, Link2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ModuleDetailsSection } from '@/shared/module-type-schemas';
 
@@ -32,6 +32,9 @@ export function ModuleDetailsSidebar({
     datapoints: { id: 'datapoints', label: 'Datapoints', icon: Database },
     configChecks: { id: 'configChecks', label: 'Config Checks', icon: Database },
     alertSettings: { id: 'alertSettings', label: 'Alert Settings', icon: Bell },
+    filters: { id: 'filters', label: 'Include Filters', icon: Filter },
+    logFields: { id: 'logFields', label: 'Log Fields', icon: Tags },
+    resourceMappings: { id: 'resourceMappings', label: 'Resource Mappings', icon: Link2 },
   };
 
   return (

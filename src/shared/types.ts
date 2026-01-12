@@ -807,6 +807,101 @@ export interface ConfigCheck {
   originId?: string | null;
 }
 
+// ============================================================================
+// LogSource Types (for LogSource modules)
+// ============================================================================
+
+/**
+ * Filter operator types for LogSource include filters.
+ */
+export type LogSourceFilterOperator = 
+  | 'Equal' 
+  | 'NotEqual' 
+  | 'Contain' 
+  | 'NotContain' 
+  | 'RegexMatch' 
+  | 'RegexNotMatch';
+
+/**
+ * Method types for LogSource log fields and resource mappings.
+ */
+export type LogSourceFieldMethod = 'Static' | 'Regex' | 'Token';
+
+/**
+ * Include Filter for LogSource modules.
+ * Filters determine which log messages are ingested.
+ */
+export interface LogSourceFilter {
+  /** Filter ID - optional for new filters */
+  id?: string;
+  /** Index - always blank */
+  index?: string;
+  /** Attribute - always 'Message' for LogSource filters */
+  attribute: 'Message';
+  /** Comparison operator */
+  operator: LogSourceFilterOperator;
+  /** Filter value (string pattern) */
+  value: string;
+  /** Optional comment describing the filter */
+  comment: string;
+  /** Include flag - always 'y' */
+  include: 'y';
+}
+
+/**
+ * Log Field (tag) for LogSource modules.
+ * Log fields send additional metadata with logs.
+ */
+export interface LogSourceLogField {
+  /** Field ID - optional for new fields */
+  id?: string;
+  /** Field key (tag name) */
+  key: string;
+  /** Method: Static, Regex (dynamic), or Token (LM property) */
+  method: LogSourceFieldMethod;
+  /** Field value (static value, regex pattern, or ##TOKEN##) */
+  value: string;
+  /** Optional comment */
+  comment: string;
+}
+
+/**
+ * Resource Mapping for LogSource modules.
+ * Maps log data to monitored resources in LogicMonitor.
+ */
+export interface LogSourceResourceMapping {
+  /** Mapping ID - optional for new mappings */
+  id?: string;
+  /** Sort index (0-based) */
+  index: number;
+  /** LM property key to map to */
+  key: string;
+  /** Method: Static, Regex (dynamic), or Token (LM property) */
+  method: LogSourceFieldMethod;
+  /** Mapping value (static value, regex pattern, or ##TOKEN##) */
+  value: string;
+  /** Optional comment */
+  comment: string;
+}
+
+/**
+ * Collection Attribute for LogSource modules.
+ * Contains script and operation settings.
+ */
+export interface LogSourceCollectionAttribute {
+  /** Resource mapping logical operator */
+  resourceMappingOp: 'AND' | 'OR';
+  /** Filter logical operator (null if no filters) */
+  filterOp: 'AND' | 'OR' | null;
+  /** Script configuration */
+  script?: {
+    /** Embedded script content */
+    embeddedContent?: string;
+    /** Script type (e.g., 'GROOVY') */
+    type?: string;
+  };
+}
+
 // Message Types
 
 export interface FetchModulesRequest {
@@ -1020,6 +1115,7 @@ export interface CreateModulePayload {
   };
   /** logFields - used by LogSource */
   logFields?: Array<{
+    id?: string;
     key: string;
     method: string;
     value: string;
@@ -1027,11 +1123,22 @@ export interface CreateModulePayload {
   }>;
   /** resourceMapping - used by LogSource */
   resourceMapping?: Array<{
-    index?: string;
+    id?: string;
+    index?: string | number;
     key: string;
     method: string;
     value: string;
     comment: string;
+  }>;
+  /** filters - used by LogSource (include filters) */
+  filters?: Array<{
+    id?: string;
+    index?: string;
+    attribute: 'Message';
+    operator: string;
+    value: string;
+    comment: string;
+    include: 'y';
   }>;
   /** collectionInterval - used by LogSource (object format) */
   collectionInterval?: {

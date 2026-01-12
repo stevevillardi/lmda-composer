@@ -23,6 +23,9 @@ import { ModuleDetailsActiveDiscovery } from '../module-details-sections/ActiveD
 import { ModuleDetailsDatapoints } from '../module-details-sections/Datapoints';
 import { ModuleDetailsConfigChecks } from '../module-details-sections/ConfigChecks';
 import { ModuleDetailsAlertSettings } from '../module-details-sections/AlertSettings';
+import { ModuleDetailsFilters } from '../module-details-sections/Filters';
+import { ModuleDetailsLogFields } from '../module-details-sections/LogFields';
+import { ModuleDetailsResourceMappings } from '../module-details-sections/ResourceMappings';
 import { PortalBindingOverlay } from '../composer/PortalBindingOverlay';
 
 export function ModuleDetailsDialog() {
@@ -107,6 +110,21 @@ export function ModuleDetailsDialog() {
       sections.add('configChecks');
     }
     
+    // LogSource filters fields
+    if (dirtyFields.has('filters')) {
+      sections.add('filters');
+    }
+    
+    // LogSource logFields fields
+    if (dirtyFields.has('logFields')) {
+      sections.add('logFields');
+    }
+    
+    // LogSource resourceMapping fields
+    if (dirtyFields.has('resourceMapping') || dirtyFields.has('collectionAttribute')) {
+      sections.add('resourceMappings');
+    }
+    
     return sections;
   }, [draft]);
   
@@ -124,6 +142,10 @@ export function ModuleDetailsDialog() {
       }
       if (section === 'alertSettings') {
         return schema.supportsAlertSettings;
+      }
+      // LogSource-specific sections
+      if (section === 'filters' || section === 'logFields' || section === 'resourceMappings') {
+        return schema.editableList === 'logsource';
       }
       return true;
     });
@@ -349,6 +371,15 @@ export function ModuleDetailsDialog() {
                   )}
                   {activeSection === 'alertSettings' && schema?.supportsAlertSettings && (
                     <ModuleDetailsAlertSettings tabId={activeTabId!} moduleType={activeTab.source.moduleType} />
+                  )}
+                  {activeSection === 'filters' && schema?.editableList === 'logsource' && (
+                    <ModuleDetailsFilters tabId={activeTabId!} moduleId={activeTab.source.moduleId} moduleType={activeTab.source.moduleType} />
+                  )}
+                  {activeSection === 'logFields' && schema?.editableList === 'logsource' && (
+                    <ModuleDetailsLogFields tabId={activeTabId!} moduleId={activeTab.source.moduleId} moduleType={activeTab.source.moduleType} />
+                  )}
+                  {activeSection === 'resourceMappings' && schema?.editableList === 'logsource' && (
+                    <ModuleDetailsResourceMappings tabId={activeTabId!} moduleId={activeTab.source.moduleId} moduleType={activeTab.source.moduleType} />
                   )}
                 </div>
               ) : (

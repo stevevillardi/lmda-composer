@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Upload, Loader2, AlertCircle, type LucideIcon, Info, FolderTree, Shield, Filter, Target, Database, Bell, FileCode, FolderSearch, Settings } from 'lucide-react';
+import { Upload, Loader2, AlertCircle, type LucideIcon, Info, FolderTree, Shield, Filter, Target, Database, Bell, FileCode, FolderSearch, Settings, Tags, Link2 } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
@@ -282,6 +282,120 @@ export function PushToPortalDialog({
     });
   };
 
+  // LogSource filter change status for display
+  type LogSourceItemChangeStatus = 'added' | 'removed' | 'modified' | 'unchanged';
+  
+  interface LogSourceFilterDisplayItem {
+    value: string;
+    operator: string;
+    status: LogSourceItemChangeStatus;
+  }
+
+  interface LogSourceLogFieldDisplayItem {
+    key: string;
+    method: string;
+    status: LogSourceItemChangeStatus;
+  }
+
+  interface LogSourceResourceMappingDisplayItem {
+    key: string;
+    method: string;
+    index: number;
+    status: LogSourceItemChangeStatus;
+  }
+
+  // Compare LogSource filters
+  const compareLogSourceFilters = (
+    originalFilters: Array<Record<string, unknown>>,
+    modifiedFilters: Array<Record<string, unknown>>
+  ): LogSourceFilterDisplayItem[] => {
+    // Use value+operator as key since filters don't have a name
+    const getFilterKey = (f: Record<string, unknown>) => `${f.operator}:${f.value}`;
+    const originalByKey = new Map(originalFilters.map(f => [getFilterKey(f), f]));
+    const modifiedByKey = new Map(modifiedFilters.map(f => [getFilterKey(f), f]));
+    
+    const allKeys = new Set([...originalByKey.keys(), ...modifiedByKey.keys()]);
+    const sortedKeys = [...allKeys].sort();
+    
+    return sortedKeys.map(key => {
+      const original = originalByKey.get(key);
+      const modified = modifiedByKey.get(key);
+      const parts = key.split(':');
+      const operator = parts[0] || '';
+      const value = parts.slice(1).join(':') || '';
+      
+      if (!original && modified) {
+        return { value, operator, status: 'added' as const };
+      }
+      if (original && !modified) {
+        return { value, operator, status: 'removed' as const };
+      }
+      if (!deepEqual(original, modified)) {
+        return { value, operator, status: 'modified' as const };
+      }
+      return { value, operator, status: 'unchanged' as const };
+    });
+  };
+
+  // Compare LogSource log fields
+  const compareLogSourceLogFields = (
+    originalFields: Array<Record<string, unknown>>,
+    modifiedFields: Array<Record<string, unknown>>
+  ): LogSourceLogFieldDisplayItem[] => {
+    const originalByKey = new Map(originalFields.map(f => [f.key as string, f]));
+    const modifiedByKey = new Map(modifiedFields.map(f => [f.key as string, f]));
+    
+    const allKeys = new Set([...originalByKey.keys(), ...modifiedByKey.keys()]);
+    const sortedKeys = [...allKeys].sort((a, b) => a.localeCompare(b));
+    
+    return sortedKeys.map(key => {
+      const original = originalByKey.get(key);
+      const modified = modifiedByKey.get(key);
+      const method = (modified?.method || original?.method || '') as string;
+      
+      if (!original && modified) {
+        return { key, method, status: 'added' as const };
+      }
+      if (original && !modified) {
+        return { key, method, status: 'removed' as const };
+      }
+      if (!deepEqual(original, modified)) {
+        return { key, method, status: 'modified' as const };
+      }
+      return { key, method, status: 'unchanged' as const };
+    });
+  };
+
+  // Compare LogSource resource mappings
+  const compareLogSourceResourceMappings = (
+    originalMappings: Array<Record<string, unknown>>,
+    modifiedMappings: Array<Record<string, unknown>>
+  ): LogSourceResourceMappingDisplayItem[] => {
+    const originalByKey = new Map(originalMappings.map(m => [m.key as string, m]));
+    const modifiedByKey = new Map(modifiedMappings.map(m => [m.key as string, m]));
+    
+    const allKeys = new Set([...originalByKey.keys(), ...modifiedByKey.keys()]);
+    const sortedKeys = [...allKeys].sort((a, b) => a.localeCompare(b));
+    
+    return sortedKeys.map(key => {
+      const original = originalByKey.get(key);
+      const modified = modifiedByKey.get(key);
+      const method = (modified?.method || original?.method || '') as string;
+      const index = (modified?.index ?? original?.index ?? 0) as number;
+      
+      if (!original && modified) {
+        return { key, method, index, status: 'added' as const };
+      }
+      if (original && !modified) {
+        return { key, method, index, status: 'removed' as const };
+      }
+      if (!deepEqual(original, modified)) {
+        return { key, method, index, status: 'modified' as const };
+      }
+      return { key, method, index, status: 'unchanged' as const };
+    });
+  };
+
   const readableModuleDetailsChanges = useMemo(() => {
     if (!moduleDetailsDraft || !hasModuleDetailsChanges) return [];
     const changes: Array<{
@@ -294,6 +408,9 @@ export function PushToPortalDialog({
       modifiedLines?: string[];
       datapointItems?: DatapointDisplayItem[];
       configCheckItems?: ConfigCheckDisplayItem[];
+      logSourceFilterItems?: LogSourceFilterDisplayItem[];
+      logSourceLogFieldItems?: LogSourceLogFieldDisplayItem[];
+      logSourceResourceMappingItems?: LogSourceResourceMappingDisplayItem[];
     }> = [];
 
     const pushChange = (key: string, section: string, label: string, original: unknown, modified: unknown) => {
@@ -471,6 +588,76 @@ export function PushToPortalDialog({
             modified: `${modifiedChecks.length} check${modifiedChecks.length !== 1 ? 's' : ''}`,
             configCheckItems,
           });
+          break;
+        }
+        case 'filters': {
+          const originalFilters = Array.isArray(original) ? (original as Array<Record<string, unknown>>) : [];
+          const modifiedFilters = Array.isArray(modified) ? (modified as Array<Record<string, unknown>>) : [];
+          const logSourceFilterItems = compareLogSourceFilters(originalFilters, modifiedFilters);
+          const changedCount = logSourceFilterItems.filter(f => f.status !== 'unchanged').length;
+          changes.push({
+            key: field,
+            section: 'Include Filters',
+            label: `Include Filters (${changedCount} changed)`,
+            original: `${originalFilters.length} filter${originalFilters.length !== 1 ? 's' : ''}`,
+            modified: `${modifiedFilters.length} filter${modifiedFilters.length !== 1 ? 's' : ''}`,
+            logSourceFilterItems,
+          });
+          break;
+        }
+        case 'logFields': {
+          const originalFields = Array.isArray(original) ? (original as Array<Record<string, unknown>>) : [];
+          const modifiedFields = Array.isArray(modified) ? (modified as Array<Record<string, unknown>>) : [];
+          const logSourceLogFieldItems = compareLogSourceLogFields(originalFields, modifiedFields);
+          const changedCount = logSourceLogFieldItems.filter(f => f.status !== 'unchanged').length;
+          changes.push({
+            key: field,
+            section: 'Log Fields',
+            label: `Log Fields (${changedCount} changed)`,
+            original: `${originalFields.length} field${originalFields.length !== 1 ? 's' : ''}`,
+            modified: `${modifiedFields.length} field${modifiedFields.length !== 1 ? 's' : ''}`,
+            logSourceLogFieldItems,
+          });
+          break;
+        }
+        case 'resourceMapping': {
+          const originalMappings = Array.isArray(original) ? (original as Array<Record<string, unknown>>) : [];
+          const modifiedMappings = Array.isArray(modified) ? (modified as Array<Record<string, unknown>>) : [];
+          const logSourceResourceMappingItems = compareLogSourceResourceMappings(originalMappings, modifiedMappings);
+          const changedCount = logSourceResourceMappingItems.filter(m => m.status !== 'unchanged').length;
+          changes.push({
+            key: field,
+            section: 'Resource Mappings',
+            label: `Resource Mappings (${changedCount} changed)`,
+            original: `${originalMappings.length} mapping${originalMappings.length !== 1 ? 's' : ''}`,
+            modified: `${modifiedMappings.length} mapping${modifiedMappings.length !== 1 ? 's' : ''}`,
+            logSourceResourceMappingItems,
+          });
+          break;
+        }
+        case 'collectionAttribute': {
+          const originalConfig = (original || {}) as Record<string, unknown>;
+          const modifiedConfig = (modified || {}) as Record<string, unknown>;
+          // Check for filterOp change
+          if (!deepEqual(originalConfig.filterOp, modifiedConfig.filterOp)) {
+            changes.push({
+              key: `${field}.filterOp`,
+              section: 'Include Filters',
+              label: 'Filter Operation',
+              original: originalConfig.filterOp === 'OR' ? 'OR' : 'AND',
+              modified: modifiedConfig.filterOp === 'OR' ? 'OR' : 'AND',
+            });
+          }
+          // Check for resourceMappingOp change
+          if (!deepEqual(originalConfig.resourceMappingOp, modifiedConfig.resourceMappingOp)) {
+            changes.push({
+              key: `${field}.resourceMappingOp`,
+              section: 'Resource Mappings',
+              label: 'Mapping Operation',
+              original: originalConfig.resourceMappingOp === 'OR' ? 'OR' : 'AND',
+              modified: modifiedConfig.resourceMappingOp === 'OR' ? 'OR' : 'AND',
+            });
+          }
           break;
         }
         default:
@@ -677,6 +864,126 @@ export function PushToPortalDialog({
     );
   };
 
+  const renderLogSourceFilterItems = (items?: LogSourceFilterDisplayItem[]) => {
+    if (!items || items.length === 0) {
+      return <span className="text-xs text-muted-foreground">(none)</span>;
+    }
+    
+    const statusStyles: Record<LogSourceItemChangeStatus, string> = {
+      added: 'bg-teal-500/15 text-teal-600 border-teal-500/30',
+      removed: 'bg-red-500/15 text-red-600 border-red-500/30 line-through',
+      modified: 'bg-yellow-500/15 text-yellow-600 border-yellow-500/30',
+      unchanged: '',
+    };
+    
+    const statusIndicators: Record<LogSourceItemChangeStatus, string> = {
+      added: '+',
+      removed: '−',
+      modified: '~',
+      unchanged: '',
+    };
+
+    return (
+      <div className="flex flex-wrap gap-1">
+        {items.map((item, idx) => (
+          <Badge 
+            key={`${item.operator}-${item.value}-${idx}`}
+            variant={item.status === 'unchanged' ? 'secondary' : 'outline'} 
+            className={`
+              font-mono text-[11px]
+              ${statusStyles[item.status]}
+            `}
+          >
+            {statusIndicators[item.status] && (
+              <span className="mr-0.5 font-bold">{statusIndicators[item.status]}</span>
+            )}
+            {item.operator}: {item.value.length > 30 ? item.value.slice(0, 30) + '...' : item.value}
+          </Badge>
+        ))}
+      </div>
+    );
+  };
+
+  const renderLogSourceLogFieldItems = (items?: LogSourceLogFieldDisplayItem[]) => {
+    if (!items || items.length === 0) {
+      return <span className="text-xs text-muted-foreground">(none)</span>;
+    }
+    
+    const statusStyles: Record<LogSourceItemChangeStatus, string> = {
+      added: 'bg-teal-500/15 text-teal-600 border-teal-500/30',
+      removed: 'bg-red-500/15 text-red-600 border-red-500/30 line-through',
+      modified: 'bg-yellow-500/15 text-yellow-600 border-yellow-500/30',
+      unchanged: '',
+    };
+    
+    const statusIndicators: Record<LogSourceItemChangeStatus, string> = {
+      added: '+',
+      removed: '−',
+      modified: '~',
+      unchanged: '',
+    };
+
+    return (
+      <div className="flex flex-wrap gap-1">
+        {items.map((item) => (
+          <Badge 
+            key={item.key}
+            variant={item.status === 'unchanged' ? 'secondary' : 'outline'} 
+            className={`
+              font-mono text-[11px]
+              ${statusStyles[item.status]}
+            `}
+          >
+            {statusIndicators[item.status] && (
+              <span className="mr-0.5 font-bold">{statusIndicators[item.status]}</span>
+            )}
+            {item.key} ({item.method})
+          </Badge>
+        ))}
+      </div>
+    );
+  };
+
+  const renderLogSourceResourceMappingItems = (items?: LogSourceResourceMappingDisplayItem[]) => {
+    if (!items || items.length === 0) {
+      return <span className="text-xs text-muted-foreground">(none)</span>;
+    }
+    
+    const statusStyles: Record<LogSourceItemChangeStatus, string> = {
+      added: 'bg-teal-500/15 text-teal-600 border-teal-500/30',
+      removed: 'bg-red-500/15 text-red-600 border-red-500/30 line-through',
+      modified: 'bg-yellow-500/15 text-yellow-600 border-yellow-500/30',
+      unchanged: '',
+    };
+    
+    const statusIndicators: Record<LogSourceItemChangeStatus, string> = {
+      added: '+',
+      removed: '−',
+      modified: '~',
+      unchanged: '',
+    };
+
+    return (
+      <div className="flex flex-wrap gap-1">
+        {items.map((item) => (
+          <Badge 
+            key={item.key}
+            variant={item.status === 'unchanged' ? 'secondary' : 'outline'} 
+            className={`
+              font-mono text-[11px]
+              ${statusStyles[item.status]}
+            `}
+          >
+            {statusIndicators[item.status] && (
+              <span className="mr-0.5 font-bold">{statusIndicators[item.status]}</span>
+            )}
+            {item.key} ({item.method})
+          </Badge>
+        ))}
+      </div>
+    );
+  };
+
   const sectionIcons: Record<string, LucideIcon> = {
     Basic: Info,
     Organization: FolderTree,
@@ -686,6 +993,9 @@ export function PushToPortalDialog({
     Datapoints: Database,
     'Config Checks': Settings,
     'Alert Settings': Bell,
+    'Include Filters': Filter,
+    'Log Fields': Tags,
+    'Resource Mappings': Link2,
   };
 
   // Map theme preference to Monaco theme
@@ -1099,6 +1409,69 @@ export function PushToPortalDialog({
                                     font-mono text-xs
                                   ">
                                     {renderConfigCheckItems(change.configCheckItems)}
+                                  </div>
+                                </div>
+                              ) : change.logSourceFilterItems ? (
+                                // Special rendering for LogSource filters
+                                <div key={change.key} className="space-y-2">
+                                  <div className="flex items-center justify-between">
+                                    <div className="text-sm font-medium select-none">{change.label}</div>
+                                    <div className="flex items-center gap-3 text-[11px] select-none">
+                                      <span className="flex items-center gap-1 text-teal-600">
+                                        <span className="font-bold">+</span> Added
+                                      </span>
+                                      <span className="flex items-center gap-1 text-yellow-600">
+                                        <span className="font-bold">~</span> Modified
+                                      </span>
+                                      <span className="flex items-center gap-1 text-red-600">
+                                        <span className="font-bold">−</span> Removed
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="rounded-sm border bg-background p-2 font-mono text-xs">
+                                    {renderLogSourceFilterItems(change.logSourceFilterItems)}
+                                  </div>
+                                </div>
+                              ) : change.logSourceLogFieldItems ? (
+                                // Special rendering for LogSource log fields
+                                <div key={change.key} className="space-y-2">
+                                  <div className="flex items-center justify-between">
+                                    <div className="text-sm font-medium select-none">{change.label}</div>
+                                    <div className="flex items-center gap-3 text-[11px] select-none">
+                                      <span className="flex items-center gap-1 text-teal-600">
+                                        <span className="font-bold">+</span> Added
+                                      </span>
+                                      <span className="flex items-center gap-1 text-yellow-600">
+                                        <span className="font-bold">~</span> Modified
+                                      </span>
+                                      <span className="flex items-center gap-1 text-red-600">
+                                        <span className="font-bold">−</span> Removed
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="rounded-sm border bg-background p-2 font-mono text-xs">
+                                    {renderLogSourceLogFieldItems(change.logSourceLogFieldItems)}
+                                  </div>
+                                </div>
+                              ) : change.logSourceResourceMappingItems ? (
+                                // Special rendering for LogSource resource mappings
+                                <div key={change.key} className="space-y-2">
+                                  <div className="flex items-center justify-between">
+                                    <div className="text-sm font-medium select-none">{change.label}</div>
+                                    <div className="flex items-center gap-3 text-[11px] select-none">
+                                      <span className="flex items-center gap-1 text-teal-600">
+                                        <span className="font-bold">+</span> Added
+                                      </span>
+                                      <span className="flex items-center gap-1 text-yellow-600">
+                                        <span className="font-bold">~</span> Modified
+                                      </span>
+                                      <span className="flex items-center gap-1 text-red-600">
+                                        <span className="font-bold">−</span> Removed
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="rounded-sm border bg-background p-2 font-mono text-xs">
+                                    {renderLogSourceResourceMappingItems(change.logSourceResourceMappingItems)}
                                   </div>
                                 </div>
                               ) : (

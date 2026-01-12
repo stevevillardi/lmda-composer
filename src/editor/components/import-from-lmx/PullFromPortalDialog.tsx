@@ -123,18 +123,40 @@ export function PullFromPortalDialog({
       const portalStr = JSON.stringify(portalVal);
       if (localStr !== portalStr) {
         // Format display values
-        const formatValue = (val: unknown): string => {
+        const formatValue = (val: unknown, fieldKey?: string): string => {
           if (val === null || val === undefined) return '(empty)';
           if (typeof val === 'boolean') return val ? 'Yes' : 'No';
-          if (Array.isArray(val)) return val.length > 0 ? val.join(', ') : '(none)';
-          if (typeof val === 'object') return JSON.stringify(val);
+          if (Array.isArray(val)) {
+            // Handle LogSource-specific array fields
+            if (fieldKey === 'filters') {
+              return val.length > 0 ? `${val.length} filter${val.length !== 1 ? 's' : ''}` : '(none)';
+            }
+            if (fieldKey === 'logFields') {
+              return val.length > 0 ? `${val.length} field${val.length !== 1 ? 's' : ''}` : '(none)';
+            }
+            if (fieldKey === 'resourceMapping') {
+              return val.length > 0 ? `${val.length} mapping${val.length !== 1 ? 's' : ''}` : '(none)';
+            }
+            return val.length > 0 ? val.join(', ') : '(none)';
+          }
+          if (typeof val === 'object') {
+            // Handle collectionAttribute - show just the ops
+            if (fieldKey === 'collectionAttribute') {
+              const attr = val as { filterOp?: string | null; resourceMappingOp?: string };
+              const parts = [];
+              if (attr.filterOp) parts.push(`filterOp: ${attr.filterOp}`);
+              if (attr.resourceMappingOp) parts.push(`resourceMappingOp: ${attr.resourceMappingOp}`);
+              return parts.length > 0 ? parts.join(', ') : '(default)';
+            }
+            return JSON.stringify(val);
+          }
           return String(val);
         };
         changes.push({
           field: key,
           label,
-          localValue: formatValue(localVal),
-          portalValue: formatValue(portalVal),
+          localValue: formatValue(localVal, key),
+          portalValue: formatValue(portalVal, key),
         });
       }
     }

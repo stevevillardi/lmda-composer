@@ -13,7 +13,10 @@ export type ModuleDetailsSection =
   | 'activeDiscovery'
   | 'datapoints'
   | 'configChecks'
-  | 'alertSettings';
+  | 'alertSettings'
+  | 'filters'
+  | 'logFields'
+  | 'resourceMappings';
 
 export type IntervalField = 'collectInterval' | 'schedule' | 'collectionInterval';
 
@@ -31,8 +34,8 @@ export interface ModuleTypeSchema {
   autoDiscoveryEditableFields?: string[];
   autoDiscoveryDefaults?: Record<string, unknown>;
   fieldAliases?: Record<string, string>;
-  /** Editable list type for this module - datapoints for datasources, configChecks for configsources */
-  editableList?: 'datapoints' | 'configChecks';
+  /** Editable list type for this module - datapoints for datasources, configChecks for configsources, logsource for LogSource */
+  editableList?: 'datapoints' | 'configChecks' | 'logsource';
   supportsAlertSettings?: boolean;
   alertSettingsFields?: string[];
 }
@@ -151,9 +154,21 @@ export const MODULE_TYPE_SCHEMAS: Record<LogicModuleType, ModuleTypeSchema> = {
     portalEditUrlPattern: '/santaba/uiv4/modules/toolbox/exchangePropertySources/edit/{moduleId}',
   },
   logsource: {
-    editableFields: ['name', 'description', 'appliesTo', 'technology', 'tags', 'collectInterval', 'accessGroupIds'],
+    editableFields: [
+      'name',
+      'description',
+      'appliesTo',
+      'technology',
+      'tags',
+      'collectInterval',
+      'accessGroupIds',
+      'filters',
+      'logFields',
+      'resourceMapping',
+      'collectionAttribute',
+    ],
     requiredFields: ['name'],
-    sections: ['basic', 'organization', 'access', 'appliesTo'],
+    sections: ['basic', 'organization', 'access', 'appliesTo', 'filters', 'logFields', 'resourceMappings'],
     accessGroupSupport: true,
     portalEditUrlPattern: '/santaba/uiv4/modules/toolbox/exchangeLogSources/edit/{moduleId}',
     collectIntervalOptions: LOGSOURCE_COLLECTION_INTERVALS,
@@ -165,6 +180,7 @@ export const MODULE_TYPE_SCHEMAS: Record<LogicModuleType, ModuleTypeSchema> = {
       technology: 'technicalNotes',
       collectInterval: 'collectionInterval',
     },
+    editableList: 'logsource',
   },
   diagnosticsource: {
     editableFields: ['name', 'description', 'appliesTo', 'group', 'technology', 'tags', 'accessGroupIds'],

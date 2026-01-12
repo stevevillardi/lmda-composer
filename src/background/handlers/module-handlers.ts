@@ -222,6 +222,63 @@ export async function handleCommitModuleScript(
       tags?: string | string[];
       collectInterval?: number;
       accessGroupIds?: number[] | string;
+      // DataSource specific fields
+      dataPoints?: Array<{
+        id: number;
+        name: string;
+        type?: number;
+        description?: string;
+        postProcessorMethod?: string;
+        alertForNoData?: number | boolean;
+        alertExpr?: string;
+        alertTransitionInterval?: number;
+        alertClearTransitionInterval?: number;
+        [key: string]: unknown;
+      }>;
+      autoDiscoveryConfig?: Record<string, unknown>;
+      // ConfigSource specific fields
+      configChecks?: Array<{
+        id?: number;
+        name: string;
+        type?: string;
+        description?: string;
+        alertLevel?: number;
+        ackClearAlert?: boolean;
+        alertEffectiveIval?: number;
+        alertTransitionInterval?: number;
+        script?: Record<string, unknown>;
+        [key: string]: unknown;
+      }>;
+      // LogSource specific fields
+      filters?: Array<{
+        id?: string;
+        index?: string;
+        attribute: string;
+        operator: string;
+        value?: string;
+        comment?: string;
+        include?: string;
+      }>;
+      logFields?: Array<{
+        id?: string;
+        key: string;
+        method: string;
+        value: string;
+        comment?: string;
+      }>;
+      resourceMapping?: Array<{
+        id?: string;
+        index?: string | number;
+        key: string;
+        method: string;
+        value: string;
+        comment?: string;
+      }>;
+      collectionAttribute?: {
+        script?: { embeddedContent?: string; type?: string };
+        resourceMappingOp?: string;
+        filterOp?: string | null;
+      };
     }>;
     reason?: string;
   },
