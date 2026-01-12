@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
-import { AlertCircle, Info, Database, Bell, Sliders, FileText, Calculator, Terminal, Clock, Gauge } from 'lucide-react';
+import { AlertCircle, Info, Database, Bell, Sliders, FileText, Calculator, Terminal, Clock, Gauge, Tags, Plus, Trash2 } from 'lucide-react';
 import {
   Sheet,
   SheetContent,
@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { parseAlertThresholds, ALERT_LEVEL_BG_STYLES, type AlertLevel } from '@/shared/alert-threshold-utils';
 import { WarningAlertIcon, ErrorAlertIcon, CriticalAlertIcon } from '../../constants/icons';
-import type { DataPoint } from '@/shared/types';
+import type { DataPoint, StatusDisplayName } from '@/shared/types';
 
 /** Type of datapoint being created/edited */
 export type DatapointType = 'normal' | 'complex';
@@ -83,6 +83,16 @@ const ALERT_INTERVAL_OPTIONS = [
   { label: '24 polls', value: 24 },
   { label: '30 polls', value: 30 },
   { label: '60 polls', value: 60 },
+];
+
+// Status translation operator options
+const STATUS_OPERATOR_OPTIONS: Array<{ label: string; value: StatusDisplayName['operator'] }> = [
+  { label: '=', value: 'EQ' },
+  { label: '≠', value: 'NE' },
+  { label: '>', value: 'GT' },
+  { label: '≥', value: 'GTE' },
+  { label: '<', value: 'LT' },
+  { label: '≤', value: 'LTE' },
 ];
 
 // Alert level icon components
@@ -276,6 +286,69 @@ export function DatapointEditorSheet({
     }
   };
 
+  // Status translation handlers
+  const statusTranslations = formData.statusDisplayNames ?? [];
+
+  const handleAddTranslation = () => {
+    const newTranslation: StatusDisplayName = {
+      statusDisplayName: '',
+      operator: 'EQ',
+      metricValue: '',
+    };
+    setFormData(prev => ({
+      ...prev,
+      statusDisplayNames: [...(prev.statusDisplayNames ?? []), newTranslation],
+    }));
+  };
+
+  const handleUpdateTranslation = (index: number, field: keyof StatusDisplayName, value: string) => {
+    // Enforce character limit for display name
+    if (field === 'statusDisplayName' && value.length > 128) {
+      value = value.slice(0, 128);
+    }
+    
+    setFormData(prev => {
+      const updated = [...(prev.statusDisplayNames ?? [])];
+      updated[index] = { ...updated[index], [field]: value };
+      return { ...prev, statusDisplayNames: updated };
+    });
+    
+    // Clear error for this translation if it exists
+    const errorKey = `statusTranslation_${index}`;
+    if (errors[errorKey]) {
+      setErrors(prev => {
+        const next = { ...prev };
+        delete next[errorKey];
+        return next;
+      });
+    }
+  };
+
+  const handleDeleteTranslation = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      statusDisplayNames: (prev.statusDisplayNames ?? []).filter((_, i) => i !== index),
+    }));
+    // Clear any errors for deleted translation
+    setErrors(prev => {
+      const next = { ...prev };
+      // Remove errors for this index and re-index remaining errors
+      Object.keys(next).forEach(key => {
+        if (key.startsWith('statusTranslation_')) {
+          delete next[key];
+        }
+      });
+      return next;
+    });
+  };
+
+  // Helper to check if a value is a valid integer
+  const isValidInteger = (value: string): boolean => {
+    if (!value.trim()) return false;
+    // Allow negative integers
+    return /^-?\d+$/.test(value.trim());
+  };
+
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {};
 
@@ -302,6 +375,36 @@ export function DatapointEditorSheet({
     if (!isComplex && isOutputSource && requiresInterpretationParam && !formData.postProcessorParam?.trim()) {
       newErrors.postProcessorParam = `${getInterpretationParamLabel(formData.postProcessorMethod || '')} is required`;
     }
+
+    // Validate status translations
+    statusTranslations.forEach((translation, index) => {
+      const errorMessages: string[] = [];
+      
+      // Validate metric value is a valid integer
+      if (translation.metricValue && !isValidInteger(translation.metricValue)) {
+        errorMessages.push('Value must be an integer');
+      }
+      
+      // Validate display name length (should already be enforced, but double-check)
+      if (translation.statusDisplayName && translation.statusDisplayName.length > 128) {
+        errorMessages.push('Display name max 128 characters');
+      }
+      
+      // Check for empty required fields if any field is filled
+      const hasAnyValue = translation.metricValue || translation.statusDisplayName;
+      if (hasAnyValue) {
+        if (!translation.metricValue) {
+          errorMessages.push('Value is required');
+        }
+        if (!translation.statusDisplayName?.trim()) {
+          errorMessages.push('Display name is required');
+        }
+      }
+      
+      if (errorMessages.length > 0) {
+        newErrors[`statusTranslation_${index}`] = errorMessages.join('; ');
+      }
+    });
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -752,6 +855,103 @@ export function DatapointEditorSheet({
                 rows={3}
               />
             </div>
+          </Section>
+
+          {/* Status Translations Section */}
+          <Section icon={<Tags className="size-4 text-muted-foreground" />} title="Status Translations">
+            <p className="text-xs text-muted-foreground">
+              Map numeric values to human-readable status labels (e.g., 1 = "Up", 0 = "Down").
+            </p>
+
+            {statusTranslations.length > 0 && (
+              <div className="space-y-2">
+                {/* Header row */}
+                <div className="grid grid-cols-[60px_70px_1fr_32px] items-center gap-2 text-[10px] font-medium text-muted-foreground uppercase">
+                  <span>Operator</span>
+                  <span>Value</span>
+                  <span>Display Name</span>
+                  <span></span>
+                </div>
+
+                {/* Translation rows */}
+                {statusTranslations.map((translation, index) => {
+                  const rowError = errors[`statusTranslation_${index}`];
+                  const hasValueError = rowError?.includes('Value');
+                  const hasNameError = rowError?.includes('Display name') || rowError?.includes('128');
+                  
+                  return (
+                    <div key={translation.id ?? `new-${index}`} className="space-y-1">
+                      <div className="grid grid-cols-[60px_70px_1fr_32px] items-center gap-2">
+                        <Select
+                          value={translation.operator}
+                          onValueChange={(value) => value && handleUpdateTranslation(index, 'operator', value)}
+                        >
+                          <SelectTrigger className="h-8 px-2 text-xs">
+                            <SelectValue>
+                              {STATUS_OPERATOR_OPTIONS.find(o => o.value === translation.operator)?.label ?? '='}
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            {STATUS_OPERATOR_OPTIONS.map((opt) => (
+                              <SelectItem key={opt.value} value={opt.value}>
+                                <span className="font-mono">{opt.label}</span>
+                                <span className="ml-2 text-xs text-muted-foreground">({opt.value})</span>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+
+                        <Input
+                          type="text"
+                          inputMode="numeric"
+                          value={translation.metricValue}
+                          onChange={(e) => handleUpdateTranslation(index, 'metricValue', e.target.value)}
+                          placeholder="0"
+                          className={`h-8 px-2 font-mono text-xs ${hasValueError ? 'border-destructive' : ''}`}
+                        />
+
+                        <Input
+                          type="text"
+                          value={translation.statusDisplayName}
+                          onChange={(e) => handleUpdateTranslation(index, 'statusDisplayName', e.target.value)}
+                          placeholder="e.g., Up, Down, Unknown"
+                          maxLength={128}
+                          className={`h-8 px-2 text-xs ${hasNameError ? 'border-destructive' : ''}`}
+                        />
+
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => handleDeleteTranslation(index)}
+                          className="size-8 text-muted-foreground hover:text-destructive"
+                          aria-label="Remove translation"
+                        >
+                          <Trash2 className="size-3.5" />
+                        </Button>
+                      </div>
+                      {rowError && (
+                        <p className="flex items-center gap-1 pl-[68px] text-[10px] text-destructive">
+                          <AlertCircle className="size-2.5" />
+                          {rowError}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleAddTranslation}
+              className="w-full gap-1.5"
+            >
+              <Plus className="size-3.5" />
+              Add Translation
+            </Button>
           </Section>
         </div>
 

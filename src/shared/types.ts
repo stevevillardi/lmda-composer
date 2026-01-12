@@ -601,13 +601,14 @@ export interface AutoDiscoveryConfig {
 
 /**
  * Status display name entry for gauge datapoints.
+ * Maps numeric metric values to human-readable status labels.
  */
 export interface StatusDisplayName {
   id?: number;
   datapointId?: number;
   statusDisplayName: string;
-  operator: 'EQ' | 'NEQ' | 'GTE' | 'LTE' | 'GT' | 'LT';
-  metricValue: number;
+  operator: 'EQ' | 'NE' | 'GTE' | 'LTE' | 'GT' | 'LT';
+  metricValue: string;
 }
 
 /**

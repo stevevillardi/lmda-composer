@@ -1,5 +1,5 @@
 import { useState, useMemo, Fragment } from 'react';
-import { Database, ExternalLink, Plus, Pencil, Trash2, ChevronRight, ChevronDown, Bell, BellOff, Mail, MessageSquare } from 'lucide-react';
+import { Database, ExternalLink, Plus, Pencil, Trash2, ChevronRight, ChevronDown, Bell, BellOff, Mail, MessageSquare, Tags } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -310,9 +310,10 @@ export function ModuleDetailsDatapoints({ tabId, moduleId, moduleType }: ModuleD
                       const hasNoDataAlert = dp.alertForNoData !== 1;
                       const hasAlertSubject = !!dp.alertSubject?.trim();
                       const hasAlertBody = !!dp.alertBody?.trim();
+                      const hasStatusTranslations = dp.statusDisplayNames && dp.statusDisplayNames.length > 0;
                       // Always show alert settings section (trigger/clear intervals are always displayed)
                       const hasAlertSettings = true;
-                      const hasExpandableContent = hasDescription || hasAlertSettings || hasAlertSubject || hasAlertBody;
+                      const hasExpandableContent = hasDescription || hasAlertSettings || hasAlertSubject || hasAlertBody || hasStatusTranslations;
 
                       // Param display
                       const paramDisplay = dp.postProcessorParam || '';
@@ -591,6 +592,42 @@ export function ModuleDetailsDatapoints({ tabId, moduleId, moduleType }: ModuleD
                                       ">
                                         {dp.alertBody}
                                       </p>
+                                    </div>
+                                  )}
+
+                                  {/* Status Translations */}
+                                  {hasStatusTranslations && (
+                                    <div className="space-y-1">
+                                      <div className="
+                                        flex items-center gap-1.5 text-xs
+                                        font-medium tracking-wide
+                                        text-muted-foreground uppercase
+                                      ">
+                                        <Tags className="size-3" />
+                                        Status Translations
+                                      </div>
+                                      <div className="flex flex-wrap gap-1.5">
+                                        {dp.statusDisplayNames!.map((sdn, sdnIndex) => {
+                                          const operatorSymbol = 
+                                            sdn.operator === 'EQ' ? '=' :
+                                            sdn.operator === 'NE' ? '≠' :
+                                            sdn.operator === 'GT' ? '>' :
+                                            sdn.operator === 'GTE' ? '≥' :
+                                            sdn.operator === 'LT' ? '<' :
+                                            sdn.operator === 'LTE' ? '≤' : '=';
+                                          return (
+                                            <Badge
+                                              key={sdn.id ?? `sdn-${sdnIndex}`}
+                                              variant="secondary"
+                                              className="gap-1 font-mono text-xs"
+                                            >
+                                              <span className="text-muted-foreground">{operatorSymbol}{sdn.metricValue}</span>
+                                              <span className="text-muted-foreground">→</span>
+                                              <span className="font-sans">{sdn.statusDisplayName}</span>
+                                            </Badge>
+                                          );
+                                        })}
+                                      </div>
                                     </div>
                                   )}
                                 </div>

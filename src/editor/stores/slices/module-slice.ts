@@ -1478,8 +1478,19 @@ export const createModuleSlice: StateCreator<
         } as Partial<ModuleSlice & ModuleSliceDependencies>);
         
         const scriptCount = (pushingCollection ? 1 : 0) + (pushingAd ? 1 : 0);
-        const detailsText = hasModuleDetailsChanges ? ' and module details' : '';
-        toast.success(`${scriptCount} script${scriptCount !== 1 ? 's' : ''}${detailsText} pushed to portal successfully`);
+        
+        // Build a clear success message based on what was pushed
+        let successMessage: string;
+        if (scriptCount > 0 && hasModuleDetailsChanges) {
+          successMessage = `${scriptCount} script${scriptCount !== 1 ? 's' : ''} and module details pushed successfully`;
+        } else if (scriptCount > 0) {
+          successMessage = `${scriptCount} script${scriptCount !== 1 ? 's' : ''} pushed successfully`;
+        } else if (hasModuleDetailsChanges) {
+          successMessage = 'Module details pushed successfully';
+        } else {
+          successMessage = 'Changes pushed successfully';
+        }
+        toast.success(successMessage);
       } else {
         set({ 
           moduleCommitError: result.error || 'Failed to push changes to portal',

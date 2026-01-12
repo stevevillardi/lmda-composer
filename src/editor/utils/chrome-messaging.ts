@@ -115,6 +115,15 @@ export async function sendMessage<T extends EditorToSWMessage>(
       };
     }
     
+    // Check for MODULE_ERROR response from module operations
+    if (response.type === 'MODULE_ERROR') {
+      return {
+        ok: false,
+        error: response.payload?.error || 'Module operation failed',
+        code: response.payload?.code?.toString()
+      };
+    }
+    
     return { ok: true, data: response.payload };
   } catch (error) {
     return { 
