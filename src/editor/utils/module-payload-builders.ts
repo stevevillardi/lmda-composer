@@ -9,6 +9,7 @@
  */
 
 import type { CreateModuleConfig, CreateModulePayload, LogicModuleType } from '@/shared/types';
+import { getModuleScriptTemplate } from '@/editor/config/script-templates';
 
 /**
  * Builder function signature for creating module payloads
@@ -60,7 +61,7 @@ function buildBasePayload(
     collectorAttribute.scriptType = 'powershell';
   } else {
     collectorAttribute.scriptType = 'embed';
-    collectorAttribute.groovyScript = '// Collection script\n';
+    collectorAttribute.groovyScript = getModuleScriptTemplate(config.moduleType, 'groovy', 'collection');
   }
 
   return {
@@ -121,7 +122,7 @@ function buildDataSourceADConfig(
     method.scriptType = 'powershell';
   } else {
     method.scriptType = 'embed';
-    method.groovyScript = '// Active Discovery script\n';
+    method.groovyScript = getModuleScriptTemplate('datasource', 'groovy', 'ad');
   }
 
   return {
@@ -189,7 +190,7 @@ function buildConfigSourceADConfig(
   } else {
     // ConfigSource AD uses 'type' with 'embeded' (intentional typo - API quirk)
     method.type = 'embeded';
-    method.groovyScript = '// Active Discovery script\n';
+    method.groovyScript = getModuleScriptTemplate('configsource', 'groovy', 'ad');
   }
 
   return {
@@ -223,7 +224,7 @@ function buildTopologySourcePayload(config: CreateModuleConfig): CreateModulePay
     collectorAttribute.scriptType = 'powershell';
   } else {
     collectorAttribute.scriptType = 'embed';
-    collectorAttribute.groovyScript = '// Topology collection script\n';
+    collectorAttribute.groovyScript = getModuleScriptTemplate('topologysource', 'groovy', 'collection');
   }
 
   return {
@@ -256,7 +257,7 @@ function buildPropertySourcePayload(config: CreateModuleConfig): CreateModulePay
     payload.scriptType = 'powershell';
   } else {
     payload.scriptType = 'embed';
-    payload.groovyScript = '// PropertySource script\n';
+    payload.groovyScript = getModuleScriptTemplate('propertysource', 'groovy', 'collection');
   }
 
   return payload;
@@ -290,7 +291,7 @@ function buildLogSourcePayload(config: CreateModuleConfig): CreateModulePayload 
       resourceMappingOp: 'AND',
       filterOp: null,
       script: {
-        embeddedContent: '// LogSource collection script\n',
+        embeddedContent: getModuleScriptTemplate('logsource', 'groovy', 'collection'),
         type: 'GROOVY',
       },
     },
@@ -333,7 +334,7 @@ function buildEventSourcePayload(config: CreateModuleConfig): CreateModulePayloa
     collector: 'scriptevent',
     schedule: 1800, // 30 minutes default
     scriptType: 'embed',
-    groovyScript: '// EventSource script\n',
+    groovyScript: getModuleScriptTemplate('eventsource', 'groovy', 'collection'),
     alertLevel: 'warn',
     alertEffectiveIval: 60,
     clearAfterAck: true,
@@ -361,10 +362,10 @@ function buildDiagnosticSourcePayload(config: CreateModuleConfig): CreateModuleP
 
   if (config.collectionLanguage === 'powershell') {
     payload.scriptType = 'powershell';
-    payload.groovyScript = '# DiagnosticSource script\n';
+    payload.groovyScript = getModuleScriptTemplate('diagnosticsource', 'powershell', 'collection');
   } else {
     payload.scriptType = 'embed';
-    payload.groovyScript = '// DiagnosticSource script\n';
+    payload.groovyScript = getModuleScriptTemplate('diagnosticsource', 'groovy', 'collection');
   }
 
   return payload;

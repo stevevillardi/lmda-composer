@@ -102,6 +102,7 @@ export function CreateModuleWizard() {
   const [hasMultiInstances, setHasMultiInstances] = useState(false);
   const [useBatchScript, setUseBatchScript] = useState(false);
   const [adLanguage, setAdLanguage] = useState<ScriptLanguage>('groovy');
+  const [initializeLocalDirectory, setInitializeLocalDirectory] = useState(false);
 
   // Reset form when dialog closes
   const handleOpenChange = useCallback((open: boolean) => {
@@ -114,6 +115,7 @@ export function CreateModuleWizard() {
       setHasMultiInstances(false);
       setUseBatchScript(false);
       setAdLanguage('groovy');
+      setInitializeLocalDirectory(false);
       setIsCreating(false);
     }
     setCreateModuleWizardOpen(open);
@@ -164,6 +166,7 @@ export function CreateModuleWizard() {
       hasMultiInstances,
       useBatchScript,
       adLanguage: hasMultiInstances ? adLanguage : undefined,
+      initializeLocalDirectory,
     };
 
     setIsCreating(true);
@@ -189,6 +192,7 @@ export function CreateModuleWizard() {
     hasMultiInstances,
     useBatchScript,
     adLanguage,
+    initializeLocalDirectory,
     createModule,
     handleOpenChange,
   ]);
@@ -261,6 +265,8 @@ export function CreateModuleWizard() {
               hasMultiInstances={hasMultiInstances}
               useBatchScript={useBatchScript}
               adLanguage={adLanguage}
+              initializeLocalDirectory={initializeLocalDirectory}
+              onInitializeLocalDirectoryChange={setInitializeLocalDirectory}
             />
           )}
         </div>

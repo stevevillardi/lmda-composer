@@ -926,6 +926,8 @@ export interface CreateModuleConfig {
   useBatchScript: boolean;
   /** Script language for AD script (only for multi-instance) */
   adLanguage?: ScriptLanguage;
+  /** Whether to initialize a local module directory after creation */
+  initializeLocalDirectory?: boolean;
 }
 
 /**

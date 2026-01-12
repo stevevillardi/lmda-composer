@@ -38,6 +38,7 @@ import {
 } from '../helpers/slice-helpers';
 import { sendMessage, sendMessageIgnoreError } from '../../utils/chrome-messaging';
 import * as documentStore from '../../utils/document-store';
+import { getModuleScriptTemplate } from '../../config/script-templates';
 import { buildModulePayload } from '../../utils/module-payload-builders';
 
 // ============================================================================
@@ -209,6 +210,7 @@ export interface ModuleSliceDependencies {
   tabs: EditorTab[];
   activeTabId: string | null;
   openTab: (tabData: Partial<EditorTab> & Pick<EditorTab, 'displayName' | 'content' | 'language' | 'mode'>) => string;
+  saveModuleDirectory: (tabId?: string) => Promise<boolean>;
   
   // From PortalSlice
   selectedPortalId: string | null;
@@ -2008,10 +2010,8 @@ export const createModuleSlice: StateCreator<
       
       const createdModule = result.data as CreateModuleResponse;
       
-      // Create tabs for the new module
-      const collectionContent = config.collectionLanguage === 'powershell' 
-        ? '# Collection script\n'
-        : '// Collection script\n';
+      // Create tabs for the new module using centralized templates
+      const collectionContent = getModuleScriptTemplate(config.moduleType, config.collectionLanguage, 'collection');
       
       const collectionMode: ScriptMode = config.useBatchScript ? 'batchcollection' : 'collection';
       const collectionExtension = config.collectionLanguage === 'groovy' ? 'groovy' : 'ps1';
@@ -2048,9 +2048,7 @@ export const createModuleSlice: StateCreator<
       
       // Create AD tab if multi-instance
       if (config.hasMultiInstances && config.adLanguage) {
-        const adContent = config.adLanguage === 'powershell'
-          ? '# Active Discovery script\n'
-          : '// Active Discovery script\n';
+        const adContent = getModuleScriptTemplate(config.moduleType, config.adLanguage, 'ad');
         
         const adExtension = config.adLanguage === 'groovy' ? 'groovy' : 'ps1';
         const adDisplayName = `${config.name}/ad.${adExtension}`;
@@ -2091,6 +2089,14 @@ export const createModuleSlice: StateCreator<
         isCreatingModule: false,
         createModuleWizardOpen: false,
       } as Partial<ModuleSlice & ModuleSliceDependencies>);
+      
+      // If user wants to initialize a local directory, trigger the directory picker
+      if (config.initializeLocalDirectory) {
+        const { saveModuleDirectory } = get();
+        // Call saveModuleDirectory with the collection tab ID
+        // This opens the native directory picker and saves the module structure
+        await saveModuleDirectory(collectionTab.id);
+      }
       
     } catch (error) {
       set({ isCreatingModule: false });

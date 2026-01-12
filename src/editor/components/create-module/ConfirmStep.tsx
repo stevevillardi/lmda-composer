@@ -3,7 +3,9 @@
  */
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Info, AlertTriangle } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Label } from '@/components/ui/label';
+import { Info, AlertTriangle, FolderOpen } from 'lucide-react';
 import type { LogicModuleType, ScriptLanguage } from '@/shared/types';
 import { LOGIC_MODULE_TYPES } from '../../constants/logic-module-types';
 import {
@@ -20,6 +22,8 @@ interface ConfirmStepProps {
   hasMultiInstances: boolean;
   useBatchScript: boolean;
   adLanguage?: ScriptLanguage;
+  initializeLocalDirectory: boolean;
+  onInitializeLocalDirectoryChange: (checked: boolean) => void;
 }
 
 interface SummaryRowProps {
@@ -76,6 +80,8 @@ export function ConfirmStep({
   hasMultiInstances,
   useBatchScript,
   adLanguage,
+  initializeLocalDirectory,
+  onInitializeLocalDirectoryChange,
 }: ConfirmStepProps) {
   const moduleTypeInfo = LOGIC_MODULE_TYPES.find((t) => t.value === moduleType);
   const ModuleIcon = moduleTypeInfo?.icon;
@@ -199,6 +205,32 @@ export function ConfirmStep({
           details and scripts after creation.
         </AlertDescription>
       </Alert>
+
+      {/* Local Directory Option */}
+      <div className="rounded-lg border border-border bg-card/60 p-4">
+        <div className="flex items-start gap-3">
+          <Checkbox
+            id="init-local-dir"
+            checked={initializeLocalDirectory}
+            onCheckedChange={(checked) => onInitializeLocalDirectoryChange(checked === true)}
+            className="mt-0.5"
+          />
+          <div className="flex-1 space-y-1">
+            <Label
+              htmlFor="init-local-dir"
+              className="cursor-pointer text-sm font-medium leading-none"
+            >
+              <span className="flex items-center gap-1.5">
+                <FolderOpen className="size-4" />
+                Initialize local module directory
+              </span>
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              Save module to disk for version control and offline editing. You'll choose a folder after creation.
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
