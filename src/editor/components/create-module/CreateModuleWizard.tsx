@@ -19,6 +19,7 @@ import { ModuleTypeStep } from './ModuleTypeStep';
 import { BasicInfoStep } from './BasicInfoStep';
 import { ScriptConfigStep } from './ScriptConfigStep';
 import { ConfirmStep } from './ConfirmStep';
+import { validateModuleDisplayName } from '../../utils/validation';
 
 // ============================================================================
 // Types
@@ -127,7 +128,13 @@ export function CreateModuleWizard() {
       case 0: // Module type
         return moduleType !== null;
       case 1: // Basic info
-        return name.trim().length > 0;
+        // Name is required and must be valid
+        if (name.trim().length === 0) return false;
+        // DisplayName validation for module types with restrictions
+        if (displayName.length > 0) {
+          if (validateModuleDisplayName(displayName, moduleType) !== null) return false;
+        }
+        return true;
       case 2: // Script config
         return true;
       case 3: // Confirm
@@ -135,7 +142,7 @@ export function CreateModuleWizard() {
       default:
         return false;
     }
-  }, [currentStep, moduleType, name]);
+  }, [currentStep, moduleType, name, displayName]);
 
   const goNext = useCallback(() => {
     if (currentStep < WIZARD_STEPS.length - 1 && canGoNext()) {

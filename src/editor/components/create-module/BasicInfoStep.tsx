@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { LogicModuleType } from '@/shared/types';
+import { validateModuleDisplayName } from '../../utils/validation';
 
 interface BasicInfoStepProps {
   moduleType: LogicModuleType;
@@ -32,6 +33,11 @@ export function BasicInfoStep({
     : null;
   
   const supportsDisplayName = DISPLAY_NAME_SUPPORTED_TYPES.includes(moduleType);
+  
+  // DisplayName validation for module types with restrictions
+  const displayNameError = displayName.length > 0
+    ? validateModuleDisplayName(displayName, moduleType)
+    : null;
   
   // Track if user has manually edited display name
   const [displayNameTouched, setDisplayNameTouched] = useState(false);
@@ -85,10 +91,15 @@ export function BasicInfoStep({
             placeholder="My Module"
             value={displayName}
             onChange={(e) => handleDisplayNameChange(e.target.value)}
+            className={displayNameError ? 'border-destructive' : ''}
           />
-          <p className="text-xs text-muted-foreground">
-            Human-readable name shown in the UI. Defaults to the technical name if not provided.
-          </p>
+          {displayNameError ? (
+            <p className="text-xs text-destructive">{displayNameError}</p>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Human-readable name shown in the UI. Defaults to the technical name if not provided.
+            </p>
+          )}
         </div>
       )}
     </div>

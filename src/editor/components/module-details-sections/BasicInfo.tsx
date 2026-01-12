@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useEditorStore } from '../../stores/editor-store';
 import type { LogicModuleType } from '@/shared/types';
 import { MODULE_TYPE_SCHEMAS } from '@/shared/module-type-schemas';
+import { validateModuleDisplayName } from '../../utils/validation';
 
 interface ModuleDetailsBasicInfoProps {
   tabId: string;
@@ -50,6 +51,12 @@ export function ModuleDetailsBasicInfo({ tabId, moduleType }: ModuleDetailsBasic
       const invalidChars = /[%$^&*]/;
       if (invalidChars.test(draftData.displayName)) {
         errors.displayName = 'Resource Label cannot include special characters: % $ ^ & *';
+      }
+      
+      // Additional validation for module types with hyphen restrictions
+      const hyphenError = validateModuleDisplayName(draftData.displayName, moduleType);
+      if (hyphenError && !errors.displayName) {
+        errors.displayName = hyphenError;
       }
     }
     
