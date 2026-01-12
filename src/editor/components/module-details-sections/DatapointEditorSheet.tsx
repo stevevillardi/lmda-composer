@@ -1,5 +1,6 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { AlertCircle, Info, Database, Bell, Sliders, FileText, Calculator, Terminal, Clock, Gauge, Tags, Plus, Trash2 } from 'lucide-react';
+import { AlertTokenPicker } from './AlertTokenPicker';
 import {
   Sheet,
   SheetContent,
@@ -227,6 +228,50 @@ export function DatapointEditorSheet({
 }: DatapointEditorSheetProps) {
   const [formData, setFormData] = useState<Partial<DataPoint>>(createEmptyDatapoint(datapointType));
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  // Refs for alert subject and body fields to support cursor-position token insertion
+  const alertSubjectRef = useRef<HTMLInputElement>(null);
+  const alertBodyRef = useRef<HTMLTextAreaElement>(null);
+
+  // Insert token at cursor position for alert subject
+  const handleInsertSubjectToken = (token: string) => {
+    const input = alertSubjectRef.current;
+    if (!input) {
+      handleFieldChange('alertSubject', (formData.alertSubject || '') + token);
+      return;
+    }
+    const start = input.selectionStart ?? input.value.length;
+    const end = input.selectionEnd ?? input.value.length;
+    const currentValue = formData.alertSubject || '';
+    const newValue = currentValue.slice(0, start) + token + currentValue.slice(end);
+    handleFieldChange('alertSubject', newValue);
+    // Restore focus and cursor position after React re-render
+    requestAnimationFrame(() => {
+      input.focus();
+      const newCursor = start + token.length;
+      input.setSelectionRange(newCursor, newCursor);
+    });
+  };
+
+  // Insert token at cursor position for alert body
+  const handleInsertBodyToken = (token: string) => {
+    const textarea = alertBodyRef.current;
+    if (!textarea) {
+      handleFieldChange('alertBody', (formData.alertBody || '') + token);
+      return;
+    }
+    const start = textarea.selectionStart ?? textarea.value.length;
+    const end = textarea.selectionEnd ?? textarea.value.length;
+    const currentValue = formData.alertBody || '';
+    const newValue = currentValue.slice(0, start) + token + currentValue.slice(end);
+    handleFieldChange('alertBody', newValue);
+    // Restore focus and cursor position after React re-render
+    requestAnimationFrame(() => {
+      textarea.focus();
+      const newCursor = start + token.length;
+      textarea.setSelectionRange(newCursor, newCursor);
+    });
+  };
 
   // Reset form when datapoint changes or dialog opens
   useEffect(() => {
@@ -836,8 +881,15 @@ export function DatapointEditorSheet({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="dp-alert-subject">Alert Subject</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="dp-alert-subject">Alert Subject</Label>
+                <AlertTokenPicker
+                  onInsert={handleInsertSubjectToken}
+                  moduleType="datasource"
+                />
+              </div>
               <Input
+                ref={alertSubjectRef}
                 id="dp-alert-subject"
                 value={formData.alertSubject || ''}
                 onChange={(e) => handleFieldChange('alertSubject', e.target.value)}
@@ -846,8 +898,15 @@ export function DatapointEditorSheet({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="dp-alert-body">Alert Body</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="dp-alert-body">Alert Body</Label>
+                <AlertTokenPicker
+                  onInsert={handleInsertBodyToken}
+                  moduleType="datasource"
+                />
+              </div>
               <Textarea
+                ref={alertBodyRef}
                 id="dp-alert-body"
                 value={formData.alertBody || ''}
                 onChange={(e) => handleFieldChange('alertBody', e.target.value)}

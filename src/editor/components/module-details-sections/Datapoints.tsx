@@ -74,6 +74,39 @@ function isComplexDatapoint(dp: DataPoint): boolean {
   return dp.postProcessorMethod === 'expression';
 }
 
+/**
+ * Renders text with ##TOKEN## patterns highlighted.
+ * Tokens are displayed as inline code elements with distinct styling.
+ */
+function renderWithTokenHighlights(text: string): React.ReactNode {
+  if (!text) return null;
+  
+  // Regex to match ##TOKEN## patterns (including ##<PROPERTY>## style)
+  const tokenRegex = /(##[A-Za-z0-9_<>]+##)/g;
+  const parts = text.split(tokenRegex);
+  
+  if (parts.length === 1) {
+    // No tokens found, return plain text
+    return text;
+  }
+  
+  return parts.map((part, index) => {
+    if (tokenRegex.test(part)) {
+      // Reset regex lastIndex since we're reusing it
+      tokenRegex.lastIndex = 0;
+      return (
+        <code
+          key={index}
+          className="mx-0.5 rounded bg-primary/15 px-1 py-0.5 font-mono text-[10px] text-primary"
+        >
+          {part}
+        </code>
+      );
+    }
+    return part;
+  });
+}
+
 // Get source/method display for a datapoint
 function getSourceMethodDisplay(dp: DataPoint): { label: string; isComplex: boolean } {
   if (isComplexDatapoint(dp)) {
@@ -565,10 +598,10 @@ export function ModuleDetailsDatapoints({ tabId, moduleId, moduleType }: ModuleD
                                       </div>
                                       <p className="
                                         rounded-sm bg-muted/50 px-2 py-1
-                                        font-mono text-xs wrap-break-word
+                                        text-xs wrap-break-word
                                         whitespace-pre-wrap text-foreground
                                       ">
-                                        {dp.alertSubject}
+                                        {renderWithTokenHighlights(dp.alertSubject!)}
                                       </p>
                                     </div>
                                   )}
@@ -586,11 +619,11 @@ export function ModuleDetailsDatapoints({ tabId, moduleId, moduleType }: ModuleD
                                       </div>
                                       <p className="
                                         max-h-32 overflow-y-auto rounded-sm
-                                        bg-muted/50 px-2 py-1.5 font-mono
+                                        bg-muted/50 px-2 py-1.5
                                         text-xs wrap-break-word
                                         whitespace-pre-wrap text-foreground
                                       ">
-                                        {dp.alertBody}
+                                        {renderWithTokenHighlights(dp.alertBody!)}
                                       </p>
                                     </div>
                                   )}
