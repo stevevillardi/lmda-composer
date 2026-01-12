@@ -65,8 +65,9 @@ The API Explorer is an integrated REST client that:
 
 ### Right Sidebar
 
-The sidebar provides three tabs:
+The sidebar provides four tabs:
 
+- **Docs**: View endpoint documentation with parameters, schemas, and examples
 - **Endpoints**: Browse all available API endpoints
 - **Variables**: Manage reusable environment variables
 - **History**: View and reload past API requests
@@ -92,6 +93,27 @@ Unlike traditional API tools, you don't need API tokens:
 <Aside type="tip" title="No Token Management">
   No need to create, store, or rotate API tokens. Your session handles authentication automatically. Just stay logged into LogicMonitor.
 </Aside>
+
+### Endpoint Documentation
+
+The **Docs** tab provides comprehensive endpoint documentation:
+
+<CardGrid>
+  <FeatureCard title="Path Parameters" icon="route" color="blue">
+    Required path variables with type information and descriptions.
+  </FeatureCard>
+  <FeatureCard title="Query Parameters" icon="filter" color="purple">
+    Optional query parameters with enum values and constraints.
+  </FeatureCard>
+  <FeatureCard title="Request Body Schema" icon="code" color="green">
+    Nested property details with types, required indicators, and constraints.
+  </FeatureCard>
+  <FeatureCard title="Example Generation" icon="document" color="orange">
+    Auto-generated example payloads based on the schema.
+  </FeatureCard>
+</CardGrid>
+
+Select an endpoint from the catalog or enter a path to view its documentation automatically.
 
 ### Endpoint Discovery
 

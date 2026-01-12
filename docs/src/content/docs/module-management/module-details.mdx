@@ -255,6 +255,78 @@ Click the **Edit** (pencil) button on any datapoint row to open the editor sheet
   The datapoint editor shows the most commonly used options. For advanced settings like dynamic thresholds or complex alert tuning, use the LMX module page in your portal.
 </Aside>
 
+### Status Display Names
+
+Translate numeric datapoint values to human-readable status strings in the LogicMonitor UI. Instead of displaying raw numbers like `0` or `1`, show meaningful labels like "Offline" or "Online".
+
+<CardGrid>
+  <FeatureCard title="Value Translation" icon="translate" color="cyan">
+    Map specific numeric values to descriptive status labels.
+  </FeatureCard>
+  <FeatureCard title="Flexible Operators" icon="filter" color="purple">
+    Use equals, greater than, less than, or range operators for matching.
+  </FeatureCard>
+</CardGrid>
+
+**Adding Status Translations:**
+
+<Steps>
+
+1. Open the datapoint editor sheet
+
+2. Scroll to the **Status Display Names** section
+
+3. Click **Add Translation**
+
+4. Configure:
+   - **Operator**: How to match the value (equals, greater than, less than, etc.)
+   - **Value**: The numeric threshold to match
+   - **Display Name**: The human-readable label to show (max 128 characters)
+
+5. Add additional translations for other value ranges
+
+6. Click **Save** to apply changes
+
+</Steps>
+
+**Example Configuration:**
+
+| Operator | Value | Display Name |
+|----------|-------|--------------|
+| Equals | 0 | Offline |
+| Equals | 1 | Online |
+| Greater Than | 90 | Critical Load |
+
+### Alert Message Templates
+
+Customize alert notifications with dynamic content using LogicMonitor tokens. Configure both the subject line and message body.
+
+<Tabs>
+  <TabItem label="Alert Subject" icon="tag">
+    The subject line of alert notifications:
+    - Supports LogicMonitor tokens like `##DEVICE##`, `##INSTANCE##`, `##DATAPOINT##`
+    - Keep concise for email and SMS compatibility
+    - Leave empty to use LogicMonitor defaults
+  </TabItem>
+  <TabItem label="Alert Body" icon="document">
+    The full message body:
+    - Use tokens for dynamic values: `##VALUE##`, `##THRESHOLD##`, `##LEVEL##`
+    - Include troubleshooting steps or runbook links
+    - Supports multi-line text
+  </TabItem>
+</Tabs>
+
+**Common Tokens:**
+
+| Token | Description |
+|-------|-------------|
+| `##DEVICE##` | Device display name |
+| `##INSTANCE##` | Instance name |
+| `##DATAPOINT##` | Datapoint name |
+| `##VALUE##` | Current metric value |
+| `##THRESHOLD##` | Threshold that was crossed |
+| `##LEVEL##` | Alert severity level |
+
 ---
 
 ## Config Checks Section

@@ -1,0 +1,247 @@
+---
+title: Creating LogicModules
+description: Use the Create LogicModule wizard to build new modules directly in your portal.
+---
+
+import { Card, CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
+import { Icon } from '@astrojs/starlight/components';
+import FeatureCard from '../../../components/FeatureCard.astro';
+
+The Create LogicModule wizard guides you through building new modules directly from LMDA Composer. Create DataSources, ConfigSources, and other module types without leaving the editor.
+
+## Prerequisites
+
+<CardGrid>
+  <FeatureCard title="Portal Connection" icon="link" color="blue">
+    You must be connected to a LogicMonitor portal with an active session.
+  </FeatureCard>
+  <FeatureCard title="Write Access" icon="lock" color="purple">
+    Your account needs permission to create LogicModules in the portal.
+  </FeatureCard>
+</CardGrid>
+
+<Aside type="note" title="Portal Required">
+  The Create LogicModule option only appears when you have an active portal connection. If you don't see the option, ensure you have a LogicMonitor tab open in your browser.
+</Aside>
+
+---
+
+## Starting the Wizard
+
+Access the Create LogicModule wizard from the welcome screen:
+
+<Steps>
+
+1. Close all tabs or open a new LMDA Composer window to see the welcome screen
+
+2. Click **Create LogicModule** in the Quick Start section
+
+3. The wizard opens with module type selection
+
+</Steps>
+
+---
+
+## Wizard Steps
+
+### Step 1: Module Type
+
+Select the type of LogicModule to create:
+
+<Tabs>
+  <TabItem label="DataSource" icon="seti:db">
+    Collect numeric metrics from devices. Supports Active Discovery for multi-instance monitoring.
+  </TabItem>
+  <TabItem label="ConfigSource" icon="seti:config">
+    Collect and track configuration data. Alert on config changes or validation failures.
+  </TabItem>
+  <TabItem label="TopologySource" icon="random">
+    Discover network topology and relationships between resources.
+  </TabItem>
+  <TabItem label="PropertySource" icon="tag">
+    Discover and set device properties automatically.
+  </TabItem>
+  <TabItem label="LogSource" icon="document">
+    Collect and parse log data from devices.
+  </TabItem>
+  <TabItem label="EventSource" icon="bell">
+    Generate events from device data for alerting.
+  </TabItem>
+  <TabItem label="DiagnosticSource" icon="stethoscope">
+    Run diagnostic scripts on-demand or via Diagnostic Rules.
+  </TabItem>
+</Tabs>
+
+### Step 2: Basic Information
+
+Enter the module identification:
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| Name | Yes | Technical identifier (alphanumeric, underscores, hyphens) |
+| Display Name | DataSource/ConfigSource only | Human-readable name shown in UI |
+
+<Aside type="tip" title="Auto-Sync">
+  The Display Name automatically syncs with the Name field until you manually edit it.
+</Aside>
+
+### Step 3: Script Configuration
+
+Configure the scripting options:
+
+<CardGrid>
+  <FeatureCard title="Script Language" icon="code" color="blue">
+    Choose between Groovy and PowerShell (where supported).
+  </FeatureCard>
+  <FeatureCard title="Instance Type" icon="layers" color="purple">
+    Single instance or Multi-instance with Active Discovery (DataSource/ConfigSource only).
+  </FeatureCard>
+  <FeatureCard title="Batch Script" icon="terminal" color="green">
+    Enable batch collection for multi-instance modules.
+  </FeatureCard>
+  <FeatureCard title="AD Language" icon="target" color="orange">
+    Choose language for Active Discovery script (can differ from collection).
+  </FeatureCard>
+</CardGrid>
+
+### Step 4: Confirmation
+
+Review your configuration before creating:
+
+- Module type and name
+- Script language selection
+- Instance type and AD settings
+- Default settings that will be applied
+
+Click **Create Module** to create the module in your portal.
+
+---
+
+## Module Type Comparison
+
+| Type | Display Name | Collect Interval | AD Support | Script Languages |
+|------|-------------|------------------|------------|------------------|
+| DataSource | Yes | 5 minutes | Yes | Groovy, PowerShell |
+| ConfigSource | Yes | 1 hour | Yes | Groovy, PowerShell |
+| TopologySource | No | 1 hour | No | Groovy, PowerShell |
+| PropertySource | No | On discovery | No | Groovy, PowerShell |
+| LogSource | No | 5 minutes | No | Groovy only |
+| EventSource | No | 30 minutes | No | Groovy only |
+| DiagnosticSource | No | On-demand | No | Groovy, PowerShell |
+
+---
+
+## Default Settings
+
+Each module type is created with sensible defaults:
+
+### DataSource Defaults
+
+<CardGrid>
+  <FeatureCard title="exitCode Datapoint" icon="check-circle" color="green">
+    A default datapoint that captures the script exit code.
+  </FeatureCard>
+  <FeatureCard title="5-Minute Collection" icon="clock" color="blue">
+    Standard collection interval for metric gathering.
+  </FeatureCard>
+</CardGrid>
+
+### ConfigSource Defaults
+
+<CardGrid>
+  <FeatureCard title="RetrievalCheck" icon="warning" color="orange">
+    A config check that alerts when configuration cannot be retrieved.
+  </FeatureCard>
+  <FeatureCard title="1-Hour Collection" icon="clock" color="blue">
+    Standard interval for configuration polling.
+  </FeatureCard>
+</CardGrid>
+
+### LogSource Defaults
+
+<CardGrid>
+  <FeatureCard title="Resource Mapping" icon="link" color="purple">
+    Default log fields and resource mapping configuration.
+  </FeatureCard>
+  <FeatureCard title="5-Minute Collection" icon="clock" color="blue">
+    Standard interval for log collection.
+  </FeatureCard>
+</CardGrid>
+
+### EventSource Defaults
+
+<CardGrid>
+  <FeatureCard title="Alert Settings" icon="bell" color="orange">
+    Warning level alerts with 60-minute effective interval.
+  </FeatureCard>
+  <FeatureCard title="30-Minute Schedule" icon="clock" color="blue">
+    Standard schedule for event checking.
+  </FeatureCard>
+</CardGrid>
+
+### All Modules
+
+<Aside type="note" title="Safe Development Mode">
+  All new modules are created with `AppliesTo: false()` so they won't match any resources until you configure targeting. This prevents accidental data collection during development.
+</Aside>
+
+---
+
+## After Creation
+
+Once the module is created:
+
+<Steps>
+
+1. The module opens in a new tab, bound to your portal
+
+2. Edit the collection script in the main editor
+
+3. Use **Module Details** to configure metadata, datapoints, or config checks
+
+4. Test your script with the **Run** button
+
+5. **Commit** changes to save back to LogicMonitor
+
+6. Optionally, save to a module directory for local development
+
+</Steps>
+
+---
+
+## Troubleshooting
+
+### Wizard Not Available
+
+<Aside type="caution" title="Portal Connection Required">
+  If you don't see the Create LogicModule option:
+  - Ensure you have a LogicMonitor portal tab open
+  - Check that your session is active (not logged out)
+  - Refresh the LMDA Composer tab
+</Aside>
+
+### Creation Fails
+
+Common causes of creation failures:
+
+| Error | Solution |
+|-------|----------|
+| Module name already exists | Choose a unique name |
+| Permission denied | Check your LogicMonitor role permissions |
+| API error | Verify portal connection and try again |
+
+---
+
+## Next Steps
+
+<LinkCard
+  title="Module Details Editor"
+  description="Edit datapoints, config checks, and module metadata."
+  href="/lmda-composer/module-management/module-details/"
+/>
+
+<LinkCard
+  title="Committing Changes"
+  description="Save your script changes back to LogicMonitor."
+  href="/lmda-composer/module-management/committing/"
+/>
