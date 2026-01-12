@@ -103,7 +103,7 @@ try {
             if (matcherID.find()) {
                 collectorID = matcherID[0][1]
             }
-            // Parse company: format is "company=lmstevenvillardi"
+            // Parse company: format is "company=portalname"
             def matcherCompany = (line =~ regexCompany)
             if (matcherCompany.find()) {
                 company = matcherCompany[0][1]

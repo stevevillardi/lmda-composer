@@ -22,6 +22,7 @@ import {
   Terminal,
 } from 'lucide-react';
 import { fileToasts, portalToasts } from '../../utils/toast-utils';
+import { DOCS_URLS } from '@/shared/app-config';
 import { useEditorStore } from '../../stores/editor-store';
 import { getPortalBindingStatus } from '../../utils/portal-binding';
 import { Button } from '@/components/ui/button';
@@ -35,6 +36,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Kbd } from '@/components/ui/kbd';
 import { DropdownMenuSectionHeader } from '.././shared';
+import { LMDA_MODULE_DOCS_URLS } from '@/shared/app-config';
 
 export function ActionsDropdown() {
   const {
@@ -371,7 +373,7 @@ export function ActionsDropdown() {
           </DropdownMenuItem>
 
           <DropdownMenuItem onClick={() => {
-            window.open('https://stevevillardi.github.io/lmda-composer/', '_blank');
+            window.open(DOCS_URLS.home, '_blank');
           }}>
             <BookOpen className="mr-2 size-4" />
             <span className="flex-1">Documentation</span>
@@ -379,7 +381,7 @@ export function ActionsDropdown() {
           </DropdownMenuItem>
 
           <DropdownMenuItem onClick={() => {
-            window.open('https://logicmonitor.github.io/lm-powershell-module-docs/', '_blank');
+            window.open(LMDA_MODULE_DOCS_URLS.docs, '_blank');
           }}>
             <Terminal className="mr-2 size-4" />
             <span className="flex-1">Install the LM Pwsh Module</span>

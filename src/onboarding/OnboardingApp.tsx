@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowUpRight, BookOpen, ExternalLink, Layers, Play, Sparkles, Target, Pin, Puzzle, Terminal, X } from 'lucide-react';
+import { ArrowUpRight, BookOpen, ExternalLink, Layers, Play, Sparkles, Target, Pin, Puzzle, Terminal, X, Check, History } from 'lucide-react';
+import { getLatestRelease } from '@/shared/release-notes';
+import { DOCS_URLS, LMDA_MODULE_DOCS_URLS } from '@/shared/app-config';
 
 const steps = [
   {
@@ -27,6 +29,62 @@ const features = [
   { label: 'Review execution history and parsed output', icon: Layers },
   { label: 'Open and save local script files', icon: BookOpen },
 ];
+
+function RecentChanges() {
+  const latestRelease = getLatestRelease();
+  
+  if (!latestRelease) return null;
+  
+  return (
+    <section className="
+      mt-8 rounded-2xl border border-border bg-card/80 p-5 shadow-sm
+    ">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <span className="
+            inline-flex size-8 items-center justify-center rounded-lg
+            bg-purple-500/10 text-purple-500
+          ">
+            <History className="size-4" />
+          </span>
+          <h2 className="text-xl font-semibold">Recent Changes</h2>
+        </div>
+        <span className="
+          rounded-full bg-purple-500/10 px-3 py-1 text-xs font-medium
+          text-purple-500
+        ">
+          v{latestRelease.version}
+        </span>
+      </div>
+      <ul className="mt-4 grid gap-2 text-sm text-muted-foreground">
+        {latestRelease.highlights.map((highlight, index) => (
+          <li key={index} className="flex items-start gap-2">
+            <span className="
+              mt-0.5 inline-flex size-5 shrink-0 items-center justify-center
+              rounded-full bg-emerald-500/10 text-emerald-500
+            ">
+              <Check className="size-3" />
+            </span>
+            <span>{highlight}</span>
+          </li>
+        ))}
+      </ul>
+      <a
+        href={DOCS_URLS.changelog}
+        target="_blank"
+        rel="noreferrer"
+        className="
+          mt-4 inline-flex items-center gap-1.5 text-sm font-medium
+          text-purple-500 transition-colors
+          hover:text-purple-400
+        "
+      >
+        View full changelog
+        <ExternalLink className="size-3" />
+      </a>
+    </section>
+  );
+}
 
 export function OnboardingApp() {
   const [showPsPromo, setShowPsPromo] = useState(true);
@@ -126,7 +184,7 @@ export function OnboardingApp() {
                     Use the Logic.Monitor PowerShell module to manage your LM environment programmatically.
                   </p>
                   <a
-                    href="https://logicmonitor.github.io/lm-powershell-module-docs/"
+                    href={LMDA_MODULE_DOCS_URLS.docs}
                     target="_blank"
                     rel="noreferrer"
                     className="
@@ -272,6 +330,9 @@ export function OnboardingApp() {
           </div>
         </section>
 
+        {/* Recent Changes Section */}
+        <RecentChanges />
+
         <section className="
           mt-8 rounded-2xl border border-border bg-foreground p-5
           text-background shadow-sm
@@ -320,7 +381,7 @@ export function OnboardingApp() {
               This page shows on first install only. You can always reopen the composer from the extension icon.
             </p>
             <a
-              href="https://stevevillardi.github.io/lmda-composer/"
+              href={DOCS_URLS.home}
               target="_blank"
               rel="noreferrer"
               className="

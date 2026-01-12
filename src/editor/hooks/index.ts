@@ -12,4 +12,5 @@ export { useBrowserFileSystemWarning } from './useBrowserFileSystemWarning';
 export { useWindowTitle } from './useWindowTitle';
 export { useActiveTab } from './useActiveTab';
 export { usePortalBinding, type PortalBindingResult } from './usePortalBinding';
+export { useReleaseNotes } from './useReleaseNotes';
 

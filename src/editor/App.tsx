@@ -45,7 +45,9 @@ import {
   useBrowserFileSystemWarning,
   useWindowTitle,
   useActiveTab,
+  useReleaseNotes,
 } from './hooks';
+import { ReleaseNotesDialog } from './components/shared/ReleaseNotesDialog';
 
 // Lazy-loaded components
 const EditorPanelLazy = lazy(() => import('./components/composer/EditorPanel').then((mod) => ({ default: mod.EditorPanel })));
@@ -149,6 +151,18 @@ export function App() {
     fileSystemWarningBrowser,
     handleBraveWarningDismiss,
   } = useBrowserFileSystemWarning();
+
+  // Release notes modal - shows after extension updates
+  // Check if there are any pending URL operations
+  const hasPendingUrlContext = Boolean(
+    urlContext.pendingResourceId || 
+    urlContext.pendingDataSourceId || 
+    urlContext.pendingModuleId
+  );
+  const { markAsSeen: markReleaseNotesSeen } = useReleaseNotes({
+    pendingUrlContext: hasPendingUrlContext ? urlContext : null,
+    showDraftRestoreDialog: showDraftDialog,
+  });
 
   // Restore file handles after draft is restored or on mount
   useEffect(() => {
@@ -375,6 +389,9 @@ export function App() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      
+      {/* Release Notes Modal */}
+      <ReleaseNotesDialog onDismiss={markReleaseNotesSeen} />
     </div>
   );
 }

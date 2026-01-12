@@ -27,6 +27,7 @@ export interface UISliceState {
   commandPaletteOpen: boolean;
   settingsDialogOpen: boolean;
   executionHistoryOpen: boolean;
+  releaseNotesOpen: boolean;
   
   // Chord keyboard shortcut state (⌘K waiting for follow-up key)
   chordPending: boolean;
@@ -53,6 +54,7 @@ export interface UISliceActions {
   setCommandPaletteOpen: (open: boolean) => void;
   setSettingsDialogOpen: (open: boolean) => void;
   setExecutionHistoryOpen: (open: boolean) => void;
+  setReleaseNotesOpen: (open: boolean) => void;
   
   // Chord keyboard shortcut action
   setChordPending: (pending: boolean) => void;
@@ -107,6 +109,7 @@ export const uiSliceInitialState: UISliceState = {
   commandPaletteOpen: false,
   settingsDialogOpen: false,
   executionHistoryOpen: false,
+  releaseNotesOpen: false,
   
   // Chord keyboard shortcut
   chordPending: false,
@@ -151,6 +154,10 @@ export const createUISlice: StateCreator<
 
   setExecutionHistoryOpen: (open) => {
     set({ executionHistoryOpen: open });
+  },
+
+  setReleaseNotesOpen: (open) => {
+    set({ releaseNotesOpen: open });
   },
 
   // Chord keyboard shortcut action

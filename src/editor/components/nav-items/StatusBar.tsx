@@ -10,6 +10,7 @@ import { Kbd } from '@/components/ui/kbd';
 import { cn } from '@/lib/utils';
 import { COLORS } from '@/editor/constants/colors';
 import { MAX_SCRIPT_LENGTH } from '@/shared/types';
+import { DOCS_URLS } from '@/shared/app-config';
 
 // Get extension version from manifest
 const getExtensionVersion = (): string => {
@@ -209,7 +210,7 @@ export function StatusBar() {
             Use Ctrl/Alt instead of ⌘/⌥ on Windows/Linux
           </p>
           <a
-            href="https://stevevillardi.github.io/lmda-composer/"
+            href={DOCS_URLS.home}
             target="_blank"
             rel="noreferrer"
             className="
