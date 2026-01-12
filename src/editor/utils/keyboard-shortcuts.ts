@@ -1,5 +1,5 @@
 import { KeyCode, KeyMod, type editor } from 'monaco-editor';
-import { toast } from 'sonner';
+import { clipboardToasts } from './toast-utils';
 import { useEditorStore } from '../stores/editor-store';
 
 // ============================================================================
@@ -129,11 +129,9 @@ export const copyOutputToClipboard = async () => {
   if (currentExecution?.rawOutput) {
     try {
       await navigator.clipboard.writeText(currentExecution.rawOutput);
-      toast.success('Output copied to clipboard');
+      clipboardToasts.outputCopied();
     } catch {
-      toast.error('Failed to copy output', {
-        description: 'Could not copy to clipboard',
-      });
+      clipboardToasts.copyFailed('output');
     }
   }
   setCommandPaletteOpen(false);

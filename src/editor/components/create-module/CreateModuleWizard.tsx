@@ -3,7 +3,7 @@
  */
 import { useState, useCallback } from 'react';
 import { Plus, ChevronLeft, ChevronRight, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { moduleToasts, portalToasts } from '../../utils/toast-utils';
 import {
   Dialog,
   DialogContent,
@@ -152,9 +152,7 @@ export function CreateModuleWizard() {
   // Create module
   const handleCreate = useCallback(async () => {
     if (!selectedPortalId) {
-      toast.error('No portal connected', {
-        description: 'Please connect to a LogicMonitor portal first.',
-      });
+      portalToasts.noPortalForAction();
       return;
     }
 
@@ -173,13 +171,9 @@ export function CreateModuleWizard() {
     try {
       await createModule(config);
       handleOpenChange(false);
-      toast.success('Module created', {
-        description: `Successfully created "${config.name}" in your portal.`,
-      });
+      moduleToasts.created(config.name);
     } catch (error) {
-      toast.error('Failed to create module', {
-        description: error instanceof Error ? error.message : 'Unknown error',
-      });
+      moduleToasts.createFailed(error instanceof Error ? error : undefined);
     } finally {
       setIsCreating(false);
     }

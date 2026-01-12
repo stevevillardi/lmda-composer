@@ -20,7 +20,7 @@ import {
   CollectionIcon,
   DatapointsIcon,
 } from '../../constants/icons';
-import { toast } from 'sonner';
+import { moduleToasts, fileToasts } from '../../utils/toast-utils';
 import type { editor } from 'monaco-editor';
 import type { LogicModuleType, ModuleSearchMatchType, ScriptSearchResult, ScriptMatchRange } from '@/shared/types';
 import { useEditorStore } from '../../stores/editor-store';
@@ -302,9 +302,7 @@ export function LogicModuleSearch() {
       : selectedScriptSearchResult.module.collectionScript;
     if (!script?.trim()) return;
     openModuleScripts(selectedScriptSearchResult.module, [{ type: scriptType, content: script }]);
-    toast.success('Script loaded', {
-      description: selectedScriptSearchResult.module.displayName || selectedScriptSearchResult.module.name,
-    });
+    moduleToasts.scriptLoaded('collection', selectedScriptSearchResult.module.displayName || selectedScriptSearchResult.module.name);
     setModuleSearchOpen(false);
   };
 
@@ -323,9 +321,7 @@ export function LogicModuleSearch() {
       language,
       mode: 'freeform',
     });
-    toast.success('New file created', {
-      description: `Created from ${module.displayName || module.name}`,
-    });
+    fileToasts.newFileCreated(module.displayName || module.name);
     setModuleSearchOpen(false);
   };
 

@@ -38,6 +38,9 @@ export class PortalManager {
   private persistTimeout: ReturnType<typeof setTimeout> | null = null;
   private static readonly PERSIST_DEBOUNCE_MS = 300;
   private static readonly CSRF_TOKEN_TTL_MS = 10 * 60 * 1000;
+  
+  /** Per-portal mutex to prevent concurrent getValidTabId calls */
+  private tabValidationLocks: Map<string, Promise<number | null>> = new Map();
 
   /**
    * Initialize the PortalManager by loading persisted state.
@@ -131,10 +134,34 @@ export class PortalManager {
    * Returns null if no valid tabs remain.
    * Note: Does NOT delete the portal if tabs are exhausted - caller should handle rediscovery.
    * 
-   * This method builds a new array of valid tab IDs and updates atomically to avoid
-   * race conditions when called concurrently.
+   * Uses a per-portal mutex to prevent concurrent validation calls from
+   * causing race conditions when updating portal.tabIds.
    */
   private async getValidTabId(portal: Portal): Promise<number | null> {
+    // Check if there's an ongoing validation for this portal
+    const existingLock = this.tabValidationLocks.get(portal.id);
+    if (existingLock) {
+      // Wait for the existing validation to complete and return its result
+      return existingLock;
+    }
+    
+    // Create a new validation promise and store it as the lock
+    const validationPromise = this.performTabValidation(portal);
+    this.tabValidationLocks.set(portal.id, validationPromise);
+    
+    try {
+      return await validationPromise;
+    } finally {
+      // Release the lock when done
+      this.tabValidationLocks.delete(portal.id);
+    }
+  }
+  
+  /**
+   * Internal method that performs the actual tab validation.
+   * Called by getValidTabId which handles the mutex.
+   */
+  private async performTabValidation(portal: Portal): Promise<number | null> {
     interface Candidate {
       tabId: number;
       isUsable: boolean;
@@ -153,7 +180,7 @@ export class PortalManager {
         const hostname = new URL(tab.url).hostname;
         if (!hostname.endsWith('.logicmonitor.com')) continue;
 
-          validTabIds.push(tabId);
+        validTabIds.push(tabId);
 
         const isUsable =
           tab.status === 'complete' &&

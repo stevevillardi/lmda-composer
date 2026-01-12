@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { toast } from 'sonner';
+import { clipboardToasts } from '../../../utils/toast-utils';
 import type { Logs } from '../types';
 
 interface LogsViewerProps {
@@ -19,10 +19,10 @@ export function LogsViewer({ logs }: LogsViewerProps) {
     try {
       await navigator.clipboard.writeText(lines.join('\n'));
       setCopiedTab(tabName);
-      toast.success(`${tabName} logs copied`);
+      clipboardToasts.copied(`${tabName} logs`);
       setTimeout(() => setCopiedTab(null), 2000);
     } catch {
-      toast.error('Failed to copy logs');
+      clipboardToasts.copyFailed('logs');
     }
   };
 

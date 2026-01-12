@@ -1,6 +1,6 @@
 import { Trash2, XCircle, Clock, Loader2, Play, CheckCircle2, Maximize2, X, Network } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { toast } from 'sonner';
+import { clipboardToasts } from '../../utils/toast-utils';
 import { useEditorStore } from '../../stores/editor-store';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -197,7 +197,7 @@ export function OutputPanel() {
             text={currentExecution.rawOutput}
             size="sm"
             onCopy={() => {
-              toast.success('Output copied to clipboard');
+              clipboardToasts.outputCopied();
             }}
           />
         )}

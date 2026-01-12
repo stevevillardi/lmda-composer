@@ -15,7 +15,7 @@ import {
   X,
 } from 'lucide-react';
 import { SuccessIcon } from '../../constants/icons';
-import { toast } from 'sonner';
+import { appliesToToasts } from '../../utils/toast-utils';
 import { useEditorStore } from '../../stores/editor-store';
 import {
   Dialog,
@@ -472,14 +472,14 @@ export function AppliesToTester() {
     setAppliesToExpression(func.code);
     setLoadedFunction(func);
     clearAppliesToResults();
-    toast.success(`Function "${func.name}" loaded into editor`);
+    appliesToToasts.functionLoaded(func.name);
   };
 
   // Handle unload function
   const handleUnloadFunction = () => {
     setLoadedFunction(null);
     clearAppliesToResults();
-    toast.info('Function unloaded');
+    appliesToToasts.functionUnloaded();
   };
 
   // Handle save as function (create new)
@@ -498,10 +498,10 @@ export function AppliesToTester() {
   const handleCreateFunction = async (name: string, code: string, description?: string) => {
     try {
       await createCustomFunction(name, code, description);
-      toast.success(`Custom function "${name}" created successfully!`);
+      appliesToToasts.functionCreated(name);
       setLoadedFunction(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to create function');
+      appliesToToasts.functionFailed('create', error instanceof Error ? error : undefined);
       throw error;
     }
   };
@@ -511,12 +511,12 @@ export function AppliesToTester() {
     if (!loadedFunction) return;
     try {
       await updateCustomFunction(loadedFunction.id, name, code, description);
-      toast.success(`Custom function "${name}" updated successfully!`);
+      appliesToToasts.functionUpdated(name);
       setLoadedFunction(null);
       setUpdateConfirmationOpen(false);
       fetchCustomFunctions(); // Refresh list
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to commit function');
+      appliesToToasts.functionFailed('update', error instanceof Error ? error : undefined);
       throw error;
     }
   };
@@ -526,10 +526,10 @@ export function AppliesToTester() {
     if (!deletingFunctionId) return;
     try {
       await deleteCustomFunction(deletingFunctionId);
-      toast.success('Custom function deleted successfully!');
+      appliesToToasts.functionDeleted();
       setDeletingFunctionId(null);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to delete function');
+      appliesToToasts.functionFailed('delete', error instanceof Error ? error : undefined);
     }
   };
 

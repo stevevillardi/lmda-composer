@@ -1,6 +1,6 @@
 import { useMemo, useState, KeyboardEvent } from 'react';
 import { Search, ServerOff, ChevronDown, ChevronRight, Monitor, RefreshCw } from 'lucide-react';
-import { toast } from 'sonner';
+import { clipboardToasts, deviceToasts } from '../../utils/toast-utils';
 import { useEditorStore } from '../../stores/editor-store';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -80,21 +80,15 @@ export function DevicePropertiesPanel() {
   const handleCopy = async (value: string, propertyName: string) => {
     try {
       await navigator.clipboard.writeText(value);
-      toast.success('Property value copied', {
-        description: propertyName,
-      });
+      clipboardToasts.copiedWithDescription(propertyName);
     } catch (_error) {
-      toast.error('Failed to copy', {
-        description: 'Could not copy property value to clipboard',
-      });
+      clipboardToasts.copyFailed('property value');
     }
   };
 
   const handleInsert = (propertyName: string) => {
     insertPropertyAccess(propertyName);
-    toast.success('Property access inserted', {
-      description: propertyName,
-    });
+    deviceToasts.propertyInserted(propertyName);
   };
 
   const handlePropertyKeyDown = (e: KeyboardEvent<HTMLButtonElement>, propertyName: string) => {

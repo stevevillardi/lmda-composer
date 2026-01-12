@@ -13,7 +13,7 @@ import {
   ImportIcon,
 } from '../../constants/icons';
 import { MODE_ITEMS } from '../../constants/mode-config';
-import { toast } from 'sonner';
+import { executionToasts, moduleToasts, portalToasts } from '../../utils/toast-utils';
 import { useEditorStore } from '../../stores/editor-store';
 import { DEFAULT_GROOVY_TEMPLATE, DEFAULT_POWERSHELL_TEMPLATE } from '../../config/script-templates';
 import { Button } from '@/components/ui/button';
@@ -159,9 +159,7 @@ export function Toolbar() {
 
   const handleRunClick = () => {
     if (powerShellBlocked) {
-      toast.info('PowerShell runs only on Windows collectors', {
-        description: 'Select a Windows collector to run this script.',
-      });
+      executionToasts.powershellWindowsOnly();
       return;
     }
     executeScript();
@@ -462,14 +460,10 @@ export function Toolbar() {
                       if (count > 0) {
                         setModuleLineageDialogOpen(true);
                       } else {
-                        toast.info('No lineage history found', {
-                          description: 'This module does not have historical versions available.',
-                        });
+                        moduleToasts.noLineageHistory();
                       }
                     } catch (error) {
-                      toast.error('Failed to load lineage', {
-                        description: error instanceof Error ? error.message : 'Unknown error',
-                      });
+                      moduleToasts.lineageLoadFailed(error instanceof Error ? error : undefined);
                     }
                   }}
                   disabled={isFetchingLineage || !isPortalBoundActive}
@@ -580,9 +574,7 @@ export function Toolbar() {
                       await fetchModuleForCommit(activeTabId);
                       setModuleCommitConfirmationOpen(true);
                     } catch (error) {
-                      toast.error('Failed to prepare push', {
-                        description: error instanceof Error ? error.message : 'Unknown error',
-                      });
+                      portalToasts.preparePushFailed(error instanceof Error ? error : undefined);
                     }
                   }}
                   disabled={!canCommit}

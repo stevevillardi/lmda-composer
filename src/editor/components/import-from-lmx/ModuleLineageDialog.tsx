@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Clock, History, RotateCcw } from 'lucide-react';
-import { toast } from 'sonner';
+import { moduleToasts } from '../../utils/toast-utils';
 import {
   Dialog,
   DialogContent,
@@ -90,13 +90,11 @@ export function ModuleLineageDialog({ activeTab }: ModuleLineageDialogProps) {
 
   const handleRestore = () => {
     if (!selectedVersionScript) {
-      toast.error('No script available to restore for this version');
+      moduleToasts.noScriptToRestore();
       return;
     }
     updateActiveTabContent(selectedVersionScript);
-    toast.success('Lineage version restored', {
-      description: selectedVersion?.version || selectedVersion?.name || 'Selected version',
-    });
+    moduleToasts.lineageRestored(selectedVersion?.version || selectedVersion?.name || 'Selected version');
     setModuleLineageDialogOpen(false);
   };
 

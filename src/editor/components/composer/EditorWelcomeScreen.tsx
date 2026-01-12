@@ -16,7 +16,7 @@ import {
   FileText,
   Database,
 } from 'lucide-react';
-import { toast } from 'sonner';
+import { portalToasts } from '../../utils/toast-utils';
 import { useEditorStore } from '../../stores/editor-store';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -237,22 +237,8 @@ export function EditorWelcomeScreen() {
   // Show a persistent toast when no portal is connected
   useEffect(() => {
     if (!selectedPortalId) {
-      toast.warning('No Portal Connected', {
-        id: 'connect-warning',
-        description: 'Connect to a LogicMonitor portal to run scripts and access data.',
-        duration: Infinity,
-        dismissible: true,
-      });
-    } else {
-      toast.dismiss('connect-warning');
+      portalToasts.noPortalConnected();
     }
-    
-    // Cleanup on unmount (optional, but good practice if we want the toast to hide when leaving this screen)
-    // However, for a "global" state like connection, maybe we want it to persist?
-    // Given the previous banner was PART of this screen, it should probably hide if we leave this screen.
-    return () => {
-      toast.dismiss('connect-warning');
-    };
   }, [selectedPortalId]);
 
   const hasRecentFiles = recentFiles.length > 0 || recentDirectories.length > 0;

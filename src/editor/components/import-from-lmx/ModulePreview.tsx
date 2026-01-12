@@ -6,7 +6,7 @@ import {
   CollectionIcon,
   BatchCollectionIcon,
 } from '../../constants/icons';
-import { toast } from 'sonner';
+import { moduleToasts } from '../../utils/toast-utils';
 import { useEditorStore } from '../../stores/editor-store';
 import { buildMonacoOptions, getMonacoTheme } from '../../utils/monaco-settings';
 import { Button } from '@/components/ui/button';
@@ -49,9 +49,7 @@ export function ModulePreview({ module }: ModulePreviewProps) {
   const handleLoadAD = () => {
     if (module.adScript) {
       loadModuleScript(module.adScript, language, 'ad');
-      toast.success('Active Discovery script loaded', {
-        description: module.displayName || module.name,
-      });
+      moduleToasts.scriptLoaded('ad', module.displayName || module.name);
     }
   };
 
@@ -59,9 +57,7 @@ export function ModulePreview({ module }: ModulePreviewProps) {
   const handleLoadCollection = () => {
     if (module.collectionScript) {
       loadModuleScript(module.collectionScript, language, getCollectionMode());
-      toast.success('Collection script loaded', {
-        description: module.displayName || module.name,
-      });
+      moduleToasts.scriptLoaded('collection', module.displayName || module.name);
     }
   };
 
@@ -78,9 +74,7 @@ export function ModulePreview({ module }: ModulePreviewProps) {
     
     if (scripts.length > 0) {
       openModuleScripts(module, scripts);
-      toast.success('Scripts loaded', {
-        description: `${scripts.length} script${scripts.length > 1 ? 's' : ''} from ${module.displayName || module.name}`,
-      });
+      moduleToasts.scriptLoaded('both', module.displayName || module.name, scripts.length);
     }
   };
 

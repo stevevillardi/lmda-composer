@@ -10,7 +10,7 @@ import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/
 import { COLORS } from '@/editor/constants/colors';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { toast } from 'sonner';
+import { clipboardToasts } from '../../utils/toast-utils';
 import { useApiSchema } from '@/editor/hooks/useApiSchema';
 import { ApiEndpointDocs } from './ApiEndpointDocs';
 
@@ -329,7 +329,7 @@ export function ApiRightSidebar() {
                                       className="size-6"
                                       onClick={async () => {
                                         await navigator.clipboard.writeText(path);
-                                        toast.success('Path copied');
+                                        clipboardToasts.pathCopied();
                                       }}
                                     >
                                       <Copy className="size-3" />
@@ -347,7 +347,7 @@ export function ApiRightSidebar() {
                                   if (!selectedPortalId) return;
                                   const nextVars = [...envVariables.filter(v => v.key !== key), { key, value: String(value) }];
                                   setApiEnvironment(selectedPortalId, nextVars);
-                                  toast.success(`Saved ${key} as variable`);
+                                  clipboardToasts.savedAsVariable(key);
                                 }}
                               >
                                 Save

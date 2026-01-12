@@ -12,7 +12,7 @@ import {
   BatchCollectionIcon,
   WarningIcon,
 } from '../../constants/icons';
-import { toast } from 'sonner';
+import { moduleToasts } from '../../utils/toast-utils';
 import { useEditorStore } from '../../stores/editor-store';
 import { LoadingState } from '../shared/LoadingState';
 import {
@@ -140,13 +140,9 @@ export function LogicModuleBrowser() {
       } else if (!trimmedQuery) {
         await fetchModules(selectedModuleType, { append: false, pages: 3, search: '' });
       }
-      toast.success('Modules refreshed', {
-        description: `Loaded ${modulesCache[selectedModuleType]?.length || 0} modules`,
-      });
+      moduleToasts.refreshed(modulesCache[selectedModuleType]?.length || 0);
     } catch (error) {
-      toast.error('Failed to refresh modules', {
-        description: error instanceof Error ? error.message : 'Unknown error',
-      });
+      moduleToasts.refreshFailed(error instanceof Error ? error : undefined);
     } finally {
       // Add a small delay to ensure the animation is visible
       setTimeout(() => {

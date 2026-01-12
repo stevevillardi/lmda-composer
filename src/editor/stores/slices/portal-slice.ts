@@ -2,7 +2,7 @@
  * Portal slice - manages portal, collector, and device context.
  */
 
-import { toast } from 'sonner';
+import { portalToasts } from '../../utils/toast-utils';
 import type { StateCreator } from 'zustand';
 import type { 
   Portal, 
@@ -279,9 +279,7 @@ export const createPortalSlice: StateCreator<
       set({ devices: fetchResponse.items, isFetchingDevices: false });
     } else {
       console.error('Failed to fetch devices:', result.error);
-      toast.error('Failed to load devices', {
-        description: 'Check that you are connected to the portal',
-      });
+      portalToasts.devicesLoadFailed();
       set({ devices: [], isFetchingDevices: false });
     }
   },
@@ -318,9 +316,7 @@ export const createPortalSlice: StateCreator<
     const result = await sendMessage({ type: 'DISCOVER_PORTALS' });
     if (!result.ok) {
       console.error('Failed to refresh portals:', result.error);
-      toast.error('Failed to refresh portals', {
-        description: 'Make sure you have a LogicMonitor portal tab open',
-      });
+      portalToasts.refreshFailed();
       return;
     }
     
@@ -443,18 +439,13 @@ export const createPortalSlice: StateCreator<
       });
       
       // Show toast notification for the disconnected portal
-      toast.warning(`Portal disconnected: ${hostname}`, {
-        description: 'Open a LogicMonitor tab to reconnect.',
-        duration: 8000,
-      });
+      portalToasts.disconnected(hostname, true);
     } else {
       // Just update the portals list
       set({ portals: updatedPortals });
       
       // Show a less intrusive notification
-      toast.info(`Portal disconnected: ${hostname}`, {
-        duration: 5000,
-      });
+      portalToasts.disconnected(hostname, false);
     }
   },
 });

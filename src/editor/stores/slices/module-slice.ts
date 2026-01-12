@@ -27,7 +27,7 @@ import type {
   CreateModuleResponse,
 } from '@/shared/types';
 import type { ModuleDetailsDraft, ModuleMetadata } from './tools-slice';
-import { toast } from 'sonner';
+import { moduleToasts, portalToasts } from '../../utils/toast-utils';
 import { hasPortalChanges, updateDocumentAfterPush, updateDocumentAfterPull, getOriginalContent, createPortalDocument, extractScriptFromModule, detectScriptLanguage, normalizeScriptContent, parseModuleDetailsFromResponse } from '../../utils/document-helpers';
 import { getPortalBindingStatus } from '../../utils/portal-binding';
 import { MODULE_TYPE_SCHEMAS, getSchemaFieldName } from '@/shared/module-type-schemas';
@@ -487,9 +487,7 @@ export const createModuleSlice: StateCreator<
         });
       } else {
       console.error('Failed to fetch modules:', result.error);
-        toast.error('Failed to load modules', {
-        description: result.error || 'Unable to fetch modules from the portal',
-      });
+        moduleToasts.loadFailed(result.error);
       set({ isFetchingModules: false });
     }
   },
@@ -893,7 +891,7 @@ export const createModuleSlice: StateCreator<
           moduleSearchProgress: null,
           moduleSearchExecutionId: null,
         });
-        toast.success('Module search index refreshed');
+        moduleToasts.searchIndexRefreshed();
       } else {
         set({
           moduleSearchError: result.error || 'Failed to refresh module index',
@@ -1507,7 +1505,7 @@ export const createModuleSlice: StateCreator<
         } else {
           successMessage = 'Changes pushed successfully';
         }
-        toast.success(successMessage);
+        moduleToasts.committed(successMessage);
       } else {
         set({ 
           moduleCommitError: result.error || 'Failed to push changes to portal',
@@ -1953,9 +1951,7 @@ export const createModuleSlice: StateCreator<
         parts.push('module details');
       }
       
-      toast.success('Pulled latest from portal', {
-        description: `Updated ${parts.join(' and ')} from ${source.moduleName || 'module'}`,
-      });
+      portalToasts.pulledLatest(parts, source.moduleName || 'module');
       
       return { success: true };
     } catch (error) {

@@ -10,7 +10,7 @@ import {
   HeartPulse,
 } from 'lucide-react';
 import { SuccessIcon, ErrorIcon } from '../../constants/icons';
-import { toast } from 'sonner';
+import { clipboardToasts, collectorToasts } from '../../utils/toast-utils';
 import { useEditorStore } from '../../stores/editor-store';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -116,9 +116,9 @@ export function MultiCollectorResults({ command, executedCommand, onBack }: Mult
   const copyOutput = async (output: string) => {
     try {
       await navigator.clipboard.writeText(output);
-      toast.success('Output copied to clipboard');
+      clipboardToasts.outputCopied();
     } catch (_error) {
-      toast.error('Failed to copy output');
+      clipboardToasts.copyFailed('output');
     }
   };
 
@@ -126,9 +126,9 @@ export function MultiCollectorResults({ command, executedCommand, onBack }: Mult
     if (!executedCommand) return;
     try {
       await navigator.clipboard.writeText(executedCommand);
-      toast.success('Executed command copied');
+      clipboardToasts.commandCopied();
     } catch (_error) {
-      toast.error('Failed to copy command');
+      clipboardToasts.copyFailed('command');
     }
   };
 
@@ -143,7 +143,7 @@ export function MultiCollectorResults({ command, executedCommand, onBack }: Mult
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    toast.success('Output downloaded');
+    clipboardToasts.downloaded('Output');
   };
 
   // Export all results
@@ -178,7 +178,7 @@ export function MultiCollectorResults({ command, executedCommand, onBack }: Mult
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    toast.success('All results exported');
+    collectorToasts.resultsExported();
   };
 
 

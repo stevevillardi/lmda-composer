@@ -16,7 +16,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { DiffEditor } from '../composer/DiffEditor';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
-import { toast } from 'sonner';
+import { portalToasts } from '../../utils/toast-utils';
 import { useEditorStore } from '../../stores/editor-store';
 import type { LogicModuleType, ScriptLanguage } from '@/shared/types';
 import { MODULE_TYPE_SCHEMAS } from '@/shared/module-type-schemas';
@@ -709,9 +709,7 @@ export function PushToPortalDialog({
 
   useEffect(() => {
     if (commitError) {
-      toast.error('Push failed', {
-        description: commitError,
-      });
+      portalToasts.pushFailed(commitError);
     }
   }, [commitError]);
 

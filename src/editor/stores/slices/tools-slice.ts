@@ -6,7 +6,12 @@
  */
 
 import type { StateCreator } from 'zustand';
-import { toast } from 'sonner';
+import { 
+  deviceToasts, 
+  collectorToasts, 
+  snippetToasts, 
+  moduleDetailsToasts,
+} from '../../utils/toast-utils';
 import type { editor } from 'monaco-editor';
 import type { 
   Snippet,
@@ -496,9 +501,7 @@ export const createToolsSlice: StateCreator<
       set({ deviceProperties: result.data as DeviceProperty[], isFetchingProperties: false });
       } else {
       console.error('Failed to fetch device properties:', result.error);
-        toast.error('Failed to load properties', {
-        description: result.error || 'Unable to fetch device properties',
-      });
+        deviceToasts.propertiesLoadFailed(result.error);
       set({ deviceProperties: [], isFetchingProperties: false });
     }
   },
@@ -916,9 +919,7 @@ export const createToolsSlice: StateCreator<
           isExecutingDebugCommand: false,
           debugCommandExecutionId: null,
         });
-        toast.error('Debug command execution failed', {
-          description: message,
-        });
+        collectorToasts.debugFailed(message);
       },
     });
 
@@ -930,9 +931,7 @@ export const createToolsSlice: StateCreator<
     if (!result.ok) {
       set({ isExecutingDebugCommand: false, debugCommandExecutionId: null });
       debugCommandListenerManager.cleanup();
-      toast.error('Failed to execute debug command', {
-        description: result.error,
-      });
+      collectorToasts.debugFailed(result.error);
     }
   },
 
@@ -953,11 +952,9 @@ export const createToolsSlice: StateCreator<
         debugCommandExecutionId: null,
       });
       debugCommandListenerManager.cleanup();
-      toast.info('Debug command execution cancelled');
+      collectorToasts.debugCancelled();
     } else {
-      toast.error('Failed to cancel debug command', {
-        description: result.error,
-      });
+      collectorToasts.cancelFailed(result.error);
     }
   },
 
@@ -995,9 +992,7 @@ export const createToolsSlice: StateCreator<
     const { selectedPortalId, selectedCollectorId } = get();
     
     if (!selectedPortalId || !selectedCollectorId) {
-      toast.error('No portal or collector selected', {
-        description: 'Please select a portal and collector first.',
-      });
+      collectorToasts.noCollectorSelected();
       return;
     }
 
@@ -1015,14 +1010,10 @@ export const createToolsSlice: StateCreator<
         moduleSnippetsCacheMeta: payload.meta,
           moduleSnippetsLoading: false,
         });
-        toast.success('Module snippets loaded', {
-        description: `Found ${payload.snippets.length} module snippets.`,
-        });
+        snippetToasts.loaded(payload.snippets.length);
       } else {
       set({ moduleSnippetsLoading: false });
-      toast.error('Failed to fetch module snippets', {
-        description: result.error,
-      });
+      snippetToasts.loadFailed(result.error);
     }
   },
 
@@ -1038,7 +1029,7 @@ export const createToolsSlice: StateCreator<
     const { selectedPortalId, selectedCollectorId } = get();
     
     if (!selectedPortalId || !selectedCollectorId) {
-      toast.error('No portal or collector selected');
+      collectorToasts.noCollectorSelected();
       return;
     }
 
@@ -1060,9 +1051,7 @@ export const createToolsSlice: StateCreator<
         });
       } else {
       set({ moduleSnippetSourceLoading: false });
-      toast.error('Failed to fetch snippet source', {
-        description: result.error,
-      });
+      snippetToasts.sourceFetchFailed(result.error);
     }
   },
 
@@ -1080,9 +1069,7 @@ export const createToolsSlice: StateCreator<
         mode: 'freeform',
       });
       set({ moduleSnippetsDialogOpen: false });
-      toast.success('Import inserted', {
-        description: `Created new file with ${name} import`,
-      });
+      snippetToasts.importInserted(name, true);
       return;
     }
 
@@ -1117,9 +1104,7 @@ export const createToolsSlice: StateCreator<
 
     set({ moduleSnippetsDialogOpen: false });
 
-    toast.success('Import inserted', {
-      description: `Added import for ${name}`,
-    });
+    snippetToasts.importInserted(name, false);
   },
 
   setModuleSnippetsSearchQuery: (query: string) => {
@@ -1139,11 +1124,9 @@ export const createToolsSlice: StateCreator<
         moduleSnippetSource: null,
         cachedSnippetVersions: new Set<string>(),
       });
-      toast.success('Module snippets cache cleared');
+      snippetToasts.cacheCleared();
     } else {
-      toast.error('Failed to clear cache', {
-        description: result.error,
-      });
+      snippetToasts.cacheClearFailed(result.error);
     }
   },
 
@@ -1585,7 +1568,7 @@ export const createToolsSlice: StateCreator<
           moduleDetailsLoading: false,
         });
         
-        toast.success('Module details refreshed from portal');
+        moduleDetailsToasts.refreshed();
       } else {
         set({ 
           moduleDetailsError: result.error || 'Failed to fetch module details', 
@@ -1635,7 +1618,7 @@ export const createToolsSlice: StateCreator<
       }
       
       if (permission !== 'granted') {
-        toast.error('Permission denied', { description: 'Could not write to module directory.' });
+        moduleDetailsToasts.permissionDenied();
         return false;
       }
       
@@ -1678,11 +1661,11 @@ export const createToolsSlice: StateCreator<
         JSON.stringify(config, null, 2)
       );
       
-      toast.success('Module details saved', { description: 'Changes persisted to module directory.' });
+      moduleDetailsToasts.saved();
       return true;
     } catch (error) {
       console.error('persistModuleDetailsToDirectory error:', error);
-      toast.error('Failed to save', { description: 'Could not persist module details to directory.' });
+      moduleDetailsToasts.saveFailed();
       return false;
     }
   },

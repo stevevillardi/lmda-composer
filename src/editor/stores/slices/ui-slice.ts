@@ -2,7 +2,7 @@
  * UI slice - manages dialog states, sidebars, and user preferences.
  */
 
-import { toast } from 'sonner';
+import { settingsToasts } from '../../utils/toast-utils';
 import type { StateCreator } from 'zustand';
 import type { UserPreferences, EditorTab, ScriptLanguage, ScriptMode } from '@/shared/types';
 import { DEFAULT_PREFERENCES } from '@/shared/types';
@@ -247,9 +247,7 @@ export const createUISlice: StateCreator<
       await chrome.storage.local.set({ [STORAGE_KEY_PREFERENCES]: preferences });
     } catch (error) {
       console.error('Failed to save preferences:', error);
-      toast.error('Failed to save settings', {
-        description: 'Your preferences could not be saved',
-      });
+      settingsToasts.saveFailed();
     }
   },
 });

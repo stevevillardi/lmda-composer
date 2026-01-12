@@ -23,7 +23,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { toast } from 'sonner';
+import { directoryToasts } from '../../utils/toast-utils';
 import { useEditorStore } from '../../stores/editor-store';
 import * as documentStore from '../../utils/document-store';
 import type { ModuleDirectoryConfig } from '@/shared/types';
@@ -59,9 +59,7 @@ export function OpenModuleDirectoryDialog() {
     await documentStore.deleteDirectoryHandle(directoryId);
     await loadRecentFiles();
     setOpenModuleDirectoryDialogOpen(false);
-    toast.error('Module directory removed', {
-      description: reason,
-    });
+    directoryToasts.removed(reason);
   };
 
   // Load directory config when dialog opens
@@ -200,9 +198,7 @@ export function OpenModuleDirectoryDialog() {
     
     const { portalBinding } = config;
     if (portalBinding.portalId !== selectedPortalId) {
-      toast.error('Portal mismatch', {
-        description: `Switch to portal "${portalBinding.portalHostname}" to re-export this script.`,
-      });
+      directoryToasts.portalMismatch(portalBinding.portalHostname);
       return;
     }
 
@@ -221,9 +217,7 @@ export function OpenModuleDirectoryDialog() {
       });
 
       if (!result.ok) {
-        toast.error('Failed to fetch module', {
-          description: result.error || 'Could not retrieve module from portal.',
-        });
+        directoryToasts.fetchModuleFailed(result.error);
         return;
       }
 
@@ -257,9 +251,7 @@ export function OpenModuleDirectoryDialog() {
       }
 
       if (!scriptContent) {
-        toast.warning('Script is empty', {
-          description: `The ${scriptType} script in the portal is empty.`,
-        });
+        directoryToasts.scriptEmpty(scriptType);
         return;
       }
 
@@ -271,9 +263,7 @@ export function OpenModuleDirectoryDialog() {
       // Request write permission
       const writePermission = await documentStore.requestDirectoryPermission(directoryHandle, 'readwrite');
       if (!writePermission) {
-        toast.error('Permission denied', {
-          description: 'Cannot write to the module directory.',
-        });
+        directoryToasts.permissionDenied();
         return;
       }
 
@@ -310,14 +300,10 @@ export function OpenModuleDirectoryDialog() {
       // Auto-select the re-exported script
       setSelectedScripts(prev => new Set([...prev, scriptType]));
 
-      toast.success('Script re-exported', {
-        description: `${fileName} has been restored from the portal.`,
-      });
+      directoryToasts.reExported(fileName);
     } catch (err) {
       console.error('[ModuleDir] handleReExport: Failed:', err);
-      toast.error('Re-export failed', {
-        description: err instanceof Error ? err.message : 'Unknown error occurred.',
-      });
+      directoryToasts.reExportFailed(err instanceof Error ? err : undefined);
     } finally {
       setIsReExporting(false);
     }

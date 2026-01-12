@@ -21,7 +21,7 @@ import type {
   SerializableModuleDetailsDraft,
   ModuleDirectoryConfig,
 } from '@/shared/types';
-import { toast } from 'sonner';
+import { fileToasts, directoryToasts, moduleToasts } from '../../utils/toast-utils';
 import { getExtensionForLanguage, getLanguageFromFilename } from '../../utils/file-extensions';
 import { createScratchDocument, createLocalDocument, isFileDirty, getDocumentType, convertToLocalDocument, updateDocumentAfterSave, hasAssociatedFileHandle, getOriginalContent, extractScriptFromModule, detectScriptLanguage } from '../../utils/document-helpers';
 import { getDefaultScriptTemplate, DEFAULT_GROOVY_TEMPLATE, DEFAULT_POWERSHELL_TEMPLATE } from '../../config/script-templates';
@@ -94,6 +94,27 @@ function findNextTabAfterClose(
     .find(({ originalIndex }) => originalIndex > closedTabIndex);
 
   return rightCandidate?.tab.id ?? sameKindTabs[0]?.tab.id ?? null;
+}
+
+/**
+ * Updates a single tab in the tabs array by ID.
+ * Returns a new array with the updated tab, or the original array if tab not found.
+ * 
+ * @param tabs - Current tabs array
+ * @param tabId - ID of the tab to update
+ * @param updates - Partial updates to apply to the tab
+ * @returns New tabs array with the update applied
+ */
+function updateTabById(
+  tabs: EditorTab[],
+  tabId: string,
+  updates: Partial<EditorTab> | ((tab: EditorTab) => Partial<EditorTab>)
+): EditorTab[] {
+  return tabs.map(t => {
+    if (t.id !== tabId) return t;
+    const partialUpdates = typeof updates === 'function' ? updates(t) : updates;
+    return { ...t, ...partialUpdates };
+  });
 }
 
 // ============================================================================
@@ -393,24 +414,12 @@ export const createTabsSlice: StateCreator<
       displayName += getExtensionForLanguage(tab.language);
     }
     
-    set({
-      tabs: tabs.map(t => 
-        t.id === tabId 
-          ? { ...t, displayName }
-          : t
-      ),
-    });
+    set({ tabs: updateTabById(tabs, tabId, { displayName }) });
   },
 
   updateTabContent: (tabId, content) => {
     const { tabs } = get();
-    set({
-      tabs: tabs.map(t => 
-        t.id === tabId 
-          ? { ...t, content }
-          : t
-      ),
-    });
+    set({ tabs: updateTabById(tabs, tabId, { content }) });
   },
 
   updateActiveTabContent: (content) => {
@@ -420,13 +429,7 @@ export const createTabsSlice: StateCreator<
     const activeTab = tabs.find(t => t.id === activeTabId);
     if (!activeTab || activeTab.kind === 'api') return;
 
-    set({
-      tabs: tabs.map(t => 
-        t.id === activeTabId 
-          ? { ...t, content }
-          : t
-      ),
-    });
+    set({ tabs: updateTabById(tabs, activeTabId, { content }) });
   },
 
   setActiveTabLanguage: (language) => {
@@ -436,13 +439,7 @@ export const createTabsSlice: StateCreator<
     const activeTab = tabs.find(t => t.id === activeTabId);
     if (!activeTab || activeTab.kind === 'api') return;
 
-    set({
-      tabs: tabs.map(t => 
-        t.id === activeTabId 
-          ? { ...t, language }
-          : t
-      ),
-    });
+    set({ tabs: updateTabById(tabs, activeTabId, { language }) });
   },
 
   setActiveTabMode: (mode) => {
@@ -452,24 +449,12 @@ export const createTabsSlice: StateCreator<
     const activeTab = tabs.find(t => t.id === activeTabId);
     if (!activeTab || activeTab.kind === 'api') return;
 
-    set({
-      tabs: tabs.map(t => 
-        t.id === activeTabId 
-          ? { ...t, mode }
-          : t
-      ),
-    });
+    set({ tabs: updateTabById(tabs, activeTabId, { mode }) });
   },
 
   setTabContextOverride: (tabId, override) => {
     const { tabs } = get();
-    set({
-      tabs: tabs.map(t => 
-        t.id === tabId 
-          ? { ...t, contextOverride: override }
-          : t
-      ),
-    });
+    set({ tabs: updateTabById(tabs, tabId, { contextOverride: override }) });
   },
 
   createNewFile: () => {
@@ -540,27 +525,20 @@ export const createTabsSlice: StateCreator<
     }
     
     set({
-      tabs: tabs.map(t => 
-        t.id === activeTabId 
-          ? { 
-              ...t, 
-              language, 
-              content: newContent, 
-              displayName: newDisplayName,
-              // Clear fileHandleId when disconnecting (old handle remains in IndexedDB for recent files)
-              fileHandleId: shouldClearFileHandle ? undefined : t.fileHandleId,
-              // Also update document state when clearing file handle
-              document: shouldClearFileHandle ? createScratchDocument() : t.document,
-            }
-          : t
-      ),
+      tabs: updateTabById(tabs, activeTab.id, {
+        language, 
+        content: newContent, 
+        displayName: newDisplayName,
+        // Clear fileHandleId when disconnecting (old handle remains in IndexedDB for recent files)
+        fileHandleId: shouldClearFileHandle ? undefined : activeTab.fileHandleId,
+        // Also update document state when clearing file handle
+        document: shouldClearFileHandle ? createScratchDocument() : activeTab.document,
+      }),
     });
     
     // Notify user that the file handle was disconnected
     if (shouldClearFileHandle) {
-      toast.info('File handle disconnected', {
-        description: 'The file extension no longer matches. Use "Save As" to create a new file with the correct extension.',
-      });
+      fileToasts.handleDisconnected();
     }
   },
 
@@ -579,11 +557,7 @@ export const createTabsSlice: StateCreator<
     
     set({
       ...updates,
-      tabs: tabs.map(t => 
-        t.id === activeTabId 
-          ? { ...t, mode }
-          : t
-      ),
+      tabs: updateTabById(tabs, activeTab.id, { mode }),
     } as Partial<TabsSlice & TabsSliceDependencies>);
   },
 
@@ -988,7 +962,7 @@ export const createTabsSlice: StateCreator<
       try {
         const storedDir = await documentStore.getDirectoryHandleRecord(tab.directoryHandleId);
         if (!storedDir) {
-          toast.error('Directory handle not found', { description: 'The saved module directory could not be found.' });
+          directoryToasts.handleNotFound();
           return false;
         }
 
@@ -998,7 +972,7 @@ export const createTabsSlice: StateCreator<
         };
         const permissionStatus = await handleWithPermission.requestPermission({ mode: 'readwrite' });
         if (permissionStatus !== 'granted') {
-          toast.error('Permission denied', { description: 'Cannot write to the module directory.' });
+          directoryToasts.permissionDenied();
           return false;
         }
 
@@ -1031,24 +1005,17 @@ export const createTabsSlice: StateCreator<
 
         // Update document state after save
         set({
-          tabs: get().tabs.map(t => 
-            t.id === targetTabId 
-              ? { 
-                  ...t, 
-                  document: t.document 
-                    ? updateDocumentAfterSave(t.document, contentToSave) 
-                    : convertToLocalDocument(targetTabId, contentToSave, t.displayName),
-                }
-              : t
-          ),
+          tabs: updateTabById(get().tabs, targetTabId, (t) => ({
+            document: t.document 
+              ? updateDocumentAfterSave(t.document, contentToSave) 
+              : convertToLocalDocument(targetTabId, contentToSave, t.displayName),
+          })),
         });
 
-        toast.success('File saved');
+        fileToasts.saved();
         return true;
       } catch (error) {
-        toast.error('Failed to save file', {
-          description: error instanceof Error ? error.message : 'Unknown error',
-        });
+        fileToasts.saveFailed(error instanceof Error ? error : undefined);
         return false;
       }
     }
@@ -1091,19 +1058,14 @@ export const createTabsSlice: StateCreator<
         
         // Update document state after save
         set({
-          tabs: get().tabs.map(t => 
-            t.id === targetTabId 
-              ? { 
-                  ...t, 
-                  document: t.document 
-                    ? updateDocumentAfterSave(t.document, contentToSave) 
-                    : convertToLocalDocument(targetTabId, contentToSave, t.displayName),
-                }
-              : t
-          ),
+          tabs: updateTabById(get().tabs, targetTabId, (t) => ({
+            document: t.document 
+              ? updateDocumentAfterSave(t.document, contentToSave) 
+              : convertToLocalDocument(targetTabId, contentToSave, t.displayName),
+          })),
         });
         
-        toast.success('File saved');
+        fileToasts.saved();
         return true;
       } else if (permission === 'prompt') {
         // Request permission
@@ -1118,19 +1080,14 @@ export const createTabsSlice: StateCreator<
           await documentStore.saveFileHandle(tab.fileHandleId, handle, currentTab.displayName);
           
           set({
-            tabs: get().tabs.map(t => 
-              t.id === targetTabId 
-                ? { 
-                    ...t, 
-                    document: t.document 
-                      ? updateDocumentAfterSave(t.document, contentToSave) 
-                      : convertToLocalDocument(targetTabId, contentToSave, t.displayName),
-                  }
-                : t
-            ),
+            tabs: updateTabById(get().tabs, targetTabId, (t) => ({
+              document: t.document 
+                ? updateDocumentAfterSave(t.document, contentToSave) 
+                : convertToLocalDocument(targetTabId, contentToSave, t.displayName),
+            })),
           });
           
-          toast.success('File saved');
+          fileToasts.saved();
           return true;
         }
       }
@@ -1139,9 +1096,7 @@ export const createTabsSlice: StateCreator<
       return await get().saveFileAs(targetTabId);
     } catch (error) {
       console.error('Error saving file:', error);
-      toast.error('Failed to save file', {
-        description: error instanceof Error ? error.message : 'Unknown error',
-      });
+      fileToasts.saveFailed(error instanceof Error ? error : undefined);
       return false;
     }
   },
@@ -1169,7 +1124,7 @@ export const createTabsSlice: StateCreator<
     if (!documentStore.isFileSystemAccessSupported()) {
       // Fallback to download
       get().exportToFile();
-      toast.success('File exported');
+      fileToasts.exported();
       return true;
     }
 
@@ -1201,20 +1156,15 @@ export const createTabsSlice: StateCreator<
       
       // Update tab state with new document
       set({
-        tabs: get().tabs.map(t => 
-          t.id === targetTabId 
-            ? { 
-                ...t, 
-                displayName: handle.name,
-                fileHandleId: newFileHandleId,
-                source: { type: 'file' },
-                document: convertToLocalDocument(newFileHandleId, contentToSave, handle.name),
-              }
-            : t
-        ),
+        tabs: updateTabById(get().tabs, targetTabId, {
+          displayName: handle.name,
+          fileHandleId: newFileHandleId,
+          source: { type: 'file' },
+          document: convertToLocalDocument(newFileHandleId, contentToSave, handle.name),
+        }),
       });
       
-      toast.success('File saved');
+      fileToasts.saved();
       return true;
     } catch (error) {
       // Check for expected DOMExceptions that shouldn't show error toasts
@@ -1235,9 +1185,7 @@ export const createTabsSlice: StateCreator<
       
       // Log and show toast for unexpected errors
       console.error('Error in Save As:', error);
-      toast.error('Failed to save file', {
-        description: error instanceof Error ? error.message : String(error),
-      });
+      fileToasts.saveFailed(error instanceof Error ? error : String(error));
       return false;
     }
   },
@@ -1270,11 +1218,10 @@ export const createTabsSlice: StateCreator<
         } else if (permission === 'denied') {
           // Update tab to reflect no handle access - convert to scratch document
           set({
-            tabs: get().tabs.map(t => 
-              t.id === tabId 
-                ? { ...t, fileHandleId: undefined, document: createScratchDocument() }
-                : t
-            ),
+            tabs: updateTabById(get().tabs, tabId, { 
+              fileHandleId: undefined, 
+              document: createScratchDocument() 
+            }),
           });
         }
         // If granted, handle is ready to use - no action needed
@@ -1311,14 +1258,9 @@ export const createTabsSlice: StateCreator<
               // File was modified externally - update baseline content
               // Keep user's current edits, but update the baseline
               set({
-                tabs: get().tabs.map(t => 
-                  t.id === status.tabId 
-                    ? { 
-                        ...t, 
-                        document: t.document ? updateDocumentAfterSave(t.document, newContent) : t.document,
-                      }
-                    : t
-                ),
+                tabs: updateTabById(get().tabs, status.tabId, (t) => ({
+                  document: t.document ? updateDocumentAfterSave(t.document, newContent) : t.document,
+                })),
               });
             }
             // If content hasn't changed, document state is already correct
@@ -1381,7 +1323,7 @@ export const createTabsSlice: StateCreator<
         // Handle not found - just delete this one entry and reload
         await documentStore.deleteFileHandle(fileHandleId);
         await get().loadRecentFiles();
-        toast.error('File not found', { description: 'This file has been removed from recent files.' });
+        fileToasts.notFound();
         return;
       }
 
@@ -1393,9 +1335,7 @@ export const createTabsSlice: StateCreator<
 
       if (permission !== 'granted') {
         // User denied permission - don't remove from list, they might grant it later
-        toast.info('Permission required', {
-          description: `Permission to access "${handle.name}" was denied. Click again to retry.`,
-        });
+        fileToasts.permissionRequired(handle.name);
         return;
       }
 
@@ -1413,13 +1353,9 @@ export const createTabsSlice: StateCreator<
           (readError.name === 'NotFoundError' || readError.name === 'NotReadableError');
         
         if (isNotFoundError) {
-          toast.error('File no longer exists', {
-            description: `"${handle.name}" was deleted or moved. It has been removed from recent files.`,
-          });
+          fileToasts.noLongerExists(handle.name);
         } else {
-          toast.error('Unable to read file', {
-            description: `Could not read "${handle.name}". It has been removed from recent files.`,
-          });
+          fileToasts.unableToRead(handle.name);
         }
         return;
       }
@@ -1450,9 +1386,7 @@ export const createTabsSlice: StateCreator<
       });
     } catch (error) {
       console.error('Failed to open recent file:', error);
-      toast.error('Failed to open file', {
-        description: error instanceof Error ? error.message : 'An unexpected error occurred.',
-      });
+      fileToasts.openFailed(error instanceof Error ? error : undefined);
     }
   },
 
@@ -1469,19 +1403,19 @@ export const createTabsSlice: StateCreator<
 
     const tab = tabs.find(t => t.id === targetTabId);
     if (!tab || tab.kind === 'api') {
-      toast.error('Cannot save', { description: 'This tab cannot be saved as a module directory.' });
+      directoryToasts.cannotSave('This tab cannot be saved as a module directory.');
       return false;
     }
 
     // Validate this is a portal-bound module
     if (!tab.source || tab.source.type !== 'module') {
-      toast.error('Cannot save', { description: 'Only portal-bound modules can be saved as module directories.' });
+      directoryToasts.cannotSave('Only portal-bound modules can be saved as module directories.');
       return false;
     }
 
     const { moduleId, moduleName, moduleType, portalId, portalHostname, lineageId } = tab.source;
     if (!moduleId || !moduleName || !moduleType || !portalId || !portalHostname) {
-      toast.error('Cannot save', { description: 'Missing module binding information.' });
+      directoryToasts.cannotSave('Missing module binding information.');
       return false;
     }
     
@@ -1530,7 +1464,7 @@ export const createTabsSlice: StateCreator<
       });
 
       if (!fetchResult.ok) {
-        toast.error('Failed to save', { description: 'Could not fetch module from portal to complete the save.' });
+        moduleToasts.fetchFailed();
         return false;
       }
 
@@ -1663,9 +1597,7 @@ export const createTabsSlice: StateCreator<
 
       set({ tabs: updatedTabs });
 
-      toast.success('Module saved', {
-        description: `Saved to "${dirHandle.name}" with ${Object.keys(scriptsConfig).length} script(s).`,
-      });
+      moduleToasts.saved(dirHandle.name, Object.keys(scriptsConfig).length);
 
       return true;
     } catch (error) {
@@ -1673,9 +1605,7 @@ export const createTabsSlice: StateCreator<
         // User cancelled the picker
         return false;
       }
-      toast.error('Failed to save', {
-        description: error instanceof Error ? error.message : 'An unexpected error occurred.',
-      });
+      moduleToasts.saveFailed(error instanceof Error ? error : undefined);
       return false;
     }
   },
@@ -1697,9 +1627,7 @@ export const createTabsSlice: StateCreator<
   openModuleFolderFromDisk: async () => {
     // Check if directory picker is supported
     if (!documentStore.isDirectoryPickerSupported()) {
-      toast.error('Not supported', {
-        description: 'Your browser does not support the directory picker.',
-      });
+      directoryToasts.notSupported();
       return false;
     }
 
@@ -1714,9 +1642,7 @@ export const createTabsSlice: StateCreator<
       // Check if module.json exists in this directory
       const configJson = await documentStore.readFileFromDirectory(dirHandle, 'module.json');
       if (!configJson) {
-        toast.error('Not a module directory', {
-          description: 'The selected folder does not contain a module.json file. Please select a folder that was created using "Save to Module Directory".',
-        });
+        directoryToasts.notModuleDirectory();
         return false;
       }
 
@@ -1728,9 +1654,7 @@ export const createTabsSlice: StateCreator<
           throw new Error('Invalid config');
         }
       } catch {
-        toast.error('Invalid module directory', {
-          description: 'The module.json file is corrupted or invalid.',
-        });
+        directoryToasts.invalidModuleJson();
         return false;
       }
 
@@ -1752,9 +1676,7 @@ export const createTabsSlice: StateCreator<
     } catch (error) {
       // User cancelled or error occurred
       if ((error as Error).name !== 'AbortError') {
-        toast.error('Failed to open module folder', {
-          description: error instanceof Error ? error.message : 'Unknown error occurred',
-        });
+        directoryToasts.openModuleFolderFailed(error instanceof Error ? error : undefined);
       }
       return false;
     }
@@ -1767,9 +1689,7 @@ export const createTabsSlice: StateCreator<
       if (!record) {
         await documentStore.deleteDirectoryHandle(directoryId);
         await get().loadRecentFiles();
-        toast.error('Directory not found', { 
-          description: 'This module directory has been removed from recent files.' 
-        });
+        directoryToasts.notFound();
         return false;
       }
 
@@ -1782,18 +1702,14 @@ export const createTabsSlice: StateCreator<
       }
 
       if (permission !== 'granted') {
-        toast.info('Permission required', {
-          description: `Permission to access "${record.directoryName}" was denied. Click again to retry.`,
-        });
+        directoryToasts.permissionRequired(record.directoryName);
         return false;
       }
 
       // Read module.json
       const configJson = await documentStore.readFileFromDirectory(dirHandle, 'module.json');
       if (!configJson) {
-        toast.error('Invalid module directory', {
-          description: 'Could not find module.json in this directory.',
-        });
+        directoryToasts.missingModuleJson();
         return false;
       }
 
@@ -1801,9 +1717,7 @@ export const createTabsSlice: StateCreator<
       try {
         config = JSON.parse(configJson) as ModuleDirectoryConfig;
       } catch {
-        toast.error('Invalid module.json', {
-          description: 'The module.json file is corrupted or invalid.',
-        });
+        directoryToasts.invalidModuleJson();
         return false;
       }
 
@@ -1812,9 +1726,7 @@ export const createTabsSlice: StateCreator<
       const toOpen = scriptsToOpen ?? availableScripts;
 
       if (toOpen.length === 0) {
-        toast.info('No scripts selected', {
-          description: 'Select at least one script to open.',
-        });
+        directoryToasts.noScriptsSelected();
         return false;
       }
 
@@ -1888,9 +1800,7 @@ export const createTabsSlice: StateCreator<
 
         const content = await documentStore.readFileFromDirectory(dirHandle, scriptConfig.fileName);
         if (content === null) {
-          toast.warning(`Script not found: ${scriptConfig.fileName}`, {
-            description: 'You may need to re-export this script from the portal.',
-          });
+          directoryToasts.scriptNotFound(scriptConfig.fileName);
           continue;
         }
 
@@ -1948,9 +1858,7 @@ export const createTabsSlice: StateCreator<
       }
 
       if (newTabs.length === 0) {
-        toast.error('No scripts could be opened', {
-          description: 'All selected scripts are missing from the directory.',
-        });
+        directoryToasts.noScriptsOpened();
         return false;
       }
 
@@ -2005,15 +1913,11 @@ export const createTabsSlice: StateCreator<
         moduleDetailsDraftByTabId: updatedModuleDetailsDrafts,
       } as Partial<TabsSlice & TabsSliceDependencies>);
 
-      toast.success('Module opened', {
-        description: `Opened ${newTabs.length} script(s) from "${record.directoryName}".`,
-      });
+      directoryToasts.opened(newTabs.length, record.directoryName);
 
       return true;
     } catch (error) {
-      toast.error('Failed to open', {
-        description: error instanceof Error ? error.message : 'An unexpected error occurred.',
-      });
+      directoryToasts.openFailed(error instanceof Error ? error : undefined);
       return false;
     }
   },

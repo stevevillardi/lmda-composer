@@ -9,7 +9,7 @@
  */
 
 import type { StateCreator } from 'zustand';
-import { toast } from 'sonner';
+import { apiToasts } from '../../utils/toast-utils';
 import type { 
   ApiHistoryEntry,
   ApiEnvironmentState,
@@ -204,7 +204,7 @@ export const createAPISlice: StateCreator<
     if (!tab || tab.kind !== 'api' || !tab.api) return;
 
     if (!selectedPortalId) {
-      toast.error('Select a portal to send API requests.');
+      apiToasts.noPortalSelected();
       return;
     }
 
@@ -422,7 +422,7 @@ export const createAPISlice: StateCreator<
       });
     } catch (error) {
       console.error('Failed to execute API request:', error);
-      toast.error(error instanceof Error ? error.message : 'API request failed.');
+      apiToasts.requestFailed(error instanceof Error ? error : undefined);
     } finally {
       set({ isExecutingApi: false });
     }

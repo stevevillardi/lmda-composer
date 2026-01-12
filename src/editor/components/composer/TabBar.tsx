@@ -1,6 +1,6 @@
 import { useRef, useEffect, useState, useCallback, KeyboardEvent } from 'react';
 import { X, Plus, Circle, Save, Upload, Trash2, AlertTriangle, Braces, Link2, Cloud, Folder } from 'lucide-react';
-import { toast } from 'sonner';
+import { clipboardToasts, portalToasts } from '../../utils/toast-utils';
 import { useEditorStore } from '../../stores/editor-store';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -280,13 +280,9 @@ function TabItem({
           <ContextMenuItem onClick={async () => {
             try {
               await navigator.clipboard.writeText(tab.displayName);
-              toast.success('Copied to clipboard', {
-                description: tab.displayName,
-              });
+              clipboardToasts.copiedWithDescription(tab.displayName);
             } catch (_error) {
-              toast.error('Failed to copy', {
-                description: 'Could not copy tab name to clipboard',
-              });
+              clipboardToasts.copyFailed('tab name');
             }
           }}>
             Copy Name
@@ -466,9 +462,7 @@ export function TabBar() {
       // Close the close confirmation dialog
       setPendingCloseTabId(null);
     } catch (error) {
-      toast.error('Failed to prepare commit', {
-        description: error instanceof Error ? error.message : 'Unknown error',
-      });
+      portalToasts.prepareCommitFailed(error instanceof Error ? error : undefined);
       setPendingCloseTabId(null);
       setTabToCloseAfterCommit(null);
     }

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Copy, Check, Filter, Info } from 'lucide-react';
 import { SectionCard } from '../SectionCard';
 import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
+import { clipboardToasts } from '../../../utils/toast-utils';
 import type { AppliesToQuery } from '../types';
 
 interface AppliesToQueriesProps {
@@ -16,10 +16,10 @@ export function AppliesToQueries({ queries }: AppliesToQueriesProps) {
     try {
       await navigator.clipboard.writeText(query);
       setCopiedIndex(index);
-      toast.success('Query copied to clipboard');
+      clipboardToasts.copied('query');
       setTimeout(() => setCopiedIndex(null), 2000);
     } catch {
-      toast.error('Failed to copy query');
+      clipboardToasts.copyFailed('query');
     }
   };
 

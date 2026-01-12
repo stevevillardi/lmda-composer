@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Search, Plus, Code2, FileText, Edit2, Trash2, Eye, ChevronDown, ChevronRight } from 'lucide-react';
-import { toast } from 'sonner';
+import { snippetToasts } from '../../utils/toast-utils';
 import { useEditorStore } from '../../stores/editor-store';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -107,11 +107,7 @@ export function SnippetLibraryPanel() {
   const handleInsert = (snippet: Snippet) => {
     insertSnippet(snippet);
     setPreviewSnippet(null); // Close preview if open
-    toast.success('Snippet inserted', {
-      description: snippet.category === 'template' 
-        ? 'Template applied to editor'
-        : 'Pattern inserted at cursor',
-    });
+    snippetToasts.inserted(snippet.category === 'template');
   };
 
   const handlePreview = (snippet: Snippet) => {
@@ -130,9 +126,7 @@ export function SnippetLibraryPanel() {
   const handleDeleteConfirm = () => {
     if (snippetToDelete) {
       deleteUserSnippet(snippetToDelete.id);
-      toast.success('Snippet deleted', {
-        description: `"${snippetToDelete.name}" has been removed`,
-      });
+      snippetToasts.deleted(snippetToDelete.name);
       setSnippetToDelete(null);
     }
   };

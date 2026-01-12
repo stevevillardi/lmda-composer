@@ -12,7 +12,7 @@ import { Maximize2, Braces, FileText, ListTree, Code2, X } from 'lucide-react';
 import { Empty, EmptyHeader, EmptyMedia, EmptyTitle, EmptyDescription } from '@/components/ui/empty';
 import { COLORS } from '@/editor/constants/colors';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
+import { clipboardToasts } from '../../utils/toast-utils';
 import { normalizeApiPath } from '@/shared/api-utils';
 import { buildApiVariableResolver } from '@/editor/utils/api-variables';
 import { buildMonacoOptions, getMonacoTheme } from '@/editor/utils/monaco-settings';
@@ -291,7 +291,7 @@ export function ApiResponseViewer() {
             text={response.body}
             size="sm"
             variant="ghost"
-            onCopy={() => toast.success('Response copied')}
+            onCopy={() => clipboardToasts.copied('Response')}
           />
         )}
         {response && showFullscreen && (
@@ -476,7 +476,7 @@ export function ApiResponseViewer() {
                         opacity-0 transition-opacity
                         group-hover:opacity-100
                       "
-                      onCopy={() => toast.success('Header copied')}
+                      onCopy={() => clipboardToasts.copied('Header')}
                     />
                   </div>
                 </div>
@@ -519,7 +519,7 @@ export function ApiResponseViewer() {
                       text={snippet}
                       size="sm"
                       variant="ghost"
-                      onCopy={() => toast.success('Snippet copied')}
+                      onCopy={() => clipboardToasts.copied('Snippet')}
                     />
                   </div>
                   <pre className="

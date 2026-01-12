@@ -10,7 +10,7 @@ import {
   RefreshCw,
   ChevronDown,
 } from 'lucide-react';
-import { toast } from 'sonner';
+import { collectorToasts } from '../../utils/toast-utils';
 import { useEditorStore } from '../../stores/editor-store';
 import {
   Dialog,
@@ -266,7 +266,7 @@ export function DebugCommandsDialog() {
   // Handle execute
   const handleExecute = async () => {
     if (!selectedCommand || selectedCollectorIds.length === 0 || !selectedPortalId) {
-      toast.error('Please select a command and at least one collector');
+      collectorToasts.selectCommandAndCollector();
       return;
     }
 
@@ -274,7 +274,7 @@ export function DebugCommandsDialog() {
     if (selectedCommand.parameters) {
       for (const param of selectedCommand.parameters) {
         if (param.required && !parameters[param.name]?.trim()) {
-          toast.error(`Parameter "${param.name}" is required`);
+          collectorToasts.parameterRequired(param.name);
           return;
         }
       }

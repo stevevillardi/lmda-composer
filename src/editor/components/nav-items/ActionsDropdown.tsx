@@ -21,7 +21,7 @@ import {
   ExternalLink,
   Terminal,
 } from 'lucide-react';
-import { toast } from 'sonner';
+import { fileToasts, portalToasts } from '../../utils/toast-utils';
 import { useEditorStore } from '../../stores/editor-store';
 import { getPortalBindingStatus } from '../../utils/portal-binding';
 import { Button } from '@/components/ui/button';
@@ -221,9 +221,7 @@ export function ActionsDropdown() {
               <DropdownMenuItem 
                 onClick={() => {
                   exportToFile();
-                  toast.success('File exported', {
-                    description: 'Download started',
-                  });
+                  fileToasts.exported();
                 }}
                 disabled={!hasOpenTabs}
               >
@@ -321,9 +319,7 @@ export function ActionsDropdown() {
                             await fetchModuleForCommit(activeTabId);
                             setModuleCommitConfirmationOpen(true);
                           } catch (error) {
-                            toast.error('Failed to prepare commit', {
-                              description: error instanceof Error ? error.message : 'Unknown error',
-                            });
+                            portalToasts.prepareCommitFailed(error instanceof Error ? error : undefined);
                           }
                         }}
                         disabled={!selectedPortalId || !canCommit}
