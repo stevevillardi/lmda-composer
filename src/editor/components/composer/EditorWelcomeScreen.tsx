@@ -13,7 +13,8 @@ import {
   Layers,
   Puzzle,
   Terminal,
-  FileText
+  FileText,
+  Database,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useEditorStore } from '../../stores/editor-store';
@@ -226,6 +227,7 @@ export function EditorWelcomeScreen() {
     openModuleFolderFromDisk,
     createNewFile,
     openFileFromDisk,
+    setCreateModuleWizardOpen,
   } = useEditorStore();
 
   useEffect(() => {
@@ -311,7 +313,8 @@ export function EditorWelcomeScreen() {
           {/* Primary Actions */}
           <div className="
             mx-auto grid w-full max-w-4xl grid-cols-1 gap-4
-            sm:grid-cols-3
+            sm:grid-cols-2
+            lg:grid-cols-4
           ">
             <button
               onClick={createNewFile}
@@ -341,6 +344,37 @@ export function EditorWelcomeScreen() {
               <div className="text-center">
                 <h3 className="font-semibold text-foreground">Create New Script</h3>
                 <p className="mt-1 text-sm text-muted-foreground">Start a Groovy or PowerShell file</p>
+              </div>
+            </button>
+
+            <button
+              onClick={() => setCreateModuleWizardOpen(true)}
+              className={cn(
+                `
+                  group flex flex-col items-center justify-center gap-3
+                  rounded-xl border border-border/60 bg-card/60 p-6
+                `,
+                `
+                  transition-all
+                  hover:scale-[1.02] hover:border-primary/30 hover:bg-card/80
+                  hover:shadow-lg
+                `,
+                `
+                  focus-visible:ring-2 focus-visible:ring-ring
+                  focus-visible:ring-offset-2 focus-visible:outline-none
+                `
+              )}
+            >
+              <div className="
+                flex size-12 items-center justify-center rounded-full
+                bg-teal-500/10 text-teal-500 transition-colors
+                group-hover:bg-teal-500/20
+              ">
+                <Database className="size-6" />
+              </div>
+              <div className="text-center">
+                <h3 className="font-semibold text-foreground">Create LogicModule</h3>
+                <p className="mt-1 text-sm text-muted-foreground">Create a new module in your portal</p>
               </div>
             </button>
 

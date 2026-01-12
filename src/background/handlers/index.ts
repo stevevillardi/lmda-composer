@@ -34,6 +34,7 @@ export {
   handleFetchModuleDetails,
   handleFetchAccessGroups,
   handleCommitModuleScript,
+  handleCreateModule,
   handleSearchModuleScripts,
   handleSearchDatapoints,
   handleCancelModuleSearch,

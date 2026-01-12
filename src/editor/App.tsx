@@ -16,6 +16,7 @@ import { DebugCommandsDialog } from './components/collector-debug/DebugCommandsD
 import { ModuleDetailsDialog } from './components/import-from-lmx/ModuleDetailsDialog';
 import { ModuleSnippetsDialog } from './components/portal-actions/ModuleSnippetsDialog';
 import { OpenModuleDirectoryDialog } from './components/composer/OpenModuleDirectoryDialog';
+import { CreateModuleWizard } from './components/create-module';
 import { useEditorStore } from './stores/editor-store';
 import { Button } from '@/components/ui/button';
 import {
@@ -526,6 +527,7 @@ export function App() {
       )}
       <ModuleDetailsDialog />
       <OpenModuleDirectoryDialog />
+      <CreateModuleWizard />
       {/* Save Options Dialog (for portal documents) */}
       <Suspense fallback={null}>
         <SaveOptionsDialogLazy

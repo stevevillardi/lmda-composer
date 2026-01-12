@@ -785,6 +785,178 @@ export async function fetchAccessGroups(
   }
 }
 
+// ============================================================================
+// Module Creation Types and Functions
+// ============================================================================
+
+/**
+ * Payload structure for creating a new DataSource module
+ */
+export interface CreateDataSourcePayload {
+  name: string;
+  displayName?: string;
+  appliesTo: string;
+  collectMethod: 'script' | 'batchscript';
+  collectInterval: number;
+  hasMultiInstances: boolean;
+  enableAutoDiscovery: boolean;
+  collectorAttribute: {
+    name: 'script' | 'batchscript';
+    groovyScript?: string;
+    scriptType?: string;
+  };
+  autoDiscoveryConfig?: {
+    persistentInstance: boolean;
+    scheduleInterval: number;
+    deleteInactiveInstance: boolean;
+    disableInstance: boolean;
+    method: {
+      name: 'ad_script';
+      groovyScript?: string;
+      scriptType?: string;
+    };
+    instanceAutoGroupMethod: string;
+    instanceAutoGroupMethodParams: string | null;
+    filters: unknown[];
+  };
+  /** DataPoints - at least one is required */
+  dataPoints: Array<{
+    name: string;
+    type: number;
+    description?: string;
+    alertExpr?: string;
+    alertForNoData?: number;
+  }>;
+}
+
+/**
+ * Result from creating a module
+ */
+export interface CreateModuleResult {
+  success: boolean;
+  moduleId?: number;
+  moduleName?: string;
+  error?: string;
+}
+
+/**
+ * Function injected into the page context to create a new module via POST
+ */
+async function createModuleInAPI(
+  csrfToken: string | null,
+  endpoint: string,
+  payload: CreateDataSourcePayload,
+  apiVersion: string
+): Promise<{ success: boolean; moduleId?: number; moduleName?: string; error?: string }> {
+  // Embedded lmFetch helper with X-Requested-With support
+  const lmFetch = <T = unknown>(
+    url: string, 
+    opts: { method?: string; csrfToken?: string | null; body?: unknown; apiVersion?: string; xRequestedWith?: boolean } = {}
+  ): Promise<{ ok: boolean; status: number; data?: T; text?: string }> =>
+    new Promise((resolve) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open(opts.method || 'GET', url, true);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.setRequestHeader('X-version', opts.apiVersion || '3');
+      if (opts.csrfToken) xhr.setRequestHeader('X-CSRF-Token', opts.csrfToken);
+      if (opts.xRequestedWith) xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+      xhr.onload = () => {
+        const ok = xhr.status >= 200 && xhr.status < 300;
+        let data: T | undefined;
+        try { data = JSON.parse(xhr.responseText) as T; } catch { /* empty */ }
+        resolve({ ok, status: xhr.status, data, text: xhr.responseText });
+      };
+      xhr.onerror = () => resolve({ ok: false, status: 0, text: 'Network error' });
+      xhr.send(opts.body ? JSON.stringify(opts.body) : undefined);
+    });
+
+  const result = await lmFetch<{ 
+    id?: number; 
+    name?: string;
+    errorMessage?: string; 
+    message?: string; 
+    errorDetail?: string; 
+    errorCode?: number 
+  }>(
+    `/santaba/rest${endpoint}`,
+    { method: 'POST', csrfToken, body: payload, apiVersion, xRequestedWith: true }
+  );
+
+  // Check for error response first (API returns errorMessage on failure)
+  if (result.data?.errorMessage || result.data?.errorCode) {
+    const baseMessage = result.data.errorMessage || result.data.message || `Failed to create module: ${result.status}`;
+    const detailMessage = result.data.errorDetail ? `\n${result.data.errorDetail}` : '';
+    const codeMessage = result.data.errorCode ? ` (Error code: ${result.data.errorCode})` : '';
+    return { success: false, error: `${baseMessage}${codeMessage}${detailMessage}` };
+  }
+
+  // Success case - must have ok status AND a valid module ID
+  if (result.ok && result.data?.id && typeof result.data.id === 'number' && result.data.id > 0) {
+    return { 
+      success: true, 
+      moduleId: result.data.id,
+      moduleName: result.data.name 
+    };
+  }
+
+  // Fallback error handling for other failure cases
+  if (result.data) {
+    const baseMessage = result.data.message || `Failed to create module: ${result.status}`;
+    const detailMessage = result.data.errorDetail ? `\n${result.data.errorDetail}` : '';
+    const codeMessage = result.data.errorCode ? `\nError code: ${result.data.errorCode}` : '';
+    return { success: false, error: `${baseMessage}${detailMessage}${codeMessage}` };
+  }
+
+  return { 
+    success: false, 
+    error: result.status === 0 ? 'Network error' : `Failed to create module: ${result.status}` 
+  };
+}
+
+/**
+ * Create a new module in the portal
+ */
+export async function createModule(
+  _portalId: string,
+  csrfToken: string | null,
+  moduleType: LogicModuleType,
+  payload: CreateDataSourcePayload,
+  tabId: number
+): Promise<CreateModuleResult> {
+  const endpoint = ENDPOINTS[moduleType];
+
+  try {
+    // Check if tab exists and is accessible
+    try {
+      await chrome.tabs.get(tabId);
+    } catch (tabError) {
+      console.error(`[createModule] Tab ${tabId} is not accessible:`, tabError);
+      return { success: false, error: `Tab ${tabId} is not accessible. Please refresh the LogicMonitor page.` };
+    }
+
+    const results = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: createModuleInAPI,
+      args: [csrfToken, endpoint, payload, API_VERSION],
+    });
+
+    if (!results || results.length === 0) {
+      console.error(`[createModule] No results array from injected script`);
+      return { success: false, error: 'Failed to execute create script' };
+    }
+
+    if (!results[0]?.result) {
+      console.error(`[createModule] No result from create script`);
+      return { success: false, error: 'Failed to create module' };
+    }
+
+    return results[0].result as CreateModuleResult;
+  } catch (error) {
+    console.error('[createModule] Error creating module:', error);
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+}
+
 /**
  * Build PATCH payload with only changed metadata fields
  */

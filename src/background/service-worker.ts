@@ -37,6 +37,7 @@ import {
   handleFetchModuleDetails,
   handleFetchAccessGroups,
   handleCommitModuleScript,
+  handleCreateModule,
   handleSearchModuleScripts,
   handleSearchDatapoints,
   handleCancelModuleSearch,
@@ -221,6 +222,10 @@ async function handleMessage(
 
       case 'REFRESH_MODULE_INDEX':
         await handleRefreshModuleIndex(message.payload, sendResponse, handlerContext);
+        break;
+
+      case 'CREATE_MODULE':
+        await handleCreateModule(message.payload, sendResponse, handlerContext);
         break;
 
       // Custom function handlers

@@ -23,6 +23,9 @@ import type {
   Portal,
   FetchModulesResponse,
   ModuleDirectoryConfig,
+  CreateModuleConfig,
+  CreateModulePayload,
+  CreateModuleResponse,
 } from '@/shared/types';
 import type { ModuleDetailsDraft, ModuleMetadata } from './tools-slice';
 import { toast } from 'sonner';
@@ -132,6 +135,10 @@ export interface ModuleSliceState {
   } | null;
   /** Whether to include module details in pull operation */
   includeDetailsInPull: boolean;
+  
+  // Create module wizard
+  createModuleWizardOpen: boolean;
+  isCreatingModule: boolean;
 }
 
 /**
@@ -183,6 +190,10 @@ export interface ModuleSliceActions {
   toggleScriptForPull: (scriptType: 'collection' | 'ad') => void;
   setIncludeDetailsInPull: (include: boolean) => void;
   canPullLatest: (tabId: string) => boolean;
+  
+  // Create module wizard actions
+  setCreateModuleWizardOpen: (open: boolean) => void;
+  createModule: (config: CreateModuleConfig) => Promise<void>;
 }
 
 /**
@@ -342,6 +353,10 @@ export const moduleSliceInitialState: ModuleSliceState = {
   selectedScriptsForPull: new Set(),
   moduleDetailsForPull: null,
   includeDetailsInPull: true,
+  
+  // Create module wizard
+  createModuleWizardOpen: false,
+  isCreatingModule: false,
 };
 
 // ============================================================================
@@ -1948,6 +1963,204 @@ export const createModuleSlice: StateCreator<
         success: false, 
         error: error instanceof Error ? error.message : 'Unknown error',
       };
+    }
+  },
+
+  // ==========================================================================
+  // Create Module Wizard Actions
+  // ==========================================================================
+
+  setCreateModuleWizardOpen: (open: boolean) => {
+    set({ createModuleWizardOpen: open });
+  },
+
+  createModule: async (config) => {
+    const { selectedPortalId, portals, tabs } = get();
+    
+    if (!selectedPortalId) {
+      throw new Error('No portal connected');
+    }
+    
+    const portal = portals.find(p => p.id === selectedPortalId);
+    if (!portal) {
+      throw new Error('Portal not found');
+    }
+    
+    set({ isCreatingModule: true });
+    
+    try {
+      // Build the API payload
+      const collectMethod = config.useBatchScript ? 'batchscript' : 'script';
+      const collectorAttributeName = config.useBatchScript ? 'batchscript' : 'script';
+      
+      // Collection script configuration
+      const collectorAttribute: {
+        name: 'script' | 'batchscript';
+        groovyScript?: string;
+        scriptType?: string;
+      } = {
+        name: collectorAttributeName,
+      };
+      
+      if (config.collectionLanguage === 'powershell') {
+        collectorAttribute.scriptType = 'powerShell';
+      } else {
+        collectorAttribute.groovyScript = '// Collection script\n';
+      }
+      
+      // Build the payload with a default datapoint (exitCode is a common starting point)
+      const modulePayload: CreateModulePayload = {
+        name: config.name,
+        displayName: config.displayName,
+        appliesTo: 'false()',
+        collectMethod,
+        collectInterval: 300, // 5 minutes default
+        hasMultiInstances: config.hasMultiInstances,
+        enableAutoDiscovery: config.hasMultiInstances,
+        collectorAttribute,
+        dataPoints: [
+          {
+            name: 'exitCode',
+            type: 2, // exitCode
+            rawDataFieldName: 'exitCode',
+            description: 'Script exit code (0 = success)',
+            alertExpr: '',
+            alertForNoData: 0,
+          },
+        ],
+      };
+      
+      // Add AD config if multi-instance
+      if (config.hasMultiInstances) {
+        const adMethod: {
+          name: 'ad_script';
+          groovyScript?: string;
+          scriptType?: string;
+        } = {
+          name: 'ad_script',
+        };
+        
+        if (config.adLanguage === 'powershell') {
+          adMethod.scriptType = 'powerShell';
+        } else {
+          adMethod.groovyScript = '// Active Discovery script\n';
+        }
+        
+        modulePayload.autoDiscoveryConfig = {
+          persistentInstance: true,
+          scheduleInterval: 15,
+          deleteInactiveInstance: false,
+          disableInstance: false,
+          method: adMethod,
+          instanceAutoGroupMethod: 'none',
+          instanceAutoGroupMethodParams: null,
+          filters: [],
+        };
+      }
+      
+      // Send the create request
+      const result = await sendMessage({
+        type: 'CREATE_MODULE' as const,
+        payload: {
+          portalId: selectedPortalId,
+          moduleType: config.moduleType,
+          modulePayload,
+        },
+      });
+      
+      if (!result.ok) {
+        throw new Error(result.error || 'Failed to create module');
+      }
+      
+      const createdModule = result.data as CreateModuleResponse;
+      
+      // Create tabs for the new module
+      const collectionContent = config.collectionLanguage === 'powershell' 
+        ? '# Collection script\n'
+        : '// Collection script\n';
+      
+      const collectionMode: ScriptMode = config.useBatchScript ? 'batchcollection' : 'collection';
+      const collectionExtension = config.collectionLanguage === 'groovy' ? 'groovy' : 'ps1';
+      const collectionDisplayName = `${config.name}/${collectionMode === 'batchcollection' ? 'batch' : 'collection'}.${collectionExtension}`;
+      
+      // Create collection tab
+      const collectionTab: EditorTab = {
+        id: crypto.randomUUID(),
+        displayName: collectionDisplayName,
+        content: collectionContent,
+        language: config.collectionLanguage,
+        mode: collectionMode,
+        source: {
+          type: 'module',
+          moduleId: createdModule.moduleId,
+          moduleName: config.name,
+          moduleType: config.moduleType,
+          scriptType: 'collection',
+          portalId: selectedPortalId,
+          portalHostname: createdModule.portalHostname,
+        },
+        document: createPortalDocument(
+          selectedPortalId,
+          createdModule.portalHostname,
+          createdModule.moduleId,
+          config.moduleType,
+          config.name,
+          'collection',
+          collectionContent
+        ),
+      };
+      
+      const newTabs: EditorTab[] = [collectionTab];
+      
+      // Create AD tab if multi-instance
+      if (config.hasMultiInstances && config.adLanguage) {
+        const adContent = config.adLanguage === 'powershell'
+          ? '# Active Discovery script\n'
+          : '// Active Discovery script\n';
+        
+        const adExtension = config.adLanguage === 'groovy' ? 'groovy' : 'ps1';
+        const adDisplayName = `${config.name}/ad.${adExtension}`;
+        
+        const adTab: EditorTab = {
+          id: crypto.randomUUID(),
+          displayName: adDisplayName,
+          content: adContent,
+          language: config.adLanguage,
+          mode: 'ad',
+          source: {
+            type: 'module',
+            moduleId: createdModule.moduleId,
+            moduleName: config.name,
+            moduleType: config.moduleType,
+            scriptType: 'ad',
+            portalId: selectedPortalId,
+            portalHostname: createdModule.portalHostname,
+          },
+          document: createPortalDocument(
+            selectedPortalId,
+            createdModule.portalHostname,
+            createdModule.moduleId,
+            config.moduleType,
+            config.name,
+            'ad',
+            adContent
+          ),
+        };
+        
+        newTabs.push(adTab);
+      }
+      
+      // Add tabs and activate the first one
+      set({
+        tabs: [...tabs, ...newTabs],
+        activeTabId: collectionTab.id,
+        isCreatingModule: false,
+        createModuleWizardOpen: false,
+      } as Partial<ModuleSlice & ModuleSliceDependencies>);
+      
+    } catch (error) {
+      set({ isCreatingModule: false });
+      throw error;
     }
   },
 

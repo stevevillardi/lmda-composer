@@ -47,6 +47,7 @@ type ResponsePayloadFor<T extends EditorToSWMessage['type']> =
   T extends 'FETCH_MODULE_SNIPPETS' ? Extract<SWToEditorMessage, { type: 'MODULE_SNIPPETS_FETCHED' }>['payload'] :
   T extends 'FETCH_MODULE_SNIPPET_SOURCE' ? Extract<SWToEditorMessage, { type: 'MODULE_SNIPPET_SOURCE_FETCHED' }>['payload'] :
   T extends 'GET_MODULE_SNIPPETS_CACHE' ? Extract<SWToEditorMessage, { type: 'MODULE_SNIPPETS_CACHE' }>['payload'] :
+  T extends 'CREATE_MODULE' ? Extract<SWToEditorMessage, { type: 'MODULE_CREATED' }>['payload'] :
   unknown;
 
 /**

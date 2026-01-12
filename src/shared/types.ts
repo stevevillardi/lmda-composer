@@ -904,6 +904,91 @@ export interface LineageVersion {
   adScript?: string;
 }
 
+// ============================================================================
+// Module Creation Types
+// ============================================================================
+
+/**
+ * Configuration for creating a new LogicModule
+ */
+export interface CreateModuleConfig {
+  /** Module type to create */
+  moduleType: LogicModuleType;
+  /** Technical name (required) */
+  name: string;
+  /** Display name (optional) */
+  displayName?: string;
+  /** Script language for collection script */
+  collectionLanguage: ScriptLanguage;
+  /** Whether module has multiple instances */
+  hasMultiInstances: boolean;
+  /** Whether to use batch script collection (only for multi-instance) */
+  useBatchScript: boolean;
+  /** Script language for AD script (only for multi-instance) */
+  adLanguage?: ScriptLanguage;
+}
+
+/**
+ * Request payload for CREATE_MODULE message
+ */
+export interface CreateModuleRequest {
+  portalId: string;
+  moduleType: LogicModuleType;
+  modulePayload: CreateModulePayload;
+}
+
+/**
+ * Payload structure for creating a new module via API
+ */
+export interface CreateModulePayload {
+  name: string;
+  displayName?: string;
+  appliesTo: string;
+  collectMethod: 'script' | 'batchscript';
+  collectInterval: number;
+  hasMultiInstances: boolean;
+  enableAutoDiscovery: boolean;
+  collectorAttribute: {
+    name: 'script' | 'batchscript';
+    groovyScript?: string;
+    scriptType?: string;
+  };
+  autoDiscoveryConfig?: {
+    persistentInstance: boolean;
+    scheduleInterval: number;
+    deleteInactiveInstance: boolean;
+    disableInstance: boolean;
+    method: {
+      name: 'ad_script';
+      groovyScript?: string;
+      scriptType?: string;
+    };
+    instanceAutoGroupMethod: string;
+    instanceAutoGroupMethodParams: string | null;
+    filters: unknown[];
+  };
+  /** DataPoints - at least one is required */
+  dataPoints: Array<{
+    name: string;
+    type: number;
+    rawDataFieldName: string;
+    description?: string;
+    alertExpr?: string;
+    alertForNoData?: number;
+  }>;
+}
+
+/**
+ * Response from CREATE_MODULE message
+ */
+export interface CreateModuleResponse {
+  moduleId: number;
+  moduleName?: string;
+  moduleType: LogicModuleType;
+  portalId: string;
+  portalHostname: string;
+}
+
 export type EditorToSWMessage =
   | { type: 'DISCOVER_PORTALS' }
   | { type: 'GET_COLLECTORS'; payload: { portalId: string } }
@@ -934,7 +1019,8 @@ export type EditorToSWMessage =
   | { type: 'FETCH_MODULE_SNIPPETS'; payload: { portalId: string; collectorId: number } }
   | { type: 'FETCH_MODULE_SNIPPET_SOURCE'; payload: { portalId: string; collectorId: number; name: string; version: string } }
   | { type: 'GET_MODULE_SNIPPETS_CACHE' }
-  | { type: 'CLEAR_MODULE_SNIPPETS_CACHE' };
+  | { type: 'CLEAR_MODULE_SNIPPETS_CACHE' }
+  | { type: 'CREATE_MODULE'; payload: CreateModuleRequest };
 
 export type SWToEditorMessage =
   | { type: 'PORTALS_UPDATE'; payload: Portal[] }
@@ -974,6 +1060,8 @@ export type SWToEditorMessage =
   | { type: 'MODULE_SNIPPET_SOURCE_FETCHED'; payload: ModuleSnippetSource }
   | { type: 'MODULE_SNIPPETS_CACHE'; payload: { snippets: ModuleSnippetInfo[]; meta: ModuleSnippetsCacheMeta; cachedSourceKeys: string[] } | null }
   | { type: 'MODULE_SNIPPETS_ERROR'; payload: { error: string; code?: number } }
+  | { type: 'MODULE_CREATED'; payload: CreateModuleResponse }
+  | { type: 'MODULE_CREATE_ERROR'; payload: { error: string; code?: number } }
   | { type: 'ERROR'; payload: { code: string; message: string } };
 
 export type ContentToSWMessage =

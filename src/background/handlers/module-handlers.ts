@@ -18,6 +18,7 @@ import {
   fetchLineageVersions,
   fetchModuleDetails,
   fetchAccessGroups,
+  createModule,
 } from '../module-api';
 import {
   getIndexInfo,
@@ -425,3 +426,64 @@ export async function handleRefreshModuleIndex(
   }
 }
 
+
+export async function handleCreateModule(
+  payload: { 
+    portalId: string; 
+    moduleType: LogicModuleType; 
+    modulePayload: import('@/shared/types').CreateModulePayload;
+  },
+  sendResponse: SendResponse,
+  { portalManager }: HandlerContext
+) {
+  const { portalId, moduleType, modulePayload } = payload;
+  try {
+    const portal = portalManager.getPortal(portalId);
+    const tabId = await portalManager.getValidTabIdForPortal(portalId);
+    if (!portal || !tabId) {
+      console.error(`[SW] Portal not found or no tabs: portalId=${portalId}, tabIds=${portal?.tabIds.length || 0}`);
+      sendResponse({ 
+        type: 'MODULE_CREATE_ERROR', 
+        payload: { error: 'Portal not found or no tabs available', code: 404 } 
+      });
+      return;
+    }
+    const csrfToken = await portalManager.getCsrfToken(portalId);
+    const result = await createModule(
+      portal.hostname, 
+      csrfToken, 
+      moduleType,
+      modulePayload,
+      tabId
+    );
+    if (result.success && result.moduleId) {
+      sendResponse({ 
+        type: 'MODULE_CREATED', 
+        payload: { 
+          moduleId: result.moduleId, 
+          moduleName: result.moduleName,
+          moduleType,
+          portalId,
+          portalHostname: portal.hostname,
+        } 
+      });
+    } else {
+      sendResponse({ 
+        type: 'MODULE_CREATE_ERROR', 
+        payload: { 
+          error: result.error || 'Failed to create module',
+          code: 500
+        } 
+      });
+    }
+  } catch (error) {
+    console.error(`[SW] Error in CREATE_MODULE:`, error);
+    sendResponse({ 
+      type: 'MODULE_CREATE_ERROR', 
+      payload: { 
+        error: error instanceof Error ? error.message : 'Failed to create module',
+        code: 500
+      } 
+    });
+  }
+}
