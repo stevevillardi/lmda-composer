@@ -1,6 +1,7 @@
 /**
  * BasicInfoStep - Step 2: Enter module name and display name
  */
+import { useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import type { LogicModuleType } from '@/shared/types';
@@ -31,6 +32,22 @@ export function BasicInfoStep({
     : null;
   
   const supportsDisplayName = DISPLAY_NAME_SUPPORTED_TYPES.includes(moduleType);
+  
+  // Track if user has manually edited display name
+  const [displayNameTouched, setDisplayNameTouched] = useState(false);
+  
+  // Auto-populate display name from name if not manually edited
+  const handleNameChange = (value: string) => {
+    onNameChange(value);
+    if (supportsDisplayName && !displayNameTouched) {
+      onDisplayNameChange(value);
+    }
+  };
+  
+  const handleDisplayNameChange = (value: string) => {
+    setDisplayNameTouched(true);
+    onDisplayNameChange(value);
+  };
 
   return (
     <div className="mx-auto max-w-md space-y-6">
@@ -44,7 +61,7 @@ export function BasicInfoStep({
           type="text"
           placeholder="MyModule"
           value={name}
-          onChange={(e) => onNameChange(e.target.value)}
+          onChange={(e) => handleNameChange(e.target.value)}
           className={nameError ? 'border-destructive' : ''}
         />
         {nameError ? (
@@ -67,7 +84,7 @@ export function BasicInfoStep({
             type="text"
             placeholder="My Module"
             value={displayName}
-            onChange={(e) => onDisplayNameChange(e.target.value)}
+            onChange={(e) => handleDisplayNameChange(e.target.value)}
           />
           <p className="text-xs text-muted-foreground">
             Human-readable name shown in the UI. Defaults to the technical name if not provided.

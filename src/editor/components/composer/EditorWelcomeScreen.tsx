@@ -367,8 +367,8 @@ export function EditorWelcomeScreen() {
             >
               <div className="
                 flex size-12 items-center justify-center rounded-full
-                bg-teal-500/10 text-teal-500 transition-colors
-                group-hover:bg-teal-500/20
+                bg-primary/10 text-primary transition-colors
+                group-hover:bg-primary/20
               ">
                 <Database className="size-6" />
               </div>

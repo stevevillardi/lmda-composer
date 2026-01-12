@@ -58,10 +58,15 @@ function getCollectIntervalDescription(moduleType: LogicModuleType): string {
       return '30 minutes';
     case 'propertysource':
       return 'On device discovery';
+    case 'diagnosticsource':
+      return 'On-demand or via Diagnostic Rules';
     default:
       return '5 minutes';
   }
 }
+
+// Module types with no scheduled collection
+const NO_SCHEDULED_COLLECTION_TYPES: LogicModuleType[] = ['propertysource', 'diagnosticsource'];
 
 export function ConfirmStep({
   moduleType,
@@ -144,7 +149,7 @@ export function ConfirmStep({
               <strong>AppliesTo:</strong> <code className="text-primary">false()</code> — module is
               deactivated until you configure targeting
             </li>
-            {moduleType !== 'propertysource' && (
+            {!NO_SCHEDULED_COLLECTION_TYPES.includes(moduleType) && (
               <li>
                 <strong>Collect Interval:</strong> {getCollectIntervalDescription(moduleType)}
               </li>
@@ -152,6 +157,11 @@ export function ConfirmStep({
             {moduleType === 'propertysource' && (
               <li>
                 <strong>Schedule:</strong> Runs on device discovery and property changes
+              </li>
+            )}
+            {moduleType === 'diagnosticsource' && (
+              <li>
+                <strong>Schedule:</strong> {getCollectIntervalDescription(moduleType)}
               </li>
             )}
             <li>

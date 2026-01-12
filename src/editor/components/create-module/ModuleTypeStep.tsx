@@ -18,6 +18,7 @@ const ENABLED_TYPES: LogicModuleType[] = [
   'propertysource',
   'logsource',
   'eventsource',
+  'diagnosticsource',
 ];
 
 export function ModuleTypeStep({ value, onChange }: ModuleTypeStepProps) {

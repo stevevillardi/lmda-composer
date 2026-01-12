@@ -961,9 +961,11 @@ export interface CreateModulePayload {
   };
   /** collectionMethod - used by TopologySource */
   collectionMethod?: string;
-  /** groovyScript - used by PropertySource (top-level) */
+  /** groovyScript - used by PropertySource, EventSource, DiagnosticSource (top-level) */
   groovyScript?: string;
-  /** scriptType - used by PropertySource (top-level) */
+  /** powershellScript - used by DiagnosticSource (top-level) */
+  powershellScript?: string;
+  /** scriptType - used by PropertySource, EventSource, DiagnosticSource (top-level) */
   scriptType?: string;
   autoDiscoveryConfig?: {
     persistentInstance: boolean;
@@ -1052,6 +1054,12 @@ export interface CreateModulePayload {
   suppressDuplicatesES?: boolean;
   /** schedule - used by EventSource (seconds) */
   schedule?: number;
+  
+  // =========================================================================
+  // DiagnosticSource fields
+  // =========================================================================
+  /** dataType - used by DiagnosticSource (0 = diagnostic) */
+  dataType?: number;
 }
 
 /**

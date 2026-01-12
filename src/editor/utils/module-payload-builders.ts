@@ -25,6 +25,7 @@ const PAYLOAD_BUILDERS: Partial<Record<LogicModuleType, PayloadBuilder>> = {
   propertysource: buildPropertySourcePayload,
   logsource: buildLogSourcePayload,
   eventsource: buildEventSourcePayload,
+  diagnosticsource: buildDiagnosticSourcePayload,
 };
 
 /**
@@ -338,4 +339,33 @@ function buildEventSourcePayload(config: CreateModuleConfig): CreateModulePayloa
     clearAfterAck: true,
     suppressDuplicatesES: true,
   };
+}
+
+/**
+ * Build DiagnosticSource-specific payload
+ * 
+ * DiagnosticSource specifics:
+ * - Supports both Groovy and PowerShell
+ * - No collect interval (on-demand or via Diagnostic Rules)
+ * - Uses top-level groovyScript for both languages, scriptType indicates language
+ * - Requires dataType: 0
+ * - No Active Discovery support
+ */
+function buildDiagnosticSourcePayload(config: CreateModuleConfig): CreateModulePayload {
+  const payload: CreateModulePayload = {
+    name: config.name,
+    // DiagnosticSource does not support displayName
+    appliesTo: 'false()',
+    dataType: 0,
+  };
+
+  if (config.collectionLanguage === 'powershell') {
+    payload.scriptType = 'powershell';
+    payload.groovyScript = '# DiagnosticSource script\n';
+  } else {
+    payload.scriptType = 'embed';
+    payload.groovyScript = '// DiagnosticSource script\n';
+  }
+
+  return payload;
 }
