@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Clock, Variable, Settings2, Route, FileWarning, History as HistoryIcon, Copy } from 'lucide-react';
+import { Clock, Variable, Settings2, Route, FileWarning, History as HistoryIcon, Copy, BookOpen } from 'lucide-react';
 import { useEditorStore } from '@/editor/stores/editor-store';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,8 @@ import { COLORS } from '@/editor/constants/colors';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
+import { useApiSchema } from '@/editor/hooks/useApiSchema';
+import { ApiEndpointDocs } from './ApiEndpointDocs';
 
 export function ApiRightSidebar() {
   const {
@@ -27,9 +29,20 @@ export function ApiRightSidebar() {
     preferences,
   } = useEditorStore();
 
+  const { schema } = useApiSchema();
+
   const activeTab = useMemo(() => {
     return tabs.find(t => t.id === activeTabId) ?? null;
   }, [tabs, activeTabId]);
+
+  const currentEndpoint = useMemo(() => {
+    if (!activeTab || activeTab.kind !== 'api' || !schema) return null;
+    const request = activeTab.api?.request;
+    if (!request?.method || !request?.path) return null;
+    return schema.endpoints.find(
+      (ep) => ep.method === request.method && ep.path === request.path
+    ) ?? null;
+  }, [activeTab, schema]);
 
   const envVariables = selectedPortalId
     ? apiEnvironmentsByPortal[selectedPortalId]?.variables ?? []
@@ -90,6 +103,10 @@ export function ApiRightSidebar() {
           <TabsTrigger value="helpers">
             <Settings2 className="mr-1 size-3.5" />
             Helpers
+          </TabsTrigger>
+          <TabsTrigger value="docs">
+            <BookOpen className="mr-1 size-3.5" />
+            Docs
           </TabsTrigger>
         </TabsList>
 
@@ -367,6 +384,10 @@ export function ApiRightSidebar() {
               </div>
             </div>
           </ScrollArea>
+        </TabsContent>
+
+        <TabsContent value="docs" className="min-h-0 flex-1">
+          <ApiEndpointDocs endpoint={currentEndpoint} />
         </TabsContent>
       </Tabs>
     </div>
