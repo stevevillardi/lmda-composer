@@ -12,6 +12,7 @@ import {
   SettingsIcon,
   ImportIcon,
 } from '../../constants/icons';
+import { FlaskConical } from 'lucide-react';
 import { MODE_ITEMS } from '../../constants/mode-config';
 import { executionToasts, moduleToasts, portalToasts } from '../../utils/toast-utils';
 import { useEditorStore } from '../../stores/editor-store';
@@ -58,6 +59,8 @@ export function Toolbar() {
     portals,
     tabs,
     activeTabId,
+    activeWorkspace,
+    setActiveWorkspace,
     collectors,
     setLanguage,
     setMode,
@@ -598,6 +601,28 @@ export function Toolbar() {
 
         {/* Separator between module actions and general actions */}
         {isModuleTab && <Separator orientation="vertical" className="mx-1 h-8" aria-hidden="true" />}
+
+        {/* Dev Tools Toggle - only in development */}
+        {import.meta.env.DEV && (
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant={activeWorkspace === 'devtools' ? 'secondary' : 'toolbar-outline'}
+                  size="toolbar"
+                  onClick={() => setActiveWorkspace(activeWorkspace === 'devtools' ? 'script' : 'devtools')}
+                  aria-label="Toggle integration tests"
+                  aria-pressed={activeWorkspace === 'devtools'}
+                >
+                  <FlaskConical className={SIZES.ICON_MEDIUM} />
+                </Button>
+              }
+            />
+            <TooltipContent>
+              {activeWorkspace === 'devtools' ? 'Back to Composer' : 'Integration Tests'}
+            </TooltipContent>
+          </Tooltip>
+        )}
         
         {/* Actions Dropdown */}
         <ActionsDropdown />

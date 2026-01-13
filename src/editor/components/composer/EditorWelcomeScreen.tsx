@@ -6,22 +6,24 @@ import {
   FileCode,
   Clock,
   Folder,
-  ArrowUpRight,
   Target,
   Play,
   Sparkles,
   Layers,
   Puzzle,
-  Terminal,
-  FileText,
   Database,
+  GitBranch,
+  ChevronRight,
+  Braces,
 } from 'lucide-react';
 import { portalToasts } from '../../utils/toast-utils';
 import { useEditorStore } from '../../stores/editor-store';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import logoIcon from '@/assets/icon128.png';
+import { Kbd } from '@/components/ui/kbd';
 
 // ============================================================================
 // Shared Visuals
@@ -56,29 +58,29 @@ export function GradientBackground() {
 
 const STEPS = [
   {
-    title: 'Open the Composer',
-    body: 'Click the extension icon, or use the “Open in LMDA Composer” link in the resource menu or LMX module tab.',
-    icon: ArrowUpRight,
+    title: 'Choose an action',
+    body: 'Create a new script or LogicModule, open an existing file, or import from the Exchange.',
+    icon: Sparkles,
   },
   {
-    title: 'Choose a target',
-    body: 'Pick a portal and collector. Select a device if your script needs host properties.',
+    title: 'Set your context',
+    body: 'Select a portal and collector from the toolbar. Add a device if your script needs host properties.',
     icon: Target,
   },
   {
     title: 'Run and validate',
-    body: 'Pick a mode (Freeform, AD, Collection, Batch) to validate output and see parsed results.',
+    body: 'Pick a mode (Freeform, AD, Collection, Batch) to test your script and see parsed results.',
     icon: Play,
   },
 ];
 
 const FEATURES = [
+  { label: 'Create LogicModules directly from the wizard', icon: Database },
+  { label: 'Import modules from the LogicMonitor Exchange', icon: CloudDownload },
   { label: 'Run Groovy and PowerShell against any collector', icon: Play },
+  { label: 'Browse module lineage and push changes back', icon: GitBranch },
   { label: 'Switch between Freeform, AD, Collection, and Batch modes', icon: Layers },
-  { label: 'Browse modules, compare lineage, and commit back', icon: CloudDownload },
   { label: 'Use snippets and templates to move faster', icon: Puzzle },
-  { label: 'Review execution history and parsed output', icon: Terminal },
-  { label: 'Open and save local script files', icon: FileText },
 ];
 
 // ============================================================================
@@ -106,9 +108,9 @@ interface RecentFileItemProps {
   onClick: () => void;
 }
 
-function RecentFileItem({ 
-  fileName, 
-  lastAccessed, 
+function RecentFileItem({
+  fileName,
+  lastAccessed,
   onClick,
 }: RecentFileItemProps) {
   return (
@@ -152,12 +154,12 @@ interface RecentDirectoryItemProps {
   onClick: () => void;
 }
 
-function RecentDirectoryItem({ 
-  directoryName, 
+function RecentDirectoryItem({
+  directoryName,
   moduleName,
   moduleType,
   portalHostname,
-  lastAccessed, 
+  lastAccessed,
   onClick,
 }: RecentDirectoryItemProps) {
   return (
@@ -228,6 +230,8 @@ export function EditorWelcomeScreen() {
     createNewFile,
     openFileFromDisk,
     setCreateModuleWizardOpen,
+    setModuleBrowserOpen,
+    setActiveWorkspace,
   } = useEditorStore();
 
   useEffect(() => {
@@ -265,13 +269,13 @@ export function EditorWelcomeScreen() {
     .slice(0, 6);
 
   return (
-    <div className="relative flex h-full flex-col overflow-auto bg-background" tabIndex={-1}>
+    <div className="relative flex h-full flex-col overflow-auto bg-background select-none" tabIndex={-1}>
       <GradientBackground />
       {/* Toast is handled via useEffect, no banner rendered here */}
-      
+
       <div className="relative z-10 flex flex-1 items-center justify-center p-4">
         <div className="
-          w-full max-w-4xl animate-in space-y-8 duration-500 fade-in
+          w-full max-w-4xl animate-in space-y-4 duration-500 fade-in
           slide-in-from-bottom-4
         ">
           {/* Header */}
@@ -290,141 +294,221 @@ export function EditorWelcomeScreen() {
               <h1 className="text-4xl font-bold tracking-tight text-foreground">
                 Welcome to LMDA Composer
               </h1>
-              <p className="mx-auto max-w-lg text-lg text-muted-foreground">
+              <p className="mx-auto max-w-4xl text-lg text-muted-foreground">
                 Your dedicated workspace for LogicMonitor scripting. Build, test, and debug with confidence.
               </p>
             </div>
           </div>
 
-          {/* Primary Actions */}
+          {/* Primary Actions - 3 Category Cards */}
           <div className="
             mx-auto grid w-full max-w-4xl grid-cols-1 gap-4
-            sm:grid-cols-2
-            lg:grid-cols-4
+            lg:grid-cols-3
           ">
-            <button
-              onClick={createNewFile}
-              className={cn(
-                `
-                  group flex flex-col items-center justify-center gap-3
-                  rounded-xl border border-border/60 bg-card/60 p-6
-                `,
-                `
-                  transition-all
-                  hover:scale-[1.02] hover:border-primary/30 hover:bg-card/80
-                  hover:shadow-lg
-                `,
-                `
-                  focus-visible:ring-2 focus-visible:ring-ring
-                  focus-visible:ring-offset-2 focus-visible:outline-none
-                `
-              )}
-            >
-              <div className="
-                flex size-12 items-center justify-center rounded-full
-                bg-primary/10 text-primary transition-colors
-                group-hover:bg-primary/20
-              ">
-                <FilePlus className="size-6" />
-              </div>
-              <div className="text-center">
-                <h3 className="font-semibold text-foreground">Create New Script</h3>
-                <p className="mt-1 text-sm text-muted-foreground">Start a Groovy or PowerShell file</p>
-              </div>
-            </button>
+            {/* Create New */}
+            <Card className="
+              border-border/60 bg-card/60 shadow-sm backdrop-blur-sm
+              transition-all
+              hover:border-primary/20 hover:shadow-md
+            ">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base font-medium">
+                  <div className="
+                    flex size-8 items-center justify-center rounded-full
+                    bg-primary/10 text-primary
+                  ">
+                    <Sparkles className="size-4" />
+                  </div>
+                  Create New
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-1 pt-0">
+                <button
+                  onClick={createNewFile}
+                  className={cn(
+                    "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left",
+                    "group transition-colors hover:bg-accent/50",
+                    "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                  )}
+                >
+                  <FilePlus className="size-4 text-muted-foreground transition-colors group-hover:text-primary" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-foreground">New Script</p>
+                    <p className="text-xs text-muted-foreground">Groovy or PowerShell file</p>
+                  </div>
+                  <ChevronRight className="size-4 text-muted-foreground/50 transition-colors group-hover:text-primary" />
+                </button>
+                <button
+                  onClick={() => selectedPortalId && setCreateModuleWizardOpen(true)}
+                  disabled={!selectedPortalId}
+                  className={cn(
+                    "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left",
+                    "group transition-colors",
+                    selectedPortalId
+                      ? "hover:bg-accent/50"
+                      : "cursor-not-allowed opacity-50",
+                    "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                  )}
+                >
+                  <Database className={cn(
+                    "size-4 transition-colors",
+                    selectedPortalId
+                      ? "text-muted-foreground group-hover:text-primary"
+                      : "text-muted-foreground/50"
+                  )} />
+                  <div className="flex-1">
+                    <p className={cn(
+                      "text-sm font-medium",
+                      selectedPortalId ? "text-foreground" : "text-muted-foreground"
+                    )}>New LogicModule</p>
+                    <p className="text-xs text-muted-foreground">
+                      {selectedPortalId ? "Create in your portal" : "Connect to a portal first"}
+                    </p>
+                  </div>
+                  <ChevronRight className={cn(
+                    "size-4 transition-colors",
+                    selectedPortalId
+                      ? "text-muted-foreground/50 group-hover:text-primary"
+                      : "text-muted-foreground/30"
+                  )} />
+                </button>
+              </CardContent>
+            </Card>
 
-            <button
-              onClick={() => setCreateModuleWizardOpen(true)}
-              className={cn(
-                `
-                  group flex flex-col items-center justify-center gap-3
-                  rounded-xl border border-border/60 bg-card/60 p-6
-                `,
-                `
-                  transition-all
-                  hover:scale-[1.02] hover:border-primary/30 hover:bg-card/80
-                  hover:shadow-lg
-                `,
-                `
-                  focus-visible:ring-2 focus-visible:ring-ring
-                  focus-visible:ring-offset-2 focus-visible:outline-none
-                `
-              )}
-            >
-              <div className="
-                flex size-12 items-center justify-center rounded-full
-                bg-primary/10 text-primary transition-colors
-                group-hover:bg-primary/20
-              ">
-                <Database className="size-6" />
-              </div>
-              <div className="text-center">
-                <h3 className="font-semibold text-foreground">Create LogicModule</h3>
-                <p className="mt-1 text-sm text-muted-foreground">Create a new module in your portal</p>
-              </div>
-            </button>
+            {/* Open Existing */}
+            <Card className="
+              border-border/60 bg-card/60 shadow-sm backdrop-blur-sm
+              transition-all
+              hover:border-primary/20 hover:shadow-md
+            ">
+              <CardHeader className="pb-3">
+                <CardTitle className="flex items-center gap-2 text-base font-medium">
+                  <div className="
+                    flex size-8 items-center justify-center rounded-full
+                    bg-primary/10 text-primary
+                  ">
+                    <FolderOpen className="size-4" />
+                  </div>
+                  Open Existing
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-1 pt-0">
+                <button
+                  onClick={openFileFromDisk}
+                  className={cn(
+                    "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left",
+                    "group transition-colors hover:bg-accent/50",
+                    "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                  )}
+                >
+                  <FileCode className="size-4 text-muted-foreground transition-colors group-hover:text-primary" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-foreground">Open File</p>
+                    <p className="text-xs text-muted-foreground">From your computer</p>
+                  </div>
+                  <ChevronRight className="size-4 text-muted-foreground/50 transition-colors group-hover:text-primary" />
+                </button>
+                <button
+                  onClick={() => void openModuleFolderFromDisk()}
+                  className={cn(
+                    "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left",
+                    "group transition-colors hover:bg-accent/50",
+                    "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                  )}
+                >
+                  <Folder className="size-4 text-muted-foreground transition-colors group-hover:text-primary" />
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-foreground">Open Module Folder</p>
+                    <p className="text-xs text-muted-foreground">Saved module directory</p>
+                  </div>
+                  <ChevronRight className="size-4 text-muted-foreground/50 transition-colors group-hover:text-primary" />
+                </button>
+              </CardContent>
+            </Card>
 
-            <button
-              onClick={openFileFromDisk}
-              className={cn(
-                `
-                  group flex flex-col items-center justify-center gap-3
-                  rounded-xl border border-border/60 bg-card/60 p-6
-                `,
-                `
-                  transition-all
-                  hover:scale-[1.02] hover:border-primary/30 hover:bg-card/80
-                  hover:shadow-lg
-                `,
-                `
-                  focus-visible:ring-2 focus-visible:ring-ring
-                  focus-visible:ring-offset-2 focus-visible:outline-none
-                `
+            {/* Import from LMX */}
+            <Tooltip>
+              <TooltipTrigger
+                render={
+                  <Card className={cn(
+                    "border-border/60 bg-card/60 shadow-sm backdrop-blur-sm",
+                    "transition-all",
+                    selectedPortalId
+                      ? "hover:border-primary/20 hover:shadow-md"
+                      : "opacity-60"
+                  )}>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="flex items-center gap-2 text-base font-medium">
+                        <div className="
+                          flex size-8 items-center justify-center rounded-full
+                          bg-primary/10 text-primary
+                        ">
+                          <CloudDownload className="size-4" />
+                        </div>
+                        Import from LMX
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-1 pt-0">
+                      <button
+                        onClick={() => selectedPortalId && setModuleBrowserOpen(true)}
+                        disabled={!selectedPortalId}
+                        className={cn(
+                          "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left",
+                          "group transition-colors",
+                          selectedPortalId
+                            ? "hover:bg-accent/50"
+                            : "cursor-not-allowed",
+                          "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                        )}
+                      >
+                        <CloudDownload className={cn(
+                          "size-4 transition-colors",
+                          selectedPortalId
+                            ? "text-muted-foreground group-hover:text-primary"
+                            : "text-muted-foreground/50"
+                        )} />
+                        <div className="flex-1">
+                          <p className={cn(
+                            "text-sm font-medium",
+                            selectedPortalId ? "text-foreground" : "text-muted-foreground"
+                          )}>Browse Modules</p>
+                          <p className="text-xs text-muted-foreground">
+                            {selectedPortalId
+                              ? "LogicMonitor Exchange"
+                              : "Connect to a portal first"}
+                          </p>
+                        </div>
+                        <ChevronRight className={cn(
+                          "size-4 transition-colors",
+                          selectedPortalId
+                            ? "text-muted-foreground/50 group-hover:text-primary"
+                            : "text-muted-foreground/30"
+                        )} />
+                      </button>
+                    </CardContent>
+                  </Card>
+                }
+              />
+              {!selectedPortalId && (
+                <TooltipContent>
+                  Connect to a LogicMonitor portal to import modules
+                </TooltipContent>
               )}
-            >
-              <div className="
-                flex size-12 items-center justify-center rounded-full
-                bg-primary/10 text-primary transition-colors
-                group-hover:bg-primary/20
-              ">
-                <FolderOpen className="size-6" />
-              </div>
-              <div className="text-center">
-                <h3 className="font-semibold text-foreground">Open File</h3>
-                <p className="mt-1 text-sm text-muted-foreground">Open from your computer</p>
-              </div>
-            </button>
+            </Tooltip>
+          </div>
 
-            <button
-              onClick={() => void openModuleFolderFromDisk()}
-              className={cn(
-                `
-                  group flex flex-col items-center justify-center gap-3
-                  rounded-xl border border-border/60 bg-card/60 p-6
-                `,
-                `
-                  transition-all
-                  hover:scale-[1.02] hover:border-primary/30 hover:bg-card/80
-                  hover:shadow-lg
-                `,
-                `
-                  focus-visible:ring-2 focus-visible:ring-ring
-                  focus-visible:ring-offset-2 focus-visible:outline-none
-                `
-              )}
+          {/* Switch to API Explorer */}
+          <div className="flex justify-center">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setActiveWorkspace('api')}
+              className="gap-2 text-muted-foreground hover:text-foreground"
             >
-              <div className="
-                flex size-12 items-center justify-center rounded-full
-                bg-primary/10 text-primary transition-colors
-                group-hover:bg-primary/20
-              ">
-                <Folder className="size-6" />
-              </div>
-              <div className="text-center">
-                <h3 className="font-semibold text-foreground">Open Module Folder</h3>
-                <p className="mt-1 text-sm text-muted-foreground">Open a saved module directory</p>
-              </div>
-            </button>
+              <Braces className="size-4" />
+              Switch to API Explorer
+              <ChevronRight className="size-4" />
+            </Button>
           </div>
 
           {/* Conditional Content: History vs Educational */}
@@ -468,7 +552,7 @@ export function EditorWelcomeScreen() {
             </Card>
           ) : (
             <div className="
-              grid gap-6 pt-4
+              grid gap-6
               md:grid-cols-2
             ">
               <Card className="
@@ -531,6 +615,20 @@ export function EditorWelcomeScreen() {
               </Card>
             </div>
           )}
+          {/* Footer Tip */}
+          <div className="flex w-full items-center justify-center select-none">
+            <div className="
+              flex items-center gap-2 text-xs text-muted-foreground
+            ">
+              <span>Tip</span>
+              <div className="flex items-center gap-0.5">
+                <Kbd>⌘</Kbd>
+                <Kbd>⇧</Kbd>
+                <Kbd>P</Kbd>
+              </div>
+              <span>opens the command palette</span>
+            </div>
+          </div>
         </div>
       </div>
     </div>

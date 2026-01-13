@@ -163,7 +163,7 @@ export function LogicModuleBrowser() {
     <>
       <Dialog open={moduleBrowserOpen} onOpenChange={setModuleBrowserOpen}>
         <DialogContent className="
-          flex h-[90vh] w-[90vw]! max-w-[90vw]! flex-col gap-4 p-0
+          flex h-[90vh] w-[90vw]! max-w-[90vw]! flex-col gap-4 p-0 select-none
         " showCloseButton>
           {/* Header */}
           <DialogHeader className="px-6 pt-6 pb-0">

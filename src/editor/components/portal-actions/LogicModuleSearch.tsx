@@ -991,7 +991,7 @@ export function LogicModuleSearch() {
   return (
     <Dialog open={moduleSearchOpen} onOpenChange={setModuleSearchOpen}>
       <DialogContent className="
-        flex h-[90vh] w-[90vw]! max-w-[90vw]! flex-col gap-4 p-0
+        flex h-[90vh] w-[90vw]! max-w-[90vw]! flex-col gap-4 p-0 select-none
       " showCloseButton>
         <DialogHeader className="px-6 pt-6 pb-0">
           <DialogTitle className="flex items-center gap-2">
@@ -1055,7 +1055,7 @@ export function LogicModuleSearch() {
                     variant="outline"
                     size="sm"
                     aria-label="Toggle case sensitivity"
-                    className="gap-1.5"
+                    className="gap-1.5 py-4"
                   >
                     <CaseSensitive className="size-3.5" />
                     Aa
@@ -1183,11 +1183,15 @@ export function LogicModuleSearch() {
               >
                 {LOGIC_MODULE_TYPES.map((type) => {
                   const Icon = type.icon;
+                  const isSelected = moduleSearchModuleTypes.includes(type.value);
                   return (
                     <ToggleGroupItem
                       key={type.value}
                       value={type.value}
-                      className="flex items-center gap-1.5 px-3"
+                      className={cn(
+                        "group flex items-center gap-1.5 px-3",
+                        isSelected && "hover:opacity-60"
+                      )}
                     >
                       <Icon className="size-4" />
                       <span className="

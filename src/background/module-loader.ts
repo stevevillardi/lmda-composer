@@ -15,15 +15,6 @@ const ENDPOINTS: Record<LogicModuleType, string> = {
   eventsource: '/setting/eventsources',
 };
 
-// Module types that need script filter (have non-script collection methods)
-// Note: logsource uses collectionMethod (uppercase) and has different schema - filter separately
-// Note: propertysource and diagnosticsource are always script-based
-const NEEDS_SCRIPT_FILTER: LogicModuleType[] = [
-  'datasource',
-  'configsource', 
-  'topologysource',
-];
-
 // Batch size for pagination
 const PAGE_SIZE = 1000;
 
@@ -56,13 +47,12 @@ export class ModuleLoader {
     }
 
     const endpoint = ENDPOINTS[moduleType];
-    const needsFilter = NEEDS_SCRIPT_FILTER.includes(moduleType);
 
     try {
       const results = await chrome.scripting.executeScript({
         target: { tabId },
         func: fetchModulesFromAPI,
-        args: [portal.csrfToken, endpoint, moduleType, needsFilter, offset, pageSize, search],
+        args: [portal.csrfToken, endpoint, moduleType, offset, pageSize, search],
       });
 
       if (!results?.[0]?.result) {
@@ -70,26 +60,8 @@ export class ModuleLoader {
       }
 
       const pageResult = results[0].result as FetchModulesResponse;
-      let items = pageResult.items;
-
-      // Post-filter for LogSource: only include script-based modules
-      if (moduleType === 'logsource') {
-        items = items.filter(item => 
-          item.collectMethod === 'script' && item.collectionScript
-        );
-      }
-
-      if (moduleType === 'topologysource') {
-        items = items.filter(item => item.scriptType === 'embed');
-      }
-
-      // EventSource: only include script-based eventsources (collector === 'scriptevent')
-      if (moduleType === 'eventsource') {
-        items = items.filter(item => item.collector === 'scriptevent');
-      }
-
       return {
-        items,
+        items: pageResult.items,
         total: pageResult.total,
         hasMore: pageResult.hasMore,
       };
@@ -162,7 +134,6 @@ async function fetchModulesFromAPI(
   csrfToken: string | null,
   endpoint: string,
   moduleType: string,
-  needsFilter: boolean,
   offset: number,
   size: number,
   search: string
@@ -210,18 +181,11 @@ async function fetchModulesFromAPI(
     return encodeURIComponent(once);
   };
 
-  const filters: string[] = [];
-  if (needsFilter) {
-    filters.push('collectMethod~"script"');
-  }
   if (search && search.trim()) {
     const escaped = search.replace(/"/g, '\\"');
     const encodedValue = encodeFilterValue(`*${escaped}*`);
     const searchFilter = `_all~"${encodedValue}"`;
-    filters.push(searchFilter);
-  }
-  if (filters.length > 0) {
-    url += `&filter=${encodeURIComponent(filters.join(','))}`;
+    url += `&filter=${encodeURIComponent(searchFilter)}`;
   }
 
   const result = await lmFetch<APIModuleResponse>('/santaba/rest' + url, { csrfToken });

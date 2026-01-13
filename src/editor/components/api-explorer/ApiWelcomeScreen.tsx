@@ -4,7 +4,8 @@ import {
   AlertCircle,
   Gauge,
   BookOpen,
-  ArrowLeft,
+  Code,
+  ChevronRight,
 } from 'lucide-react';
 import { useEditorStore } from '../../stores/editor-store';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -231,7 +232,7 @@ export function ApiWelcomeScreen() {
   };
 
   return (
-    <div className="relative flex h-full flex-col overflow-auto bg-background" tabIndex={-1}>
+    <div className="relative flex h-full flex-col overflow-auto bg-background select-none" tabIndex={-1}>
       <GradientBackground />
       
       <div className="relative z-10 flex flex-1 items-center justify-center p-6">
@@ -258,13 +259,11 @@ export function ApiWelcomeScreen() {
                 variant="ghost"
                 size="sm"
                 onClick={handleBackToComposer}
-                className="
-                  text-muted-foreground
-                  hover:bg-white/10 hover:text-foreground
-                "
+                className="gap-2 text-muted-foreground hover:text-foreground"
               >
-                <ArrowLeft className="mr-1.5 size-4" />
-                Back to Composer
+                <Code className="size-4" />
+                Switch to Composer
+                <ChevronRight className="size-4" />
               </Button>
             </div>
           </div>
@@ -292,10 +291,12 @@ export function ApiWelcomeScreen() {
                   <ActionRow
                     icon={<Braces className="size-4" />}
                     title="New API Request"
-                    description="Create a new request to explore the LM REST API"
+                    description={selectedPortalId 
+                      ? "Create a new request to explore the LM REST API" 
+                      : "Connect to a portal first"}
                     onClick={openApiExplorerTab}
                     disabled={!selectedPortalId}
-                    disabledReason="Connect to a portal first to send API requests"
+                    disabledReason="Connect to a LogicMonitor portal to send API requests"
                   />
                 </CardContent>
               </Card>

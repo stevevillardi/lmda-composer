@@ -4,7 +4,7 @@
  */
 
 import { useState, useCallback, useRef } from 'react';
-import { Play, Square, Trash2, FlaskConical, CheckCircle2, XCircle, Clock, Loader2, AlertTriangle } from 'lucide-react';
+import { Play, Square, Trash2, FlaskConical, CheckCircle2, XCircle, Clock, Loader2, AlertTriangle, ArrowLeft } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,7 +12,6 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
-import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useEditorStore } from '../../stores/editor-store';
 import { TestResultsDialog } from './TestResultsDialog';
@@ -85,8 +84,12 @@ function TestSuiteCard({ suite, isSelected, onToggle, isRunning, result }: TestS
 }
 
 export function DevToolsPanel() {
-  const { selectedPortalId, portals } = useEditorStore();
+  const { selectedPortalId, portals, setActiveWorkspace } = useEditorStore();
   const selectedPortal = portals.find(p => p.id === selectedPortalId);
+
+  const handleBackToComposer = () => {
+    setActiveWorkspace('script');
+  };
 
   const [selectedSuites, setSelectedSuites] = useState<Set<string>>(
     new Set(ALL_TEST_SUITES.map(s => s.id))
@@ -179,30 +182,63 @@ export function DevToolsPanel() {
 
   if (!selectedPortal) {
     return (
-      <div className="flex h-full items-center justify-center p-8">
-        <Alert>
-          <AlertTriangle className="size-4" />
-          <AlertDescription>
-            Select a portal to run integration tests.
-          </AlertDescription>
-        </Alert>
+      <div className="flex h-full flex-col gap-4 p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <FlaskConical className="size-5" />
+            <h1 className="text-lg font-semibold">Integration Tests</h1>
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleBackToComposer}
+            className="gap-1.5"
+          >
+            <ArrowLeft className="size-4" />
+            Back to Composer
+          </Button>
+        </div>
+        <Card className="flex-1">
+          <CardContent className="flex h-full items-center justify-center">
+            <div className="flex flex-col items-center gap-3 text-center">
+              <AlertTriangle className="size-8 text-muted-foreground" />
+              <div>
+                <p className="font-medium">No Portal Selected</p>
+                <p className="text-sm text-muted-foreground">
+                  Select a portal to run integration tests.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
   return (
     <div className="flex h-full flex-col gap-4 p-4">
+      {/* Header with back button */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <FlaskConical className="size-5" />
+          <h1 className="text-lg font-semibold">Integration Tests</h1>
+          <Badge variant="outline">
+            {selectedPortal.hostname}
+          </Badge>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleBackToComposer}
+          className="gap-1.5"
+        >
+          <ArrowLeft className="size-4" />
+          Back to Composer
+        </Button>
+      </div>
+
       <Card>
         <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <FlaskConical className="size-5" />
-              <CardTitle>Integration Tests</CardTitle>
-            </div>
-            <Badge variant="outline">
-              Portal: {selectedPortal.hostname}
-            </Badge>
-          </div>
           <CardDescription>
             Run end-to-end tests against the LogicMonitor API to validate module operations.
           </CardDescription>

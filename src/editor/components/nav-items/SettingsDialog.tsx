@@ -137,7 +137,7 @@ export function SettingsDialog() {
 
   return (
     <Dialog open={settingsDialogOpen} onOpenChange={setSettingsDialogOpen}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-lg select-none">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Settings className="size-5" />

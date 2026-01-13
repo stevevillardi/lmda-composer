@@ -107,3 +107,7 @@ Each handler receives a `HandlerContext` with access to managers.
 - Sender validation in `sender-validation.ts` ensures messages come from extension or LM domains
 - No credentials stored; uses browser session
 - All API calls include CSRF token in `X-CSRF-Token` header
+
+## Build Instructions
+
+- Under no circumstances should you attempt to build the application. you can run lint checks and tsc but this application runs with npm run dev performing hot reload and everytime you build the app you break it. You can let me know when you want me to test the build process but do not run it unless specifiied explicitly.
