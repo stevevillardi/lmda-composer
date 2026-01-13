@@ -1,14 +1,13 @@
 ---
 title: Variables & History
-description: Use environment variables and review API request history.
+description: Use environment variables, JSON helpers, and review API request history.
 ---
 
-import { Card, CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
+import { Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
 import { Icon } from '@astrojs/starlight/components';
 import HttpMethodBadge from '../../../components/HttpMethodBadge.astro';
-import FeatureCard from '../../../components/FeatureCard.astro';
 
-The API Explorer includes environment variables for reusable values and a history panel to review past requests.
+The API Explorer includes environment variables for reusable values, JSON path helpers to extract response data, and a history panel to review past requests.
 
 ## Environment Variables
 
@@ -42,20 +41,10 @@ Variables work in:
 
 Access variables in the right sidebar under the **Variables** tab:
 
-<CardGrid>
-  <FeatureCard title="Add Variable" icon="plus" color="green">
-    Click **Add Variable** and enter name/value.
-  </FeatureCard>
-  <FeatureCard title="Edit Variable" icon="edit" color="blue">
-    Click the variable value to edit inline.
-  </FeatureCard>
-  <FeatureCard title="Delete Variable" icon="trash" color="red">
-    Click the **×** button to remove.
-  </FeatureCard>
-  <FeatureCard title="Copy Variable" icon="copy" color="purple">
-    Click the copy icon for the syntax.
-  </FeatureCard>
-</CardGrid>
+- **Add Variable** — Click **Add** and enter key/value pair
+- **Edit Variable** — Click the variable value to edit inline
+- **Delete Variable** — Click the **×** button to remove
+- **Copy Syntax** — Click the copy icon to copy `{{variableName}}` syntax
 
 ### Variable Properties
 
@@ -63,9 +52,8 @@ Each variable has:
 
 | Property | Description |
 |----------|-------------|
-| **Name** | Variable identifier (no spaces allowed) |
+| **Key** | Variable identifier (no spaces allowed) |
 | **Value** | The substituted value |
-| **Description** | Optional documentation |
 
 ---
 
@@ -106,6 +94,42 @@ When you send a request:
 
 ---
 
+## JSON Path Helpers
+
+The **Helpers** tab provides a quick way to save response values as variables.
+
+### How Helpers Work
+
+After running a request, the Helpers tab shows top-level scalar fields from the response:
+
+| Field | Description |
+|-------|-------------|
+| **JSON Path** | The path to the value (e.g., `$.id`, `$.displayName`) |
+| **Copy** | Copy the JSON path to clipboard |
+| **Save** | Save the value as an environment variable |
+
+### Using Helpers
+
+<Steps>
+
+1. Run an API request that returns a single resource
+
+2. Open the **Helpers** tab in the sidebar
+
+3. Find the field you want to save (e.g., `$.id`)
+
+4. Click **Save** to create a variable with that value
+
+5. Use the variable in subsequent requests: `{{id}}`
+
+</Steps>
+
+<Aside type="note" title="Single Resource Responses">
+  Helpers show for single-resource responses only. For list responses (with `items` array), use the JSON viewer to find specific values.
+</Aside>
+
+---
+
 ## Request History
 
 <img src="/lmda-composer/api-explorer/api-history.png" alt="History sidebar showing past API requests" style="border-radius: 0.5rem; margin: 1.5rem 0;" />
@@ -122,7 +146,7 @@ Every API request is saved to history:
 
 ### Accessing History
 
-Open the **History** tab in the right sidebar to see past requests.
+Open the **History** tab in the right sidebar to see past requests. The header shows "Last N responses" where N is your configured limit.
 
 ---
 
@@ -132,24 +156,23 @@ Each entry shows:
 
 | Field | Description |
 |-------|-------------|
-| Method Badge | <HttpMethodBadge method="GET" size="sm" />, <HttpMethodBadge method="POST" size="sm" />, etc. |
-| Endpoint | The API path called |
-| Status | Response status code (<Badge text="200" variant="success" />, <Badge text="404" variant="caution" />, etc.) |
-| Time | When the request was made |
-| Duration | How long it took |
+| **Method Badge** | <HttpMethodBadge method="GET" size="sm" />, <HttpMethodBadge method="POST" size="sm" />, etc. |
+| **Endpoint** | The API path called |
+| **Status** | Response status code with color indicator |
+| **Duration** | How long it took (e.g., "234ms") |
+
+Entries have a colored left border: green for success (2xx), red for errors.
 
 ---
 
 ### History Actions
 
-Click a history entry for options:
+Click a history entry to access actions:
 
 | Action | Result |
 |--------|--------|
-| **Load** | Populate the request builder with this request |
-| **View** | See full request/response details |
-| **Copy** | Copy as cURL command or URL |
-| **Delete** | Remove from history |
+| **Open in New Tab** | Opens the request in a new API tab with the saved response |
+| **Copy Path** | Copies the endpoint path |
 
 ### Reloading Past Requests
 
@@ -157,9 +180,9 @@ Click a history entry for options:
 
 1. Find the request in history
 
-2. Click **Load**
+2. Click the open button (route icon)
 
-3. Request populates the builder
+3. Request opens in a new tab with the saved response
 
 4. Modify parameters if needed
 
@@ -169,73 +192,70 @@ Click a history entry for options:
 
 ---
 
-### History Limits
+### History Settings
 
-History is stored locally with configurable limits:
+History is stored per-portal with configurable limits:
 
-- Configurable in **Settings** (<kbd>Ctrl</kbd>+<kbd>,</kbd>)
-- Default: **10 requests**
-- Oldest entries removed when limit reached
+| Setting | Location | Default |
+|---------|----------|---------|
+| **History Limit** | Settings → API History Limit | 10 requests |
+
+Configure in **Settings** (<kbd>Ctrl</kbd>+<kbd>,</kbd> / <kbd>Cmd</kbd>+<kbd>,</kbd>).
 
 ### Clearing History
 
-1. Click **Clear History** at the top of the history panel
-2. Confirm the action
-3. All history entries are removed
+1. Click **Clear** at the top of the history panel
+2. All history entries for the current portal are removed
 
 ---
 
-## History Details View
+## Code Snippets
 
-Click **View** on a history entry for full details:
+The Response Viewer's **Snippets** tab generates code for the current request in multiple languages:
 
-<Tabs>
-  <TabItem label="Request" icon="rocket">
-    - Method and endpoint
-    - Headers sent
-    - Request body
-    - Variables used (resolved values)
-  </TabItem>
-  
-  <TabItem label="Response" icon="document">
-    - Status code and text
-    - Response headers
-    - Response body (full JSON)
-    - Response time
-    - Response size
-  </TabItem>
-</Tabs>
+| Language | Use Case |
+|----------|----------|
+| **cURL** | Command-line testing, shell scripts |
+| **Python** | Automation scripts with `requests` library |
+| **PowerShell** | Windows automation with `Invoke-RestMethod` |
+| **Groovy** | LogicMonitor script integration |
+
+Snippets include:
+- Full URL with resolved variables
+- Headers (including X-version and Content-Type)
+- Request body (for POST/PUT/PATCH)
 
 ---
 
 ## Workflow Examples
 
 <Tabs>
-  <TabItem label="Environment Switching" icon="setting">
-    **Setup variables for different environments:**
+  <TabItem label="Save & Reuse ID" icon="setting">
+    **Workflow for creating a resource and using its ID:**
 
-    | Variable | Test Value | Production Value |
-    |----------|------------|------------------|
-    | `testDeviceId` | `12345` | — |
-    | `prodDeviceId` | — | `67890` |
+    <Steps>
 
-    **Testing:**
-    ```
-    GET /device/devices/{{testDeviceId}}
-    ```
+    1. Create a device: <HttpMethodBadge method="POST" size="sm" /> `/device/devices`
 
-    **Production:**
-    ```
-    GET /device/devices/{{prodDeviceId}}
-    ```
+    2. View the response and note the `id` field
 
-    Switch between environments by changing which variable you use.
+    3. Open **Helpers** tab and click **Save** next to `$.id`
+
+    4. Variable `id` is now available
+
+    5. Use in subsequent requests: `/device/devices/{{id}}`
+
+    </Steps>
   </TabItem>
   
   <TabItem label="Time Range Queries" icon="history">
-    **Variables:**
-    - `startTime`: `1704067200` (epoch timestamp)
-    - `endTime`: `1704153600`
+    **Variables for time-based queries:**
+
+    | Variable | Value |
+    |----------|-------|
+    | `startTime` | `1704067200` (epoch timestamp) |
+    | `endTime` | `1704153600` |
+    | `deviceId` | `12345` |
 
     **Request:**
     ```
@@ -254,15 +274,15 @@ Click **View** on a history entry for full details:
 
     1. **Create device**: <HttpMethodBadge method="POST" size="sm" /> `/device/devices`
 
-    2. **Get device ID**: From response, note the `id` field
+    2. **Save ID**: Use Helpers to save `$.id` as `deviceId`
 
-    3. **Set variable**: Add `deviceId` variable with the ID
+    3. **Add properties**: <HttpMethodBadge method="PATCH" size="sm" /> `/device/devices/{{deviceId}}`
 
-    4. **Add properties**: <HttpMethodBadge method="PATCH" size="sm" /> `/device/devices/{{deviceId}}`
-
-    5. **Verify**: <HttpMethodBadge method="GET" size="sm" /> `/device/devices/{{deviceId}}`
+    4. **Verify**: <HttpMethodBadge method="GET" size="sm" /> `/device/devices/{{deviceId}}`
 
     </Steps>
+
+    Each request uses the variable from the previous step.
   </TabItem>
 </Tabs>
 
@@ -270,26 +290,15 @@ Click **View** on a history entry for full details:
 
 ## Best Practices
 
-<CardGrid>
-  <FeatureCard title="Variable Naming" icon="tag" color="blue">
-    Use clear names like `targetDeviceId` instead of `id1`. Prefix by purpose: `test_deviceId`, `prod_deviceId`.
-  </FeatureCard>
-  <FeatureCard title="Organizing Variables" icon="folder" color="purple">
-    Group related variables, document with descriptions, and remove unused ones regularly.
-  </FeatureCard>
-  <FeatureCard title="History Management" icon="history" color="green">
-    Delete failed/irrelevant requests. Export important requests as cURL before clearing.
-  </FeatureCard>
-  <FeatureCard title="Security" icon="shield" color="orange">
-    Variables are stored locally. Don't store sensitive credentials. Clear when switching computers.
-  </FeatureCard>
-</CardGrid>
+- **Variable Naming** — Use clear names like `targetDeviceId` instead of `id1`. Prefix by purpose: `test_deviceId`, `prod_deviceId`.
+- **Organizing Variables** — Keep your variable list clean by removing unused ones. Use descriptive names that indicate the value's purpose.
+- **History Management** — Use history to quickly repeat recent requests. Open in new tab to compare before/after results.
+- **Security** — Variables are stored locally in your browser. Don't store sensitive credentials. Clear when switching computers.
 
 <Aside type="tip" title="Variable Tips">
   - Use descriptive names: `targetDeviceId` not `id1`
-  - Document complex variables with descriptions
-  - Prefix by environment: `test_`, `prod_`
-  - Remove unused variables to keep the list clean
+  - Use Helpers to quickly save response values as variables
+  - Variables persist per-portal, so different portals have separate variable sets
 </Aside>
 
 ---
@@ -301,6 +310,3 @@ Click **View** on a history entry for full details:
   description="Learn about editing module details and committing changes."
   href="/lmda-composer/module-management/module-details/"
 />
-
-
-

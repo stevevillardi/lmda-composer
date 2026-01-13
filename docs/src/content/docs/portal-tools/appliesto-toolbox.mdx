@@ -3,26 +3,19 @@ title: AppliesTo Toolbox
 description: Test and validate AppliesTo expressions with instant feedback.
 ---
 
-import { Card, CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
+import { Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
 import { Icon } from '@astrojs/starlight/components';
 import StatusBadge from '../../../components/StatusBadge.astro';
-import FeatureCard from '../../../components/FeatureCard.astro';
 
 The AppliesTo Toolbox helps you build and test AppliesTo expressions before applying them to LogicModules. See exactly which resources match your expression.
 
 ## Opening the Toolbox
 
-<CardGrid>
-  <FeatureCard title="Welcome Screen" icon="rocket" color="orange">
-    Click **AppliesTo Toolbox** on the welcome screen.
-  </FeatureCard>
-  <FeatureCard title="Keyboard Shortcut" icon="laptop" color="purple">
-    Press <kbd>Cmd</kbd>+<kbd>K</kbd>, <kbd>A</kbd> to open directly.
-  </FeatureCard>
-  <FeatureCard title="Module Details" icon="filter" color="blue">
-    Click the AppliesTo field when editing module details.
-  </FeatureCard>
-</CardGrid>
+| Method | Action |
+|--------|--------|
+| **Welcome Screen** | Click **AppliesTo Toolbox** on the welcome screen |
+| **Keyboard Shortcut** | Press <kbd>Cmd</kbd>+<kbd>K</kbd>, <kbd>A</kbd> to open directly |
+| **Module Details** | Click the AppliesTo field when editing module details |
 
 ---
 
@@ -49,19 +42,26 @@ Buttons for common operators:
   <Badge text="!" variant="note" />
   <Badge text="( )" variant="note" />
   <Badge text="==" variant="note" />
-  <Badge text="=~" variant="note" />
   <Badge text="!=" variant="note" />
+  <Badge text="=~" variant="note" />
+  <Badge text="!~" variant="note" />
+  <Badge text=">" variant="note" />
+  <Badge text=">=" variant="note" />
+  <Badge text="<" variant="note" />
+  <Badge text="<=" variant="note" />
 </div>
 
-| Operator | Inserts | Usage |
-|----------|---------|-------|
-| `&&` | Logical AND | Both conditions must match |
-| `\|\|` | Logical OR | Either condition matches |
-| `!` | Logical NOT | Negates the condition |
-| `()` | Grouping | Control operator precedence |
-| `==` | Equals | Exact value match |
-| `=~` | Regex match | Pattern matching |
-| `!=` | Not equals | Value doesn't match |
+| Operator | Usage |
+|----------|-------|
+| `&&` or `and` | Logical AND — both conditions must match |
+| `\|\|` or `or` | Logical OR — either condition matches |
+| `!` or `not` | Logical NOT — negates the condition |
+| `()` | Grouping — control operator precedence |
+| `==` | Equals — exact value match |
+| `!=` | Not equals — value doesn't match |
+| `=~` | Regex match — pattern matching (case insensitive) |
+| `!~` | Regex not match — pattern doesn't match |
+| `>`, `>=`, `<`, `<=` | Comparison — numeric comparisons |
 
 ### Test Button
 
@@ -120,18 +120,28 @@ hasCategory("Windows") && !hasCategory("test")
 
 ## Function Reference
 
-Click **Function Reference** to expand the available functions:
+Click **Function Reference** to expand the available functions panel.
 
 <Tabs>
   <TabItem label="Built-in Functions" icon="star">
-    | Function | Description | Example |
-    |----------|-------------|---------|
-    | `hasCategory(name)` | Device has category | `hasCategory("Linux")` |
-    | `hasSystemProperty(name)` | Has system property | `hasSystemProperty("snmp.version")` |
-    | `isDevice()` | Resource is a device | `isDevice()` |
-    | `isService()` | Resource is a service | `isService()` |
-    | `join(expr, separator)` | Joins array values | `join(system.ips, ",")` |
-    | `startsWith(str, prefix)` | String starts with | `startsWith(system.name, "web")` |
+    Functions are organized by category:
+
+    | Category | Functions |
+    |----------|-----------|
+    | **Basic** | `true()`, `false()` |
+    | **Properties** | `exists()`, `getPropValue()`, `getCollectorVersion()` |
+    | **Categories** | `hasCategory()` |
+    | **Arrays** | `contains()`, `join()` |
+    | **Strings** | `startsWith()` |
+    | **Math** | `sum()` |
+    | **Device Types** | `isDevice()`, `isCollectorDevice()` |
+    | **Cloud Services** | `isAWSService()`, `isAzureService()`, `isGCPService()` |
+    | **Operating Systems** | `isWindows()`, `isLinux()`, `isUnix()`, `isSolaris()`, `isFreebsd()` |
+    | **Infrastructure** | `isNetwork()`, `isStorage()`, `isVirtualization()`, `isMisc()` |
+    | **Vendors** | `isCisco()`, `isF5()`, `isNetApp()`, `isNetscaler()`, `isArubaSwitch()` |
+    | **Features** | `isNetflow()`, `isK8sPod()` |
+
+    Click any function in the reference panel to see its syntax, parameters, and examples.
   </TabItem>
   
   <TabItem label="Custom Functions" icon="setting">
@@ -154,6 +164,10 @@ Click **Function Reference** to expand the available functions:
     5. Click **Save**
 
     The function is saved to your LogicMonitor portal and available immediately.
+
+    ### Filtering Functions
+
+    Use the **Show only custom** toggle to filter the function list to show only your custom functions, hiding the built-in ones.
   </TabItem>
 </Tabs>
 
@@ -177,14 +191,8 @@ Click **Function Reference** to expand the available functions:
 
 ### Managing Custom Functions
 
-<CardGrid>
-  <FeatureCard title="Edit Function" icon="edit" color="blue">
-    Find the function → Click **Load** → Modify expression → Click **Update Function**
-  </FeatureCard>
-  <FeatureCard title="Delete Function" icon="trash" color="red">
-    Find the function → Click delete icon → Confirm deletion
-  </FeatureCard>
-</CardGrid>
+- **Edit Function** — Find the function → Click **Load** → Modify expression → Click **Update Function**
+- **Delete Function** — Find the function → Click delete icon → Confirm deletion
 
 <Aside type="caution" title="Dependency Check">
   Before deleting, verify no modules depend on the function. LogicModules using a deleted function will fail to evaluate.
@@ -211,15 +219,11 @@ The header shows total matches: **"15 resources match"**
 
 ### Result States
 
-<div style="display: flex; gap: 1rem; flex-wrap: wrap; margin: 1rem 0;">
-  <StatusBadge status="success" label="Matches Found" />
-  <StatusBadge status="warning" label="No Matches" />
-  <StatusBadge status="error" label="Syntax Error" />
-</div>
-
-- **Matches Found**: Resources matching your expression are listed
-- **No Matches**: Expression is valid but no resources match
-- **Syntax Error**: Expression has errors (see error display)
+| State | Description |
+|-------|-------------|
+| <StatusBadge status="success" label="Matches Found" /> | Resources matching your expression are listed |
+| <StatusBadge status="warning" label="No Matches" /> | Expression is valid but no resources match |
+| <StatusBadge status="error" label="Syntax Error" /> | Expression has errors (see error display) |
 
 ---
 
@@ -266,20 +270,10 @@ Autocomplete activates automatically, or press <kbd>Ctrl</kbd>+<kbd>Space</kbd> 
 
 ## Best Practices
 
-<CardGrid>
-  <FeatureCard title="Start Simple" icon="target" color="green">
-    Begin with a single condition. Verify it matches expected resources. Add conditions one at a time, testing after each addition.
-  </FeatureCard>
-  <FeatureCard title="Use Parentheses" icon="braces" color="purple">
-    Complex expressions benefit from explicit grouping: `(A && B) || C` is clearer than `A && B || C`.
-  </FeatureCard>
-  <FeatureCard title="Test Edge Cases" icon="warning" color="orange">
-    Verify resources that should match do, and resources that shouldn't don't. Check boundary conditions.
-  </FeatureCard>
-  <FeatureCard title="Document Logic" icon="document" color="blue">
-    Use the description field for custom functions to explain the logic for future reference.
-  </FeatureCard>
-</CardGrid>
+- **Start Simple** — Begin with a single condition. Verify it matches expected resources. Add conditions one at a time, testing after each addition.
+- **Use Parentheses** — Complex expressions benefit from explicit grouping: `(A && B) || C` is clearer than `A && B || C`.
+- **Test Edge Cases** — Verify resources that should match do, and resources that shouldn't don't. Check boundary conditions.
+- **Document Logic** — Use the description field for custom functions to explain the logic for future reference.
 
 ---
 
@@ -308,6 +302,3 @@ When editing module details:
   description="Run collector debug commands and health checks from LMDA Composer."
   href="/lmda-composer/portal-tools/debug-commands/"
 />
-
-
-

@@ -3,22 +3,17 @@ title: Module Snippets
 description: Browse and import LogicMonitor's reusable code modules into your scripts.
 ---
 
-import { Card, CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard, Code } from '@astrojs/starlight/components';
+import { Steps, Tabs, TabItem, Aside, Badge, LinkCard, Code } from '@astrojs/starlight/components';
 import { Icon } from '@astrojs/starlight/components';
-import FeatureCard from '../../../components/FeatureCard.astro';
 
 Module Snippets are LogicMonitor's library of reusable Groovy code modules. These modules provide helper functions for common tasks like data emission, debugging, API calls, and vendor-specific integrations.
 
 ## Accessing Module Snippets
 
-<CardGrid>
-  <FeatureCard title="Keyboard Shortcut" icon="laptop" color="purple">
-    Press <kbd>Ctrl</kbd>+<kbd>K</kbd>, <kbd>L</kbd> / <kbd>Cmd</kbd>+<kbd>K</kbd>, <kbd>L</kbd> to open directly.
-  </FeatureCard>
-  <FeatureCard title="Command Palette" icon="search" color="green">
-    Press <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> and type "Module Snippets".
-  </FeatureCard>
-</CardGrid>
+| Method | Action |
+|--------|--------|
+| **Keyboard Shortcut** | Press <kbd>Ctrl</kbd>+<kbd>K</kbd>, <kbd>L</kbd> / <kbd>Cmd</kbd>+<kbd>K</kbd>, <kbd>L</kbd> to open directly |
+| **Command Palette** | Press <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> and type "Module Snippets" |
 
 <img src="/lmda-composer/workspace/module-snippets-dialog.png" alt="Module Snippets dialog showing categorized modules and source preview" style="border-radius: 0.5rem; margin: 1.5rem 0;" />
 
@@ -105,17 +100,11 @@ The variable name is automatically derived from the module name:
 
 Each module can have multiple versions available:
 
-<CardGrid>
-  <FeatureCard title="Latest Version" icon="star" color="amber">
-    Shown by default with a **latest** badge. Recommended for new scripts.
-  </FeatureCard>
-  <FeatureCard title="Version Selector" icon="list" color="blue">
-    Use the dropdown to select older versions for compatibility with existing scripts.
-  </FeatureCard>
-  <FeatureCard title="Major Versions" icon="info" color="purple">
-    The import uses the **major version** number only (e.g., `"1"` for version `1.3.0`).
-  </FeatureCard>
-</CardGrid>
+| Feature | Description |
+|---------|-------------|
+| **Latest Version** | Shown by default with a **latest** badge. Recommended for new scripts. |
+| **Version Selector** | Use the dropdown to select older versions for compatibility with existing scripts. |
+| **Major Versions** | The import uses the **major version** number only (e.g., `"1"` for version `1.3.0`). |
 
 <Aside type="note" title="Version in Import">
   The generated import uses the major version number, not the full version. This ensures your script gets the latest patch within that major version.
@@ -191,20 +180,10 @@ orgs.each { org ->
 
 ## Best Practices
 
-<CardGrid>
-  <FeatureCard title="Use Latest Versions" icon="rocket" color="green">
-    Start with the latest version unless you need specific compatibility with existing scripts.
-  </FeatureCard>
-  <FeatureCard title="Review Source First" icon="document" color="blue">
-    Preview the module source to understand its API before importing.
-  </FeatureCard>
-  <FeatureCard title="One Loader Per Script" icon="warning" color="orange">
-    The modLoader setup only needs to be included once per script, even if loading multiple modules.
-  </FeatureCard>
-  <FeatureCard title="Check Module Updates" icon="refresh" color="purple">
-    Periodically refresh the module list to see if newer versions are available.
-  </FeatureCard>
-</CardGrid>
+- **Use Latest Versions** — Start with the latest version unless you need specific compatibility with existing scripts
+- **Review Source First** — Preview the module source to understand its API before importing
+- **One Loader Per Script** — The modLoader setup only needs to be included once per script, even if loading multiple modules
+- **Check Module Updates** — Periodically refresh the module list to see if newer versions are available
 
 ### Loading Multiple Modules
 
@@ -234,4 +213,3 @@ def cache = modLoader.load("lm.cache", "1")
   description="Use built-in and custom local code snippets."
   href="/lmda-composer/workspace/snippets/"
 />
-

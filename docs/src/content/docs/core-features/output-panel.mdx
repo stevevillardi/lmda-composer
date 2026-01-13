@@ -3,10 +3,8 @@ title: Output Panel
 description: Understanding script output, parsed results, and validation.
 ---
 
-import { Card, CardGrid, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
-import { Icon } from '@astrojs/starlight/components';
+import { Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
 import StatusBadge from '../../../components/StatusBadge.astro';
-import FeatureCard from '../../../components/FeatureCard.astro';
 
 The Output Panel displays results from script execution, with different views depending on the selected mode.
 
@@ -139,24 +137,13 @@ Drag the divider between the editor and output panel to resize.
 
 The status badge in the header shows the current state:
 
-<div style="display: grid; gap: 1rem; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin: 1.5rem 0;">
-  <div style="display: flex; align-items: center; gap: 0.75rem;">
-    <StatusBadge status="running" />
-    <span style="font-size: 0.875rem; color: var(--sl-color-gray-3);">Script is executing (with spinner)</span>
-  </div>
-  <div style="display: flex; align-items: center; gap: 0.75rem;">
-    <StatusBadge status="success" />
-    <span style="font-size: 0.875rem; color: var(--sl-color-gray-3);">Finished successfully</span>
-  </div>
-  <div style="display: flex; align-items: center; gap: 0.75rem;">
-    <StatusBadge status="error" />
-    <span style="font-size: 0.875rem; color: var(--sl-color-gray-3);">Script failed with an error</span>
-  </div>
-  <div style="display: flex; align-items: center; gap: 0.75rem;">
-    <StatusBadge status="timeout" />
-    <span style="font-size: 0.875rem; color: var(--sl-color-gray-3);">Exceeded time limit</span>
-  </div>
-</div>
+| Status | Description |
+|--------|-------------|
+| <StatusBadge status="running" /> | Script is executing (with spinner) |
+| <StatusBadge status="success" /> | Finished successfully |
+| <StatusBadge status="error" /> | Script failed with an error |
+| <StatusBadge status="timeout" /> | Exceeded time limit |
+| <StatusBadge status="cancelled" /> | Execution was cancelled by user |
 
 The execution duration displays next to the status badge (e.g., "2.34s").
 
@@ -205,17 +192,11 @@ Error messages appear in red text with stack traces and diagnostic information. 
 
 ## Panel Controls
 
-<CardGrid>
-  <FeatureCard title="Copy" icon="copy" color="blue">
-    Copy the entire raw output to your clipboard. Captures all content even if truncated in display.
-  </FeatureCard>
-  <FeatureCard title="Fullscreen" icon="maximize" color="purple">
-    Expand the panel to fill the workspace. Press <kbd>Esc</kbd> or click ✕ to exit.
-  </FeatureCard>
-  <FeatureCard title="Clear" icon="trash" color="red">
-    Reset the panel to empty state. Also clears automatically when starting a new execution.
-  </FeatureCard>
-</CardGrid>
+| Control | Action |
+|---------|--------|
+| **Copy** | Copy the entire raw output to your clipboard. Captures all content even if truncated in display. |
+| **Fullscreen** | Expand the panel to fill the workspace. Press <kbd>Esc</kbd> or click ✕ to exit. |
+| **Clear** | Reset the panel to empty state. Also clears automatically when starting a new execution. |
 
 ---
 
@@ -248,6 +229,3 @@ Error messages appear in red text with stack traces and diagnostic information. 
   description="Learn how to select portals, collectors, and devices."
   href="/lmda-composer/core-features/context-selection/"
 />
-
-
-

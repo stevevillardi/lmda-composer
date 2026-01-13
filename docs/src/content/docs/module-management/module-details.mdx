@@ -3,22 +3,18 @@ title: Module Details Editor
 description: Edit module metadata including name, description, AppliesTo, and alert settings.
 ---
 
-import { Card, CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
+import { Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
 import { Icon } from '@astrojs/starlight/components';
-import FeatureCard from '../../../components/FeatureCard.astro';
+import ModuleTypeBadge from '../../../components/ModuleTypeBadge.astro';
 
 The Module Details Editor allows you to view and modify metadata for module-bound tabs. Edit properties like name, description, AppliesTo expressions, and alert configurations.
 
 ## Opening Module Details
 
-<CardGrid>
-  <FeatureCard title="Toolbar Button" icon="edit" color="blue">
-    Click the **Module Details** button in the main toolbar.
-  </FeatureCard>
-  <FeatureCard title="Command Palette" icon="search" color="purple">
-    Press <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> and type "Module Details".
-  </FeatureCard>
-</CardGrid>
+| Method | Action |
+|--------|--------|
+| **Toolbar Button** | Click the **Module Details** button in the main toolbar |
+| **Command Palette** | Press <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> and type "Module Details" |
 
 <Aside type="note" title="Module-Bound Tabs Only">
   The Module Details button only appears for tabs loaded from a LogicModule. Local files don't have module metadata.
@@ -32,37 +28,25 @@ The Module Details Editor allows you to view and modify metadata for module-boun
 
 ### Sidebar Navigation
 
-The left sidebar contains section links:
+The left sidebar contains section links. **Sections vary by module type**:
 
-<div style="display: grid; gap: 0.75rem; margin: 1rem 0;">
-  <FeatureCard title="Basic Info" icon="information" color="blue">
-    Name, display name, description, version
-  </FeatureCard>
-  <FeatureCard title="Organization" icon="seti:folder" color="green">
-    Groups, tags, technology type
-  </FeatureCard>
-  <FeatureCard title="Access" icon="funnel" color="purple">
-    AppliesTo expression, group restrictions
-  </FeatureCard>
-  <FeatureCard title="Active Discovery" icon="seti:todo" color="cyan">
-    Discovery configuration (DataSources only)
-  </FeatureCard>
-  <FeatureCard title="Datapoints" icon="seti:db" color="orange">
-    Datapoint definitions and settings (DataSources)
-  </FeatureCard>
-  <FeatureCard title="Config Checks" icon="seti:todo" color="yellow">
-    Configuration validation rules (ConfigSources)
-  </FeatureCard>
-  <FeatureCard title="Alert Settings" icon="bell" color="pink">
-    Alert thresholds and notifications
-  </FeatureCard>
-</div>
+| Module Type | Available Sections |
+|-------------|-------------------|
+| <ModuleTypeBadge type="datasource" /> | Basic Info, Organization, Access, Applies To, Active Discovery, Datapoints |
+| <ModuleTypeBadge type="configsource" /> | Basic Info, Organization, Access, Applies To, Active Discovery, Config Checks |
+| <ModuleTypeBadge type="topologysource" /> | Basic Info, Organization, Access, Applies To |
+| <ModuleTypeBadge type="propertysource" /> | Basic Info, Organization, Access, Applies To |
+| <ModuleTypeBadge type="logsource" /> | Basic Info, Organization, Access, Applies To, Include Filters, Log Fields, Resource Mappings |
+| <ModuleTypeBadge type="eventsource" /> | Basic Info, Organization, Access, Applies To, Alert Settings |
+| <ModuleTypeBadge type="diagnosticsource" /> | Basic Info, Organization, Access, Applies To |
 
-Click a section to navigate. Dirty sections show an indicator dot.
+Click a section to navigate. Dirty sections show an indicator dot. Invalid sections show a red error icon.
 
 ---
 
-## Basic Info Section
+## Common Sections
+
+### Basic Info Section
 
 <Tabs>
   <TabItem label="Module Name" icon="tag">
@@ -73,7 +57,7 @@ Click a section to navigate. Dirty sections show an indicator dot.
     - Maximum 255 characters
   </TabItem>
   <TabItem label="Display Name" icon="pencil">
-    The human-readable name:
+    The human-readable name (DataSource/ConfigSource/EventSource only):
     - Shown in the LogicMonitor UI
     - Can include spaces and special characters
     - Maximum 100 characters
@@ -95,74 +79,57 @@ Click a section to navigate. Dirty sections show an indicator dot.
 
 ---
 
-## Organization Section
+### Organization Section
 
-### Module Group
-Organize modules into groups by selecting from existing groups or creating new ones in LogicMonitor.
-
-### Tags
-Add searchable tags as comma-separated values. Examples: `custom`, `production`, `network`
-
-### Technology Type
-Categorize by technology: Windows, Linux, Network, Cloud, or Custom.
-
-### Collector Attribute
-For modules requiring specific collector capabilities: SNMP support, WMI support, or Script execution.
+| Field | Description |
+|-------|-------------|
+| **Module Group** | Organize modules into groups by selecting from existing groups |
+| **Tags** | Add searchable tags as comma-separated values (e.g., `custom`, `production`, `network`) |
+| **Technology Type** | Categorize by technology: Windows, Linux, Network, Cloud, or Custom |
+| **Collector Attribute** | For modules requiring specific collector capabilities |
 
 ---
 
-## Access Section
+### Access Section
 
-### AppliesTo Expression
+| Field | Description |
+|-------|-------------|
+| **AppliesTo Expression** | Define which resources use this module. Click **Test** to open the AppliesTo Toolbox |
+| **Group Restrictions** | Select groups from dropdown. Multiple groups allowed. Leave empty for no restrictions |
+| **Collector Groups** | Assign to specific collector groups for geo-specific monitoring |
 
-Define which resources use this module:
+**Example AppliesTo Expression:**
 
 ```groovy
 system.sysinfo =~ "Linux" && hasCategory("server")
 ```
 
-Edit the expression directly or click **Test** to open the AppliesTo Toolbox.
+---
 
-### Group Restrictions
+## DataSource Sections
 
-- Select groups from dropdown
-- Multiple groups allowed
-- Leave empty for no restrictions
+### Active Discovery Section
 
-### Collector Groups
+<Badge text="DataSource / ConfigSource Only" variant="note" />
 
-Assign to specific collector groups for geo-specific monitoring.
+For modules with instance discovery:
+
+| Setting | Description |
+|---------|-------------|
+| **Discovery Method** | Script-based, SNMP, WMI, or None (single instance) |
+| **Discovery Interval** | Range: 5 minutes to 24 hours. Balance freshness vs. performance |
+| **Instance Properties** | Define auto-properties discovered for each instance |
+| **Filters** | Post-discovery filtering with include/exclude patterns |
 
 ---
 
-## Active Discovery Section
+### Datapoints Section
 
-For DataSources with instance discovery:
-
-<CardGrid>
-  <FeatureCard title="Discovery Method" icon="target" color="blue">
-    Script-based, SNMP, WMI, or None (single instance).
-  </FeatureCard>
-  <FeatureCard title="Discovery Interval" icon="clock" color="purple">
-    Range: 5 minutes to 24 hours. Balance freshness vs. performance.
-  </FeatureCard>
-  <FeatureCard title="Instance Properties" icon="tag" color="green">
-    Define auto-properties discovered for each instance.
-  </FeatureCard>
-  <FeatureCard title="Filters" icon="filter" color="orange">
-    Post-discovery filtering with include/exclude patterns.
-  </FeatureCard>
-</CardGrid>
-
----
-
-## Datapoints Section
-
-<Badge text="DataSources Only" variant="note" />
+<Badge text="DataSource Only" variant="note" />
 
 Edit datapoints directly within LMDA Composer. The datapoints editor provides full CRUD operations for managing metric collection.
 
-### Datapoint Types
+#### Datapoint Types
 
 <Tabs>
   <TabItem label="Normal Datapoints" icon="document">
@@ -171,7 +138,7 @@ Edit datapoints directly within LMDA Composer. The datapoints editor provides fu
     - **Metric Type**: Gauge (current value), Counter (cumulative), or Derive (rate of change)
     - **Interpretation Method**: How to transform the raw value (none, percent, bits to bytes, etc.)
   </TabItem>
-  <TabItem label="Complex Datapoints" icon="code">
+  <TabItem label="Complex Datapoints" icon="seti:json">
     Expression-based datapoints that derive values from other datapoints:
     - **Source**: Expression using other datapoint names
     - **Metric Type**: Always Gauge (calculated values)
@@ -179,24 +146,25 @@ Edit datapoints directly within LMDA Composer. The datapoints editor provides fu
   </TabItem>
 </Tabs>
 
-### Datapoints Table
+#### Datapoints Table
 
 The main datapoints table displays:
 
 | Column | Description |
 |--------|-------------|
-| Name | Unique datapoint identifier |
-| Type | Normal or Complex with icon indicator |
-| Post-Processor | Method and parameter (e.g., `expression: UsedMem / TotalMem`) |
-| Alert Thresholds | Color-coded severity badges with operator and values |
+| **Name** | Unique datapoint identifier |
+| **Type** | Metric type with icon (Gauge, Counter, Derive) |
+| **Method** | Post-processor method (Expression, Name=Value, JSON Path, etc.) |
+| **Key / Expression** | The extraction key or expression |
+| **Threshold** | Color-coded severity badges with operator and values |
 
 Click a row to expand and see additional details:
 - Description (with line break support)
+- Alert settings (No Data, Trigger, Clear intervals)
 - Alert message subject and body
-- No Data alert settings
-- Trigger and clear intervals
+- Status display name translations
 
-### Adding Datapoints
+#### Adding Datapoints
 
 <Steps>
 
@@ -216,26 +184,19 @@ Click a row to expand and see additional details:
 
 </Steps>
 
-### Editing Datapoints
+#### Editing Datapoints
 
 Click the **Edit** (pencil) button on any datapoint row to open the editor sheet. All fields are editable:
 
-<CardGrid>
-  <FeatureCard title="Basic Settings" icon="settings" color="blue">
-    Name, description, source configuration, and metric type.
-  </FeatureCard>
-  <FeatureCard title="Alert Thresholds" icon="bell" color="orange">
-    Warning, Error, and Critical thresholds with custom operators.
-  </FeatureCard>
-  <FeatureCard title="Alert Messages" icon="edit" color="purple">
-    Custom subject and body templates with token support.
-  </FeatureCard>
-  <FeatureCard title="No Data Handling" icon="clock" color="cyan">
-    Alert level and intervals for missing data scenarios.
-  </FeatureCard>
-</CardGrid>
+| Section | Fields |
+|---------|--------|
+| **Basic Settings** | Name, description, source configuration, and metric type |
+| **Alert Thresholds** | Warning, Error, and Critical thresholds with custom operators |
+| **Alert Messages** | Custom subject and body templates with token support |
+| **No Data Handling** | Alert level and intervals for missing data scenarios |
+| **Status Translations** | Map numeric values to human-readable labels |
 
-### Removing Datapoints
+#### Removing Datapoints
 
 <Steps>
 
@@ -255,18 +216,9 @@ Click the **Edit** (pencil) button on any datapoint row to open the editor sheet
   The datapoint editor shows the most commonly used options. For advanced settings like dynamic thresholds or complex alert tuning, use the LMX module page in your portal.
 </Aside>
 
-### Status Display Names
+#### Status Display Names
 
 Translate numeric datapoint values to human-readable status strings in the LogicMonitor UI. Instead of displaying raw numbers like `0` or `1`, show meaningful labels like "Offline" or "Online".
-
-<CardGrid>
-  <FeatureCard title="Value Translation" icon="translate" color="cyan">
-    Map specific numeric values to descriptive status labels.
-  </FeatureCard>
-  <FeatureCard title="Flexible Operators" icon="filter" color="purple">
-    Use equals, greater than, less than, or range operators for matching.
-  </FeatureCard>
-</CardGrid>
 
 **Adding Status Translations:**
 
@@ -297,26 +249,9 @@ Translate numeric datapoint values to human-readable status strings in the Logic
 | Equals | 1 | Online |
 | Greater Than | 90 | Critical Load |
 
-### Alert Message Templates
+#### Alert Message Templates
 
-Customize alert notifications with dynamic content using LogicMonitor tokens. Configure both the subject line and message body.
-
-<Tabs>
-  <TabItem label="Alert Subject" icon="tag">
-    The subject line of alert notifications:
-    - Supports LogicMonitor tokens like `##DEVICE##`, `##INSTANCE##`, `##DATAPOINT##`
-    - Keep concise for email and SMS compatibility
-    - Leave empty to use LogicMonitor defaults
-  </TabItem>
-  <TabItem label="Alert Body" icon="document">
-    The full message body:
-    - Use tokens for dynamic values: `##VALUE##`, `##THRESHOLD##`, `##LEVEL##`
-    - Include troubleshooting steps or runbook links
-    - Supports multi-line text
-  </TabItem>
-</Tabs>
-
-**Common Tokens:**
+Customize alert notifications with dynamic content using LogicMonitor tokens:
 
 | Token | Description |
 |-------|-------------|
@@ -329,13 +264,15 @@ Customize alert notifications with dynamic content using LogicMonitor tokens. Co
 
 ---
 
-## Config Checks Section
+## ConfigSource Sections
 
-<Badge text="ConfigSources Only" variant="note" />
+### Config Checks Section
+
+<Badge text="ConfigSource Only" variant="note" />
 
 Config Checks define validation rules for configuration data collected by ConfigSources. Each check can trigger alerts based on configuration changes, missing values, or custom Groovy logic.
 
-### Config Check Types
+#### Config Check Types
 
 <Tabs>
   <TabItem label="Any Change" icon="git-branch">
@@ -348,13 +285,13 @@ Config Checks define validation rules for configuration data collected by Config
     
     Multiple patterns can be added for regex, prefix, and contains exclusions.
   </TabItem>
-  <TabItem label="Groovy Script" icon="code">
+  <TabItem label="Groovy Script" icon="seti:shell">
     Custom validation logic using Groovy:
     - Access configuration via the `config` variable
     - Return `1` to trigger alert, `0` for no alert
     - Full Groovy scripting capabilities
   </TabItem>
-  <TabItem label="Config Cannot Be Retrieved" icon="warning">
+  <TabItem label="Config Retrieval" icon="download">
     Alerts when the configuration cannot be collected:
     - No additional options required
     - Triggers on fetch failure
@@ -371,34 +308,35 @@ Config Checks define validation rules for configuration data collected by Config
   </TabItem>
 </Tabs>
 
-### Config Checks Table
+#### Config Checks Table
 
 The main table displays:
 
 | Column | Description |
 |--------|-------------|
-| Name | Unique check identifier |
-| Type | Check type with icon indicator |
-| Alert Level | Color-coded severity badge (Warning/Error/Critical) |
-| Clear on ACK | Whether acknowledging clears the alert |
-| Clear After | Auto-clear interval in minutes (0 = never) |
+| **Name** | Unique check identifier |
+| **Type** | Check type with icon indicator |
+| **Alert** | Color-coded severity badge (Warning/Error/Critical) |
+| **ACK Clear** | Whether acknowledging clears the alert |
+| **Summary** | Brief description of check configuration |
 
 Click a row to expand and see:
 - Description
-- Script content or check configuration details
+- Auto-clear interval (if configured)
+- Script content (for Groovy checks)
 
-### Adding Config Checks
+#### Adding Config Checks
 
 <Steps>
 
-1. Click the **Add Config Check** dropdown button
+1. Click the **Add Check** dropdown button
 
 2. Select the check type:
-   - **Any Change** - Diff-based detection with exclusions
-   - **Groovy Script** - Custom validation logic
-   - **Config Cannot Be Retrieved** - Fetch failure detection
-   - **Missing Field** - Required field validation
-   - **Value Check** - Value change or range monitoring
+   - **Any Change** — Diff-based detection with exclusions
+   - **Groovy Script** — Custom validation logic
+   - **Config Retrieval** — Fetch failure detection
+   - **Missing Field** — Required field validation
+   - **Value Check** — Value change or range monitoring
 
 3. The editor sheet opens with type-specific options
 
@@ -415,23 +353,17 @@ Click a row to expand and see:
 
 </Steps>
 
-### Editing Config Checks
+#### Editing Config Checks
 
-Click the **Edit** (pencil) button on any row to open the editor sheet. All fields are editable.
+Click the **Edit** (pencil) button on any row to open the editor sheet. All fields are editable:
 
-<CardGrid>
-  <FeatureCard title="Basic Settings" icon="settings" color="blue">
-    Name, description, and check type.
-  </FeatureCard>
-  <FeatureCard title="Alert Configuration" icon="bell" color="orange">
-    Severity level, clear behavior, and intervals.
-  </FeatureCard>
-  <FeatureCard title="Check Logic" icon="code" color="purple">
-    Type-specific configuration (exclusions, scripts, variables).
-  </FeatureCard>
-</CardGrid>
+| Section | Fields |
+|---------|--------|
+| **Basic Settings** | Name, description, and check type |
+| **Alert Configuration** | Severity level, clear behavior, and intervals |
+| **Check Logic** | Type-specific configuration (exclusions, scripts, variables) |
 
-### Removing Config Checks
+#### Removing Config Checks
 
 <Steps>
 
@@ -449,22 +381,65 @@ Click the **Edit** (pencil) button on any row to open the editor sheet. All fiel
 
 ---
 
-## Alert Settings Section
+## LogSource Sections
 
-Configure alerting behavior:
+<Badge text="LogSource Only" variant="note" />
 
-### Alert Levels
+LogSource modules have specialized sections instead of traditional scripts:
 
-For each severity, set thresholds:
-- <Badge text="Critical" variant="danger" /> threshold
-- <Badge text="Error" variant="caution" /> threshold  
-- <Badge text="Warning" variant="note" /> threshold
+### Include Filters Section
 
-### Alert Messages
-Customize alert text using tokens for dynamic values. Include troubleshooting steps.
+Define filters to include or exclude log entries:
 
-### Escalation Chain
-Assign default chains or per-severity overrides.
+| Field | Description |
+|-------|-------------|
+| **Filter Name** | Unique identifier for the filter |
+| **Filter Type** | Include or Exclude |
+| **Match Pattern** | Regex pattern to match log lines |
+| **Field** | Which log field to apply the filter to |
+
+### Log Fields Section
+
+Define custom fields to extract from log entries:
+
+| Field | Description |
+|-------|-------------|
+| **Field Name** | The name of the extracted field |
+| **Extraction Method** | Static value, Regex, or LM Property (Token) |
+| **Value/Pattern** | The static value or extraction pattern |
+
+Methods available:
+- **Static**: Fixed value for all logs
+- **Dynamic (Regex)**: Extract using regular expression
+- **LM Property (Token)**: Use LogicMonitor device property
+
+### Resource Mappings Section
+
+Map log entries to LogicMonitor resources:
+
+| Field | Description |
+|-------|-------------|
+| **Mapping Name** | Unique identifier |
+| **Source Field** | Log field to use for mapping |
+| **Target Property** | LogicMonitor property to match against |
+
+---
+
+## EventSource Sections
+
+### Alert Settings Section
+
+<Badge text="EventSource Only" variant="note" />
+
+Configure alerting behavior for EventSource modules:
+
+| Setting | Description |
+|---------|-------------|
+| **Alert Level** | Default severity (Warning, Error, Critical) |
+| **Alert Subject** | Template for alert notification subject |
+| **Alert Body** | Template for alert notification body |
+| **Clear on ACK** | Whether acknowledging clears the alert |
+| **Effective Interval** | Time before alert re-triggers (in minutes) |
 
 ---
 
@@ -474,22 +449,13 @@ Assign default chains or per-severity overrides.
 
 The editor tracks all modifications:
 - Modified fields highlighted
-- Section indicators show dirty state
+- Section indicators show dirty state (dot icon)
+- Invalid sections show error icon
 - Undo available per field
 
 ### Staging Changes
 
-<Steps>
-
-1. Review all changes across sections
-
-2. Click **Stage Changes**
-
-3. Changes are staged for commit
-
-4. Script changes plus metadata commit together
-
-</Steps>
+Changes are automatically staged when you modify fields. All changes are committed together when you push to the portal.
 
 ### Resetting Changes
 
@@ -504,7 +470,7 @@ Click **Reset Changes** to discard all modifications and revert to original valu
 | Field | Required |
 |-------|----------|
 | Module Name | <Badge text="Yes" variant="success" /> |
-| Display Name | <Badge text="Yes" variant="success" /> |
+| Display Name | <Badge text="DataSource/ConfigSource/EventSource" variant="note" /> |
 | AppliesTo | <Badge text="Most types" variant="note" /> |
 
 ### Character Limits
@@ -533,6 +499,3 @@ Click **Reset Changes** to discard all modifications and revert to original valu
   description="View Exchange release history for LogicMonitor core modules."
   href="/lmda-composer/module-management/lineage/"
 />
-
-
-

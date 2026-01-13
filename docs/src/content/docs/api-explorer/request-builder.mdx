@@ -3,11 +3,10 @@ title: Request Builder
 description: Build and send API requests with the request builder interface.
 ---
 
-import { Card, CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
+import { Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
 import { Icon } from '@astrojs/starlight/components';
 import HttpMethodBadge from '../../../components/HttpMethodBadge.astro';
 import StatusBadge from '../../../components/StatusBadge.astro';
-import FeatureCard from '../../../components/FeatureCard.astro';
 
 The Request Builder provides a structured interface for creating and executing LogicMonitor API requests.
 
@@ -31,7 +30,7 @@ Select the appropriate HTTP method from the dropdown:
 
 ### Endpoint Path
 
-Enter the API endpoint path:
+Enter the API endpoint path with autocomplete:
 
 ```
 /device/devices
@@ -54,33 +53,61 @@ Or use variables for reusability:
 /device/devices/{{deviceId}}
 ```
 
+The path field provides autocomplete suggestions from the endpoint catalog as you type.
+
+---
+
+### Body Modes
+
+The request builder offers two modes for editing request content:
+
+<Tabs>
+  <TabItem label="Form Mode" icon="pencil">
+    Form mode provides structured editors for:
+
+    | Section | Description |
+    |---------|-------------|
+    | **Query Parameters** | Key-value pairs appended to the URL |
+    | **Headers** | Custom HTTP headers for the request |
+    | **Body** | JSON body as key-value form fields |
+
+    Parameters are automatically URL-encoded when sending. Toggle parameters on/off without deleting them.
+  </TabItem>
+  
+  <TabItem label="Raw JSON Mode" icon="seti:json">
+    Raw mode provides a full JSON editor for the request body:
+
+    - Monaco editor with syntax highlighting
+    - Auto-formatting and validation
+    - Variable substitution (`{{variableName}}`)
+    - Full control over JSON structure
+
+    ```json
+    {
+      "name": "New Device",
+      "displayName": "web-server-01",
+      "preferredCollectorId": 1,
+      "hostGroupIds": "1,2,3"
+    }
+    ```
+  </TabItem>
+</Tabs>
+
+Toggle between modes using the **Form** / **Raw JSON** tabs above the body editor.
+
 ---
 
 ### Query Parameters
 
-<Tabs>
-  <TabItem label="Parameter Builder" icon="pencil">
-    Click **Add Parameter** to use the visual builder:
+Common query parameters for LogicMonitor API:
 
-    | Field | Description |
-    |-------|-------------|
-    | Key | Parameter name |
-    | Value | Parameter value |
-    | Enable | Toggle on/off without deleting |
-
-    Parameters are automatically URL-encoded when sending.
-  </TabItem>
-  
-  <TabItem label="Common Parameters" icon="list-format">
-    | Parameter | Description | Example |
-    |-----------|-------------|---------|
-    | `size` | Results per page | `size=100` |
-    | `offset` | Pagination offset | `offset=0` |
-    | `filter` | Filter expression | `filter=displayName~"web"` |
-    | `fields` | Limit response fields | `fields=id,displayName` |
-    | `sort` | Sort order | `sort=+displayName` |
-  </TabItem>
-</Tabs>
+| Parameter | Description | Example |
+|-----------|-------------|---------|
+| `size` | Results per page | `size=100` |
+| `offset` | Pagination offset | `offset=0` |
+| `filter` | Filter expression | `filter=displayName~"web"` |
+| `fields` | Limit response fields | `fields=id,displayName` |
+| `sort` | Sort order | `sort=+displayName` |
 
 #### Filter Syntax
 
@@ -94,69 +121,29 @@ filter=property>"2023-01-01"
 
 **Operators:**
 
-<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; margin: 1rem 0; font-size: 0.875rem;">
-  <div><code>:</code> equals</div>
-  <div><code>~</code> contains</div>
-  <div><code>!:</code> not equals</div>
-  <div><code>&gt;</code> greater than</div>
-  <div><code>&lt;</code> less than</div>
-  <div><code>&gt;:</code> greater or equal</div>
-  <div><code>&lt;:</code> less or equal</div>
-</div>
-
----
-
-### Request Headers
-
-Default headers are set automatically:
-
-```
-Content-Type: application/json
-Accept: application/json
-```
-
-Add custom headers if needed:
-
-1. Click the **Headers** tab
-2. Add key-value pairs
-3. Toggle headers on/off
-
----
-
-### Request Body
-
-For <HttpMethodBadge method="POST" size="sm" />, <HttpMethodBadge method="PUT" size="sm" />, and <HttpMethodBadge method="PATCH" size="sm" /> requests:
-
-The body editor provides:
-- JSON syntax highlighting
-- Auto-formatting
-- Validation
-- Variable substitution
-
-**Example Body:**
-
-```json
-{
-  "name": "New Device",
-  "displayName": "web-server-01",
-  "preferredCollectorId": 1,
-  "hostGroupIds": "1,2,3"
-}
-```
+| Operator | Meaning |
+|----------|---------|
+| `:` | equals |
+| `~` | contains |
+| `!:` | not equals |
+| `>` | greater than |
+| `<` | less than |
+| `>:` | greater or equal |
+| `<:` | less or equal |
 
 ---
 
 ## Endpoint Catalog
 
-### Browsing Endpoints
+The left panel shows all available API endpoints organized by category.
 
-The right sidebar shows all available endpoints:
+### Browsing Endpoints
 
 <Steps>
 
-1. Click **Endpoints** tab in sidebar
+1. Use the search box to filter by path, method, or description
 
-2. Browse by category or use the search box
+2. Expand categories to browse endpoints
 
 3. Click an endpoint to load it into the request builder
 
@@ -164,36 +151,23 @@ The right sidebar shows all available endpoints:
 
 ### Endpoint Categories
 
-<CardGrid>
-  <FeatureCard title="Devices" icon="laptop" color="blue">
-    Device management, properties, and monitoring
-  </FeatureCard>
-  <FeatureCard title="Device Groups" icon="folder" color="purple">
-    Group operations and hierarchy
-  </FeatureCard>
-  <FeatureCard title="DataSources" icon="activity" color="green">
-    LogicModule management
-  </FeatureCard>
-  <FeatureCard title="Alerts" icon="warning" color="orange">
-    Alert management and acknowledgment
-  </FeatureCard>
-  <FeatureCard title="Settings" icon="settings" color="default">
-    Account and portal settings
-  </FeatureCard>
-  <FeatureCard title="Reports" icon="document" color="cyan">
-    Report generation and scheduling
-  </FeatureCard>
-</CardGrid>
+Endpoints are organized by resource type:
 
-### Endpoint Details
+- **Devices** — Device management, properties, and monitoring
+- **Device Groups** — Group operations and hierarchy
+- **DataSources** — LogicModule management
+- **Alerts** — Alert management and acknowledgment
+- **Settings** — Account and portal settings
+- **Reports** — Report generation and scheduling
 
-Selecting an endpoint shows:
+### Selecting an Endpoint
 
-- Full path with parameters
-- Supported HTTP methods
-- Required parameters
-- Example request body
-- Response schema
+When you click an endpoint in the catalog:
+
+- Method and path are populated automatically
+- Example request body is generated (for POST/PUT/PATCH)
+- Tab name updates to reflect the endpoint
+- Previous response is cleared
 
 ---
 
@@ -208,23 +182,62 @@ Click **Send Request** or press <kbd>Ctrl</kbd>+<kbd>Enter</kbd>.
 During execution:
 - Send button shows a spinner
 - Status shows "Sending..."
-- Cancel button available for long requests
+- Progress indicator visible for long requests
 
 ---
 
 ## Response Viewer
 
-### Response Display
+### Response Tabs
 
-Successful responses show:
+The response viewer provides four tabs:
+
+<Tabs>
+  <TabItem label="JSON" icon="seti:json">
+    Collapsible, syntax-highlighted JSON tree:
+
+    - Expand/collapse nested objects and arrays
+    - Copy individual values
+    - Navigate large responses easily
+  </TabItem>
+  
+  <TabItem label="Raw" icon="document">
+    Plain text response body:
+
+    - Full unformatted response
+    - Useful for non-JSON responses
+    - Search with <kbd>Ctrl</kbd>+<kbd>F</kbd>
+  </TabItem>
+  
+  <TabItem label="Headers" icon="list-format">
+    Response headers with copy functionality:
+
+    - View all response headers
+    - Copy individual header values
+    - Check rate limit and cache headers
+  </TabItem>
+  
+  <TabItem label="Snippets" icon="seti:shell">
+    Generated code snippets for the current request:
+
+    | Language | Format |
+    |----------|--------|
+    | **cURL** | Command-line HTTP request |
+    | **Python** | `requests` library code |
+    | **PowerShell** | `Invoke-RestMethod` cmdlet |
+    | **Groovy** | `HttpURLConnection` code |
+
+    Copy snippets to use in scripts, automation, or documentation.
+  </TabItem>
+</Tabs>
+
+### Response Status
 
 | Section | Content |
 |---------|---------|
 | **Status** | HTTP status code and text |
 | **Time** | Response duration (e.g., "234ms") |
 | **Size** | Response size in bytes |
-| **Headers** | Response headers (expandable) |
-| **Body** | JSON response body with syntax highlighting |
 
 ### Status Codes
 
@@ -253,14 +266,6 @@ Successful responses show:
     | <Badge text="503" variant="danger" /> | Service Unavailable | Retry later |
   </TabItem>
 </Tabs>
-
-### JSON Navigation
-
-Navigate large responses:
-
-- **Collapse/Expand**: Click arrows to fold sections
-- **Copy**: Use the copy buttons to copy values
-- **Search**: <kbd>Ctrl</kbd>+<kbd>F</kbd> to find text
 
 ---
 
@@ -298,24 +303,6 @@ To retrieve all items:
 - Page 1: `offset=0`
 - Page 2: `offset=100`
 - Page 15: `offset=1400`
-
----
-
-## Request Validation
-
-### Pre-Send Validation
-
-The builder validates before sending:
-
-- Required parameters present
-- JSON body syntax valid
-- Endpoint format correct
-
-### Error Indicators
-
-- Red border on invalid fields
-- Error message below the field
-- Send button disabled until errors fixed
 
 ---
 
@@ -403,6 +390,3 @@ The builder validates before sending:
   description="Use environment variables and review past API requests."
   href="/lmda-composer/api-explorer/variables-history/"
 />
-
-
-

@@ -3,25 +3,18 @@ title: Snippets Library
 description: Use built-in and custom code snippets to speed up development.
 ---
 
-import { Card, CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
+import { Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
 import { Icon } from '@astrojs/starlight/components';
-import FeatureCard from '../../../components/FeatureCard.astro';
 
 The Snippets Library provides reusable code templates and patterns for common LogicMonitor scripting tasks.
 
 ## Accessing Snippets
 
-<CardGrid>
-  <FeatureCard title="Sidebar" icon="scroll-text" color="blue">
-    Click **Snippets** tab in the right sidebar.
-  </FeatureCard>
-  <FeatureCard title="Keyboard Shortcut" icon="laptop" color="purple">
-    Press <kbd>Ctrl</kbd>+<kbd>K</kbd>, <kbd>L</kbd> / <kbd>Cmd</kbd>+<kbd>K</kbd>, <kbd>L</kbd> to open directly.
-  </FeatureCard>
-  <FeatureCard title="Command Palette" icon="search" color="green">
-    Press <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> and type "Snippets".
-  </FeatureCard>
-</CardGrid>
+| Method | Action |
+|--------|--------|
+| **Sidebar** | Click **Snippets** tab in the right sidebar |
+| **Keyboard Shortcut** | Press <kbd>Ctrl</kbd>+<kbd>K</kbd>, <kbd>L</kbd> / <kbd>Cmd</kbd>+<kbd>K</kbd>, <kbd>L</kbd> to open directly |
+| **Command Palette** | Press <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> and type "Snippets" |
 
 <img src="/lmda-composer/workspace/snippets-panel.png" alt="Snippets panel showing categories and code preview" style="border-radius: 0.5rem; margin: 1.5rem 0;" />
 
@@ -60,16 +53,10 @@ The Snippets Library provides reusable code templates and patterns for common Lo
 
 ### By Type
 
-<div style="display: grid; gap: 0.5rem; margin: 1rem 0;">
-  <div style="display: flex; align-items: center; gap: 0.75rem;">
-    <Badge text="Template" variant="success" />
-    <span style="font-size: 0.875rem;">Complete script starters that replace your entire script</span>
-  </div>
-  <div style="display: flex; align-items: center; gap: 0.75rem;">
-    <Badge text="Pattern" variant="note" />
-    <span style="font-size: 0.875rem;">Code fragments that insert at cursor position</span>
-  </div>
-</div>
+| Badge | Description |
+|-------|-------------|
+| <Badge text="Template" variant="success" /> | Complete script starters that replace your entire script |
+| <Badge text="Pattern" variant="note" /> | Code fragments that insert at cursor position |
 
 ### By Language
 
@@ -81,16 +68,10 @@ Use the filter to show only relevant snippets for your current language.
 
 ### By Source
 
-<div style="display: grid; gap: 0.5rem; margin: 1rem 0;">
-  <div style="display: flex; align-items: center; gap: 0.75rem;">
-    <Badge text="Built-in" variant="default" />
-    <span style="font-size: 0.875rem;">Included with LMDA Composer</span>
-  </div>
-  <div style="display: flex; align-items: center; gap: 0.75rem;">
-    <Badge text="User" variant="tip" />
-    <span style="font-size: 0.875rem;">Your custom snippets</span>
-  </div>
-</div>
+| Badge | Description |
+|-------|-------------|
+| <Badge text="Built-in" variant="default" /> | Included with LMDA Composer |
+| <Badge text="User" variant="tip" /> | Your custom snippets |
 
 ---
 
@@ -180,14 +161,10 @@ results.each { oid, value ->
 
 ## Managing Custom Snippets
 
-<CardGrid>
-  <FeatureCard title="Edit" icon="edit" color="blue">
-    Click the edit icon on your snippet, modify details, and save.
-  </FeatureCard>
-  <FeatureCard title="Delete" icon="trash" color="red">
-    Click the delete icon and confirm. Deleted snippets cannot be recovered.
-  </FeatureCard>
-</CardGrid>
+| Action | Description |
+|--------|-------------|
+| **Edit** | Click the edit icon on your snippet, modify details, and save |
+| **Delete** | Click the delete icon and confirm. Deleted snippets cannot be recovered. |
 
 <Aside type="note" title="Storage">
   Custom snippets are stored in browser local storage. They persist across sessions but are not synced between browsers/devices.
@@ -215,20 +192,10 @@ Add relevant tags for searchability:
 
 ## Best Practices
 
-<CardGrid>
-  <FeatureCard title="Create for Repeated Code" icon="file-plus" color="blue">
-    If you write similar code often, generalize it with placeholders and save as a snippet.
-  </FeatureCard>
-  <FeatureCard title="Maintain Your Library" icon="settings" color="purple">
-    Periodically review, update outdated snippets, and remove unused ones.
-  </FeatureCard>
-  <FeatureCard title="Document Your Snippets" icon="document" color="green">
-    Include what it does, required variables, expected output, and limitations.
-  </FeatureCard>
-  <FeatureCard title="Use TODO Markers" icon="warning" color="orange">
-    Add `// TODO:` comments where users need to customize the code.
-  </FeatureCard>
-</CardGrid>
+- **Create for Repeated Code** — If you write similar code often, generalize it with placeholders and save as a snippet
+- **Maintain Your Library** — Periodically review, update outdated snippets, and remove unused ones
+- **Document Your Snippets** — Include what it does, required variables, expected output, and limitations
+- **Use TODO Markers** — Add `// TODO:` comments where users need to customize the code
 
 ---
 
@@ -259,6 +226,3 @@ Building a new DataSource:
   description="Review past script executions and reload scripts."
   href="/lmda-composer/workspace/execution-history/"
 />
-
-
-

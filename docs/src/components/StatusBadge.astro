@@ -1,8 +1,8 @@
 ---
-import { CheckCircle2, XCircle, AlertTriangle, Loader2, Clock } from '@lucide/astro';
+import { CheckCircle2, XCircle, AlertTriangle, Loader2, Clock, Ban } from '@lucide/astro';
 
 interface Props {
-  status: 'success' | 'error' | 'warning' | 'running' | 'timeout';
+  status: 'success' | 'error' | 'warning' | 'running' | 'timeout' | 'cancelled';
   label?: string;
   size?: 'sm' | 'md';
 }
@@ -30,6 +30,10 @@ const statusConfig = {
   timeout: {
     color: '#ef4444', // red-500
     defaultLabel: 'Timeout'
+  },
+  cancelled: {
+    color: '#6b7280', // gray-500
+    defaultLabel: 'Cancelled'
   }
 };
 
@@ -45,6 +49,7 @@ const iconSize = size === 'sm' ? 14 : 16;
     {status === 'warning' && <AlertTriangle size={iconSize} />}
     {status === 'running' && <Loader2 size={iconSize} class="animate-spin" />}
     {status === 'timeout' && <Clock size={iconSize} />}
+    {status === 'cancelled' && <Ban size={iconSize} />}
   </span>
   <span class="status-label">{displayLabel}</span>
 </span>

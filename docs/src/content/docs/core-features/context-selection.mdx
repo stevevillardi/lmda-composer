@@ -3,9 +3,8 @@ title: Context Selection
 description: Selecting portals, collectors, and devices for script execution.
 ---
 
-import { Card, CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
+import { Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
 import { Icon } from '@astrojs/starlight/components';
-import FeatureCard from '../../../components/FeatureCard.astro';
 import StatusBadge from '../../../components/StatusBadge.astro';
 
 Before running scripts, configure your execution context: which portal to use, which collector to run on, and optionally which device to target.
@@ -16,17 +15,11 @@ Click the **Context** button in the toolbar to open the selection dropdown:
 
 <img src="/lmda-composer/core-features/context-dropdown.png" alt="Context dropdown showing Portal, Collector, and Device sections" style="border-radius: 0.5rem; margin: 1.5rem 0;" />
 
-<CardGrid>
-  <FeatureCard title="Portal" icon="globe" color="green">
-    Your LogicMonitor account. Select from detected active sessions.
-  </FeatureCard>
-  <FeatureCard title="Collector" icon="server" color="blue">
-    Where scripts execute. Only online collectors can run code.
-  </FeatureCard>
-  <FeatureCard title="Device" icon="laptop" color="purple">
-    Target for property access. Optional but needed for `hostProps`.
-  </FeatureCard>
-</CardGrid>
+| Component | Description |
+|-----------|-------------|
+| **Portal** | Your LogicMonitor account. Select from detected active sessions. |
+| **Collector** | Where scripts execute. Only online collectors can run code. |
+| **Device** | Target for property access. Optional but needed for `hostProps`. |
 
 ---
 
@@ -47,20 +40,11 @@ LMDA Composer automatically finds your LogicMonitor sessions:
 
 <img src="/lmda-composer/core-features/context-portal-status.png" alt="Portal status indicators" style="border-radius: 0.5rem; margin: 1rem 0;" />
 
-<div style="display: grid; gap: 0.75rem; margin: 1rem 0;">
-  <div style="display: flex; align-items: center; gap: 0.75rem;">
-    <StatusBadge status="success" label="Connected" size="sm" />
-    <span style="font-size: 0.875rem;">Active session, ready to use</span>
-  </div>
-  <div style="display: flex; align-items: center; gap: 0.75rem;">
-    <StatusBadge status="error" label="Disconnected" size="sm" />
-    <span style="font-size: 0.875rem;">Session expired or logged out</span>
-  </div>
-  <div style="display: flex; align-items: center; gap: 0.75rem;">
-    <StatusBadge status="warning" label="Warning" size="sm" />
-    <span style="font-size: 0.875rem;">Connection issue detected</span>
-  </div>
-</div>
+| Status | Description |
+|--------|-------------|
+| <StatusBadge status="success" label="Connected" size="sm" /> | Active session, ready to use |
+| <StatusBadge status="error" label="Disconnected" size="sm" /> | Session expired or logged out |
+| <StatusBadge status="warning" label="Warning" size="sm" /> | Connection issue detected |
 
 ### Switching Portals
 
@@ -129,17 +113,9 @@ Collectors are organized by their assigned groups:
 
 Selecting a device enables:
 
-<CardGrid>
-  <FeatureCard title="Host Properties" icon="info" color="blue">
-    Access `hostProps.get("property.name")` in your scripts.
-  </FeatureCard>
-  <FeatureCard title="Token Substitution" icon="edit" color="green">
-    PowerShell `##TOKEN##` patterns resolve to device properties.
-  </FeatureCard>
-  <FeatureCard title="Instance Properties" icon="layers" color="purple">
-    Collection modes can access instance-specific data.
-  </FeatureCard>
-</CardGrid>
+- **Host Properties** — Access `hostProps.get("property.name")` in your scripts
+- **Token Substitution** — PowerShell `##TOKEN##` patterns resolve to device properties
+- **Instance Properties** — Collection modes can access instance-specific data
 
 ### Device List
 
@@ -186,14 +162,8 @@ When you return to the composer, your last portal and collector are automaticall
 
 Each tab can have different context settings:
 
-<CardGrid>
-  <FeatureCard title="Tab Memory" icon="layers" color="blue">
-    Tabs remember their execution context. Switching tabs may update the toolbar display.
-  </FeatureCard>
-  <FeatureCard title="Portal Binding" icon="link" color="purple">
-    Tabs opened from LogicModules are "bound" to their source portal.
-  </FeatureCard>
-</CardGrid>
+- **Tab Memory** — Tabs remember their execution context. Switching tabs may update the toolbar display.
+- **Portal Binding** — Tabs opened from LogicModules are "bound" to their source portal.
 
 ### Portal Binding
 
@@ -210,7 +180,7 @@ When you open a script from a LogicModule:
 
 ### Refresh Portals
 
-Click the refresh icon <Icon name="rocket" size="1rem" /> in the portal section to:
+Click the refresh icon in the portal section to:
 - Rescan for open LogicMonitor tabs
 - Update session status indicators
 - Detect newly opened portals
@@ -262,6 +232,3 @@ Device lists refresh automatically when:
   description="Explore the LogicModule Browser, Search, and Debug Commands."
   href="/lmda-composer/portal-tools/logicmodule-browser/"
 />
-
-
-

@@ -1,14 +1,14 @@
 ---
-import { Activity, FileText, Bell, Tag, Network, ScrollText, Database } from '@lucide/astro';
+import { Activity, FileText, Bell, Tag, Network, ScrollText, Stethoscope } from '@lucide/astro';
 
 interface Props {
-  type: 'datasource' | 'configsource' | 'eventsource' | 'propertysource' | 'topologysource' | 'logsource' | 'snmpsysoidmap';
+  type: 'datasource' | 'configsource' | 'eventsource' | 'propertysource' | 'topologysource' | 'logsource' | 'diagnosticsource';
   showLabel?: boolean;
 }
 
 const { type, showLabel = true } = Astro.props;
 
-// Color and icon mapping matching src/editor/constants/icons.tsx
+// Color and icon mapping matching src/editor/constants/logic-module-types.ts
 const typeConfig = {
   datasource: {
     color: '#22c55e', // green-500 (Activity icon)
@@ -34,9 +34,9 @@ const typeConfig = {
     color: '#14b8a6', // teal-500 (ScrollText icon)
     label: 'LogSource'
   },
-  snmpsysoidmap: {
-    color: '#8b5cf6', // violet-500
-    label: 'SnmpSysOIDMap'
+  diagnosticsource: {
+    color: '#a855f7', // purple-500 (Stethoscope icon)
+    label: 'DiagnosticSource'
   }
 };
 
@@ -51,7 +51,7 @@ const config = typeConfig[type];
     {type === 'propertysource' && <Tag size={14} />}
     {type === 'topologysource' && <Network size={14} />}
     {type === 'logsource' && <ScrollText size={14} />}
-    {type === 'snmpsysoidmap' && <Database size={14} />}
+    {type === 'diagnosticsource' && <Stethoscope size={14} />}
   </span>
   {showLabel && <span class="badge-label">{config.label}</span>}
 </span>

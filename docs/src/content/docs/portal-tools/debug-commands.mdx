@@ -3,26 +3,19 @@ title: Debug Commands
 description: Run collector debug commands and health checks from LMDA Composer.
 ---
 
-import { Card, CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
+import { Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
 import { Icon } from '@astrojs/starlight/components';
 import StatusBadge from '../../../components/StatusBadge.astro';
-import FeatureCard from '../../../components/FeatureCard.astro';
 
 The Debug Commands dialog lets you execute collector debug commands directly from LMDA Composer, including a comprehensive collector health check.
 
 ## Opening Debug Commands
 
-<CardGrid>
-  <FeatureCard title="Welcome Screen" icon="rocket" color="orange">
-    Click **Debug Commands** on the welcome screen.
-  </FeatureCard>
-  <FeatureCard title="Keyboard Shortcut" icon="laptop" color="purple">
-    Press <kbd>Cmd</kbd>+<kbd>K</kbd>, <kbd>D</kbd> to open directly.
-  </FeatureCard>
-  <FeatureCard title="Actions Menu" icon="scroll-text" color="blue">
-    Click **Actions → Debug Commands** in the toolbar.
-  </FeatureCard>
-</CardGrid>
+| Method | Action |
+|--------|--------|
+| **Welcome Screen** | Click **Debug Commands** on the welcome screen |
+| **Keyboard Shortcut** | Press <kbd>Cmd</kbd>+<kbd>K</kbd>, <kbd>D</kbd> to open directly |
+| **Actions Menu** | Click **Actions → Debug Commands** in the toolbar |
 
 ---
 
@@ -41,23 +34,30 @@ Type in the search box to filter commands:
 
 <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 1rem 0;">
   <Badge text="All" variant="default" />
+  <Badge text="Discovery" variant="note" />
   <Badge text="System" variant="note" />
   <Badge text="Network" variant="note" />
-  <Badge text="SNMP" variant="note" />
-  <Badge text="WMI" variant="note" />
-  <Badge text="Script" variant="note" />
-  <Badge text="Task" variant="note" />
+  <Badge text="Health" variant="note" />
+  <Badge text="Scripting" variant="note" />
+  <Badge text="File Ops" variant="note" />
+  <Badge text="Diagnostics" variant="note" />
+  <Badge text="Windows" variant="note" />
+  <Badge text="Query" variant="note" />
+  <Badge text="Task Mgmt" variant="note" />
 </div>
 
 | Category | Description |
 |----------|-------------|
-| **All** | Show all available commands |
-| **System** | Collector system info |
-| **Network** | Network diagnostics |
-| **SNMP** | SNMP testing |
-| **WMI** | Windows management |
-| **Script** | Script testing |
-| **Task** | Task management |
+| **Discovery** | Active Discovery and data collection task commands |
+| **System** | Collector system info and configuration |
+| **Network** | Network diagnostics and connectivity tests |
+| **Health** | Health check and monitoring commands |
+| **Scripting** | Script testing and execution |
+| **File Ops** | File system operations |
+| **Diagnostics** | Diagnostic and troubleshooting tools |
+| **Windows** | Windows-specific commands (WMI, PowerShell) |
+| **Query** | Protocol queries (SNMP, HTTP, etc.) |
+| **Task Mgmt** | Task management and control |
 
 ### Command List
 
@@ -137,7 +137,7 @@ Click **Copy** to copy all results, including collector identification for docum
 
 ## Collector Health Check
 
-The Health Check is a comprehensive diagnostic featured prominently at the top of the dialog.
+The Health Check is a comprehensive diagnostic featured prominently at the top of the dialog. The report has been redesigned in v1.5.0 with modern styling and improved data visualization.
 
 <img src="/lmda-composer/portal-tools/healthcheck-results.png" alt="Health check report with summary cards and detailed tables" style="border-radius: 0.5rem; margin: 1.5rem 0;" />
 
@@ -157,74 +157,72 @@ The Health Check is a comprehensive diagnostic featured prominently at the top o
 
 ### What It Checks
 
-<CardGrid>
-  <FeatureCard title="System" icon="laptop" color="blue">
-    Memory usage, CPU utilization, disk space availability
-  </FeatureCard>
-  <FeatureCard title="Network" icon="network" color="cyan">
-    Connectivity status, DNS resolution, network interfaces
-  </FeatureCard>
-  <FeatureCard title="Tasks" icon="scroll-text" color="purple">
-    Running tasks, queue depth, stuck tasks
-  </FeatureCard>
-  <FeatureCard title="Logs" icon="document" color="orange">
-    Recent errors and warnings from collector logs
-  </FeatureCard>
-</CardGrid>
+- **Collection Summary** — Thread counts across all task types (tlist, adlist, splist, tplist, aplist)
+- **Top Failing Modules** — Charts showing modules with the most failures
+- **Longest Running Tasks** — Analysis of tasks taking the most time
+- **Device Capacity** — Limits and current utilization
+- **Agent Config** — Current configuration vs. defaults
+- **Collector Logs** — Recent log entries and error patterns
 
 ### Health Check Report
 
 The report displays:
 
 **Summary Cards:**
-- Overall health score
-- Critical issues count
-- Warning count
-- Collector version
+- Collector info (ID, size, version, platform)
+- Failing threads count (color-coded by severity)
+- Total instances monitored
+- Debug run time
+- JVM and physical memory usage
 
-**Detailed Tables:**
+**Detailed Sections:**
 
 <Tabs>
-  <TabItem label="Task List" icon="list-format">
-    - Active discovery tasks
-    - Collection tasks
-    - Alert tasks
-    - Queue depths
+  <TabItem label="Charts" icon="seti:db">
+    - **Collection Summary** — Thread breakdown by task type
+    - **Top Failing Modules** — Modules with the most failures
+    - **Long Running Tasks** — Tasks taking the longest time
   </TabItem>
   
-  <TabItem label="Process List" icon="setting">
-    - Running processes
-    - CPU usage per process
-    - Memory usage
+  <TabItem label="Tables" icon="list-format">
+    - **Host Stats** — System resource statistics
+    - **Tlist Summary** — Task list summary with instance counts
+    - **Agent Config** — Current vs. default configuration comparison
+    - **Capacity Limits** — Device and instance limits
+    - **Task Lists** — Detailed task breakdowns (aplist, splist, adlist, tplist)
+    - **Process List** — Running processes with resource usage
   </TabItem>
   
-  <TabItem label="Messages" icon="warning">
-    - Recent log messages
-    - Error count by category
-    - Warning messages
+  <TabItem label="Diagnostics" icon="warning">
+    - **AppliesTo Queries** — Troubleshooting expressions with inline testing
+    - **Message Results** — Top recurring messages and errors
+    - **Logs Viewer** — Recent collector log entries
   </TabItem>
 </Tabs>
 
-### Interpreting Health Scores
+### AppliesTo Troubleshooting
 
-<div style="display: grid; gap: 0.75rem; margin: 1rem 0;">
-  <div style="display: flex; align-items: center; gap: 0.75rem;">
-    <Badge text="90-100%" variant="success" />
-    <span style="font-size: 0.875rem;">Healthy – minor optimizations possible</span>
-  </div>
-  <div style="display: flex; align-items: center; gap: 0.75rem;">
-    <Badge text="70-89%" variant="note" />
-    <span style="font-size: 0.875rem;">Warnings present – review recommended</span>
-  </div>
-  <div style="display: flex; align-items: center; gap: 0.75rem;">
-    <Badge text="50-69%" variant="caution" />
-    <span style="font-size: 0.875rem;">Issues detected – action needed</span>
-  </div>
-  <div style="display: flex; align-items: center; gap: 0.75rem;">
-    <Badge text="Below 50%" variant="danger" />
-    <span style="font-size: 0.875rem;">Critical problems – immediate attention</span>
-  </div>
-</div>
+The Health Check report includes AppliesTo troubleshooting queries. These are pre-built expressions that help identify common issues. You can test these queries directly from the report using inline AppliesTo testing.
+
+### Interpreting Results
+
+The report uses color-coded indicators for quick assessment:
+
+| Indicator | Meaning |
+|-----------|---------|
+| <Badge text="Green" variant="success" /> | Healthy — no issues detected |
+| <Badge text="Yellow" variant="caution" /> | Warning — review recommended |
+| <Badge text="Red" variant="danger" /> | Error — action needed |
+
+**Failing Threads:**
+- **0 threads** — Healthy (green)
+- **1-9 threads** — Warning (yellow)
+- **10+ threads** — Error (red)
+
+**Debug Run Time:**
+- **< 5 seconds** — Normal (green)
+- **5-10 seconds** — Elevated (yellow), check collector load
+- **> 10 seconds** — High (red), collector may be overloaded
 
 ---
 
@@ -343,17 +341,9 @@ Failed commands show:
 
 ## Best Practices
 
-<CardGrid>
-  <FeatureCard title="Before Running" icon="warning" color="orange">
-    Verify correct collector(s) selected. Double-check parameter values. Consider impact on production collectors.
-  </FeatureCard>
-  <FeatureCard title="Interpreting Results" icon="search" color="blue">
-    Compare against known good baselines. Check timestamps for currency. Look for patterns across collectors.
-  </FeatureCard>
-  <FeatureCard title="Documentation" icon="document" color="green">
-    Copy results for ticketing systems. Note collector and timestamp. Compare before/after for changes.
-  </FeatureCard>
-</CardGrid>
+- **Before Running** — Verify correct collector(s) selected. Double-check parameter values. Consider impact on production collectors.
+- **Interpreting Results** — Compare against known good baselines. Check timestamps for currency. Look for patterns across collectors.
+- **Documentation** — Copy results for ticketing systems. Note collector and timestamp. Compare before/after for changes.
 
 ---
 
@@ -364,6 +354,3 @@ Failed commands show:
   description="Explore the LogicMonitor REST API with an interactive request builder."
   href="/lmda-composer/api-explorer/overview/"
 />
-
-
-

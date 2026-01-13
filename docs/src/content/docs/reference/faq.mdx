@@ -3,9 +3,8 @@ title: FAQ
 description: Frequently asked questions about LMDA Composer.
 ---
 
-import { CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
+import { Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
 import { Icon } from '@astrojs/starlight/components';
-import FeatureCard from '../../../components/FeatureCard.astro';
 
 Answers to common questions about LMDA Composer.
 
@@ -35,24 +34,12 @@ Answers to common questions about LMDA Composer.
 
 ## Browser Support
 
-<CardGrid>
-  <FeatureCard title="Chrome" icon="globe" color="green">
-    <Badge text="Recommended" variant="success" />
-    Full support for all features.
-  </FeatureCard>
-  <FeatureCard title="Edge" icon="globe" color="green">
-    <Badge text="Full Support" variant="success" />
-    Same capabilities as Chrome.
-  </FeatureCard>
-  <FeatureCard title="Brave" icon="shield" color="orange">
-    <Badge text="With Limitations" variant="note" />
-    May need to enable File System Access API.
-  </FeatureCard>
-  <FeatureCard title="Firefox / Safari" icon="globe" color="red">
-    <Badge text="Not Supported" variant="caution" />
-    Extension API limitations prevent support.
-  </FeatureCard>
-</CardGrid>
+| Browser | Support | Notes |
+|---------|---------|-------|
+| **Chrome** | <Badge text="Recommended" variant="success" /> | Full support for all features |
+| **Edge** | <Badge text="Full Support" variant="success" /> | Same capabilities as Chrome |
+| **Brave** | <Badge text="With Limitations" variant="note" /> | May need to enable File System Access API |
+| **Firefox / Safari** | <Badge text="Not Supported" variant="caution" /> | Extension API limitations prevent support |
 
 ---
 
@@ -192,12 +179,19 @@ Answers to common questions about LMDA Composer.
 
 <Tabs>
   <TabItem label="Create new modules?" icon="add-document">
-    Currently, LMDA Composer is focused on editing existing modules. You can:
-    - Import modules from LogicModule Exchange
-    - Edit scripts in existing modules
-    - Commit changes back to LogicMonitor
+    **Yes!** LMDA Composer includes a **Create LogicModule Wizard** that guides you through building new modules directly from the editor.
 
-    Creating entirely new modules should be done in the LogicMonitor UI.
+    The wizard supports all 7 module types:
+    - DataSource, ConfigSource, TopologySource
+    - PropertySource, LogSource, EventSource, DiagnosticSource
+
+    Access it from the Welcome Screen or via the Actions menu.
+
+    <LinkCard
+      title="Creating LogicModules"
+      description="Learn how to use the Create LogicModule wizard."
+      href="/lmda-composer/module-management/creating-modules/"
+    />
   </TabItem>
   
   <TabItem label="What happens when I commit?" icon="approve-check-circle">
@@ -219,35 +213,19 @@ Answers to common questions about LMDA Composer.
 
 ## Snippets and History
 
-<CardGrid>
-  <FeatureCard title="Share snippets with team?" icon="users" color="purple">
-    Snippets are stored locally in your browser. To share:
-    - Export snippet content manually
-    - Include in team documentation
-    - Add to shared code repositories
-  </FeatureCard>
-  <FeatureCard title="How long is history kept?" icon="history" color="blue">
-    History is kept until you manually clear it, the configured limit is reached (oldest removed), or browser storage is cleared.
-    
-    Default limit is **50** entries, configurable in Settings.
-  </FeatureCard>
-</CardGrid>
+| Topic | Answer |
+|-------|--------|
+| **Share snippets with team?** | Snippets are stored locally in your browser. To share: export snippet content manually, include in team documentation, or add to shared code repositories. |
+| **How long is history kept?** | History is kept until you manually clear it, the configured limit is reached (oldest removed), or browser storage is cleared. Default limit is **50** entries, configurable in Settings. |
 
 ---
 
 ## Security
 
-<CardGrid>
-  <FeatureCard title="Is my data secure?" icon="shield" color="green">
-    - Runs entirely in your browser
-    - No data sent to third-party servers
-    - All communication is with LogicMonitor using your session
-    - Local storage is limited to your browser
-  </FeatureCard>
-  <FeatureCard title="Can others see my scripts?" icon="lock" color="blue">
-    Scripts in local files are only on your computer. Scripts in LogicModules follow your LogicMonitor access controls.
-  </FeatureCard>
-</CardGrid>
+| Topic | Details |
+|-------|---------|
+| **Is my data secure?** | Runs entirely in your browser. No data sent to third-party servers. All communication is with LogicMonitor using your session. Local storage is limited to your browser. |
+| **Can others see my scripts?** | Scripts in local files are only on your computer. Scripts in LogicModules follow your LogicMonitor access controls. |
 
 ### What data is stored locally?
 
@@ -290,15 +268,6 @@ Answers to common questions about LMDA Composer.
 
 ## Get Help
 
-<CardGrid>
-  <FeatureCard title="Documentation" icon="book" color="blue">
-    You're here! Browse the full documentation.
-  </FeatureCard>
-  <FeatureCard title="LogicMonitor Community" icon="users" color="green">
-    Connect with other LM users and ask questions.
-  </FeatureCard>
-  <FeatureCard title="Open Source Soon" icon="clock" color="purple">
-    GitHub Issues and Discussions will be available once the project goes open source.
-  </FeatureCard>
-</CardGrid>
-
+- **Documentation** — You're here! Browse the full documentation.
+- **LogicMonitor Community** — Connect with other LM users and ask questions.
+- **Open Source Soon** — GitHub Issues and Discussions will be available once the project goes open source.

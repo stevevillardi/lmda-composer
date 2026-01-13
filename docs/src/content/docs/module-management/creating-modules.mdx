@@ -3,22 +3,18 @@ title: Creating LogicModules
 description: Use the Create LogicModule wizard to build new modules directly in your portal.
 ---
 
-import { Card, CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
+import { Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
 import { Icon } from '@astrojs/starlight/components';
-import FeatureCard from '../../../components/FeatureCard.astro';
+import ModuleTypeBadge from '../../../components/ModuleTypeBadge.astro';
 
 The Create LogicModule wizard guides you through building new modules directly from LMDA Composer. Create DataSources, ConfigSources, and other module types without leaving the editor.
 
 ## Prerequisites
 
-<CardGrid>
-  <FeatureCard title="Portal Connection" icon="link" color="blue">
-    You must be connected to a LogicMonitor portal with an active session.
-  </FeatureCard>
-  <FeatureCard title="Write Access" icon="lock" color="purple">
-    Your account needs permission to create LogicModules in the portal.
-  </FeatureCard>
-</CardGrid>
+| Requirement | Description |
+|-------------|-------------|
+| **Portal Connection** | You must be connected to a LogicMonitor portal with an active session |
+| **Write Access** | Your account needs permission to create LogicModules in the portal |
 
 <Aside type="note" title="Portal Required">
   The Create LogicModule option only appears when you have an active portal connection. If you don't see the option, ensure you have a LogicMonitor tab open in your browser.
@@ -50,24 +46,38 @@ Select the type of LogicModule to create:
 
 <Tabs>
   <TabItem label="DataSource" icon="seti:db">
+    <ModuleTypeBadge type="datasource" />
+
     Collect numeric metrics from devices. Supports Active Discovery for multi-instance monitoring.
   </TabItem>
   <TabItem label="ConfigSource" icon="seti:config">
+    <ModuleTypeBadge type="configsource" />
+
     Collect and track configuration data. Alert on config changes or validation failures.
   </TabItem>
   <TabItem label="TopologySource" icon="random">
+    <ModuleTypeBadge type="topologysource" />
+
     Discover network topology and relationships between resources.
   </TabItem>
   <TabItem label="PropertySource" icon="tag">
+    <ModuleTypeBadge type="propertysource" />
+
     Discover and set device properties automatically.
   </TabItem>
   <TabItem label="LogSource" icon="document">
+    <ModuleTypeBadge type="logsource" />
+
     Collect and parse log data from devices.
   </TabItem>
   <TabItem label="EventSource" icon="bell">
+    <ModuleTypeBadge type="eventsource" />
+
     Generate events from device data for alerting.
   </TabItem>
   <TabItem label="DiagnosticSource" icon="stethoscope">
+    <ModuleTypeBadge type="diagnosticsource" />
+
     Run diagnostic scripts on-demand or via Diagnostic Rules.
   </TabItem>
 </Tabs>
@@ -78,8 +88,8 @@ Enter the module identification:
 
 | Field | Required | Description |
 |-------|----------|-------------|
-| Name | Yes | Technical identifier (alphanumeric, underscores, hyphens) |
-| Display Name | DataSource/ConfigSource only | Human-readable name shown in UI |
+| **Name** | Yes | Technical identifier (alphanumeric, underscores, hyphens) |
+| **Display Name** | DataSource/ConfigSource/EventSource only | Human-readable name shown in UI |
 
 <Aside type="tip" title="Auto-Sync">
   The Display Name automatically syncs with the Name field until you manually edit it.
@@ -89,20 +99,16 @@ Enter the module identification:
 
 Configure the scripting options:
 
-<CardGrid>
-  <FeatureCard title="Script Language" icon="code" color="blue">
-    Choose between Groovy and PowerShell (where supported).
-  </FeatureCard>
-  <FeatureCard title="Instance Type" icon="layers" color="purple">
-    Single instance or Multi-instance with Active Discovery (DataSource/ConfigSource only).
-  </FeatureCard>
-  <FeatureCard title="Batch Script" icon="terminal" color="green">
-    Enable batch collection for multi-instance modules.
-  </FeatureCard>
-  <FeatureCard title="AD Language" icon="target" color="orange">
-    Choose language for Active Discovery script (can differ from collection).
-  </FeatureCard>
-</CardGrid>
+| Option | Description |
+|--------|-------------|
+| **Script Language** | Choose between Groovy and PowerShell (where supported) |
+| **Instance Type** | Single instance or Multi-instance with Active Discovery (DataSource/ConfigSource only) |
+| **Batch Script** | Enable batch collection for multi-instance modules |
+| **AD Language** | Choose language for Active Discovery script (can differ from collection) |
+
+<Aside type="note" title="Language Availability">
+  Not all module types support both languages. LogSource and EventSource only support Groovy.
+</Aside>
 
 ### Step 4: Confirmation
 
@@ -113,6 +119,19 @@ Review your configuration before creating:
 - Instance type and AD settings
 - Default settings that will be applied
 
+#### Initialize Local Directory
+
+You can optionally create a local directory structure for the new module:
+
+| Option | Description |
+|--------|-------------|
+| **Initialize Local Directory** | When checked, creates a folder with script files on your local disk |
+
+This is useful if you want to:
+- Use version control (Git) for your module scripts
+- Have local backups of your work
+- Work offline and sync later
+
 Click **Create Module** to create the module in your portal.
 
 ---
@@ -121,13 +140,13 @@ Click **Create Module** to create the module in your portal.
 
 | Type | Display Name | Collect Interval | AD Support | Script Languages |
 |------|-------------|------------------|------------|------------------|
-| DataSource | Yes | 5 minutes | Yes | Groovy, PowerShell |
-| ConfigSource | Yes | 1 hour | Yes | Groovy, PowerShell |
-| TopologySource | No | 1 hour | No | Groovy, PowerShell |
-| PropertySource | No | On discovery | No | Groovy, PowerShell |
-| LogSource | No | 5 minutes | No | Groovy only |
-| EventSource | No | 30 minutes | No | Groovy only |
-| DiagnosticSource | No | On-demand | No | Groovy, PowerShell |
+| <ModuleTypeBadge type="datasource" showLabel={false} /> DataSource | Yes | 1-30 min, 1-24 hours | Yes | Groovy, PowerShell |
+| <ModuleTypeBadge type="configsource" showLabel={false} /> ConfigSource | Yes | 1-24 hours | Yes | Groovy, PowerShell |
+| <ModuleTypeBadge type="topologysource" showLabel={false} /> TopologySource | No | 30 min - 12 hours | No | Groovy, PowerShell |
+| <ModuleTypeBadge type="propertysource" showLabel={false} /> PropertySource | No | On discovery | No | Groovy, PowerShell |
+| <ModuleTypeBadge type="logsource" showLabel={false} /> LogSource | No | 1-30 min, 1-24 hours | No | Groovy only |
+| <ModuleTypeBadge type="eventsource" showLabel={false} /> EventSource | No | 1-30 min, 1-24 hours | No | Groovy only |
+| <ModuleTypeBadge type="diagnosticsource" showLabel={false} /> DiagnosticSource | No | On-demand | No | Groovy, PowerShell |
 
 ---
 
@@ -137,47 +156,36 @@ Each module type is created with sensible defaults:
 
 ### DataSource Defaults
 
-<CardGrid>
-  <FeatureCard title="exitCode Datapoint" icon="check-circle" color="green">
-    A default datapoint that captures the script exit code.
-  </FeatureCard>
-  <FeatureCard title="5-Minute Collection" icon="clock" color="blue">
-    Standard collection interval for metric gathering.
-  </FeatureCard>
-</CardGrid>
+| Setting | Default Value |
+|---------|---------------|
+| **exitCode Datapoint** | A default datapoint that captures the script exit code |
+| **Collection Interval** | 5 minutes |
+| **AppliesTo** | `false()` (won't match any resources until configured) |
 
 ### ConfigSource Defaults
 
-<CardGrid>
-  <FeatureCard title="RetrievalCheck" icon="warning" color="orange">
-    A config check that alerts when configuration cannot be retrieved.
-  </FeatureCard>
-  <FeatureCard title="1-Hour Collection" icon="clock" color="blue">
-    Standard interval for configuration polling.
-  </FeatureCard>
-</CardGrid>
+| Setting | Default Value |
+|---------|---------------|
+| **RetrievalCheck** | A config check that alerts when configuration cannot be retrieved |
+| **Collection Interval** | 1 hour |
+| **AppliesTo** | `false()` (won't match any resources until configured) |
 
 ### LogSource Defaults
 
-<CardGrid>
-  <FeatureCard title="Resource Mapping" icon="link" color="purple">
-    Default log fields and resource mapping configuration.
-  </FeatureCard>
-  <FeatureCard title="5-Minute Collection" icon="clock" color="blue">
-    Standard interval for log collection.
-  </FeatureCard>
-</CardGrid>
+| Setting | Default Value |
+|---------|---------------|
+| **Resource Mapping** | Default log fields and resource mapping configuration |
+| **Collection Interval** | 5 minutes |
+| **AppliesTo** | `false()` (won't match any resources until configured) |
 
 ### EventSource Defaults
 
-<CardGrid>
-  <FeatureCard title="Alert Settings" icon="bell" color="orange">
-    Warning level alerts with 60-minute effective interval.
-  </FeatureCard>
-  <FeatureCard title="30-Minute Schedule" icon="clock" color="blue">
-    Standard schedule for event checking.
-  </FeatureCard>
-</CardGrid>
+| Setting | Default Value |
+|---------|---------------|
+| **Alert Level** | Warning |
+| **Effective Interval** | 60 minutes |
+| **Schedule** | 30 minutes |
+| **AppliesTo** | `false()` (won't match any resources until configured) |
 
 ### All Modules
 

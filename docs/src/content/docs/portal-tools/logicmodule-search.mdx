@@ -3,26 +3,19 @@ title: LogicModule Search
 description: Search across all module scripts and datapoints to find code patterns.
 ---
 
-import { Card, CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
+import { Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
 import { Icon } from '@astrojs/starlight/components';
 import ModuleTypeBadge from '../../../components/ModuleTypeBadge.astro';
-import FeatureCard from '../../../components/FeatureCard.astro';
 
 LogicModule Search provides powerful search capabilities across all scripts and datapoints in your portal's LogicModules.
 
 ## Opening Search
 
-<CardGrid>
-  <FeatureCard title="Welcome Screen" icon="rocket" color="orange">
-    Click **Search LogicModules** on the welcome screen.
-  </FeatureCard>
-  <FeatureCard title="Command Palette" icon="search" color="purple">
-    Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> and type "Search".
-  </FeatureCard>
-  <FeatureCard title="Keyboard Shortcut" icon="laptop" color="blue">
-    Press <kbd>Cmd</kbd>+<kbd>K</kbd>, <kbd>S</kbd> to open directly.
-  </FeatureCard>
-</CardGrid>
+| Method | Action |
+|--------|--------|
+| **Welcome Screen** | Click **Search LogicModules** on the welcome screen |
+| **Command Palette** | Press <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> and type "Search" |
+| **Keyboard Shortcut** | Press <kbd>Cmd</kbd>+<kbd>K</kbd>, <kbd>S</kbd> to open directly |
 
 ---
 
@@ -44,8 +37,14 @@ LogicModule Search provides powerful search capabilities across all scripts and 
   </TabItem>
   
   <TabItem label="Datapoint Search" icon="seti:db">
-    Search datapoint definitions:
+    Search datapoint definitions across **all DataSource types**:
 
+    - Scripted DataSources (Groovy, PowerShell)
+    - SNMP DataSources
+    - WMI DataSources
+    - And more...
+
+    Search by:
     - Datapoint names
     - Datapoint expressions
     - Alert thresholds
@@ -92,6 +91,8 @@ Filter search to specific module types:
   <ModuleTypeBadge type="eventsource" />
   <ModuleTypeBadge type="propertysource" />
   <ModuleTypeBadge type="topologysource" />
+  <ModuleTypeBadge type="logsource" />
+  <ModuleTypeBadge type="diagnosticsource" />
 </div>
 
 Select multiple types to include, or none to search all module types.
@@ -150,17 +151,30 @@ DataSource_Name
 └── cpuCount (no alert)
 ```
 
+### Match Indicators
+
+Results show how the datapoint matched your query:
+
+- **Name match** — Query found in the datapoint name
+- **Description match** — Query found in the datapoint description
+
+This helps you quickly identify why a result appeared and focus on the most relevant matches.
+
 ### Datapoint Details
 
 Click a datapoint result to view:
 
-<div style="display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin: 1rem 0; font-size: 0.875rem;">
-  <div><strong>Name:</strong> Datapoint identifier</div>
-  <div><strong>Type:</strong> Gauge, counter, derive</div>
-  <div><strong>Alert Expression:</strong> Threshold config</div>
-  <div><strong>Description:</strong> Documentation text</div>
-  <div><strong>Post-Processor:</strong> Transformations</div>
-</div>
+| Field | Description |
+|-------|-------------|
+| **Name** | Datapoint identifier |
+| **Type** | Gauge, counter, derive |
+| **Alert Expression** | Threshold configuration |
+| **Description** | Documentation text |
+| **Post-Processor** | Transformations |
+
+### LMX Links
+
+Search results include direct links to view the module on LogicMonitor Exchange when available. Click the <Icon name="external" size="1rem" /> icon to open the module in LMX.
 
 ---
 
@@ -240,20 +254,10 @@ For portals with many modules:
 
 ## Use Cases
 
-<CardGrid>
-  <FeatureCard title="Finding Examples" icon="search" color="blue">
-    Search for `Snmp.walk` with Substring match to find SNMP walk examples across all modules.
-  </FeatureCard>
-  <FeatureCard title="Locating Specific Code" icon="code" color="purple">
-    Search for `hostProps.get("custom.property")` with Exact match to find all uses of a specific property.
-  </FeatureCard>
-  <FeatureCard title="Auditing Patterns" icon="warning" color="orange">
-    Use Regex like `old_deprecated_function\(` to find modules needing updates.
-  </FeatureCard>
-  <FeatureCard title="Datapoint Discovery" icon="database" color="green">
-    Switch to Datapoint Search and enter "CPU" to find all CPU-related datapoints and their alert configs.
-  </FeatureCard>
-</CardGrid>
+- **Finding Examples** — Search for `Snmp.walk` with Substring match to find SNMP walk examples across all modules.
+- **Locating Specific Code** — Search for `hostProps.get("custom.property")` with Exact match to find all uses of a specific property.
+- **Auditing Patterns** — Use Regex like `old_deprecated_function\(` to find modules needing updates.
+- **Datapoint Discovery** — Switch to Datapoint Search and enter "CPU" to find all CPU-related datapoints and their alert configs across all DataSource types.
 
 ---
 
@@ -264,6 +268,3 @@ For portals with many modules:
   description="Test and validate AppliesTo expressions with instant feedback."
   href="/lmda-composer/portal-tools/appliesto-toolbox/"
 />
-
-
-

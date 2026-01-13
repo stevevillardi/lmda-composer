@@ -39,7 +39,7 @@ const IconComponent = icon ? iconComponents[icon] : null;
     <span class="step-number">{number}</span>
     {IconComponent && (
       <span class="step-icon">
-        <IconComponent size={20} />
+        <IconComponent size={18} />
       </span>
     )}
     <h3 class="step-title">{title}</h3>
@@ -52,30 +52,30 @@ const IconComponent = icon ? iconComponents[icon] : null;
 <style>
   .step-card {
     border: 1px solid var(--sl-color-gray-5);
-    border-radius: 0.75rem;
-    padding: 1.5rem;
-    background: var(--sl-color-bg-nav);
-    margin-bottom: 1.5rem;
+    border-radius: var(--card-radius, 0.75rem);
+    padding: 1.25rem;
+    background: var(--card-bg, var(--sl-color-bg-nav));
+    margin-bottom: 1.25rem;
   }
 
   .step-header {
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem;
   }
 
   .step-number {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-width: 2rem;
-    height: 2rem;
+    min-width: 1.75rem;
+    height: 1.75rem;
     border-radius: 50%;
     background: var(--sl-color-accent);
     color: var(--sl-color-black);
     font-weight: 700;
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
     flex-shrink: 0;
   }
 
@@ -87,25 +87,25 @@ const IconComponent = icon ? iconComponents[icon] : null;
   }
 
   .step-title {
-    font-size: 1.125rem;
+    font-size: 1rem;
     font-weight: 600;
     margin: 0;
     color: var(--sl-color-white);
   }
 
   .step-content {
-    font-size: 0.9375rem;
+    font-size: 0.875rem;
     color: var(--sl-color-gray-2);
-    padding-left: 2.75rem;
+    padding-left: 2.5rem;
   }
 
   .step-content :global(p) {
-    margin: 0.5rem 0;
+    margin: 0.375rem 0;
   }
 
   .step-content :global(ul),
   .step-content :global(ol) {
-    margin: 0.5rem 0;
+    margin: 0.375rem 0;
     padding-left: 1.25rem;
   }
 

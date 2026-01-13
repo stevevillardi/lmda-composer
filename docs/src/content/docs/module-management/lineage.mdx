@@ -3,9 +3,8 @@ title: Module Lineage
 description: View the release history of LogicMonitor core modules from the Exchange.
 ---
 
-import { Card, CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
+import { Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
 import { Icon } from '@astrojs/starlight/components';
-import FeatureCard from '../../../components/FeatureCard.astro';
 
 Module Lineage displays the release history of LogicMonitor's core modules, showing previous versions published to the Exchange.
 
@@ -17,20 +16,11 @@ Module Lineage displays the release history of LogicMonitor's core modules, show
 
 Lineage provides visibility into how LogicMonitor has updated and improved their core modules over time:
 
-<CardGrid>
-  <FeatureCard title="Exchange History" icon="history" color="blue">
-    View all versions LogicMonitor has published for a core module.
-  </FeatureCard>
-  <FeatureCard title="Release Notes" icon="file-text" color="green">
-    See what LogicMonitor changed in each release.
-  </FeatureCard>
-  <FeatureCard title="Version Comparison" icon="diff" color="purple">
-    Compare different Exchange releases side-by-side.
-  </FeatureCard>
-  <FeatureCard title="Update Tracking" icon="refresh-cw" color="orange">
-    Identify what's new in the latest Exchange version.
-  </FeatureCard>
-</CardGrid>
+- **Exchange History** — View all versions LogicMonitor has published for a core module
+- **Release Notes** — See what LogicMonitor changed in each release
+- **Version Comparison** — Compare different Exchange releases side-by-side
+- **Update Tracking** — Identify what's new in the latest Exchange version
+- **Script Restoration** — Restore a historical version to your editor
 
 ---
 
@@ -52,14 +42,10 @@ Lineage is only available for **LogicMonitor core modules** that have been publi
 
 ## Opening Lineage View
 
-<CardGrid>
-  <FeatureCard title="Toolbar" icon="git-branch" color="cyan">
-    Click the **View Lineage** button in the toolbar.
-  </FeatureCard>
-  <FeatureCard title="Command Palette" icon="search" color="purple">
-    Press <kbd>Ctrl</kbd>+<kbd>K</kbd> and type "Lineage".
-  </FeatureCard>
-</CardGrid>
+| Method | Action |
+|--------|--------|
+| **Toolbar** | Click the **View Lineage** button in the toolbar |
+| **Command Palette** | Press <kbd>Ctrl</kbd>+<kbd>K</kbd> and type "Lineage" |
 
 <Aside type="note" title="Module-Bound Tabs Only">
   The Lineage button only appears for tabs loaded from a LogicModule with Exchange history.
@@ -71,61 +57,61 @@ Lineage is only available for **LogicMonitor core modules** that have been publi
 
 <img src="/lmda-composer/module-management/module-lineage.png" alt="Lineage dialog showing version list and diff viewer" style="border-radius: 0.5rem; margin: 1.5rem 0;" />
 
-### Version List
+### Version Selector
 
-The left panel shows all Exchange versions:
+The dropdown at the top shows all Exchange versions:
 
-| Column | Description |
-|--------|-------------|
-| Version | LogicMonitor's release version number |
-| Date | When LogicMonitor published this version |
-| Notes | Release notes or changelog summary |
+| Field | Description |
+|-------|-------------|
+| **Version** | LogicMonitor's release version number |
+| **ID** | Unique locator identifier |
+| **Date** | When LogicMonitor published this version |
+| **Author** | Who published the version |
 
 Versions are sorted newest first.
 
 ### Version Details
 
-Click a version to see:
+Select a version to see:
 - LogicMonitor's release notes
-- Changes from the previous Exchange version
-- Script and configuration updates
-
----
-
-## Comparing Exchange Versions
-
-### Side-by-Side Comparison
-
-<Steps>
-
-1. Select a version from the list
-
-2. Click **Compare**
-
-3. Choose the version to compare against
-
-4. View the diff in the right panel
-
-</Steps>
+- The script content from that version
+- Side-by-side diff comparison with your current script
 
 ### Diff Viewer
 
-The diff viewer shows changes with color coding:
+The diff viewer shows changes between your current script and the selected historical version:
 
-<div style="display: grid; gap: 0.5rem; margin: 1rem 0;">
-  <div style="display: flex; align-items: center; gap: 0.75rem;">
-    <Badge text="+" variant="success" />
-    <span style="font-size: 0.875rem;">Added lines (green background)</span>
-  </div>
-  <div style="display: flex; align-items: center; gap: 0.75rem;">
-    <Badge text="-" variant="danger" />
-    <span style="font-size: 0.875rem;">Removed lines (red background)</span>
-  </div>
-  <div style="display: flex; align-items: center; gap: 0.75rem;">
-    <Badge text=" " variant="default" />
-    <span style="font-size: 0.875rem;">Unchanged context (gray)</span>
-  </div>
-</div>
+| Indicator | Meaning |
+|-----------|---------|
+| <Badge text="+" variant="success" /> | Added lines (green background) |
+| <Badge text="-" variant="danger" /> | Removed lines (red background) |
+| Gray | Unchanged context |
+
+---
+
+## Restoring a Version
+
+You can restore any historical version to your editor:
+
+<Steps>
+
+1. Open the Lineage dialog
+
+2. Select the version you want to restore from the dropdown
+
+3. Review the diff to understand what will change
+
+4. Click **Restore** to replace your current script with the historical version
+
+5. The script content is updated in your editor (not yet committed)
+
+6. Review the changes and commit when ready
+
+</Steps>
+
+<Aside type="tip" title="Non-Destructive">
+  Restoring a version only updates your editor content. You must still commit the changes to save them to LogicMonitor. If you change your mind, close the tab without committing.
+</Aside>
 
 ---
 
@@ -174,14 +160,9 @@ If you've customized a module and need to see the "original" version:
 
 ## Limitations
 
-<CardGrid>
-  <FeatureCard title="No User History" icon="x-circle" color="red">
-    Lineage does not track changes you make to modules. There's no way to view or revert to previous versions of your own edits.
-  </FeatureCard>
-  <FeatureCard title="Exchange Only" icon="info" color="blue">
-    Only modules with Exchange history have Lineage data. Custom modules created from scratch won't have Lineage.
-  </FeatureCard>
-</CardGrid>
+- **No User History** — Lineage does not track changes you make to modules. There's no way to view or revert to previous versions of your own edits.
+- **Exchange Only** — Only modules with Exchange history have Lineage data. Custom modules created from scratch won't have Lineage.
+- **Script-Level Only** — Lineage shows script content history, not metadata changes.
 
 <Aside type="tip" title="Version Control for Your Changes">
   For tracking your own modifications, consider:
@@ -194,17 +175,10 @@ If you've customized a module and need to see the "original" version:
 
 ## Best Practices
 
-<CardGrid>
-  <FeatureCard title="Check Before Customizing" icon="search" color="purple">
-    Review the latest Exchange version before making changes to understand the current baseline.
-  </FeatureCard>
-  <FeatureCard title="Track Your Baseline" icon="bookmark" color="green">
-    Note which Exchange version your customization is based on to simplify future comparisons.
-  </FeatureCard>
-  <FeatureCard title="Review Updates Regularly" icon="refresh-cw" color="blue">
-    Periodically check if LogicMonitor has released updates that might benefit your environment.
-  </FeatureCard>
-</CardGrid>
+- **Check Before Customizing** — Review the latest Exchange version before making changes to understand the current baseline
+- **Track Your Baseline** — Note which Exchange version your customization is based on to simplify future comparisons
+- **Review Updates Regularly** — Periodically check if LogicMonitor has released updates that might benefit your environment
+- **Use Restore Carefully** — Remember that restoring replaces your entire script, so back up any custom changes first
 
 ---
 

@@ -3,9 +3,7 @@ title: Interface Overview
 description: A tour of the LMDA Composer workspace layout and key components.
 ---
 
-import { CardGrid, Tabs, TabItem, Aside, LinkCard, Badge } from '@astrojs/starlight/components';
-import { Icon } from '@astrojs/starlight/components';
-import FeatureCard from '../../../components/FeatureCard.astro';
+import { Tabs, TabItem, Aside, LinkCard, Badge } from '@astrojs/starlight/components';
 
 LMDA Composer provides a focused workspace designed specifically for LogicMonitor script development. This guide walks through the main interface components.
 
@@ -23,26 +21,23 @@ The toolbar contains context selection and primary actions.
 
 <img src="/lmda-composer/getting-started/interface-toolbar.png" alt="LMDA Composer toolbar" style="border-radius: 0.5rem; margin: 1rem 0;" />
 
-<CardGrid>
-  <FeatureCard title="Context Selection" icon="settings" color="blue">
-    **Portal** – Your LogicMonitor account  
-    **Collector** – Where scripts execute  
-    **Device** – Target for property access
-  </FeatureCard>
-  <FeatureCard title="Script Configuration" icon="edit" color="purple">
-    **Language** – Toggle between Groovy and PowerShell  
-    **Mode** – Freeform, AD, Collection, or Batch
-  </FeatureCard>
-  <FeatureCard title="Module Actions" icon="layers" color="green">
-    **Lineage** – View Exchange release history  
-    **Details** – Edit module metadata  
-    **Commit** – Push changes to LogicMonitor
-  </FeatureCard>
-  <FeatureCard title="Execute" icon="play" color="amber">
-    **Run Script** – Execute on selected collector  
-    **Actions Menu** – Save, export, import options
-  </FeatureCard>
-</CardGrid>
+### Context Selection
+- **Portal** — Your LogicMonitor account (green indicator when connected)
+- **Collector** — Where scripts execute (only online collectors available)
+- **Device** — Target for property access (optional)
+
+### Script Configuration
+- **Language** — Toggle between Groovy and PowerShell
+- **Mode** — Freeform, AD, Collection, or Batch
+
+### Module Actions
+- **Lineage** — View Exchange release history
+- **Details** — Edit module metadata, datapoints, and settings
+- **Commit** — Push changes back to LogicMonitor
+
+### Execute
+- **Run Script** — Execute on selected collector
+- **Actions Menu** — Save, export, import options
 
 ---
 
@@ -50,20 +45,12 @@ The toolbar contains context selection and primary actions.
 
 Manage multiple open files and module scripts.
 
-<CardGrid>
-  <FeatureCard title="Multiple Tabs" icon="layers" color="blue">
-    Work on multiple scripts simultaneously, each in its own tab.
-  </FeatureCard>
-  <FeatureCard title="Dirty Indicator" icon="alert-triangle" color="orange">
-    A dot appears on tabs with unsaved changes.
-  </FeatureCard>
-  <FeatureCard title="Language Badge" icon="code" color="green">
-    Shows <Badge text="GR" variant="success" /> for Groovy or <Badge text="PS" variant="note" /> for PowerShell.
-  </FeatureCard>
-  <FeatureCard title="Module Binding" icon="link" color="purple">
-    Link icon indicates tabs bound to a LogicModule.
-  </FeatureCard>
-</CardGrid>
+| Feature | Description |
+|---------|-------------|
+| **Multiple Tabs** | Work on multiple scripts simultaneously |
+| **Dirty Indicator** | Dot appears on tabs with unsaved changes |
+| **Language Badge** | <Badge text="GR" variant="success" /> for Groovy, <Badge text="PS" variant="note" /> for PowerShell |
+| **Module Binding** | Link icon indicates tabs bound to a LogicModule |
 
 ### Tab Actions
 
@@ -78,20 +65,12 @@ Right-click any tab for additional options:
 
 A professional editing experience powered by the Monaco editor.
 
-<CardGrid>
-  <FeatureCard title="Syntax Highlighting" icon="code" color="green">
-    Full syntax highlighting for Groovy and PowerShell with keyword, string, and comment coloring.
-  </FeatureCard>
-  <FeatureCard title="Smart Editing" icon="puzzle" color="purple">
-    Bracket matching, auto-indentation, code folding, and multiple cursors.
-  </FeatureCard>
-  <FeatureCard title="Find & Replace" icon="search" color="blue">
-    Press <kbd>Ctrl</kbd>+<kbd>F</kbd> to search. Supports regex and case-sensitive matching.
-  </FeatureCard>
-  <FeatureCard title="Line Numbers" icon="list" color="default">
-    Navigate large scripts easily with line numbers and go-to-line (<kbd>Ctrl</kbd>+<kbd>G</kbd>).
-  </FeatureCard>
-</CardGrid>
+| Feature | Description |
+|---------|-------------|
+| **Syntax Highlighting** | Full highlighting for Groovy and PowerShell |
+| **Smart Editing** | Bracket matching, auto-indentation, code folding, multiple cursors |
+| **Find & Replace** | <kbd>Ctrl</kbd>+<kbd>F</kbd> — supports regex and case-sensitive matching |
+| **Go to Line** | <kbd>Ctrl</kbd>+<kbd>G</kbd> — jump to specific line numbers |
 
 ---
 
@@ -107,9 +86,9 @@ View script execution results with parsed output and validation.
   </TabItem>
   <TabItem label="Parsed" icon="list-format">
     Structured view based on mode:
-    - **AD Mode**: Discovered instances in a sortable table
-    - **Collection**: Datapoints with numeric values
-    - **Batch**: Grouped by instance (wildvalue)
+    - **AD Mode** — Discovered instances in a sortable table
+    - **Collection** — Datapoints with numeric values
+    - **Batch** — Grouped by instance (wildvalue)
   </TabItem>
   <TabItem label="Validation" icon="approve-check-circle">
     Real-time validation against mode-specific rules:
@@ -124,19 +103,18 @@ View script execution results with parsed output and validation.
 
 ### Header Controls
 
-<div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin: 1rem 0;">
-  <Badge text="Execution Status" variant="success" />
-  <Badge text="Duration" variant="note" />
-  <Badge text="Copy" variant="default" />
-  <Badge text="Fullscreen" variant="default" />
-  <Badge text="Clear" variant="caution" />
-</div>
+The output panel header includes:
+- **Execution Status** — Success, error, or running indicator
+- **Duration** — How long the script took to execute
+- **Copy** — Copy output to clipboard
+- **Fullscreen** — Expand output panel
+- **Clear** — Clear current output
 
 ---
 
 ## Right Sidebar
 
-A collapsible panel with additional tools. Toggle with <kbd>Ctrl</kbd>+<kbd>B</kbd>.
+A collapsible panel with additional tools. Toggle with <kbd>Ctrl</kbd>+<kbd>B</kbd> / <kbd>⌘</kbd>+<kbd>B</kbd>.
 
 <img src="/lmda-composer/getting-started/interface-sidebar.png" alt="LMDA Composer right sidebar" style="border-radius: 0.5rem; margin: 1rem 0;" />
 
@@ -147,7 +125,7 @@ A collapsible panel with additional tools. Toggle with <kbd>Ctrl</kbd>+<kbd>B</k
     - Click property name to copy
     - Grouped by type (system, custom, auto, inherited)
   </TabItem>
-  <TabItem label="Snippets" icon="seti:html">
+  <TabItem label="Snippets" icon="code">
     Access code templates and patterns:
     - Built-in snippets for common tasks
     - Your custom user snippets
@@ -169,65 +147,63 @@ A collapsible panel with additional tools. Toggle with <kbd>Ctrl</kbd>+<kbd>B</k
 
 The bottom bar shows current state at a glance.
 
-<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin: 1rem 0;">
-  <div>
-    <h4 style="margin: 0 0 0.5rem 0; font-size: 0.9rem;">Left Side</h4>
-    <ul style="margin: 0; padding-left: 1.25rem; font-size: 0.875rem; color: var(--sl-color-gray-3);">
-      <li>Execution status indicator</li>
-      <li>Portal connection status</li>
-      <li>Collector name (online/offline)</li>
-      <li>Selected device name</li>
-    </ul>
-  </div>
-  <div>
-    <h4 style="margin: 0 0 0.5rem 0; font-size: 0.9rem;">Right Side</h4>
-    <ul style="margin: 0; padding-left: 1.25rem; font-size: 0.875rem; color: var(--sl-color-gray-3);">
-      <li>Current mode badge</li>
-      <li>Language badge</li>
-      <li>Line and character count</li>
-      <li>Help popup with shortcuts</li>
-    </ul>
-  </div>
-</div>
+**Left Side:**
+- Execution status indicator
+- Portal connection status
+- Collector name (online/offline)
+- Selected device name
+
+**Right Side:**
+- Current mode badge
+- Language badge
+- Line and character count
+- Help popup with shortcuts
 
 ---
 
 ## Welcome Screen
 
-When no tabs are open, the welcome screen provides quick actions:
+When no tabs are open, the welcome screen provides quick actions organized into three categories:
 
-<CardGrid>
-  <FeatureCard title="Quick Start" icon="rocket" color="orange">
-    **New File** – Create a blank script  
-    **Open File** – Load from disk  
-    **Create LogicModule** – Wizard for creating new modules  
-    **Import from LMX** – Browse portal modules
-  </FeatureCard>
-  <FeatureCard title="Tools" icon="wrench" color="blue">
-    **API Explorer** – Explore the REST API  
-    **Search LogicModules** – Find code across modules  
-    **AppliesTo Toolbox** – Test expressions  
-    **Debug Commands** – Run collector commands
-  </FeatureCard>
-  <FeatureCard title="Recent Files" icon="history" color="purple">
-    Quick access to recently opened files. Click to reopen instantly.
-  </FeatureCard>
-</CardGrid>
+### Create New
+- **New Script** — Create a blank Groovy or PowerShell file
+- **New LogicModule** — Launch the guided wizard to create a module (requires portal connection)
+
+### Open Existing
+- **Open File** — Load a script from your computer
+- **Open Module Folder** — Open a previously saved module directory
+
+### Import from LMX
+- **Browse Modules** — Import scripts from your portal's LogicMonitor Exchange
+
+The welcome screen also shows:
+- **Recent Files** — Quick access to recently opened files and module directories
+- **Workflow Steps** — Getting started guidance for new users
+- **Key Features** — Overview of LMDA Composer capabilities
+
+<Aside type="tip" title="Switch to API Explorer">
+  Use the button at the bottom of the welcome screen to switch to the API Explorer workspace.
+</Aside>
 
 ---
 
 ## Keyboard Shortcuts
 
-LMDA Composer is designed for keyboard-driven workflows.
+LMDA Composer uses chord-based shortcuts to avoid conflicts with browser extensions.
 
-<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; margin: 1rem 0; font-size: 0.875rem;">
-  <div><kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> – Command palette</div>
-  <div><kbd>Cmd</kbd>+<kbd>Enter</kbd> – Run script</div>
-  <div><kbd>Cmd</kbd>+<kbd>B</kbd> – Toggle sidebar</div>
-  <div><kbd>Cmd</kbd>+<kbd>S</kbd> – Save file</div>
-  <div><kbd>Cmd</kbd>+<kbd>,</kbd> – Open settings</div>
-  <div><kbd>Cmd</kbd>+<kbd>K</kbd>, <kbd>N</kbd> – New file</div>
-</div>
+| Shortcut | Action |
+|----------|--------|
+| <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> | Command palette |
+| <kbd>Cmd</kbd>+<kbd>Enter</kbd> | Run script |
+| <kbd>Cmd</kbd>+<kbd>B</kbd> | Toggle sidebar |
+| <kbd>Cmd</kbd>+<kbd>S</kbd> | Save file |
+| <kbd>Cmd</kbd>+<kbd>,</kbd> | Open settings |
+| <kbd>Cmd</kbd>+<kbd>K</kbd>, <kbd>N</kbd> | New file |
+| <kbd>Cmd</kbd>+<kbd>K</kbd>, <kbd>F</kbd> | Open module folder |
+
+<Aside type="note">
+  On Windows/Linux, replace <kbd>Cmd</kbd> with <kbd>Ctrl</kbd>.
+</Aside>
 
 <LinkCard
   title="Complete Keyboard Shortcuts Reference"

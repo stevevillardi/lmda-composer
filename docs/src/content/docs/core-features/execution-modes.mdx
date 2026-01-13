@@ -3,10 +3,8 @@ title: Execution Modes
 description: Understanding Freeform, Active Discovery, Collection, and Batch Collection modes.
 ---
 
-import { CardGrid, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
-import { Icon } from '@astrojs/starlight/components';
+import { Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
 import ModeCard from '../../../components/ModeCard.astro';
-import FeatureCard from '../../../components/FeatureCard.astro';
 
 LMDA Composer supports four execution modes, each designed for different LogicModule scripting scenarios. The selected mode determines how output is parsed and validated.
 
@@ -210,17 +208,9 @@ LMDA Composer supports four execution modes, each designed for different LogicMo
 
 The current mode is displayed in multiple locations:
 
-<CardGrid>
-  <FeatureCard title="Toolbar" icon="settings" color="blue">
-    Mode selector dropdown shows the active mode with its icon.
-  </FeatureCard>
-  <FeatureCard title="Status Bar" icon="info" color="purple">
-    Mode badge at the bottom of the window.
-  </FeatureCard>
-  <FeatureCard title="Tab Bar" icon="layers" color="green">
-    Each tab shows its mode—switch tabs to switch modes.
-  </FeatureCard>
-</CardGrid>
+- **Toolbar** — Mode selector dropdown shows the active mode with its icon
+- **Status Bar** — Mode badge displayed at the bottom of the editor window
+- **Tab Bar** — Each tab shows its mode; switching tabs switches the active mode context
 
 <Aside type="tip" title="Per-Tab Modes">
   Each tab remembers its own mode setting. Work on AD and Collection scripts simultaneously without switching modes manually.
@@ -235,6 +225,3 @@ The current mode is displayed in multiple locations:
   description="Learn how to interpret parsed output and validation results."
   href="/lmda-composer/core-features/output-panel/"
 />
-
-
-

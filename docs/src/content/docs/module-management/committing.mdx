@@ -3,10 +3,9 @@ title: Committing Changes
 description: Save script and metadata changes back to LogicMonitor.
 ---
 
-import { Card, CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
+import { Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
 import { Icon } from '@astrojs/starlight/components';
 import StatusBadge from '../../../components/StatusBadge.astro';
-import FeatureCard from '../../../components/FeatureCard.astro';
 
 When you've finished editing a module script, commit your changes to push them back to LogicMonitor.
 
@@ -17,7 +16,7 @@ Committing saves your changes from LMDA Composer to the LogicModule in LogicMoni
 - Script content is updated
 - Staged metadata changes are applied
 - The module is updated in your portal
-- The commit message is recorded
+- A new version is created
 
 ---
 
@@ -25,29 +24,20 @@ Committing saves your changes from LMDA Composer to the LogicModule in LogicMoni
 
 The Commit button is available when:
 
-<div style="display: grid; gap: 0.5rem; margin: 1rem 0; font-size: 0.875rem;">
-  <div><Badge text="Required" variant="success" /> Tab is bound to a LogicModule (loaded from browser)</div>
-  <div><Badge text="Required" variant="success" /> You have unsaved changes (script or metadata)</div>
-  <div><Badge text="Required" variant="success" /> You're connected to the correct portal</div>
-  <div><Badge text="Required" variant="success" /> You have write permissions for the module</div>
-</div>
+| Requirement | Description |
+|-------------|-------------|
+| **Module-bound tab** | Tab is loaded from a LogicModule (not a local file) |
+| **Unsaved changes** | You have script or metadata modifications |
+| **Correct portal** | You're connected to the module's portal |
+| **Write permissions** | You have permission to modify the module |
 
 ## Commit Button States
 
-<div style="display: grid; gap: 0.75rem; margin: 1rem 0;">
-  <div style="display: flex; align-items: center; gap: 0.75rem;">
-    <Badge text="Commit" variant="success" />
-    <span style="font-size: 0.875rem;">Ready to commit—click to proceed</span>
-  </div>
-  <div style="display: flex; align-items: center; gap: 0.75rem;">
-    <Badge text="Commit" variant="default" />
-    <span style="font-size: 0.875rem;">Disabled—no changes or not a module tab</span>
-  </div>
-  <div style="display: flex; align-items: center; gap: 0.75rem;">
-    <StatusBadge status="running" label="Committing..." />
-    <span style="font-size: 0.875rem;">Commit in progress</span>
-  </div>
-</div>
+| State | Meaning |
+|-------|---------|
+| <Badge text="Commit" variant="success" /> | Ready to commit—click to proceed |
+| <Badge text="Commit" variant="default" /> | Disabled—no changes or not a module tab |
+| <StatusBadge status="running" label="Committing..." /> | Commit in progress |
 
 ---
 
@@ -64,8 +54,8 @@ The Commit button is available when:
 3. ### Review Changes
    Click **Commit** to open the confirmation dialog.
 
-4. ### Enter Commit Message
-   Describe what you changed and why.
+4. ### Enter Commit Reason (Optional)
+   Describe what you changed and why. This is recorded with the version.
 
 5. ### Confirm
    Click **Commit** to push changes to LogicMonitor.
@@ -81,15 +71,17 @@ The Commit button is available when:
 
 ### Changes Summary
 
+The dialog shows what will be committed:
+
 | Section | What's Shown |
 |---------|--------------|
-| Script Changes | Before/after diff preview |
-| Metadata Changes | List of modified fields |
-| Validation | Any warnings or errors |
+| **Script Changes** | Before/after diff preview with syntax highlighting |
+| **Metadata Changes** | List of modified fields with old and new values |
+| **Directory Scripts** | Additional scripts from module directory (if applicable) |
 
-### Commit Message
+### Commit Reason
 
-Enter a descriptive commit message explaining your changes:
+Enter a descriptive commit reason explaining your changes (optional but recommended):
 
 <Tabs>
   <TabItem label="Good Examples" icon="approve-check-circle">
@@ -106,28 +98,49 @@ Enter a descriptive commit message explaining your changes:
   </TabItem>
 </Tabs>
 
-### Tags (Optional)
-
-Add tags to categorize your commit:
-- `bugfix` – Bug corrections
-- `enhancement` – New features
-- `hotfix` – Urgent fixes
-
 ---
 
 ## Commit Options
 
-<CardGrid>
-  <FeatureCard title="Script Only" icon="code" color="green">
-    If you only changed the script, only script content is updated. Metadata remains unchanged.
-  </FeatureCard>
-  <FeatureCard title="Script + Metadata" icon="layers" color="purple">
-    Both are committed together in a single atomic update. One version created.
-  </FeatureCard>
-  <FeatureCard title="Metadata Only" icon="settings" color="blue">
-    From Module Details editor—stage metadata changes and commit without script changes.
-  </FeatureCard>
-</CardGrid>
+| Option | Description |
+|--------|-------------|
+| **Script Only** | If you only changed the script, only script content is updated. Metadata remains unchanged. |
+| **Script + Metadata** | Both are committed together in a single atomic update. One version created. |
+| **Metadata Only** | From Module Details editor—stage metadata changes and commit without script changes. |
+
+---
+
+## Directory Scripts
+
+If you're working with a module directory (local folder linked to a module), you can commit multiple scripts at once:
+
+### How It Works
+
+When a module has a linked directory with multiple script files (e.g., collection script and AD script), the commit dialog shows all scripts with changes.
+
+| Column | Description |
+|--------|-------------|
+| **Checkbox** | Select which scripts to include in the commit |
+| **Script Name** | The script file (e.g., `collection.groovy`, `ad.groovy`) |
+| **Status** | Whether the script has changes |
+
+### Selecting Scripts
+
+<Steps>
+
+1. Open the commit dialog
+
+2. Review the list of directory scripts
+
+3. Check/uncheck scripts to include or exclude
+
+4. Only selected scripts with changes will be committed
+
+</Steps>
+
+<Aside type="note" title="Linked Directories">
+  Directory scripts appear only when you've linked a local folder to the module using the File Management features.
+</Aside>
 
 ---
 
@@ -204,20 +217,11 @@ Script changes take effect immediately:
 
 ## Best Practices
 
-<CardGrid>
-  <FeatureCard title="Always Test First" icon="play" color="green">
-    Run the script multiple times with different devices. Verify output parsing and check edge cases.
-  </FeatureCard>
-  <FeatureCard title="Use Descriptive Messages" icon="edit" color="blue">
-    Your commit message helps future you, team members, and auditors understand changes.
-  </FeatureCard>
-  <FeatureCard title="Commit Small Changes" icon="git-branch" color="purple">
-    Prefer frequent small commits over large batches. Easier to identify issues and revert if needed.
-  </FeatureCard>
-  <FeatureCard title="Coordinate with Team" icon="users" color="orange">
-    Communicate planned changes for shared modules. Avoid simultaneous edits.
-  </FeatureCard>
-</CardGrid>
+- **Always Test First** — Run the script multiple times with different devices. Verify output parsing and check edge cases.
+- **Use Descriptive Reasons** — Your commit reason helps future you, team members, and auditors understand changes.
+- **Commit Small Changes** — Prefer frequent small commits over large batches. Easier to identify issues and revert if needed.
+- **Coordinate with Team** — Communicate planned changes for shared modules. Avoid simultaneous edits.
+- **Back Up Before Major Changes** — Export scripts to local files before significant modifications.
 
 ---
 
@@ -257,6 +261,3 @@ If a commit causes problems, you'll need to:
   description="Learn about opening, saving, and managing local script files."
   href="/lmda-composer/workspace/file-management/"
 />
-
-
-

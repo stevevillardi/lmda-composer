@@ -3,26 +3,19 @@ title: Execution History
 description: Review past script executions and reload scripts.
 ---
 
-import { Card, CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
+import { Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
 import { Icon } from '@astrojs/starlight/components';
 import StatusBadge from '../../../components/StatusBadge.astro';
-import FeatureCard from '../../../components/FeatureCard.astro';
 
 Execution History tracks every script you run in LMDA Composer, allowing you to review past executions and reload scripts.
 
 ## Accessing History
 
-<CardGrid>
-  <FeatureCard title="Sidebar" icon="history" color="blue">
-    Click **History** tab in the right sidebar.
-  </FeatureCard>
-  <FeatureCard title="Keyboard" icon="laptop" color="purple">
-    <kbd>Ctrl</kbd>+<kbd>B</kbd> to toggle sidebar.
-  </FeatureCard>
-  <FeatureCard title="Command Palette" icon="search" color="green">
-    Press <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> and type "History".
-  </FeatureCard>
-</CardGrid>
+| Method | Action |
+|--------|--------|
+| **Sidebar** | Click **History** tab in the right sidebar |
+| **Keyboard** | <kbd>Ctrl</kbd>+<kbd>B</kbd> to toggle sidebar |
+| **Command Palette** | Press <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> and type "History" |
 
 <img src="/lmda-composer/workspace/execution-history.png" alt="Execution history panel showing past runs" style="border-radius: 0.5rem; margin: 1.5rem 0;" />
 
@@ -34,15 +27,15 @@ Each execution entry shows:
 
 | Field | Description |
 |-------|-------------|
-| Status | <StatusBadge status="success" label="Success" /> or <StatusBadge status="error" label="Error" /> |
-| Name | Tab or module name |
-| Timestamp | When it was executed |
-| Duration | How long it took |
-| Mode | Execution mode used |
-| Language | Groovy or PowerShell |
-| Collector | Which collector ran it |
-| Device | Target device (if set) |
-| Output Preview | First few lines of output |
+| **Status** | <StatusBadge status="success" label="Success" /> or <StatusBadge status="error" label="Error" /> |
+| **Name** | Tab or module name |
+| **Timestamp** | When it was executed |
+| **Duration** | How long it took |
+| **Mode** | Execution mode used |
+| **Language** | Groovy or PowerShell |
+| **Collector** | Which collector ran it |
+| **Device** | Target device (if set) |
+| **Output Preview** | First few lines of output |
 
 ---
 
@@ -149,20 +142,10 @@ To clear all history:
 
 ## History Use Cases
 
-<CardGrid>
-  <FeatureCard title="Debugging" icon="warning" color="orange">
-    Find a working historical execution, compare with current script, identify what changed.
-  </FeatureCard>
-  <FeatureCard title="Recovering Scripts" icon="history" color="blue">
-    If you lose script content, find the last execution and load it back.
-  </FeatureCard>
-  <FeatureCard title="Performance Analysis" icon="zap" color="purple">
-    Compare execution durations across runs to identify slow executions.
-  </FeatureCard>
-  <FeatureCard title="Auditing" icon="document" color="green">
-    Track what was executed, check timestamps, document actions taken.
-  </FeatureCard>
-</CardGrid>
+- **Debugging** — Find a working historical execution, compare with current script, identify what changed
+- **Recovering Scripts** — If you lose script content, find the last execution and load it back
+- **Performance Analysis** — Compare execution durations across runs to identify slow executions
+- **Auditing** — Track what was executed, check timestamps, document actions taken
 
 ---
 
@@ -205,17 +188,9 @@ History is stored:
 
 ## Best Practices
 
-<CardGrid>
-  <FeatureCard title="Regular Review" icon="search" color="blue">
-    Periodically review history, export important scripts, document significant executions.
-  </FeatureCard>
-  <FeatureCard title="Before Clearing" icon="warning" color="orange">
-    Review important entries and save scripts you want to keep before clearing.
-  </FeatureCard>
-  <FeatureCard title="Learn from History" icon="info" color="green">
-    Review successful patterns and past decisions to improve future scripts.
-  </FeatureCard>
-</CardGrid>
+- **Regular Review** — Periodically review history, export important scripts, document significant executions
+- **Before Clearing** — Review important entries and save scripts you want to keep before clearing
+- **Learn from History** — Review successful patterns and past decisions to improve future scripts
 
 ---
 

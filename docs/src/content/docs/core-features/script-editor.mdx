@@ -3,9 +3,7 @@ title: Script Editor
 description: Learn about the Monaco-powered code editor and its features.
 ---
 
-import { Card, CardGrid, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
-import { Icon } from '@astrojs/starlight/components';
-import FeatureCard from '../../../components/FeatureCard.astro';
+import { Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
 
 LMDA Composer uses the Monaco editor—the same editor that powers VS Code—providing a professional coding experience for Groovy and PowerShell scripts.
 
@@ -64,33 +62,31 @@ Use the language toggle in the toolbar to switch between Groovy and PowerShell:
 
 ## Editor Features
 
-<CardGrid>
-  <FeatureCard title="Find & Replace" icon="search" color="blue">
-    Press <kbd>Ctrl</kbd>+<kbd>F</kbd> to search. Supports regex, case-sensitive, and whole word matching. <kbd>Ctrl</kbd>+<kbd>H</kbd> for replace.
-  </FeatureCard>
-  <FeatureCard title="Multiple Cursors" icon="edit" color="purple">
-    <kbd>Alt</kbd>+Click to add cursors. <kbd>Ctrl</kbd>+<kbd>D</kbd> selects next occurrence. Edit multiple locations at once.
-  </FeatureCard>
-  <FeatureCard title="Code Folding" icon="list" color="green">
-    Click fold icons in the gutter to collapse methods, classes, and comment blocks for easier navigation.
-  </FeatureCard>
-  <FeatureCard title="Go to Line" icon="hash" color="orange">
-    Press <kbd>Ctrl</kbd>+<kbd>G</kbd> to jump to any line number. Essential for navigating large scripts.
-  </FeatureCard>
-</CardGrid>
+| Feature | Description |
+|---------|-------------|
+| **Find & Replace** | <kbd>Ctrl</kbd>+<kbd>F</kbd> to search. Supports regex, case-sensitive, and whole word matching. <kbd>Ctrl</kbd>+<kbd>H</kbd> for replace. |
+| **Multiple Cursors** | <kbd>Alt</kbd>+Click to add cursors. <kbd>Ctrl</kbd>+<kbd>D</kbd> selects next occurrence. Edit multiple locations at once. |
+| **Code Folding** | Click fold icons in the gutter to collapse methods, classes, and comment blocks. |
+| **Go to Line** | <kbd>Ctrl</kbd>+<kbd>G</kbd> to jump to any line number. Essential for navigating large scripts. |
+| **Bracket Matching** | Matching brackets are highlighted automatically when cursor is adjacent. |
+| **Auto-indentation** | Smart indentation based on code structure. |
 
 ### Keyboard Shortcuts
 
-<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.5rem; margin: 1rem 0; font-size: 0.875rem;">
-  <div><kbd>Ctrl</kbd>+<kbd>F</kbd> – Find</div>
-  <div><kbd>Ctrl</kbd>+<kbd>H</kbd> – Find & Replace</div>
-  <div><kbd>Ctrl</kbd>+<kbd>G</kbd> – Go to Line</div>
-  <div><kbd>Ctrl</kbd>+<kbd>D</kbd> – Select Next Occurrence</div>
-  <div><kbd>Ctrl</kbd>+<kbd>/</kbd> – Toggle Comment</div>
-  <div><kbd>Ctrl</kbd>+<kbd>]</kbd> – Indent Line</div>
-  <div><kbd>Ctrl</kbd>+<kbd>[</kbd> – Outdent Line</div>
-  <div><kbd>Alt</kbd>+<kbd>↑/↓</kbd> – Move Line Up/Down</div>
-</div>
+| Shortcut | Action |
+|----------|--------|
+| <kbd>Ctrl</kbd>+<kbd>F</kbd> | Find |
+| <kbd>Ctrl</kbd>+<kbd>H</kbd> | Find & Replace |
+| <kbd>Ctrl</kbd>+<kbd>G</kbd> | Go to Line |
+| <kbd>Ctrl</kbd>+<kbd>D</kbd> | Select Next Occurrence |
+| <kbd>Ctrl</kbd>+<kbd>/</kbd> | Toggle Comment |
+| <kbd>Ctrl</kbd>+<kbd>]</kbd> | Indent Line |
+| <kbd>Ctrl</kbd>+<kbd>[</kbd> | Outdent Line |
+| <kbd>Alt</kbd>+<kbd>↑/↓</kbd> | Move Line Up/Down |
+
+<Aside type="note">
+  On macOS, replace <kbd>Ctrl</kbd> with <kbd>Cmd</kbd>.
+</Aside>
 
 ---
 
@@ -121,49 +117,40 @@ When you run the script, LMDA Composer:
 
 ## Editor Settings
 
-Customize the editor experience in **Settings** (<kbd>Ctrl</kbd>+<kbd>,</kbd>):
+Customize the editor experience in **Settings** (<kbd>Ctrl</kbd>+<kbd>,</kbd> / <kbd>Cmd</kbd>+<kbd>,</kbd>):
 
 <img src="/lmda-composer/core-features/editor-settings.png" alt="Settings dialog with editor configuration options" style="border-radius: 0.5rem; margin: 1rem 0;" />
 
-<CardGrid>
-  <FeatureCard title="Font Size" icon="type" color="blue">
-    Adjust from 10px to 24px for comfortable reading on any display.
-  </FeatureCard>
-  <FeatureCard title="Tab Size" icon="code" color="green">
-    Set indentation width from 2 to 8 spaces. Default is 2.
-  </FeatureCard>
-  <FeatureCard title="Word Wrap" icon="wrap-text" color="purple">
-    Enable to wrap long lines within the viewport instead of horizontal scrolling.
-  </FeatureCard>
-  <FeatureCard title="Minimap" icon="monitor" color="orange">
-    Toggle the code overview minimap on the right side of the editor.
-  </FeatureCard>
-</CardGrid>
+| Setting | Description |
+|---------|-------------|
+| **Font Size** | Adjust from 10px to 24px for comfortable reading on any display |
+| **Tab Size** | Set indentation width from 2 to 8 spaces (default: 2) |
+| **Word Wrap** | Wrap long lines within the viewport instead of horizontal scrolling |
+| **Minimap** | Toggle the code overview minimap on the right side of the editor |
 
 ---
 
 ## Working with Tabs
 
-Each open file gets its own tab in the tab bar:
+Each open file gets its own tab in the tab bar.
 
 ### Creating New Files
 
-- Click **New File** on the welcome screen
-- Click the **+** button in the tab bar
-- Press <kbd>Ctrl</kbd>+<kbd>N</kbd>
+- Click **New Script** on the welcome screen
+- Press <kbd>Ctrl</kbd>+<kbd>K</kbd>, <kbd>N</kbd> / <kbd>Cmd</kbd>+<kbd>K</kbd>, <kbd>N</kbd>
 
 ### Opening Files
 
 - Click **Open File** to load from your local disk
 - Use **Import from LMX** to load scripts from portal modules
-- Drag and drop files onto the editor
+- Open a saved module folder with **Open Module Folder**
 
 ### Managing Tabs
 
 - Click the **×** on any tab to close it
 - Right-click a tab for options: Rename, Close, Close Others, Close All
 - Tabs with unsaved changes show a dot indicator
-- Press <kbd>Ctrl</kbd>+<kbd>W</kbd> to close the active tab
+- Press <kbd>Ctrl</kbd>+<kbd>W</kbd> / <kbd>Cmd</kbd>+<kbd>W</kbd> to close the active tab
 
 <Aside type="note">
   Double-click a tab name to rename it. This is not available for local files—their names match the filesystem.
@@ -175,12 +162,12 @@ Each open file gets its own tab in the tab bar:
 
 LogicMonitor scripts have a **64,000 character limit**. The status bar displays your current count with visual warnings:
 
-<div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin: 1rem 0;">
-  <Badge text="< 50,000" variant="success" /> Normal
-  <Badge text="50,000+" variant="caution" /> Warning
-  <Badge text="60,000+" variant="danger" /> Alert
-  <Badge text="> 64,000" variant="danger" /> Error
-</div>
+| Character Count | Status |
+|-----------------|--------|
+| < 50,000 | <Badge text="Normal" variant="success" /> |
+| 50,000+ | <Badge text="Warning" variant="caution" /> |
+| 60,000+ | <Badge text="Alert" variant="danger" /> |
+| > 64,000 | <Badge text="Error" variant="danger" /> — Cannot save |
 
 <Aside type="caution" title="Script Size Limit">
   Scripts exceeding 64,000 characters cannot be saved to LogicMonitor modules. Split large scripts into smaller components or use external resources.
@@ -195,6 +182,3 @@ LogicMonitor scripts have a **64,000 character limit**. The status bar displays 
   description="Learn about Freeform, Active Discovery, Collection, and Batch modes."
   href="/lmda-composer/core-features/execution-modes/"
 />
-
-
-

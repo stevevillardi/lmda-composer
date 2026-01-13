@@ -3,26 +3,19 @@ title: LogicModule Browser
 description: Browse and import scripts from existing LogicModules in your portal.
 ---
 
-import { Card, CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
+import { Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
 import { Icon } from '@astrojs/starlight/components';
 import ModuleTypeBadge from '../../../components/ModuleTypeBadge.astro';
-import FeatureCard from '../../../components/FeatureCard.astro';
 
 The LogicModule Browser lets you explore all LogicModules in your portal and import their scripts into LMDA Composer for editing and testing.
 
 ## Opening the Browser
 
-<CardGrid>
-  <FeatureCard title="Welcome Screen" icon="rocket" color="orange">
-    Click **Browse Modules** or the modules icon on the welcome screen.
-  </FeatureCard>
-  <FeatureCard title="Command Palette" icon="search" color="purple">
-    Press <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> and type "Browse" to open quickly.
-  </FeatureCard>
-  <FeatureCard title="Actions Menu" icon="list" color="blue">
-    Click **Actions → Browse LogicModules** in the toolbar.
-  </FeatureCard>
-</CardGrid>
+| Method | Action |
+|--------|--------|
+| **Welcome Screen** | Click **Browse Modules** or the modules icon |
+| **Command Palette** | Press <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> and type "Browse" |
+| **Actions Menu** | Click **Actions → Browse LogicModules** in the toolbar |
 
 ---
 
@@ -40,7 +33,8 @@ Toggle between module types at the top of the browser:
   <ModuleTypeBadge type="eventsource" />
   <ModuleTypeBadge type="propertysource" />
   <ModuleTypeBadge type="topologysource" />
-  <ModuleTypeBadge type="snmpsysoidmap" />
+  <ModuleTypeBadge type="logsource" />
+  <ModuleTypeBadge type="diagnosticsource" />
 </div>
 
 Click a type to filter the module list. Multiple types can be selected simultaneously.
@@ -72,17 +66,9 @@ Click a module in the list to see its available scripts:
 
 The right panel displays:
 
-<CardGrid>
-  <FeatureCard title="Module Info" icon="info" color="blue">
-    Name, type, and description of the selected module.
-  </FeatureCard>
-  <FeatureCard title="Script Selector" icon="file" color="green">
-    Choose which script to preview: Groovy, PowerShell, AD, or Pre-script.
-  </FeatureCard>
-  <FeatureCard title="Script Preview" icon="code" color="purple">
-    Syntax-highlighted read-only view of the script content.
-  </FeatureCard>
-</CardGrid>
+- **Module Info** — Name, type, and description of the selected module
+- **Script Selector** — Choose which script to preview: Groovy, PowerShell, AD, or Pre-script
+- **Script Preview** — Syntax-highlighted read-only view of the script content
 
 ### Scripts by Module Type
 
@@ -93,6 +79,12 @@ The right panel displays:
 | <ModuleTypeBadge type="eventsource" /> | Collection Script |
 | <ModuleTypeBadge type="propertysource" /> | Groovy or PowerShell |
 | <ModuleTypeBadge type="topologysource" /> | Groovy Script |
+| <ModuleTypeBadge type="logsource" /> | Filters, Log Fields, Resource Mappings (configured in Module Details) |
+| <ModuleTypeBadge type="diagnosticsource" /> | Diagnostic Script |
+
+<Aside type="note" title="LogSource Modules">
+  LogSource modules don't have traditional scripts. Instead, they configure Filters, Log Fields, and Resource Mappings which are edited through the Module Details panel.
+</Aside>
 
 ---
 
@@ -213,6 +205,7 @@ For portals with many modules:
   Some modules don't have traditional scripts:
   - SNMP-based modules may only have OID configurations
   - Some modules use DataSource Templates
+  - LogSource modules use Filters/Log Fields instead of scripts
   - Check if the script is in a different section (AD vs Collection)
 </Aside>
 
@@ -220,17 +213,9 @@ For portals with many modules:
 
 ## Best Practices
 
-<CardGrid>
-  <FeatureCard title="Organize Your Work" icon="book" color="blue">
-    Use descriptive tab names when loading multiple scripts. Save local copies before making major changes.
-  </FeatureCard>
-  <FeatureCard title="Test Module Scripts" icon="play" color="green">
-    Load the AD script first to understand instance discovery. Test with the same device the module targets.
-  </FeatureCard>
-  <FeatureCard title="Making Changes" icon="edit" color="purple">
-    Load → Edit → Test with Run Script → Verify parsed output → Commit changes back to the portal.
-  </FeatureCard>
-</CardGrid>
+- **Organize Your Work** — Use descriptive tab names when loading multiple scripts. Save local copies before making major changes.
+- **Test Module Scripts** — Load the AD script first to understand instance discovery. Test with the same device the module targets.
+- **Making Changes** — Load → Edit → Test with Run Script → Verify parsed output → Commit changes back to the portal.
 
 ---
 
@@ -241,6 +226,3 @@ For portals with many modules:
   description="Search across all module scripts to find code patterns and examples."
   href="/lmda-composer/portal-tools/logicmodule-search/"
 />
-
-
-

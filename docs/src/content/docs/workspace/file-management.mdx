@@ -3,10 +3,9 @@ title: File Management
 description: Opening, saving, and managing local script files.
 ---
 
-import { Card, CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
+import { Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
 import { Icon } from '@astrojs/starlight/components';
 import StatusBadge from '../../../components/StatusBadge.astro';
-import FeatureCard from '../../../components/FeatureCard.astro';
 
 LMDA Composer supports working with local files on your computer, allowing you to develop scripts outside of LogicModules and manage your own script library.
 
@@ -14,20 +13,11 @@ LMDA Composer supports working with local files on your computer, allowing you t
 
 ### Supported Extensions
 
-<div style="display: grid; gap: 0.5rem; margin: 1rem 0;">
-  <div style="display: flex; align-items: center; gap: 0.75rem;">
-    <Badge text=".groovy" variant="success" />
-    <span style="font-size: 0.875rem;">Groovy scripts</span>
-  </div>
-  <div style="display: flex; align-items: center; gap: 0.75rem;">
-    <Badge text=".ps1" variant="note" />
-    <span style="font-size: 0.875rem;">PowerShell scripts</span>
-  </div>
-  <div style="display: flex; align-items: center; gap: 0.75rem;">
-    <Badge text=".txt" variant="default" />
-    <span style="font-size: 0.875rem;">Plain text (uses tab language setting)</span>
-  </div>
-</div>
+| Extension | Language | Notes |
+|-----------|----------|-------|
+| <Badge text=".groovy" variant="success" /> | Groovy | Groovy scripts |
+| <Badge text=".ps1" variant="note" /> | PowerShell | PowerShell scripts |
+| <Badge text=".txt" variant="default" /> | Plain text | Uses tab language setting |
 
 When you open a file, the extension determines the language, syntax highlighting applies automatically, and execution mode defaults to Freeform.
 
@@ -35,20 +25,12 @@ When you open a file, the extension determines the language, syntax highlighting
 
 ## Opening Files
 
-<CardGrid>
-  <FeatureCard title="Welcome Screen" icon="rocket" color="orange">
-    Click **Open File** and select from the system dialog.
-  </FeatureCard>
-  <FeatureCard title="Keyboard" icon="laptop" color="blue">
-    Press <kbd>Ctrl</kbd>+<kbd>K</kbd>, <kbd>O</kbd> / <kbd>Cmd</kbd>+<kbd>K</kbd>, <kbd>O</kbd>.
-  </FeatureCard>
-  <FeatureCard title="Drag and Drop" icon="folder" color="purple">
-    Drag a file onto the LMDA Composer window.
-  </FeatureCard>
-  <FeatureCard title="Recent Files" icon="history" color="green">
-    Click a file from the recent files list on the welcome screen.
-  </FeatureCard>
-</CardGrid>
+| Method | Action |
+|--------|--------|
+| **Welcome Screen** | Click **Open File** and select from the system dialog |
+| **Keyboard** | Press <kbd>Ctrl</kbd>+<kbd>K</kbd>, <kbd>O</kbd> / <kbd>Cmd</kbd>+<kbd>K</kbd>, <kbd>O</kbd> |
+| **Drag and Drop** | Drag a file onto the LMDA Composer window |
+| **Recent Files** | Click a file from the recent files list on the welcome screen |
 
 ---
 
@@ -58,31 +40,17 @@ Open a saved module folder to restore a previously saved LogicModule with its me
 
 ### What It Does
 
-<CardGrid>
-  <FeatureCard title="Restore Module Binding" icon="link" color="blue">
-    Automatically reconnects to the original portal and module from saved metadata.
-  </FeatureCard>
-  <FeatureCard title="Enable Commit Workflow" icon="upload" color="green">
-    Push changes back to LogicMonitor just like a freshly loaded module.
-  </FeatureCard>
-  <FeatureCard title="Load All Scripts" icon="layers" color="purple">
-    Opens the main script plus any AD scripts or pre-scripts in the folder.
-  </FeatureCard>
-</CardGrid>
+- **Restore Module Binding** — Automatically reconnects to the original portal and module from saved metadata
+- **Enable Commit Workflow** — Push changes back to LogicMonitor just like a freshly loaded module
+- **Load All Scripts** — Opens the main script plus any AD scripts or pre-scripts in the folder
 
 ### How to Access
 
-<CardGrid>
-  <FeatureCard title="Keyboard" icon="laptop" color="blue">
-    Press <kbd>Cmd</kbd>+<kbd>K</kbd>, <kbd>F</kbd> to open directly.
-  </FeatureCard>
-  <FeatureCard title="Actions Menu" icon="scroll-text" color="purple">
-    Click **Actions → Open Module Folder** in the toolbar.
-  </FeatureCard>
-  <FeatureCard title="Welcome Screen" icon="rocket" color="orange">
-    Click **Open Module Folder** on the welcome screen.
-  </FeatureCard>
-</CardGrid>
+| Method | Action |
+|--------|--------|
+| **Keyboard** | Press <kbd>Cmd</kbd>+<kbd>K</kbd>, <kbd>F</kbd> to open directly |
+| **Actions Menu** | Click **Actions → Open Module Folder** in the toolbar |
+| **Welcome Screen** | Click **Open Module Folder** on the welcome screen |
 
 ### Module Directory Structure
 
@@ -209,23 +177,11 @@ LMDA Composer uses the modern File System Access API for seamless file operation
 
 ### Browser Compatibility
 
-<CardGrid>
-  <FeatureCard title="Chrome" icon="globe" color="green">
-    <StatusBadge status="success" label="Full Support" />
-    Direct file reading/writing, file handles persist across sessions.
-  </FeatureCard>
-  
-  <FeatureCard title="Edge" icon="globe" color="green">
-    <StatusBadge status="success" label="Full Support" />
-    Same capabilities as Chrome.
-  </FeatureCard>
-  
-  <FeatureCard title="Brave/Vivaldi" icon="shield" color="orange">
-    <StatusBadge status="warning" label="Requires Setup" />
-    May need to enable the File System Access API flag.
-  </FeatureCard>
-  
-</CardGrid>
+| Browser | Support | Notes |
+|---------|---------|-------|
+| **Chrome** | <StatusBadge status="success" label="Full Support" /> | Direct file reading/writing, file handles persist across sessions |
+| **Edge** | <StatusBadge status="success" label="Full Support" /> | Same capabilities as Chrome |
+| **Brave/Vivaldi** | <StatusBadge status="warning" label="Requires Setup" /> | May need to enable the File System Access API flag |
 
 ### Brave Browser Setup
 
@@ -263,14 +219,10 @@ For Vivaldi browser:
 
 LMDA Composer automatically saves drafts to protect your work.
 
-<CardGrid>
-  <FeatureCard title="How It Works" icon="save" color="blue">
-    Drafts saved every 30 seconds to browser local storage. Recovered on next session.
-  </FeatureCard>
-  <FeatureCard title="Draft Recovery" icon="history" color="purple">
-    If browser closes unexpectedly, draft recovery dialog appears on next open. Click **Restore** or **Discard**.
-  </FeatureCard>
-</CardGrid>
+| Feature | Description |
+|---------|-------------|
+| **How It Works** | Drafts saved every 30 seconds to browser local storage. Recovered on next session. |
+| **Draft Recovery** | If browser closes unexpectedly, draft recovery dialog appears on next open. Click **Restore** or **Discard**. |
 
 <Aside type="note" title="Draft Limitations">
   - Only unsaved changes are drafted
@@ -355,17 +307,9 @@ Configure in Settings:
 
 ## Best Practices
 
-<CardGrid>
-  <FeatureCard title="Organize Your Scripts" icon="folder" color="purple">
-    Create a folder structure like `scripts/production/datasources/` for easy navigation.
-  </FeatureCard>
-  <FeatureCard title="Backup Important Scripts" icon="check-circle" color="green">
-    Save to cloud-synced folders (Dropbox, OneDrive) or use version control (Git).
-  </FeatureCard>
-  <FeatureCard title="Use Naming Conventions" icon="tag" color="blue">
-    Use clear names like `DS_Linux_CPU_Usage.groovy` or `PS_Windows_Services.ps1`.
-  </FeatureCard>
-</CardGrid>
+- **Organize Your Scripts** — Create a folder structure like `scripts/production/datasources/` for easy navigation
+- **Backup Important Scripts** — Save to cloud-synced folders (Dropbox, OneDrive) or use version control (Git)
+- **Use Naming Conventions** — Use clear names like `DS_Linux_CPU_Usage.groovy` or `PS_Windows_Services.ps1`
 
 ### Local Development Workflow
 
@@ -390,6 +334,3 @@ Configure in Settings:
   description="Use built-in and custom code snippets to speed up development."
   href="/lmda-composer/workspace/snippets/"
 />
-
-
-

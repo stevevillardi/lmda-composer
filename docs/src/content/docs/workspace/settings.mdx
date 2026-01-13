@@ -3,25 +3,18 @@ title: Settings
 description: Configure LMDA Composer appearance, defaults, and behavior.
 ---
 
-import { Card, CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
+import { Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
 import { Icon } from '@astrojs/starlight/components';
-import FeatureCard from '../../../components/FeatureCard.astro';
 
 The Settings dialog lets you customize LMDA Composer to match your preferences and workflow.
 
 ## Opening Settings
 
-<CardGrid>
-  <FeatureCard title="Keyboard" icon="laptop" color="blue">
-    <kbd>Ctrl</kbd>+<kbd>,</kbd> / <kbd>Cmd</kbd>+<kbd>,</kbd>
-  </FeatureCard>
-  <FeatureCard title="Command Palette" icon="search" color="purple">
-    Press <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> and type "Settings".
-  </FeatureCard>
-  <FeatureCard title="Menu" icon="scroll-text" color="green">
-    Actions → Settings
-  </FeatureCard>
-</CardGrid>
+| Method | Action |
+|--------|--------|
+| **Keyboard** | <kbd>Ctrl</kbd>+<kbd>,</kbd> / <kbd>Cmd</kbd>+<kbd>,</kbd> |
+| **Command Palette** | Press <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd> and type "Settings" |
+| **Menu** | Actions → Settings |
 
 <img src="/lmda-composer/workspace/settings-dialog.png" alt="Settings dialog showing configuration options" style="border-radius: 0.5rem; margin: 1.5rem 0;" />
 
@@ -223,33 +216,19 @@ While in Settings dialog:
 
 ## Settings vs. Tab State
 
-<CardGrid>
-  <FeatureCard title="Settings (Global)" icon="settings" color="blue">
-    Configured in Settings dialog. Apply to all sessions, persist across restarts.
-  </FeatureCard>
-  <FeatureCard title="Tab State (Per-Tab)" icon="document" color="purple">
-    Managed per tab: language selection, execution mode, script content.
-  </FeatureCard>
-  <FeatureCard title="Session State" icon="history" color="green">
-    Temporary: open tabs, sidebar state, last used collector.
-  </FeatureCard>
-</CardGrid>
+| Category | Description |
+|----------|-------------|
+| **Settings (Global)** | Configured in Settings dialog. Apply to all sessions, persist across restarts. |
+| **Tab State (Per-Tab)** | Managed per tab: language selection, execution mode, script content. |
+| **Session State** | Temporary: open tabs, sidebar state, last used collector. |
 
 ---
 
 ## Troubleshooting Settings
 
-<CardGrid>
-  <FeatureCard title="Settings Not Saving" icon="warning" color="orange">
-    Check browser storage isn't full. Verify extension has storage permission. Try clearing and re-setting.
-  </FeatureCard>
-  <FeatureCard title="Theme Not Applying" icon="sun" color="amber">
-    Refresh the page. Check OS theme setting. Try a specific theme instead of System.
-  </FeatureCard>
-  <FeatureCard title="Editor Changes Not Visible" icon="edit" color="blue">
-    Check you're on a script tab. Try switching tabs. Reload the extension page.
-  </FeatureCard>
-</CardGrid>
+- **Settings Not Saving** — Check browser storage isn't full. Verify extension has storage permission. Try clearing and re-setting.
+- **Theme Not Applying** — Refresh the page. Check OS theme setting. Try a specific theme instead of System.
+- **Editor Changes Not Visible** — Check you're on a script tab. Try switching tabs. Reload the extension page.
 
 ---
 
@@ -260,4 +239,3 @@ While in Settings dialog:
   description="Complete reference for LMDA Composer keyboard shortcuts."
   href="/lmda-composer/reference/keyboard-shortcuts/"
 />
-

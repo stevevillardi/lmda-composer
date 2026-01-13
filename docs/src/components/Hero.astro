@@ -3,7 +3,7 @@ import type { Props } from '@astrojs/starlight/props';
 import { Image } from 'astro:assets';
 import { 
   Rocket, Package, Search, Wrench, Globe, FileText, History, Zap,
-  Target, Activity, Terminal
+  Target, Database, Terminal, Layers
 } from '@lucide/astro';
 import logo from '../assets/icon128.png';
 
@@ -12,8 +12,9 @@ const isLandingPage = Astro.url.pathname === '/lmda-composer/' || Astro.url.path
 
 {isLandingPage ? (
   <div class="landing-hero">
+    <!-- Hero Section -->
     <section class="hero-section">
-      <Image src={logo} alt="LMDA Composer" width={96} height={96} class="hero-logo" />
+      <Image src={logo} alt="LMDA Composer" width={80} height={80} class="hero-logo" />
       <h1 class="hero-title">LMDA Composer</h1>
       <p class="hero-subtitle">
         A focused workspace for LogicMonitor scripting. Create, test, and ship LogicModules faster.
@@ -22,12 +23,15 @@ const isLandingPage = Astro.url.pathname === '/lmda-composer/' || Astro.url.path
         <a href="/lmda-composer/getting-started/installation/" class="cta-button primary">
           Get Started
         </a>
-        <a href="https://github.com/stevevillardi/lmda-composer" class="cta-button secondary" target="_blank" rel="noopener">
-          View on GitHub
+        <a href="/lmda-composer/getting-started/quick-start/" class="cta-button secondary">
+          View Documentation
         </a>
       </div>
     </section>
 
+    <div class="section-divider"></div>
+
+    <!-- How It Works -->
     <section class="steps-section">
       <h2>How It Works</h2>
       <div class="steps-grid">
@@ -39,54 +43,58 @@ const isLandingPage = Astro.url.pathname === '/lmda-composer/' || Astro.url.path
         <div class="step-item">
           <div class="step-number">2</div>
           <h3>Write & Test Scripts</h3>
-          <p>Use the Monaco-powered editor to write Groovy or PowerShell scripts with syntax highlighting.</p>
+          <p>Use the Monaco-powered editor to write Groovy or PowerShell scripts with full syntax highlighting.</p>
         </div>
         <div class="step-item">
           <div class="step-number">3</div>
           <h3>Validate & Commit</h3>
-          <p>Run scripts against collectors, validate output, and commit changes back to LogicMonitor.</p>
+          <p>Run scripts on collectors, validate parsed output, and commit changes back to LogicMonitor.</p>
         </div>
       </div>
     </section>
 
+    <div class="section-divider"></div>
+
+    <!-- Features -->
     <section class="features-section">
       <h2>Features</h2>
       <div class="feature-grid">
         <div class="feature-card">
-          <h3><span class="feature-icon"><Rocket size={20} /></span> Script Execution</h3>
-          <p>Run Groovy and PowerShell scripts directly on any collector with parsed output validation.</p>
+          <h3><span class="feature-icon-inline"><Rocket size={16} /></span> Script Execution</h3>
+          <p>Run Groovy and PowerShell scripts on any collector with parsed output and validation.</p>
         </div>
         <div class="feature-card">
-          <h3><span class="feature-icon"><Package size={20} /></span> LogicModule Browser</h3>
-          <p>Browse, search, and import scripts from DataSources, ConfigSources, and other module types.</p>
+          <h3><span class="feature-icon-inline"><Database size={16} /></span> Create LogicModules</h3>
+          <p>Build new modules with a guided wizard supporting all 7 module types.</p>
         </div>
         <div class="feature-card">
-          <h3><span class="feature-icon"><Search size={20} /></span> Module Search</h3>
-          <p>Search across all module scripts and datapoints to find code patterns and definitions.</p>
+          <h3><span class="feature-icon-inline"><Package size={16} /></span> LogicModule Browser</h3>
+          <p>Browse, search, and import scripts from DataSources, ConfigSources, and more.</p>
         </div>
         <div class="feature-card">
-          <h3><span class="feature-icon"><Wrench size={20} /></span> AppliesTo Toolbox</h3>
+          <h3><span class="feature-icon-inline"><Search size={16} /></span> Module Search</h3>
+          <p>Search across all module scripts and datapoints to find code patterns.</p>
+        </div>
+        <div class="feature-card">
+          <h3><span class="feature-icon-inline"><Target size={16} /></span> AppliesTo Toolbox</h3>
           <p>Test and validate AppliesTo expressions with instant feedback on matching resources.</p>
         </div>
         <div class="feature-card">
-          <h3><span class="feature-icon"><Globe size={20} /></span> API Explorer</h3>
-          <p>Explore the LogicMonitor REST API using your active session with built-in endpoint catalog.</p>
+          <h3><span class="feature-icon-inline"><Globe size={16} /></span> API Explorer</h3>
+          <p>Explore the LogicMonitor REST API using your active session with endpoint docs.</p>
         </div>
         <div class="feature-card">
-          <h3><span class="feature-icon"><FileText size={20} /></span> Module Details Editor</h3>
-          <p>Edit module metadata including name, description, appliesTo, and alert settings.</p>
+          <h3><span class="feature-icon-inline"><FileText size={16} /></span> Module Details Editor</h3>
+          <p>Edit module metadata, datapoints, config checks, and LogSource configurations.</p>
         </div>
         <div class="feature-card">
-          <h3><span class="feature-icon"><History size={20} /></span> Version History</h3>
-          <p>View module lineage and compare changes across versions with diff viewer.</p>
-        </div>
-        <div class="feature-card">
-          <h3><span class="feature-icon"><Zap size={20} /></span> Debug Commands</h3>
+          <h3><span class="feature-icon-inline"><Terminal size={16} /></span> Debug Commands</h3>
           <p>Run collector debug commands with visual health check reports.</p>
         </div>
       </div>
     </section>
 
+    <!-- Disclaimer -->
     <div class="disclaimer-box">
       <p>
         <strong>Community Project:</strong> LMDA Composer is an independent community project and is not affiliated with, endorsed by, or officially connected to LogicMonitor, Inc. LogicMonitor is a registered trademark of LogicMonitor, Inc.
@@ -99,13 +107,14 @@ const isLandingPage = Astro.url.pathname === '/lmda-composer/' || Astro.url.path
 
 <style>
   .landing-hero {
-    max-width: 1200px;
+    max-width: 1000px;
     margin: 0 auto;
     padding: 0 1rem;
   }
 
+  /* Hero Section */
   .hero-section {
-    padding: 4rem 1rem;
+    padding: 3rem 1rem 2rem;
     text-align: center;
   }
 
@@ -114,9 +123,9 @@ const isLandingPage = Astro.url.pathname === '/lmda-composer/' || Astro.url.path
   }
 
   .hero-title {
-    font-size: clamp(2.5rem, 6vw, 4rem);
+    font-size: clamp(2.25rem, 5vw, 3.5rem);
     font-weight: 700;
-    margin-bottom: 1rem;
+    margin-bottom: 0.75rem;
     background: linear-gradient(135deg, var(--sl-color-white) 0%, var(--sl-color-accent) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -124,15 +133,16 @@ const isLandingPage = Astro.url.pathname === '/lmda-composer/' || Astro.url.path
   }
 
   .hero-subtitle {
-    font-size: 1.25rem;
+    font-size: 1.125rem;
     color: var(--sl-color-gray-3);
-    max-width: 600px;
-    margin: 0 auto 2rem;
+    max-width: 550px;
+    margin: 0 auto 1.5rem;
+    line-height: 1.6;
   }
 
   .cta-buttons {
     display: flex;
-    gap: 1rem;
+    gap: 0.75rem;
     justify-content: center;
     flex-wrap: wrap;
   }
@@ -141,9 +151,10 @@ const isLandingPage = Astro.url.pathname === '/lmda-composer/' || Astro.url.path
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.75rem 1.5rem;
+    padding: 0.625rem 1.25rem;
     border-radius: 0.5rem;
     font-weight: 600;
+    font-size: 0.9375rem;
     text-decoration: none;
     transition: all 0.2s ease;
   }
@@ -168,59 +179,102 @@ const isLandingPage = Astro.url.pathname === '/lmda-composer/' || Astro.url.path
     color: var(--sl-color-accent);
   }
 
-  .steps-section, .features-section {
-    padding: 3rem 1rem;
+  /* Section Divider */
+  .section-divider {
+    width: 100%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--sl-color-gray-5), transparent);
+    margin: 2rem 0;
   }
 
-  .steps-section h2, .features-section h2 {
+  /* Steps Section */
+  .steps-section {
+    padding: 1rem 0 2rem;
+  }
+
+  .steps-section h2 {
     text-align: center;
-    margin-bottom: 2rem;
-    font-size: 1.75rem;
-    font-weight: 600;
+    margin-bottom: 1.5rem;
+    font-size: 1.5rem;
   }
 
   .steps-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 2rem;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+  }
+
+  @media (max-width: 768px) {
+    .steps-grid {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
   }
 
   .step-item {
     text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1.25rem 1rem;
+    background: var(--sl-color-bg-nav);
+    border: 1px solid var(--sl-color-gray-5);
+    border-radius: 0.75rem;
   }
 
   .step-number {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 3rem;
-    height: 3rem;
+    width: 2.5rem;
+    height: 2.5rem;
     border-radius: 50%;
     background: var(--sl-color-accent);
     color: var(--sl-color-black);
     font-weight: 700;
-    font-size: 1.25rem;
-    margin-bottom: 1rem;
+    font-size: 1.125rem;
+    margin-bottom: 0.75rem;
   }
 
   .step-item h3 {
-    font-size: 1.125rem;
-    margin-bottom: 0.5rem;
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.375rem;
+    color: var(--sl-color-white);
   }
 
   .step-item p {
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
     color: var(--sl-color-gray-3);
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  /* Features Section */
+  .features-section {
+    padding: 1rem 0 2rem;
+  }
+
+  .features-section h2 {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    font-size: 1.5rem;
   }
 
   .feature-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 1.5rem;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+
+  @media (max-width: 768px) {
+    .feature-grid {
+      grid-template-columns: 1fr;
+    }
   }
 
   .feature-card {
-    padding: 1.5rem;
+    padding: 1rem 1.25rem;
     border-radius: 0.75rem;
     border: 1px solid var(--sl-color-gray-5);
     background: var(--sl-color-bg-nav);
@@ -228,41 +282,43 @@ const isLandingPage = Astro.url.pathname === '/lmda-composer/' || Astro.url.path
   }
 
   .feature-card:hover {
-    border-color: var(--sl-color-accent);
+    border-color: var(--sl-color-gray-4);
   }
 
   .feature-card h3 {
-    font-size: 1.125rem;
+    font-size: 0.9375rem;
     font-weight: 600;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.375rem;
     color: var(--sl-color-white);
     display: flex;
     align-items: center;
     gap: 0.5rem;
   }
 
-  .feature-icon {
+  .feature-icon-inline {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 1.75rem;
-    height: 1.75rem;
-    border-radius: 0.375rem;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 0.25rem;
     background: color-mix(in srgb, var(--sl-color-accent) 15%, transparent);
     color: var(--sl-color-accent);
     flex-shrink: 0;
   }
 
   .feature-card p {
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
     color: var(--sl-color-gray-3);
     margin: 0;
+    line-height: 1.5;
   }
 
+  /* Disclaimer */
   .disclaimer-box {
-    margin: 3rem auto;
+    margin: 2rem auto;
     max-width: 700px;
-    padding: 1.25rem 1.5rem;
+    padding: 1rem 1.25rem;
     border-radius: 0.5rem;
     border: 1px solid var(--sl-color-gray-5);
     background: var(--sl-color-bg-nav);
@@ -274,11 +330,13 @@ const isLandingPage = Astro.url.pathname === '/lmda-composer/' || Astro.url.path
   }
 
   .disclaimer-box p {
-    font-size: 0.875rem;
+    font-size: 0.8125rem;
     color: var(--sl-color-gray-3);
     margin: 0;
+    line-height: 1.5;
   }
 
+  /* Responsive */
   @media (max-width: 768px) {
     .hero-section {
       padding: 2rem 1rem;
@@ -291,7 +349,7 @@ const isLandingPage = Astro.url.pathname === '/lmda-composer/' || Astro.url.path
 
     .cta-button {
       width: 100%;
-      max-width: 280px;
+      max-width: 260px;
       justify-content: center;
     }
   }

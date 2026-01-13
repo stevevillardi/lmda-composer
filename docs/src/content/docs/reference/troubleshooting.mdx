@@ -3,9 +3,8 @@ title: Troubleshooting
 description: Solutions for common issues with LMDA Composer.
 ---
 
-import { CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
+import { Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
 import StatusBadge from '../../../components/StatusBadge.astro';
-import FeatureCard from '../../../components/FeatureCard.astro';
 
 This guide covers common issues you might encounter with LMDA Composer and how to resolve them.
 
@@ -101,17 +100,9 @@ This guide covers common issues you might encounter with LMDA Composer and how t
 
     **Solutions:**
 
-    <CardGrid>
-      <FeatureCard title="Check Context" icon="settings" color="blue">
-        Ensure portal is selected, collector is selected, and collector is online.
-      </FeatureCard>
-      <FeatureCard title="Check for Running Execution" icon="play" color="green">
-        Only one execution at a time. Cancel current execution first. Look for spinner on Run button.
-      </FeatureCard>
-      <FeatureCard title="Script Errors" icon="warning" color="orange">
-        Check for syntax errors. Validate script compiles. Review error messages.
-      </FeatureCard>
-    </CardGrid>
+    - **Check Context** — Ensure portal is selected, collector is selected, and collector is online
+    - **Check for Running Execution** — Only one execution at a time. Cancel current execution first. Look for spinner on Run button.
+    - **Script Errors** — Check for syntax errors. Validate script compiles. Review error messages.
   </TabItem>
   
   <TabItem label="Script Times Out" icon="rocket">
@@ -268,20 +259,10 @@ This guide covers common issues you might encounter with LMDA Composer and how t
 
     **Solutions:**
 
-    <CardGrid>
-      <FeatureCard title="Check Endpoint Path" icon="braces" color="blue">
-        Verify path is correct. Include required path parameters. Check LogicMonitor API docs.
-      </FeatureCard>
-      <FeatureCard title="Check Request Body" icon="document" color="purple">
-        Validate JSON syntax. Include required fields. Check data types.
-      </FeatureCard>
-      <FeatureCard title="Check Permissions" icon="lock" color="red">
-        403 means insufficient permissions. Verify your user role. Contact admin if needed.
-      </FeatureCard>
-      <FeatureCard title="Rate Limiting" icon="clock" color="orange">
-        429 means rate limited. Wait before retrying. Reduce request frequency.
-      </FeatureCard>
-    </CardGrid>
+    - **Check Endpoint Path** — Verify path is correct. Include required path parameters. Check LogicMonitor API docs.
+    - **Check Request Body** — Validate JSON syntax. Include required fields. Check data types.
+    - **Check Permissions** — 403 means insufficient permissions. Verify your user role. Contact admin if needed.
+    - **Rate Limiting** — 429 means rate limited. Wait before retrying. Reduce request frequency.
   </TabItem>
   
   <TabItem label="Response Not Displaying" icon="document">
@@ -353,44 +334,16 @@ This guide covers common issues you might encounter with LMDA Composer and how t
 
 ## Performance Issues
 
-<CardGrid>
-  <FeatureCard title="Slow Performance" icon="zap" color="orange">
-    **Symptoms:** Typing lag, slow scrolling, delayed responses
-
-    **Solutions:**
-    - Large files may be slow—split into smaller files
-    - Close unused tabs
-    - Close other browser tabs
-    - Disable Minimap in Settings
-  </FeatureCard>
-  <FeatureCard title="High Memory Usage" icon="warning" color="red">
-    **Symptoms:** Browser using lots of RAM, system slowdown
-
-    **Solutions:**
-    - Each tab uses memory—close when done
-    - Clear large history
-    - Refresh page periodically (save work first)
-  </FeatureCard>
-</CardGrid>
+- **Slow Performance** — Large files may be slow—split into smaller files. Close unused tabs. Close other browser tabs. Disable Minimap in Settings.
+- **High Memory Usage** — Each tab uses memory—close when done. Clear large history. Refresh page periodically (save work first).
 
 ---
 
 ## Getting Help
 
-<CardGrid>
-  <FeatureCard title="Report a Bug" icon="alert-triangle" color="orange">
-    1. Note the steps to reproduce
-    2. Check browser console for errors (<kbd>F12</kbd>)
-    3. Report via LogicMonitor community channels
-    4. Include browser and OS version
-  </FeatureCard>
-  <FeatureCard title="Community Support" icon="users" color="purple">
-    Connect with other LogicMonitor users in the community forums for questions and solutions.
-  </FeatureCard>
-  <FeatureCard title="Check for Updates" icon="refresh-cw" color="blue">
-    Ensure you're running the latest version. Check extension version in Settings. Updates are automatic from the Chrome Web Store.
-  </FeatureCard>
-</CardGrid>
+- **Report a Bug** — Note the steps to reproduce. Check browser console for errors (<kbd>F12</kbd>). Report via LogicMonitor community channels. Include browser and OS version.
+- **Community Support** — Connect with other LogicMonitor users in the community forums for questions and solutions.
+- **Check for Updates** — Ensure you're running the latest version. Check extension version in Settings. Updates are automatic from the Chrome Web Store.
 
 ---
 
@@ -401,4 +354,3 @@ This guide covers common issues you might encounter with LMDA Composer and how t
   description="Frequently asked questions about LMDA Composer."
   href="/lmda-composer/reference/faq/"
 />
-

@@ -3,9 +3,8 @@ title: Changelog
 description: Version history and release notes for LMDA Composer.
 ---
 
-import { CardGrid, Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
+import { Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
 import { Icon } from '@astrojs/starlight/components';
-import FeatureCard from '../../../components/FeatureCard.astro';
 
 This page documents the release history of LMDA Composer. Each release includes new features, improvements, and bug fixes.
 
@@ -13,20 +12,11 @@ This page documents the release history of LMDA Composer. Each release includes 
 
 LMDA Composer follows semantic versioning (SemVer):
 
-<div style="display: grid; gap: 0.5rem; margin: 1rem 0;">
-  <div style="display: flex; align-items: center; gap: 0.75rem;">
-    <Badge text="Major (X.0.0)" variant="danger" />
-    <span style="font-size: 0.875rem;">Breaking changes or significant new features</span>
-  </div>
-  <div style="display: flex; align-items: center; gap: 0.75rem;">
-    <Badge text="Minor (0.X.0)" variant="note" />
-    <span style="font-size: 0.875rem;">New features, backward compatible</span>
-  </div>
-  <div style="display: flex; align-items: center; gap: 0.75rem;">
-    <Badge text="Patch (0.0.X)" variant="success" />
-    <span style="font-size: 0.875rem;">Bug fixes and minor improvements</span>
-  </div>
-</div>
+| Version Type | Description |
+|--------------|-------------|
+| <Badge text="Major (X.0.0)" variant="danger" /> | Breaking changes or significant new features |
+| <Badge text="Minor (0.X.0)" variant="note" /> | New features, backward compatible |
+| <Badge text="Patch (0.0.X)" variant="success" /> | Bug fixes and minor improvements |
 
 ---
 
@@ -41,20 +31,12 @@ This release introduces a powerful wizard for creating new LogicModules, full Lo
 
 ### Create LogicModule Wizard
 
-<CardGrid>
-  <FeatureCard title="Multi-Step Wizard" icon="rocket" color="blue">
-    Guided workflow for creating new modules with type selection, naming, and script configuration.
-  </FeatureCard>
-  <FeatureCard title="All Module Types" icon="layers" color="purple">
-    Support for DataSource, ConfigSource, TopologySource, PropertySource, LogSource, EventSource, and DiagnosticSource.
-  </FeatureCard>
-  <FeatureCard title="Smart Defaults" icon="check-circle" color="green">
-    Auto-configures required fields like datapoints, config checks, and alert settings per module type.
-  </FeatureCard>
-  <FeatureCard title="Save to Local Directory" icon="folder" color="cyan">
-    Option to save wizard-created modules as local directories for Git-friendly version control.
-  </FeatureCard>
-</CardGrid>
+| Feature | Description |
+|---------|-------------|
+| **Multi-Step Wizard** | Guided workflow for creating new modules with type selection, naming, and script configuration |
+| **All Module Types** | Support for DataSource, ConfigSource, TopologySource, PropertySource, LogSource, EventSource, and DiagnosticSource |
+| **Smart Defaults** | Auto-configures required fields like datapoints, config checks, and alert settings per module type |
+| **Save to Local Directory** | Option to save wizard-created modules as local directories for Git-friendly version control |
 
 ### Module Type Support
 
@@ -70,100 +52,77 @@ This release introduces a powerful wizard for creating new LogicModules, full Lo
 
 ### LogSource Configuration Editing
 
-<CardGrid>
-  <FeatureCard title="Include Filters" icon="filter" color="blue">
-    Add and edit log filters with operators like Contains, RegexMatch, and more. Configure AND/OR logic.
-  </FeatureCard>
-  <FeatureCard title="Log Fields" icon="tag" color="purple">
-    Define log field mappings using Static values, Regex patterns, or LM Property tokens.
-  </FeatureCard>
-  <FeatureCard title="Resource Mappings" icon="link" color="green">
-    Configure resource mappings with drag-to-reorder priority. Supports Static, Regex, and Token methods.
-  </FeatureCard>
-  <FeatureCard title="Full Sync Support" icon="refresh-cw" color="orange">
-    Push and pull LogSource configurations alongside scripts and other module details.
-  </FeatureCard>
-</CardGrid>
+| Feature | Description |
+|---------|-------------|
+| **Include Filters** | Add and edit log filters with operators like Contains, RegexMatch, and more. Configure AND/OR logic. |
+| **Log Fields** | Define log field mappings using Static values, Regex patterns, or LM Property tokens. |
+| **Resource Mappings** | Configure resource mappings with drag-to-reorder priority. Supports Static, Regex, and Token methods. |
+| **Full Sync Support** | Push and pull LogSource configurations alongside scripts and other module details. |
 
 ### Redesigned Health Check Reports
 
-<CardGrid>
-  <FeatureCard title="Modern Visual Design" icon="layout" color="blue">
-    Refreshed styling with improved data visualization and consistent card layouts.
-  </FeatureCard>
-  <FeatureCard title="Inline AppliesTo Testing" icon="play" color="green">
-    Test suggested AppliesTo queries directly from the Health Check report with one click.
-  </FeatureCard>
-  <FeatureCard title="Enhanced Debug Dialogs" icon="terminal" color="purple">
-    Improved layout for debug commands with better collector selection and results display.
-  </FeatureCard>
-</CardGrid>
+| Feature | Description |
+|---------|-------------|
+| **Modern Visual Design** | Refreshed styling with improved data visualization and consistent card layouts |
+| **Inline AppliesTo Testing** | Test suggested AppliesTo queries directly from the Health Check report with one click |
+| **Enhanced Debug Dialogs** | Improved layout for debug commands with better collector selection and results display |
 
 ### Enhanced Module Search
 
-<CardGrid>
-  <FeatureCard title="All DataSource Types" icon="search" color="blue">
-    Datapoint search now includes SNMP, WMI, and other non-scripted DataSources—not just Groovy/PowerShell.
-  </FeatureCard>
-  <FeatureCard title="Match Indicators" icon="tag" color="purple">
-    See whether datapoint results matched by name or description with visual badges.
-  </FeatureCard>
-  <FeatureCard title="LMX Links" icon="external-link" color="green">
-    Jump directly to modules on the LogicMonitor Exchange from search results.
-  </FeatureCard>
-</CardGrid>
+| Feature | Description |
+|---------|-------------|
+| **All DataSource Types** | Datapoint search now includes SNMP, WMI, and other non-scripted DataSources—not just Groovy/PowerShell |
+| **Match Indicators** | See whether datapoint results matched by name or description with visual badges |
+| **LMX Links** | Jump directly to modules on the LogicMonitor Exchange from search results |
 
 ### Status Display Names
 
-<CardGrid>
-  <FeatureCard title="Value Translation" icon="translate" color="cyan">
-    Translate numeric datapoint values to human-readable status strings in the LogicMonitor UI.
-  </FeatureCard>
-  <FeatureCard title="Flexible Operators" icon="filter" color="purple">
-    Configure conditions with equals, greater than, less than, and range operators.
-  </FeatureCard>
-</CardGrid>
+Configure value translation to show human-readable status strings in the LogicMonitor UI instead of raw numbers.
+
+- **Value Translation** — Translate numeric datapoint values to human-readable status strings
+- **Flexible Operators** — Configure conditions with equals, greater than, less than, and range operators
 
 Example: Display `1` as "Online" and `0` as "Offline" instead of raw numbers.
 
 ### Alert Message Templates
 
-<CardGrid>
-  <FeatureCard title="Token Support" icon="code" color="green">
-    Use LogicMonitor tokens in alert subject and body templates for dynamic messages.
-  </FeatureCard>
-  <FeatureCard title="Custom Messages" icon="edit" color="orange">
-    Customize alert notifications with context-specific information.
-  </FeatureCard>
-</CardGrid>
+- **Token Support** — Use LogicMonitor tokens in alert subject and body templates for dynamic messages
+- **Custom Messages** — Customize alert notifications with context-specific information
 
 ### API Explorer Enhancements
 
-<CardGrid>
-  <FeatureCard title="Docs Tab" icon="book" color="blue">
-    New sidebar tab showing endpoint documentation including parameters, schemas, and examples.
-  </FeatureCard>
-  <FeatureCard title="Schema Properties" icon="list" color="purple">
-    View request body schema with nested property details and required field indicators.
-  </FeatureCard>
-  <FeatureCard title="Example Generation" icon="code" color="green">
-    Auto-generated example request bodies based on the endpoint schema.
-  </FeatureCard>
-</CardGrid>
+| Feature | Description |
+|---------|-------------|
+| **Docs Tab** | New sidebar tab showing endpoint documentation including parameters, schemas, and examples |
+| **Schema Properties** | View request body schema with nested property details and required field indicators |
+| **Example Generation** | Auto-generated example request bodies based on the endpoint schema |
 
 ### UI Improvements
 
-<CardGrid>
-  <FeatureCard title="Refreshed Welcome Screens" icon="home" color="blue">
-    Streamlined actions with clearer workflows for creating, opening, and importing modules.
-  </FeatureCard>
-  <FeatureCard title="Release Notes Dialog" icon="bell" color="purple">
-    In-app notifications show what's new after updates.
-  </FeatureCard>
-  <FeatureCard title="DisplayName Validation" icon="check" color="green">
-    Validation prevents invalid hyphen usage in DataSource and ConfigSource display names.
-  </FeatureCard>
-</CardGrid>
+- **Refreshed Welcome Screens** — Streamlined actions with clearer workflows for creating, opening, and importing modules
+- **Release Notes Dialog** — In-app notifications show what's new after updates
+- **DisplayName Validation** — Validation prevents invalid hyphen usage in DataSource and ConfigSource display names
+
+---
+
+## v1.4.1 — Bug Fixes & Improvements
+
+<div style="display: flex; align-items: center; gap: 0.75rem; margin: 1rem 0;">
+  <Badge text="v1.4.1" variant="success" />
+  <span style="font-size: 0.875rem; color: var(--sl-color-gray-3);">December 2025</span>
+</div>
+
+This patch release includes improvements to module details editing and bug fixes.
+
+### Improved
+
+- Module details now refresh after commit
+- Better handling of large module lists
+
+### Fixed
+
+- Fixed issue with module search not finding all results
+- Resolved edge case in draft restoration
 
 ---
 
@@ -171,100 +130,52 @@ Example: Display `1` as "Online" and `0` as "Offline" instead of raw numbers.
 
 <div style="display: flex; align-items: center; gap: 0.75rem; margin: 1rem 0;">
   <Badge text="v1.4.0" variant="note" />
-  <span style="font-size: 0.875rem; color: var(--sl-color-gray-3);">January 2026</span>
+  <span style="font-size: 0.875rem; color: var(--sl-color-gray-3);">November 2025</span>
 </div>
 
 This release adds full editing capabilities for DataSource datapoints and ConfigSource config checks directly within LMDA Composer.
 
 ### Datapoint Editing
 
-<CardGrid>
-  <FeatureCard title="Full CRUD Operations" icon="edit" color="blue">
-    Add, edit, and delete datapoints for DataSource modules without leaving the editor.
-  </FeatureCard>
-  <FeatureCard title="Normal & Complex Types" icon="layers" color="purple">
-    Support for both standard collection datapoints and expression-based complex datapoints.
-  </FeatureCard>
-  <FeatureCard title="Alert Thresholds" icon="bell" color="orange">
-    Configure Warning, Error, and Critical thresholds with visual severity indicators.
-  </FeatureCard>
-  <FeatureCard title="Rich Table View" icon="document" color="green">
-    Expandable rows showing description, alert messages, and no-data settings.
-  </FeatureCard>
-</CardGrid>
+| Feature | Description |
+|---------|-------------|
+| **Full CRUD Operations** | Add, edit, and delete datapoints for DataSource modules without leaving the editor |
+| **Normal & Complex Types** | Support for both standard collection datapoints and expression-based complex datapoints |
+| **Alert Thresholds** | Configure Warning, Error, and Critical thresholds with visual severity indicators |
+| **Rich Table View** | Expandable rows showing description, alert messages, and no-data settings |
 
 ### Config Check Editing
 
-<CardGrid>
-  <FeatureCard title="Five Check Types" icon="check-circle" color="blue">
-    Any Change, Groovy Script, Fetch Failure, Missing Field, and Value Check.
-  </FeatureCard>
-  <FeatureCard title="Change Exclusions" icon="filter" color="purple">
-    Multi-value inputs for regex patterns, line prefixes, and contains strings.
-  </FeatureCard>
-  <FeatureCard title="Groovy Script Editor" icon="code" color="green">
-    Full script editing for custom validation logic.
-  </FeatureCard>
-  <FeatureCard title="Alert Configuration" icon="settings" color="orange">
-    Severity levels, clear on acknowledgement, and auto-clear intervals.
-  </FeatureCard>
-</CardGrid>
+| Feature | Description |
+|---------|-------------|
+| **Five Check Types** | Any Change, Groovy Script, Fetch Failure, Missing Field, and Value Check |
+| **Change Exclusions** | Multi-value inputs for regex patterns, line prefixes, and contains strings |
+| **Groovy Script Editor** | Full script editing for custom validation logic |
+| **Alert Configuration** | Severity levels, clear on acknowledgement, and auto-clear intervals |
 
 ### UI Enhancements
 
-<CardGrid>
-  <FeatureCard title="Severity Icons" icon="warning" color="yellow">
-    Distinct icons for Warning (circle), Error (triangle), and Critical (octagon) alerts.
-  </FeatureCard>
-  <FeatureCard title="Threshold Badges" icon="tag" color="cyan">
-    Color-coded alert threshold display matching LogicMonitor's visual style.
-  </FeatureCard>
-  <FeatureCard title="Change Indicators" icon="git-branch" color="green">
-    Visual indicators for added, modified, and removed items in the commit dialog.
-  </FeatureCard>
-  <FeatureCard title="Improved Diffing" icon="code" color="purple">
-    Pre-sorted arrays and consistent object key ordering for accurate change detection.
-  </FeatureCard>
-</CardGrid>
+- **Severity Icons** — Distinct icons for Warning (circle), Error (triangle), and Critical (octagon) alerts
+- **Threshold Badges** — Color-coded alert threshold display matching LogicMonitor's visual style
+- **Change Indicators** — Visual indicators for added, modified, and removed items in the commit dialog
+- **Improved Diffing** — Pre-sorted arrays and consistent object key ordering for accurate change detection
 
 ### Keyboard & Navigation
 
-<CardGrid>
-  <FeatureCard title="Shortcut Chords" icon="keyboard" color="blue">
-    Cmd+K chord pattern avoids browser extension keyboard conflicts.
-  </FeatureCard>
-  <FeatureCard title="Empty State Status Bar" icon="information" color="purple">
-    Shows portal context and connection status when no tabs are open.
-  </FeatureCard>
-  <FeatureCard title="Documentation Links" icon="book" color="green">
-    In-app links to full documentation from the status bar help popup.
-  </FeatureCard>
-</CardGrid>
+- **Shortcut Chords** — Cmd+K chord pattern avoids browser extension keyboard conflicts
+- **Empty State Status Bar** — Shows portal context and connection status when no tabs are open
+- **Documentation Links** — In-app links to full documentation from the status bar help popup
 
 ### File Management
 
-<CardGrid>
-  <FeatureCard title="Open Module Directory" icon="folder" color="blue">
-    Open saved module folders directly with Cmd+K, F to restore module binding.
-  </FeatureCard>
-  <FeatureCard title="Save Modules to Disk" icon="save" color="green">
-    Portal-bound modules can be saved with metadata (module.json) for offline work.
-  </FeatureCard>
-  <FeatureCard title="Git-Friendly Workflow" icon="git-branch" color="purple">
-    Module directory structure supports version control for team collaboration.
-  </FeatureCard>
-  <FeatureCard title="Duplicate Handle Fix" icon="check-circle" color="cyan">
-    Fixed issues with duplicate file handles when reopening the same filename.
-  </FeatureCard>
-</CardGrid>
+- **Open Module Directory** — Open saved module folders directly with Cmd+K, F to restore module binding
+- **Save Modules to Disk** — Portal-bound modules can be saved with metadata (module.json) for offline work
+- **Git-Friendly Workflow** — Module directory structure supports version control for team collaboration
+- **Duplicate Handle Fix** — Fixed issues with duplicate file handles when reopening the same filename
 
 ### API Explorer
 
-<CardGrid>
-  <FeatureCard title="API Welcome Screen" icon="rocket" color="orange">
-    New welcome screen with quick actions for API exploration and endpoint discovery.
-  </FeatureCard>
-</CardGrid>
+- **API Welcome Screen** — New welcome screen with quick actions for API exploration and endpoint discovery
 
 ---
 
@@ -279,31 +190,15 @@ LMDA Composer is now available for LogicMonitor power users! This release includ
 
 ### Script Editor
 
-<CardGrid>
-  <FeatureCard title="Monaco Editor" icon="edit" color="blue">
-    Full-featured code editor with syntax highlighting for Groovy and PowerShell.
-  </FeatureCard>
-  <FeatureCard title="Code Features" icon="code" color="purple">
-    Code folding, find and replace, multiple cursors, line numbers.
-  </FeatureCard>
-  <FeatureCard title="Auto-Save" icon="check-circle" color="green">
-    Automatic draft saving for crash recovery.
-  </FeatureCard>
-</CardGrid>
+- **Monaco Editor** — Full-featured code editor with syntax highlighting for Groovy and PowerShell
+- **Code Features** — Code folding, find and replace, multiple cursors, line numbers
+- **Auto-Save** — Automatic draft saving for crash recovery
 
 ### Script Execution
 
-<CardGrid>
-  <FeatureCard title="Collector Execution" icon="play" color="green">
-    Run scripts on any connected collector with real-time output streaming.
-  </FeatureCard>
-  <FeatureCard title="Four Execution Modes" icon="layers" color="purple">
-    Freeform, Active Discovery, Collection, and Batch Collection modes.
-  </FeatureCard>
-  <FeatureCard title="Output Parsing" icon="document" color="blue">
-    Parsed output for AD and Collection modes with validation.
-  </FeatureCard>
-</CardGrid>
+- **Collector Execution** — Run scripts on any connected collector with real-time output streaming
+- **Four Execution Modes** — Freeform, Active Discovery, Collection, and Batch Collection modes
+- **Output Parsing** — Parsed output for AD and Collection modes with validation
 
 ### Portal Tools
 
@@ -324,68 +219,30 @@ LMDA Composer is now available for LogicMonitor power users! This release includ
 
 ### API Explorer
 
-<CardGrid>
-  <FeatureCard title="Session Auth" icon="check-circle" color="green">
-    Uses your browser session—no API tokens needed.
-  </FeatureCard>
-  <FeatureCard title="Endpoint Catalog" icon="book" color="blue">
-    Browse and search available LogicMonitor API endpoints.
-  </FeatureCard>
-  <FeatureCard title="Request Builder" icon="edit" color="purple">
-    Build requests with query parameters, headers, and body.
-  </FeatureCard>
-  <FeatureCard title="Response Viewer" icon="braces" color="orange">
-    Formatted JSON responses with syntax highlighting.
-  </FeatureCard>
-</CardGrid>
+- **Session Auth** — Uses your browser session—no API tokens needed
+- **Endpoint Catalog** — Browse and search available LogicMonitor API endpoints
+- **Request Builder** — Build requests with query parameters, headers, and body
+- **Response Viewer** — Formatted JSON responses with syntax highlighting
 
 ### Module Management
 
-<CardGrid>
-  <FeatureCard title="Module Details Editor" icon="settings" color="default">
-    Edit module metadata including name, description, AppliesTo, and more.
-  </FeatureCard>
-  <FeatureCard title="Module Lineage" icon="git-branch" color="cyan">
-    View Exchange release history for LogicMonitor core modules.
-  </FeatureCard>
-  <FeatureCard title="Commit" icon="upload" color="green">
-    Push script and metadata changes back to LogicMonitor.
-  </FeatureCard>
-</CardGrid>
+- **Module Details Editor** — Edit module metadata including name, description, AppliesTo, and more
+- **Module Lineage** — View Exchange release history for LogicMonitor core modules
+- **Commit** — Push script and metadata changes back to LogicMonitor
 
 ### Workspace Features
 
-<CardGrid>
-  <FeatureCard title="Multi-Tab Interface" icon="layers" color="blue">
-    Work with multiple scripts simultaneously. Module binding indicators on tabs.
-  </FeatureCard>
-  <FeatureCard title="Local File Management" icon="folder" color="purple">
-    Open, save, and manage local script files with File System Access API.
-  </FeatureCard>
-  <FeatureCard title="Snippets Library" icon="puzzle" color="orange">
-    Built-in and custom code snippets for rapid development.
-  </FeatureCard>
-  <FeatureCard title="Execution History" icon="history" color="cyan">
-    Track past executions with script replay capability.
-  </FeatureCard>
-</CardGrid>
+- **Multi-Tab Interface** — Work with multiple scripts simultaneously. Module binding indicators on tabs.
+- **Local File Management** — Open, save, and manage local script files with File System Access API
+- **Snippets Library** — Built-in and custom code snippets for rapid development
+- **Execution History** — Track past executions with script replay capability
 
 ### User Experience
 
-<CardGrid>
-  <FeatureCard title="Welcome Screen" icon="rocket" color="orange">
-    Quick actions to get started—new file, open file, import module.
-  </FeatureCard>
-  <FeatureCard title="Command Palette" icon="search" color="purple">
-    Keyboard-driven workflow with <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd>.
-  </FeatureCard>
-  <FeatureCard title="Keyboard Shortcuts" icon="keyboard" color="blue">
-    Comprehensive shortcuts for power users.
-  </FeatureCard>
-  <FeatureCard title="Customizable Settings" icon="settings" color="green">
-    Theme, font size, editor preferences, and more.
-  </FeatureCard>
-</CardGrid>
+- **Welcome Screen** — Quick actions to get started—new file, open file, import module
+- **Command Palette** — Keyboard-driven workflow with <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>P</kbd>
+- **Keyboard Shortcuts** — Comprehensive shortcuts for power users
+- **Customizable Settings** — Theme, font size, editor preferences, and more
 
 ### Browser Support
 
@@ -411,17 +268,9 @@ LMDA Composer is now available for LogicMonitor power users! This release includ
   LMDA Composer is not yet open source, but we're working on making it publicly available. Once released, contributions will be welcome!
 </Aside>
 
-<CardGrid>
-  <FeatureCard title="Report Bugs" icon="alert-triangle" color="orange">
-    Found an issue? Let us know via the feedback channels below.
-  </FeatureCard>
-  <FeatureCard title="Suggest Features" icon="info" color="blue">
-    Have an idea? We'd love to hear your suggestions.
-  </FeatureCard>
-  <FeatureCard title="Open Source Soon" icon="clock" color="green">
-    Source code and contribution guidelines will be available once the project goes open source.
-  </FeatureCard>
-</CardGrid>
+- **Report Bugs** — Found an issue? Let us know via the feedback channels below.
+- **Suggest Features** — Have an idea? We'd love to hear your suggestions.
+- **Open Source Soon** — Source code and contribution guidelines will be available once the project goes open source.
 
 ---
 

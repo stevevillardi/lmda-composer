@@ -3,10 +3,7 @@ title: Quick Start
 description: Get up and running with LMDA Composer in minutes.
 ---
 
-import { Card, CardGrid, Steps, Tabs, TabItem, Aside, LinkCard } from '@astrojs/starlight/components';
-import { Icon } from '@astrojs/starlight/components';
-import StepCard from '../../../components/StepCard.astro';
-import FeatureCard from '../../../components/FeatureCard.astro';
+import { Steps, Tabs, TabItem, Aside, LinkCard, CardGrid } from '@astrojs/starlight/components';
 
 This guide walks you through connecting to your LogicMonitor portal and running your first script.
 
@@ -30,27 +27,19 @@ This guide walks you through connecting to your LogicMonitor portal and running 
 
 3. ### Select Your Context
 
-   Before running a script, configure your execution context using the **Context** dropdown in the toolbar:
+   Before running a script, configure your execution context using the toolbar dropdowns:
 
-   <CardGrid>
-     <FeatureCard title="Portal" icon="globe" color="green">
-       Select your LogicMonitor portal from detected sessions. Connected portals show a green indicator.
-     </FeatureCard>
-     <FeatureCard title="Collector" icon="server" color="blue">
-       Choose which collector runs your scripts. Only online collectors can execute code.
-     </FeatureCard>
-     <FeatureCard title="Device" icon="laptop" color="purple">
-       Optional. Select a device if your script needs host properties like `system.hostname`.
-     </FeatureCard>
-   </CardGrid>
+   - **Portal** — Select your LogicMonitor portal from detected sessions (green indicator = connected)
+   - **Collector** — Choose which collector runs your scripts (only online collectors can execute)
+   - **Device** — Optional. Select a device if your script needs host properties like `system.hostname`
 
    <img src="/lmda-composer/getting-started/quickstart-context.png" alt="The context dropdown showing Portal, Collector, and Device selection" style="border-radius: 0.5rem; margin: 1rem 0;" />
 
 4. ### Write Your First Script
 
-   Click **New File** or press <kbd>Ctrl</kbd>+<kbd>K</kbd>, <kbd>N</kbd> / <kbd>⌘</kbd>+<kbd>K</kbd>, <kbd>N</kbd> to create a new script tab.
+   Click **New Script** on the welcome screen, or press <kbd>Ctrl</kbd>+<kbd>K</kbd>, <kbd>N</kbd> / <kbd>⌘</kbd>+<kbd>K</kbd>, <kbd>N</kbd> to create a new script tab.
 
-   Replace the default template with this simple script:
+   Try this simple script:
 
    ```groovy
    println "Hello from LMDA Composer!"
@@ -70,7 +59,7 @@ This guide walks you through connecting to your LogicMonitor portal and running 
 
 ## Understanding the Output
 
-The Output Panel has different views depending on your execution mode:
+The Output Panel provides three views depending on your execution mode:
 
 <Tabs>
   <TabItem label="Raw Output" icon="document">
@@ -78,20 +67,31 @@ The Output Panel has different views depending on your execution mode:
   </TabItem>
   <TabItem label="Parsed" icon="list-format">
     Structured view showing:
-    - **AD Mode**: Discovered instances in a table
-    - **Collection Mode**: Datapoints with values
-    - **Batch Mode**: Grouped datapoints by instance
+    - **AD Mode** — Discovered instances in a table
+    - **Collection Mode** — Datapoints with values
+    - **Batch Mode** — Grouped datapoints by instance
   </TabItem>
   <TabItem label="Validation" icon="approve-check-circle">
     Errors and warnings based on the current mode's output format requirements. Green checkmark means all output is valid.
   </TabItem>
 </Tabs>
 
+## Alternative: Create a LogicModule
+
+Instead of a standalone script, you can create a complete LogicModule using the guided wizard:
+
+1. Click **New LogicModule** on the welcome screen (requires portal connection)
+2. Choose your module type (DataSource, ConfigSource, PropertySource, etc.)
+3. Configure basic info, script settings, and requirements
+4. The wizard creates a properly structured module ready for development
+
+<Aside type="tip" title="Seven Module Types">
+  The wizard supports DataSource, ConfigSource, TopologySource, PropertySource, LogSource, EventSource, and DiagnosticSource modules.
+</Aside>
+
 ## What's Next?
 
-Now that you've run your first script, explore these features:
-
-<CardGrid stagger>
+<CardGrid>
   <LinkCard
     title="Execution Modes"
     description="Learn about Freeform, AD, Collection, and Batch Collection modes."
@@ -123,6 +123,3 @@ Now that you've run your first script, explore these features:
 <Aside type="tip" title="Launch from LogicMonitor">
   When viewing a module in LogicMonitor, use the **Manage** dropdown and select **Open in LMDA Composer** to open the module directly. You can also open modules from the LM Exchange.
 </Aside>
-
-
-
