@@ -172,6 +172,11 @@ export function WarningIcon({ className, ...props }: LucideProps) {
   return <AlertTriangle className={cn('text-yellow-500', className)} {...props} />;
 }
 
+/** Info/neutral status */
+export function InfoIcon({ className, ...props }: LucideProps) {
+  return <Info className={cn('text-muted-foreground', className)} {...props} />;
+}
+
 // ============================================================================
 // Action Icons
 // ============================================================================

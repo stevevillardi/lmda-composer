@@ -1,5 +1,5 @@
 import { SectionCard } from '../SectionCard';
-import { ListTree, CheckCircle } from 'lucide-react';
+import { ListTree } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -15,16 +15,20 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { Empty, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
+import { SuccessIcon } from '../../../constants/icons';
 import type { AplistItem, SplistItem, AdlistItem, TplistItem } from '../types';
 
 function EmptyTableState({ message }: { message: string }) {
   return (
-    <div className="
-      flex items-center justify-center py-8 text-muted-foreground select-none
-    ">
-      <CheckCircle className="mr-2 size-4 text-teal-500" />
-      <span className="text-sm">{message}</span>
-    </div>
+    <Empty className="border-none bg-transparent py-6 shadow-none">
+      <EmptyMedia variant="icon" className="mx-auto mb-3 bg-teal-500/10">
+        <SuccessIcon className="size-4" />
+      </EmptyMedia>
+      <EmptyHeader>
+        <EmptyTitle className="text-sm font-medium">{message}</EmptyTitle>
+      </EmptyHeader>
+    </Empty>
   );
 }
 
@@ -60,13 +64,14 @@ export function TaskListTables({ aplist, splist, adlist, tplist }: TaskListTable
   if (!hasData) {
     return (
       <SectionCard title="Task Lists" icon={<ListTree className="size-4" />}>
-        <div className="
-          flex items-center justify-center py-8 text-muted-foreground
-          select-none
-        ">
-          <CheckCircle className="mr-2 size-5 text-teal-500" />
-          <span className="text-sm">All tasks completed successfully</span>
-        </div>
+        <Empty className="border-none bg-transparent py-6 shadow-none">
+          <EmptyMedia variant="icon" className="mx-auto mb-3 bg-teal-500/10">
+            <SuccessIcon className="size-5" />
+          </EmptyMedia>
+          <EmptyHeader>
+            <EmptyTitle className="text-sm font-medium">All tasks completed successfully</EmptyTitle>
+          </EmptyHeader>
+        </Empty>
       </SectionCard>
     );
   }
@@ -78,7 +83,7 @@ export function TaskListTables({ aplist, splist, adlist, tplist }: TaskListTable
       collapsible
     >
       <Tabs defaultValue="adlist" className="w-full">
-        <TabsList>
+        <TabsList className="bg-muted/30">
           <TabsTrigger value="adlist" className="gap-2">
             adlist
             <Badge variant="secondary" className="text-xs select-none">{adlist.length}</Badge>
@@ -123,10 +128,10 @@ function AdlistTable({ data }: { data: AdlistItem[] }) {
   }
 
   return (
-    <div className="max-h-64 overflow-auto">
+    <div className="max-h-64 overflow-auto rounded-lg border border-border/50">
       <Table>
         <TableHeader>
-          <TableRow>
+          <TableRow className="bg-muted/30">
             <TableHead>Hostname</TableHead>
             <TableHead>DataSource</TableHead>
             <TableHead>Status</TableHead>
@@ -164,10 +169,10 @@ function SplistTable({ data }: { data: SplistItem[] }) {
   }
 
   return (
-    <div className="max-h-64 overflow-auto">
+    <div className="max-h-64 overflow-auto rounded-lg border border-border/50">
       <Table>
         <TableHeader>
-          <TableRow>
+          <TableRow className="bg-muted/30">
             <TableHead>Hostname</TableHead>
             <TableHead>Property Source</TableHead>
             <TableHead>Status</TableHead>
@@ -201,10 +206,10 @@ function TplistTable({ data }: { data: TplistItem[] }) {
   }
 
   return (
-    <div className="max-h-64 overflow-auto">
+    <div className="max-h-64 overflow-auto rounded-lg border border-border/50">
       <Table>
         <TableHeader>
-          <TableRow>
+          <TableRow className="bg-muted/30">
             <TableHead>Hostname</TableHead>
             <TableHead>DataSource</TableHead>
             <TableHead>Status</TableHead>
@@ -242,10 +247,10 @@ function AplistTable({ data }: { data: AplistItem[] }) {
   }
 
   return (
-    <div className="max-h-64 overflow-auto">
+    <div className="max-h-64 overflow-auto rounded-lg border border-border/50">
       <Table>
         <TableHeader>
-          <TableRow>
+          <TableRow className="bg-muted/30">
             <TableHead>Host</TableHead>
             <TableHead>Type</TableHead>
             <TableHead>Status</TableHead>
@@ -276,4 +281,3 @@ function AplistTable({ data }: { data: AplistItem[] }) {
     </div>
   );
 }
-

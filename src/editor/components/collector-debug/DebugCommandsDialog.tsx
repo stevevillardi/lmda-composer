@@ -9,6 +9,9 @@ import {
   Sparkles,
   RefreshCw,
   ChevronDown,
+  Server,
+  Maximize2,
+  Minimize2,
 } from 'lucide-react';
 import { collectorToasts } from '../../utils/toast-utils';
 import { useEditorStore } from '../../stores/editor-store';
@@ -24,7 +27,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
@@ -35,6 +37,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import { cn } from '@/lib/utils';
 import {
   DEBUG_COMMANDS,
@@ -85,7 +88,8 @@ export function DebugCommandsDialog() {
   const [showResults, setShowResults] = useState(false);
   const [executedCommand, setExecutedCommand] = useState<string | null>(null);
   const [isRefreshingCollectors, setIsRefreshingCollectors] = useState(false);
-  const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
+  const [collapsedCommandGroups, setCollapsedCommandGroups] = useState<Record<string, boolean>>({});
+  const [collapsedCollectorGroups, setCollapsedCollectorGroups] = useState<Record<string, boolean>>({});
 
   // Reset state when dialog opens/closes
   useEffect(() => {
@@ -98,6 +102,8 @@ export function DebugCommandsDialog() {
       setSelectedCollectorIds([]);
       setShowResults(false);
       setExecutedCommand(null);
+      setCollapsedCommandGroups({});
+      setCollapsedCollectorGroups({});
     }
   }, [debugCommandsDialogOpen]);
 
@@ -171,18 +177,6 @@ export function DebugCommandsDialog() {
   const allCollectorIds = useMemo(() => collectors.map(collector => collector.id), [collectors]);
   const allCollectorsSelected = collectors.length > 0 && selectedCollectorIds.length === collectors.length;
 
-  useEffect(() => {
-    setCollapsedGroups(prev => {
-      const next = { ...prev };
-      for (const groupName of collectorGroupOrder) {
-        if (next[groupName] === undefined) {
-          next[groupName] = false;
-        }
-      }
-      return next;
-    });
-  }, [collectorGroupOrder]);
-
   // Group commands by category
   const commandsByCategory = useMemo(() => {
     const grouped: Record<string, DebugCommand[]> = {};
@@ -199,6 +193,43 @@ export function DebugCommandsDialog() {
   const categories = useMemo(() => {
     return Array.from(new Set(DEBUG_COMMANDS.map(cmd => cmd.category)));
   }, []);
+
+  // Get all command group keys
+  const allCommandGroupKeys = useMemo(() => {
+    return Object.keys(commandsByCategory);
+  }, [commandsByCategory]);
+
+  // Check if all command groups are expanded
+  const allCommandGroupsExpanded = useMemo(() => {
+    if (allCommandGroupKeys.length === 0) return false;
+    return allCommandGroupKeys.every(key => !collapsedCommandGroups[key]);
+  }, [allCommandGroupKeys, collapsedCommandGroups]);
+
+  // Toggle all command groups
+  const handleToggleAllCommandGroups = () => {
+    const collapsed: Record<string, boolean> = {};
+    const shouldCollapse = allCommandGroupsExpanded;
+    for (const key of allCommandGroupKeys) {
+      collapsed[key] = shouldCollapse;
+    }
+    setCollapsedCommandGroups(collapsed);
+  };
+
+  // Check if all collector groups are expanded
+  const allCollectorGroupsExpanded = useMemo(() => {
+    if (collectorGroupOrder.length === 0) return false;
+    return collectorGroupOrder.every(key => !collapsedCollectorGroups[key]);
+  }, [collectorGroupOrder, collapsedCollectorGroups]);
+
+  // Toggle all collector groups
+  const handleToggleAllCollectorGroups = () => {
+    const collapsed: Record<string, boolean> = {};
+    const shouldCollapse = allCollectorGroupsExpanded;
+    for (const key of collectorGroupOrder) {
+      collapsed[key] = shouldCollapse;
+    }
+    setCollapsedCollectorGroups(collapsed);
+  };
 
   // Handle command selection
   const handleSelectCommand = (command: DebugCommand) => {
@@ -243,13 +274,6 @@ export function DebugCommandsDialog() {
       }
       return Array.from(selectedSet);
     });
-  };
-
-  const handleToggleGroupCollapse = (groupName: string, isOpen: boolean) => {
-    setCollapsedGroups(prev => ({
-      ...prev,
-      [groupName]: !isOpen,
-    }));
   };
 
   const handleRefreshCollectors = async () => {
@@ -337,83 +361,114 @@ export function DebugCommandsDialog() {
         flex h-[90vh] w-[95vw]! max-w-[95vw]! flex-col gap-0 p-0
         select-none
       " showCloseButton>
-        <DialogHeader className="border-b px-6 pt-6 pb-4">
-          <DialogTitle className="flex items-center gap-2">
-            <Terminal className="size-5" />
-            Debug Commands
-          </DialogTitle>
-          <DialogDescription>
-            Execute collector debug commands on one or more collectors
-          </DialogDescription>
-        </DialogHeader>
+        {/* Fixed Header with Search */}
+        <DialogHeader className="shrink-0 space-y-4 border-b px-6 pt-6 pb-4">
+          <div>
+            <DialogTitle className="flex items-center gap-2">
+              <Terminal className="size-5" />
+              Debug Commands
+            </DialogTitle>
+            <DialogDescription>
+              Execute collector debug commands on one or more collectors
+            </DialogDescription>
+          </div>
 
-        <div className="flex min-h-0 flex-1 overflow-hidden">
-          {/* Left Sidebar - Command List */}
-          <div className="flex min-h-0 w-80 flex-col border-r">
-            {/* Search */}
-            <div className="shrink-0 border-b p-4">
-              <div className="relative">
-                <Search className="
-                  absolute top-1/2 left-2 size-4 -translate-y-1/2
-                  text-muted-foreground
-                " />
-                <Input
-                  placeholder="Search commands..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pr-7 pl-8"
-                />
-                {searchQuery.trim() && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchQuery('')}
-                    className="
-                      absolute top-1/2 right-2 -translate-y-1/2
-                      text-muted-foreground
-                      hover:text-foreground
-                    "
-                    aria-label="Clear search"
-                  >
-                    ×
-                  </button>
-                )}
-              </div>
+          {/* Search and Category Filter - Fixed in header */}
+          <div className="flex items-center gap-3">
+            <div className="relative min-w-[280px] flex-1">
+              <Search className="
+                absolute top-1/2 left-2.5 size-4 -translate-y-1/2
+                text-muted-foreground
+              " />
+              <Input
+                placeholder="Search commands..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="h-9 pr-7 pl-8"
+              />
+              {searchQuery.trim() && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  className="
+                    absolute top-1/2 right-2.5 -translate-y-1/2
+                    text-muted-foreground
+                    hover:text-foreground
+                  "
+                  aria-label="Clear search"
+                >
+                  ×
+                </button>
+              )}
             </div>
 
-            {/* Category Filter */}
-            {!searchQuery && (
-              <div className="shrink-0 border-b p-4">
-                <Label className="mb-2 block text-xs font-semibold">Category</Label>
-                <Select
-                  value={selectedCategory || 'all'}
-                  onValueChange={(value) => setSelectedCategory(value === 'all' ? null : value)}
-                >
-                  <SelectTrigger className="h-9 w-full">
-                    <SelectValue>
-                      {selectedCategory ? getCategoryLabel(selectedCategory) : 'All Categories'}
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Categories</SelectItem>
-                    {categories.map(category => (
-                      <SelectItem key={category} value={category}>
-                        {getCategoryLabel(category)}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+            <Select
+              value={selectedCategory || 'all'}
+              onValueChange={(value) => setSelectedCategory(value === 'all' ? null : value)}
+            >
+              <SelectTrigger className="h-9 w-[180px]">
+                <SelectValue>
+                  {selectedCategory ? getCategoryLabel(selectedCategory) : 'All Categories'}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {categories.map(category => (
+                  <SelectItem key={category} value={category}>
+                    {getCategoryLabel(category)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </DialogHeader>
+
+        {/* Three-column layout */}
+        <div className="flex min-h-0 flex-1 overflow-hidden">
+          {/* Left Sidebar - Command List */}
+          <div className="
+            flex min-h-0 w-72 shrink-0 flex-col border-r border-border
+            bg-muted/5
+          ">
+            {/* Sidebar Header */}
+            <div className="
+              flex items-center justify-between border-b border-border
+              bg-background px-3 py-2 text-xs text-muted-foreground
+            ">
+              <span>{filteredCommands.length} command{filteredCommands.length !== 1 ? 's' : ''}</span>
+              <Button
+                variant="ghost"
+                size="xs"
+                onClick={handleToggleAllCommandGroups}
+                disabled={allCommandGroupKeys.length === 0}
+                className="h-6 gap-1 px-1.5 text-[10px]"
+              >
+                {allCommandGroupsExpanded ? (
+                  <>
+                    <Minimize2 className="size-3" />
+                    Collapse
+                  </>
+                ) : (
+                  <>
+                    <Maximize2 className="size-3" />
+                    Expand
+                  </>
+                )}
+              </Button>
+            </div>
 
             {/* Health Check Quick Action */}
             {!searchQuery && HEALTH_CHECK_COMMAND && (
-              <div className="shrink-0 border-b p-3">
+              <div className="shrink-0 border-b border-border p-3">
                 <button
                   onClick={() => handleSelectCommand(HEALTH_CHECK_COMMAND)}
                   className={cn(
-                    "w-full rounded-lg border-2 p-3 text-left transition-all",
                     `
-                      border-teal-500/30 bg-card/40 backdrop-blur-sm
+                      w-full rounded-lg border p-3 text-left transition-all
+                      backdrop-blur-sm
+                    `,
+                    `
+                      border-teal-500/30 bg-card/60
                       hover:border-teal-500/50 hover:bg-teal-500/10
                     `,
                     selectedCommand?.id === 'healthcheck' && `
@@ -422,397 +477,251 @@ export function DebugCommandsDialog() {
                   )}
                 >
                   <div className="mb-1 flex items-center gap-2">
-                    <HeartPulse className="size-5 text-teal-500" />
-                    <span className="text-sm font-semibold">Collector Health Check</span>
-
+                    <HeartPulse className="size-4 text-teal-500" />
+                    <span className="text-sm font-semibold">Health Check</span>
+                    <Badge className="
+                      h-4 bg-linear-to-r from-emerald-500 to-cyan-500
+                      px-1.5 text-[10px] text-white
+                    ">
+                      Visual
+                    </Badge>
                   </div>
                   <p className="text-xs text-muted-foreground">
-                    Comprehensive diagnostic with visual reports
+                    Comprehensive diagnostic report
                   </p>
                 </button>
               </div>
             )}
 
             {/* Command List */}
-            <div className="min-h-0 flex-1 overflow-hidden">
-              <ScrollArea className="h-full">
-                <div className="space-y-1 p-2">
-                  {Object.keys(commandsByCategory).length === 0 ? (
-                    <div className="
-                      p-4 text-center text-sm text-muted-foreground
-                    ">
-                      No commands found
-                    </div>
-                  ) : (
-                    Object.entries(commandsByCategory).map(([category, commands]) => (
-                      <div key={category} className="mb-4">
-                        {!searchQuery && (
-                          <div className="
-                            px-2 py-1 text-xs font-semibold
-                            text-muted-foreground uppercase
-                          ">
-                            {getCategoryLabel(category)}
-                          </div>
-                        )}
-                        {commands.map(cmd => (
-                          <button
-                            key={cmd.id}
-                            onClick={() => handleSelectCommand(cmd)}
-                            className={cn(
-                              `
-                                w-full rounded-md px-3 py-2 text-left text-sm
-                                transition-colors
-                              `,
-                              "hover:bg-accent",
-                              selectedCommand?.id === cmd.id && `
-                                bg-accent font-medium
-                              `,
-                              cmd.type === 'healthcheck' && `
-                                border-l-2 border-teal-500
-                              `
+            <ScrollArea className="min-h-0 flex-1">
+              <div className="space-y-2 p-3">
+                {Object.keys(commandsByCategory).length === 0 ? (
+                  <div className="py-8 text-center text-sm text-muted-foreground">
+                    No commands found
+                  </div>
+                ) : (
+                  Object.entries(commandsByCategory).map(([category, commands]) => {
+                    const isOpen = !collapsedCommandGroups[category];
+                    return (
+                      <Collapsible
+                        key={category}
+                        open={isOpen}
+                        onOpenChange={(open) =>
+                          setCollapsedCommandGroups(prev => ({ ...prev, [category]: !open }))
+                        }
+                        className="
+                          overflow-hidden rounded-md border border-border/40
+                          bg-card/20
+                        "
+                      >
+                        <CollapsibleTrigger className="
+                          flex w-full items-center justify-between px-3 py-2
+                          text-xs font-medium text-muted-foreground
+                          transition-colors
+                          hover:bg-muted/50
+                        ">
+                          <span className="flex items-center gap-2">
+                            {isOpen ? (
+                              <ChevronDown className="size-3.5" />
+                            ) : (
+                              <ChevronRight className="size-3.5" />
                             )}
-                          >
-                            <div className="flex items-center justify-between">
-                              <span className="font-mono text-xs">{cmd.command}</span>
-                              {cmd.type === 'healthcheck' ? (
-                                <HeartPulse className="size-4 text-teal-500" />
-                              ) : (
-                                <ChevronRight className="
-                                  size-4 text-muted-foreground
-                                " />
-                              )}
-                            </div>
-                            <div className="
-                              mt-0.5 truncate text-xs text-muted-foreground
-                            ">
-                              {cmd.name}
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    ))
-                  )}
-                </div>
-              </ScrollArea>
-            </div>
+                            {getCategoryLabel(category)}
+                          </span>
+                          <Badge variant="secondary" className="
+                            h-4 bg-muted px-1.5 text-[10px] font-normal
+                            text-muted-foreground
+                          ">
+                            {commands.length}
+                          </Badge>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="border-t border-border/40">
+                          {commands.map(cmd => {
+                            const isSelected = selectedCommand?.id === cmd.id;
+                            return (
+                              <button
+                                key={cmd.id}
+                                onClick={() => handleSelectCommand(cmd)}
+                                className={cn(
+                                  `
+                                    w-full border-l-2 px-3 py-2 text-left
+                                    transition-all
+                                  `,
+                                  isSelected 
+                                    ? 'border-primary bg-accent/50' 
+                                    : `
+                                      border-transparent
+                                      hover:border-border/50 hover:bg-muted/30
+                                    `
+                                )}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <span className="truncate font-mono text-xs">
+                                    {cmd.command}
+                                  </span>
+                                  <ChevronRight className="
+                                    size-3.5 shrink-0 text-muted-foreground
+                                  " />
+                                </div>
+                                <div className="
+                                  mt-0.5 truncate text-xs text-muted-foreground/70
+                                ">
+                                  {cmd.name}
+                                </div>
+                              </button>
+                            );
+                          })}
+                        </CollapsibleContent>
+                      </Collapsible>
+                    );
+                  })
+                )}
+              </div>
+            </ScrollArea>
           </div>
 
-          {/* Right Panel - Command Details & Execution */}
+          {/* Center Panel - Command Details or Results */}
           <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
             {selectedCommand ? (
               <>
                 {!showResults ? (
                   <>
                     {/* Command Details */}
-                    <div className="min-h-0 flex-1 overflow-hidden">
-                      <ScrollArea className="h-full">
-                        <div className="space-y-6 p-6">
-                          {/* Command Header */}
-                          <div>
-                            <div className="mb-2 flex items-center gap-2">
-                              {selectedCommand.type === 'healthcheck' ? (
-                                <HeartPulse className="size-6 text-teal-500" />
-                              ) : null}
-                              <code className="font-mono text-lg font-semibold">{selectedCommand.command}</code>
-                              <Badge variant="secondary">{getCategoryLabel(selectedCommand.category)}</Badge>
-                              {selectedCommand.type === 'healthcheck' && (
-                                <Badge className="
-                                  bg-linear-to-r from-emerald-500 to-cyan-500
-                                  text-white
-                                ">
-                                  Visual Report
-                                </Badge>
-                              )}
-                            </div>
-                            <h3 className="text-lg font-semibold">{selectedCommand.name}</h3>
-                            <p className="mt-1 text-sm text-muted-foreground">{selectedCommand.description}</p>
-                          </div>
-
-                          <Separator />
-
-                          {/* Health Check Special Info */}
-                          {selectedCommand.type === 'healthcheck' && (
-                            <div className="
-                              rounded-lg border border-teal-500/20
-                              bg-linear-to-r from-emerald-500/10 to-cyan-500/10
-                              p-4
-                            ">
-                              <h4 className="
-                                mb-2 flex items-center gap-2 font-semibold
+                    <ScrollArea className="min-h-0 flex-1">
+                      <div className="space-y-6 p-6">
+                        {/* Command Header */}
+                        <div className="
+                          rounded-lg border border-border/70 bg-card/60 p-4
+                        ">
+                          <div className="mb-3 flex flex-wrap items-center gap-2">
+                            {selectedCommand.type === 'healthcheck' && (
+                              <HeartPulse className="size-5 text-teal-500" />
+                            )}
+                            <code className="font-mono text-lg font-semibold">
+                              {selectedCommand.command}
+                            </code>
+                            <Badge variant="secondary">
+                              {getCategoryLabel(selectedCommand.category)}
+                            </Badge>
+                            {selectedCommand.type === 'healthcheck' && (
+                              <Badge className="
+                                bg-linear-to-r from-emerald-500 to-cyan-500
+                                text-white
                               ">
-                                <Sparkles className="size-4 text-cyan-500" />
-                                What this report includes:
-                              </h4>
-                              <ul className="
-                                space-y-1 text-sm text-muted-foreground
-                              ">
-                                <li>• Collection summary with thread counts by type</li>
-                                <li>• Top failing modules with visual charts</li>
-                                <li>• Longest-running task analysis</li>
-                                <li>• Device capacity limits and sizing recommendations</li>
-                                <li>• Agent configuration vs defaults comparison</li>
-                                <li>• Helpful AppliesTo queries for troubleshooting</li>
-                                <li>• Collector logs (wrapper, sbproxy, watchdog)</li>
-                              </ul>
-                            </div>
-                          )}
-
-                          {/* Example - hide for health check */}
-                          {selectedCommand.type !== 'healthcheck' && (
-                            <div>
-                              <Label className="
-                                mb-2 block text-sm font-semibold
-                              ">Example</Label>
-                              <code className="
-                                block rounded-md bg-muted p-3 font-mono text-sm
-                              ">
-                                {selectedCommand.example}
-                              </code>
-                            </div>
-                          )}
-
-                          {/* Parameters */}
-                          {selectedCommand.parameters && selectedCommand.parameters.length > 0 && (
-                            <div>
-                              <Label className="
-                                mb-3 block text-sm font-semibold
-                              ">Parameters</Label>
-                              <div className="space-y-4">
-                                {selectedCommand.parameters.map(param => (
-                                  <div key={param.name}>
-                                    <div className="
-                                      mb-1 flex items-center gap-2
-                                    ">
-                                      <Label htmlFor={`param-${param.name}`} className="
-                                        text-sm
-                                      ">
-                                        {param.name}
-                                      </Label>
-                                      {param.required && (
-                                        <Badge variant="destructive" className="
-                                          text-xs
-                                        ">Required</Badge>
-                                      )}
-                                      {!param.required && (
-                                        <Badge variant="outline" className="
-                                          text-xs
-                                        ">Optional</Badge>
-                                      )}
-                                    </div>
-                                    <Input
-                                      id={`param-${param.name}`}
-                                      placeholder={param.example ? `e.g., ${param.example}` : param.description}
-                                      value={parameters[param.name] || ''}
-                                      onChange={(e) => handleParameterChange(param.name, e.target.value)}
-                                    />
-                                    {param.description && (
-                                      <p className="
-                                        mt-1 text-xs text-muted-foreground
-                                      ">{param.description}</p>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          <Separator />
-
-                          {/* Collector Selection */}
-                          <div>
-                            <div className="
-                              mb-3 flex items-center justify-between
-                            ">
-                              <Label className="text-sm font-semibold">
-                                Select Collectors ({selectedCollectorIds.length} selected)
-                              </Label>
-                              <div className="flex items-center gap-2">
-                                <Tooltip>
-                                  <TooltipTrigger
-                                    render={
-                                      <Button
-                                        variant="ghost"
-                                        size="xs"
-                                        onClick={handleRefreshCollectors}
-                                        disabled={isRefreshingCollectors || !selectedPortalId}
-                                        className={cn(
-                                          "transition-all duration-200",
-                                          isRefreshingCollectors && "opacity-70"
-                                        )}
-                                      >
-                                        <RefreshCw
-                                          className={cn(
-                                            `
-                                              size-3 transition-transform
-                                              duration-200
-                                            `,
-                                            isRefreshingCollectors && `
-                                              animate-spin
-                                            `
-                                          )}
-                                        />
-                                        Refresh
-                                      </Button>
-                                    }
-                                  />
-                                  <TooltipContent>
-                                    {isRefreshingCollectors ? 'Refreshing collectors...' : 'Refresh collectors'}
-                                  </TooltipContent>
-                                </Tooltip>
-                                <Button
-                                  variant="ghost"
-                                  size="xs"
-                                  onClick={handleSelectAllCollectors}
-                                  disabled={collectors.length === 0}
-                                >
-                                  {allCollectorsSelected ? 'Clear' : 'Select all'}
-                                </Button>
-                              </div>
-                            </div>
-
-                            <div className="mb-3">
-                              <div className="relative">
-                                <Search className="
-                                  absolute top-1/2 left-2 size-3.5
-                                  -translate-y-1/2 text-muted-foreground
-                                " />
-                                <Input 
-                                  placeholder="Filter collectors..." 
-                                  value={collectorSearchQuery}
-                                  onChange={(e) => setCollectorSearchQuery(e.target.value)}
-                                  className="h-8 pl-8 text-xs"
-                                />
-                              </div>
-                            </div>
-
-                            {collectors.length === 0 ? (
-                              <div className="
-                                rounded-md border p-4 text-center text-sm
-                                text-muted-foreground
-                              ">
-                                No collectors available. Please select a portal first.
-                              </div>
-                            ) : (
-                              <div className="
-                                h-96 overflow-hidden rounded-md border
-                              ">
-                                <ScrollArea className="h-full">
-                                  <div className="space-y-3 p-2">
-                                    {collectorGroupOrder.map(groupName => (
-                                      <Collapsible
-                                        key={groupName}
-                                        open={!collapsedGroups[groupName]}
-                                        onOpenChange={(isOpen) => handleToggleGroupCollapse(groupName, isOpen)}
-                                      >
-                                        <div className="
-                                          flex items-center justify-between
-                                          rounded-md bg-muted/30 px-2 py-1
-                                          transition-colors
-                                          hover:bg-muted/50
-                                        ">
-                                          <CollapsibleTrigger className="
-                                            flex cursor-pointer items-center
-                                            gap-2 text-xs font-semibold
-                                            text-muted-foreground uppercase
-                                            transition-colors
-                                            hover:text-foreground
-                                          ">
-                                            <ChevronDown
-                                              className={cn(
-                                                "size-3 transition-transform",
-                                                collapsedGroups[groupName] && `
-                                                  -rotate-90
-                                                `
-                                              )}
-                                            />
-                                            <span>{groupName}</span>
-                                            <span className="
-                                              text-[10px] font-medium
-                                              text-muted-foreground/70
-                                              normal-case
-                                            ">
-                                              ({collectorsByGroup[groupName]?.length ?? 0})
-                                            </span>
-                                          </CollapsibleTrigger>
-                                          <Button
-                                            variant="ghost"
-                                            size="xs"
-                                            onClick={() => handleToggleGroupSelection(groupName)}
-                                          >
-                                            {collectorsByGroup[groupName]?.every(collector =>
-                                              selectedCollectorIds.includes(collector.id)
-                                            )
-                                              ? 'Clear group'
-                                              : 'Select group'}
-                                          </Button>
-                                        </div>
-                                        <CollapsibleContent className="
-                                          space-y-2 pt-2
-                                        ">
-                                          {collectorsByGroup[groupName]?.map(collector => (
-                                            <div
-                                              key={collector.id}
-                                              className="
-                                                flex items-center space-x-2
-                                                rounded-md p-2
-                                                hover:bg-accent
-                                              "
-                                            >
-                                              <Checkbox
-                                                id={`collector-${collector.id}`}
-                                                checked={selectedCollectorIds.includes(collector.id)}
-                                                onCheckedChange={() => handleCollectorToggle(collector.id)}
-                                              />
-                                              <Label
-                                                htmlFor={`collector-${collector.id}`}
-                                                className="
-                                                  flex-1 cursor-pointer
-                                                "
-                                              >
-                                                <div className="
-                                                  flex items-center
-                                                  justify-between
-                                                ">
-                                                  <div className="
-                                                    flex items-center gap-2
-                                                  ">
-                                                    <span className="
-                                                      font-medium
-                                                    ">{collector.description}</span>
-                                                    <span className="
-                                                      text-xs
-                                                      text-muted-foreground
-                                                    ">
-                                                      ({collector.hostname})
-                                                    </span>
-                                                    <span className="
-                                                      text-muted-foreground
-                                                    ">•</span>
-                                                    <Badge
-                                                      variant={collector.isDown ? 'destructive' : 'default'}
-                                                    >
-                                                      {collector.isDown ? 'Offline' : 'Online'}
-                                                    </Badge>
-                                                  </div>
-                                                </div>
-                                              </Label>
-                                            </div>
-                                          ))}
-                                        </CollapsibleContent>
-                                      </Collapsible>
-                                    ))}
-                                  </div>
-                                </ScrollArea>
-                              </div>
+                                Visual Report
+                              </Badge>
                             )}
                           </div>
+                          <h3 className="text-base font-semibold">
+                            {selectedCommand.name}
+                          </h3>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            {selectedCommand.description}
+                          </p>
                         </div>
-                      </ScrollArea>
-                    </div>
 
-                    {/* Execute Button */}
+                        {/* Health Check Special Info */}
+                        {selectedCommand.type === 'healthcheck' && (
+                          <div className="
+                            rounded-lg border border-teal-500/20
+                            bg-linear-to-r from-emerald-500/10 to-cyan-500/10
+                            p-4
+                          ">
+                            <h4 className="
+                              mb-2 flex items-center gap-2 font-semibold
+                            ">
+                              <Sparkles className="size-4 text-cyan-500" />
+                              What this report includes:
+                            </h4>
+                            <ul className="
+                              grid gap-1 text-sm text-muted-foreground
+                              sm:grid-cols-2
+                            ">
+                              <li>• Collection summary with thread counts</li>
+                              <li>• Top failing modules with charts</li>
+                              <li>• Longest-running task analysis</li>
+                              <li>• Device capacity limits</li>
+                              <li>• Agent config vs defaults</li>
+                              <li>• AppliesTo troubleshooting queries</li>
+                              <li>• Collector logs analysis</li>
+                            </ul>
+                          </div>
+                        )}
+
+                        {/* Example - hide for health check */}
+                        {selectedCommand.type !== 'healthcheck' && (
+                          <div className="
+                            rounded-lg border border-border/70 bg-card/60 p-4
+                          ">
+                            <Label className="mb-2 block text-sm font-semibold">
+                              Example
+                            </Label>
+                            <code className="
+                              block rounded-md bg-muted/50 p-3 font-mono text-sm
+                            ">
+                              {selectedCommand.example}
+                            </code>
+                          </div>
+                        )}
+
+                        {/* Parameters */}
+                        {selectedCommand.parameters && selectedCommand.parameters.length > 0 && (
+                          <div className="
+                            rounded-lg border border-border/70 bg-card/60 p-4
+                          ">
+                            <Label className="mb-4 block text-sm font-semibold">
+                              Parameters
+                            </Label>
+                            <div className="space-y-4">
+                              {selectedCommand.parameters.map(param => (
+                                <div key={param.name}>
+                                  <div className="mb-1.5 flex items-center gap-2">
+                                    <Label
+                                      htmlFor={`param-${param.name}`}
+                                      className="text-sm"
+                                    >
+                                      {param.name}
+                                    </Label>
+                                    {param.required ? (
+                                      <Badge variant="destructive" className="text-xs">
+                                        Required
+                                      </Badge>
+                                    ) : (
+                                      <Badge variant="outline" className="text-xs">
+                                        Optional
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <Input
+                                    id={`param-${param.name}`}
+                                    placeholder={
+                                      param.example
+                                        ? `e.g., ${param.example}`
+                                        : param.description
+                                    }
+                                    value={parameters[param.name] || ''}
+                                    onChange={(e) =>
+                                      handleParameterChange(param.name, e.target.value)
+                                    }
+                                  />
+                                  {param.description && (
+                                    <p className="mt-1 text-xs text-muted-foreground">
+                                      {param.description}
+                                    </p>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </ScrollArea>
+
+                    {/* Execute Button Footer */}
                     <div className="
-                      flex shrink-0 items-center justify-end gap-2 border-t p-4
+                      flex shrink-0 items-center justify-end gap-2 border-t
+                      border-border bg-background/80 p-4 backdrop-blur-sm
                     ">
                       <Button
                         variant="outline"
@@ -829,7 +738,9 @@ export function DebugCommandsDialog() {
                         {isExecutingDebugCommand ? (
                           <>
                             <Loader2 className="size-4 animate-spin" />
-                            {selectedCommand?.type === 'healthcheck' ? 'Analyzing...' : 'Executing...'}
+                            {selectedCommand?.type === 'healthcheck'
+                              ? 'Analyzing...'
+                              : 'Executing...'}
                           </>
                         ) : (
                           <>
@@ -838,7 +749,9 @@ export function DebugCommandsDialog() {
                             ) : (
                               <Play className="size-4" />
                             )}
-                            {selectedCommand?.type === 'healthcheck' ? 'Run Health Check' : 'Execute'}
+                            {selectedCommand?.type === 'healthcheck'
+                              ? 'Run Health Check'
+                              : 'Execute'}
                           </>
                         )}
                       </Button>
@@ -853,15 +766,238 @@ export function DebugCommandsDialog() {
                 )}
               </>
             ) : (
-              <div className="flex flex-1 items-center justify-center p-6 select-none">
-                <div className="text-center text-muted-foreground">
-                  <Terminal className="mx-auto mb-4 size-12 opacity-50" />
-                  <p className="mb-2 text-lg font-medium">Select a command</p>
-                  <p className="text-sm">Choose a debug command from the list to view details and execute</p>
-                </div>
-              </div>
+              <Empty className="flex-1 border-none bg-transparent shadow-none">
+                <EmptyMedia variant="icon" className="mx-auto mb-4 bg-muted/50">
+                  <Terminal className="size-5 text-muted-foreground/70" />
+                </EmptyMedia>
+                <EmptyHeader>
+                  <EmptyTitle className="text-base font-medium">
+                    Select a command
+                  </EmptyTitle>
+                  <EmptyDescription className="mx-auto mt-1.5 max-w-sm">
+                    Choose a debug command from the list to view details and execute
+                    on your selected collectors.
+                  </EmptyDescription>
+                </EmptyHeader>
+              </Empty>
             )}
           </div>
+
+          {/* Right Sidebar - Collector Selection */}
+          {!showResults && (
+            <div className="
+              flex min-h-0 w-80 shrink-0 flex-col border-l border-border
+              bg-muted/5
+            ">
+              {/* Collector Header */}
+              <div className="
+                flex items-center justify-between border-b border-border
+                bg-background px-3 py-2
+              ">
+                <div className="flex items-center gap-2">
+                  <Server className="size-4 text-muted-foreground" />
+                  <span className="text-xs font-medium">Collectors</span>
+                  <Badge variant="secondary" className="h-5 px-1.5 text-[10px]">
+                    {selectedCollectorIds.length} selected
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <Button
+                          variant="ghost"
+                          size="icon-xs"
+                          onClick={handleRefreshCollectors}
+                          disabled={isRefreshingCollectors || !selectedPortalId}
+                        >
+                          <RefreshCw
+                            className={cn(
+                              "size-3.5",
+                              isRefreshingCollectors && "animate-spin"
+                            )}
+                          />
+                        </Button>
+                      }
+                    />
+                    <TooltipContent>Refresh collectors</TooltipContent>
+                  </Tooltip>
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    onClick={handleSelectAllCollectors}
+                    disabled={collectors.length === 0}
+                    className="text-[10px]"
+                  >
+                    {allCollectorsSelected ? 'Clear' : 'All'}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    onClick={handleToggleAllCollectorGroups}
+                    disabled={collectorGroupOrder.length === 0}
+                    className="h-6 gap-1 px-1.5 text-[10px]"
+                  >
+                    {allCollectorGroupsExpanded ? (
+                      <Minimize2 className="size-3" />
+                    ) : (
+                      <Maximize2 className="size-3" />
+                    )}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Collector Search */}
+              <div className="shrink-0 border-b border-border p-3">
+                <div className="relative">
+                  <Search className="
+                    absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2
+                    text-muted-foreground
+                  " />
+                  <Input
+                    placeholder="Filter collectors..."
+                    value={collectorSearchQuery}
+                    onChange={(e) => setCollectorSearchQuery(e.target.value)}
+                    className="h-8 pl-8 text-xs"
+                  />
+                </div>
+              </div>
+
+              {/* Collector List */}
+              {collectors.length === 0 ? (
+                <Empty className="flex-1 border-none bg-transparent shadow-none">
+                  <EmptyMedia variant="icon" className="mx-auto mb-4 bg-muted/50">
+                    <Server className="size-5 text-muted-foreground/70" />
+                  </EmptyMedia>
+                  <EmptyHeader>
+                    <EmptyTitle className="text-sm font-medium">
+                      No collectors
+                    </EmptyTitle>
+                    <EmptyDescription className="mx-auto mt-1 text-xs">
+                      Connect to a portal to see collectors.
+                    </EmptyDescription>
+                  </EmptyHeader>
+                </Empty>
+              ) : (
+                <ScrollArea className="min-h-0 flex-1">
+                  <div className="space-y-2 p-3">
+                    {collectorGroupOrder.map(groupName => {
+                      const isOpen = !collapsedCollectorGroups[groupName];
+                      const groupCollectors = collectorsByGroup[groupName] ?? [];
+                      const groupSelected = groupCollectors.every(c =>
+                        selectedCollectorIds.includes(c.id)
+                      );
+
+                      return (
+                        <Collapsible
+                          key={groupName}
+                          open={isOpen}
+                          onOpenChange={(open) =>
+                            setCollapsedCollectorGroups(prev => ({
+                              ...prev,
+                              [groupName]: !open,
+                            }))
+                          }
+                          className="
+                            overflow-hidden rounded-md border border-border/40
+                            bg-card/20
+                          "
+                        >
+                          <div className="
+                            flex items-center justify-between px-2 py-1.5
+                            transition-colors
+                            hover:bg-muted/30
+                          ">
+                            <CollapsibleTrigger className="
+                              flex cursor-pointer items-center gap-2 text-xs
+                              font-medium text-muted-foreground
+                              transition-colors
+                              hover:text-foreground
+                            ">
+                              {isOpen ? (
+                                <ChevronDown className="size-3" />
+                              ) : (
+                                <ChevronRight className="size-3" />
+                              )}
+                              <span className="truncate">{groupName}</span>
+                              <Badge variant="secondary" className="
+                                h-4 bg-muted px-1 text-[10px] font-normal
+                                text-muted-foreground
+                              ">
+                                {groupCollectors.length}
+                              </Badge>
+                            </CollapsibleTrigger>
+                            <Button
+                              variant="ghost"
+                              size="xs"
+                              onClick={() => handleToggleGroupSelection(groupName)}
+                              className="h-5 px-1.5 text-[10px]"
+                            >
+                              {groupSelected ? 'Clear' : 'Select'}
+                            </Button>
+                          </div>
+                          <CollapsibleContent className="border-t border-border/40">
+                            {groupCollectors.map(collector => {
+                              const isSelected = selectedCollectorIds.includes(
+                                collector.id
+                              );
+                              return (
+                                <div
+                                  key={collector.id}
+                                  className={cn(
+                                    `
+                                      flex cursor-pointer items-center gap-2
+                                      border-l-2 px-2 py-1.5 transition-all
+                                    `,
+                                    isSelected
+                                      ? 'border-primary bg-accent/50'
+                                      : `
+                                        border-transparent
+                                        hover:border-border/50 hover:bg-muted/30
+                                      `
+                                  )}
+                                  onClick={() => handleCollectorToggle(collector.id)}
+                                >
+                                  <Checkbox
+                                    id={`collector-${collector.id}`}
+                                    checked={isSelected}
+                                    onCheckedChange={() =>
+                                      handleCollectorToggle(collector.id)
+                                    }
+                                    className="shrink-0"
+                                  />
+                                  <div className="min-w-0 flex-1">
+                                    <div className="flex items-center gap-1.5">
+                                      <span className="truncate text-xs font-medium">
+                                        {collector.description}
+                                      </span>
+                                      <Badge
+                                        variant={
+                                          collector.isDown ? 'destructive' : 'default'
+                                        }
+                                        className="h-4 px-1 text-[9px]"
+                                      >
+                                        {collector.isDown ? 'Offline' : 'Online'}
+                                      </Badge>
+                                    </div>
+                                    <div className="
+                                      truncate text-[10px] text-muted-foreground/70
+                                    ">
+                                      {collector.hostname}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </CollapsibleContent>
+                        </Collapsible>
+                      );
+                    })}
+                  </div>
+                </ScrollArea>
+              )}
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>

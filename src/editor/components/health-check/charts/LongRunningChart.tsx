@@ -1,6 +1,8 @@
 import { Bar, BarChart, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { SectionCard } from '../SectionCard';
-import { Timer, CheckCircle } from 'lucide-react';
+import { Timer } from 'lucide-react';
+import { SuccessIcon } from '../../../constants/icons';
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import type { LongRunningItem } from '../types';
 
 interface LongRunningChartProps {
@@ -53,13 +55,17 @@ export function LongRunningChart({ data }: LongRunningChartProps) {
   if (!data || data.length === 0) {
     return (
       <SectionCard title="Long Running Tasks" icon={<Timer className="size-4" />}>
-        <div className="
-          flex items-center justify-center py-8 text-muted-foreground
-          select-none
-        ">
-          <CheckCircle className="mr-2 size-5 text-teal-500" />
-          <span className="text-sm">No long-running tasks detected</span>
-        </div>
+        <Empty className="h-64 border-none bg-transparent shadow-none">
+          <EmptyMedia variant="icon" className="mx-auto mb-3 bg-teal-500/10">
+            <SuccessIcon className="size-5" />
+          </EmptyMedia>
+          <EmptyHeader>
+            <EmptyTitle className="text-sm font-medium">No long-running tasks</EmptyTitle>
+            <EmptyDescription className="text-xs">
+              All tasks completed within normal thresholds.
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       </SectionCard>
     );
   }
@@ -75,9 +81,7 @@ export function LongRunningChart({ data }: LongRunningChartProps) {
   }));
 
   return (
-    <SectionCard title="Longest Running Collections" icon={<Timer className="
-      size-4
-    " />}>
+    <SectionCard title="Longest Running Collections" icon={<Timer className="size-4" />}>
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} layout="vertical" margin={{ left: 20, right: 20 }}>

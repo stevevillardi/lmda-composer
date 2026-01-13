@@ -1,5 +1,5 @@
 import { SectionCard } from '../SectionCard';
-import { Activity, Info } from 'lucide-react';
+import { Activity } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import {
   Table,
@@ -9,6 +9,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
+import { InfoIcon } from '../../../constants/icons';
 import type { TlistSummaryItem, SuggestedCollectors } from '../types';
 
 interface TlistSummaryTableProps {
@@ -21,13 +23,17 @@ export function TlistSummaryTable({ data, totalInstances, suggestedCollectors }:
   if (!data || data.length === 0) {
     return (
       <SectionCard title="Collection Summary" icon={<Activity className="size-4" />}>
-        <div className="
-          flex items-center justify-center py-8 text-muted-foreground
-          select-none
-        ">
-          <Info className="mr-2 size-5 opacity-50" />
-          <span className="text-sm">No collection summary available</span>
-        </div>
+        <Empty className="border-none bg-transparent py-6 shadow-none">
+          <EmptyMedia variant="icon" className="mx-auto mb-3 bg-muted/50">
+            <InfoIcon className="size-5" />
+          </EmptyMedia>
+          <EmptyHeader>
+            <EmptyTitle className="text-sm font-medium">No collection summary</EmptyTitle>
+            <EmptyDescription className="text-xs">
+              Summary data will appear here when available.
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       </SectionCard>
     );
   }
@@ -44,10 +50,10 @@ export function TlistSummaryTable({ data, totalInstances, suggestedCollectors }:
       }
     >
       <div className="space-y-4">
-        <div className="max-h-64 overflow-auto">
+        <div className="max-h-64 overflow-auto rounded-lg border border-border/50">
           <Table>
             <TableHeader>
-              <TableRow>
+              <TableRow className="bg-muted/30">
                 <TableHead>Type</TableHead>
                 <TableHead>Collector</TableHead>
                 <TableHead className="text-right">Total</TableHead>
@@ -70,8 +76,12 @@ export function TlistSummaryTable({ data, totalInstances, suggestedCollectors }:
         </div>
 
         {suggestedCollectors && (
-          <div className="rounded-lg bg-muted/50 p-3">
-            <p className="mb-2 text-sm font-medium select-none">Suggested Collector Count for {totalInstances.toLocaleString()} Instances:</p>
+          <div className="
+            rounded-lg border border-border/50 bg-muted/30 p-3 backdrop-blur-sm
+          ">
+            <p className="mb-2 text-sm font-medium select-none">
+              Suggested Collector Count for {totalInstances.toLocaleString()} Instances:
+            </p>
             <div className="flex flex-wrap gap-3">
               <Badge variant="outline" className="select-none">M: {suggestedCollectors.M}</Badge>
               <Badge variant="outline" className="select-none">L: {suggestedCollectors.L}</Badge>
@@ -84,4 +94,3 @@ export function TlistSummaryTable({ data, totalInstances, suggestedCollectors }:
     </SectionCard>
   );
 }
-

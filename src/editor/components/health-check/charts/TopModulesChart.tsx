@@ -1,6 +1,8 @@
 import { Bar, BarChart, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { SectionCard } from '../SectionCard';
-import { Package, CheckCircle } from 'lucide-react';
+import { Package } from 'lucide-react';
+import { SuccessIcon } from '../../../constants/icons';
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import type { TopModuleItem } from '../types';
 
 interface TopModulesChartProps {
@@ -43,13 +45,17 @@ export function TopModulesChart({ data }: TopModulesChartProps) {
   if (!data || data.length === 0) {
     return (
       <SectionCard title="Top Failing Modules" icon={<Package className="size-4" />}>
-        <div className="
-          flex items-center justify-center py-8 text-muted-foreground
-          select-none
-        ">
-          <CheckCircle className="mr-2 size-5 text-teal-500" />
-          <span className="text-sm">No failing modules detected</span>
-        </div>
+        <Empty className="h-64 border-none bg-transparent shadow-none">
+          <EmptyMedia variant="icon" className="mx-auto mb-3 bg-teal-500/10">
+            <SuccessIcon className="size-5" />
+          </EmptyMedia>
+          <EmptyHeader>
+            <EmptyTitle className="text-sm font-medium">No failing modules</EmptyTitle>
+            <EmptyDescription className="text-xs">
+              All modules are running successfully.
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       </SectionCard>
     );
   }

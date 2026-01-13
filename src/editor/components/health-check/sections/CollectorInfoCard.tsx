@@ -50,7 +50,7 @@ export function CollectorInfoCard({ data }: CollectorInfoCardProps) {
         </div>
 
         {links && (
-          <div className="border-t pt-3">
+          <div className="border-t border-border/50 pt-3">
             <p className="mb-2 text-sm text-muted-foreground select-none">Portal Links</p>
             <div className="flex flex-wrap gap-2">
               <a 
@@ -58,64 +58,56 @@ export function CollectorInfoCard({ data }: CollectorInfoCardProps) {
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="
-                  inline-flex items-center justify-center rounded-md border
-                  border-input bg-background px-3 py-1.5 text-sm font-medium
-                  ring-offset-background transition-colors
+                  inline-flex items-center gap-1.5 rounded-md border border-input
+                  bg-background px-3 py-1.5 text-sm font-medium
+                  transition-colors
                   hover:bg-accent hover:text-accent-foreground
-                  focus-visible:ring-2 focus-visible:ring-ring
-                  focus-visible:ring-offset-2 focus-visible:outline-none
                 "
               >
                 Configuration
-                <ExternalLink className="ml-1 size-3" />
+                <ExternalLink className="size-3" />
               </a>
               <a 
                 href={links.events} 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="
-                  inline-flex items-center justify-center rounded-md border
-                  border-input bg-background px-3 py-1.5 text-sm font-medium
-                  ring-offset-background transition-colors
+                  inline-flex items-center gap-1.5 rounded-md border border-input
+                  bg-background px-3 py-1.5 text-sm font-medium
+                  transition-colors
                   hover:bg-accent hover:text-accent-foreground
-                  focus-visible:ring-2 focus-visible:ring-ring
-                  focus-visible:ring-offset-2 focus-visible:outline-none
                 "
               >
                 Events
-                <ExternalLink className="ml-1 size-3" />
+                <ExternalLink className="size-3" />
               </a>
               <a 
                 href={links.logLevels} 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="
-                  inline-flex items-center justify-center rounded-md border
-                  border-input bg-background px-3 py-1.5 text-sm font-medium
-                  ring-offset-background transition-colors
+                  inline-flex items-center gap-1.5 rounded-md border border-input
+                  bg-background px-3 py-1.5 text-sm font-medium
+                  transition-colors
                   hover:bg-accent hover:text-accent-foreground
-                  focus-visible:ring-2 focus-visible:ring-ring
-                  focus-visible:ring-offset-2 focus-visible:outline-none
                 "
               >
                 Log Levels
-                <ExternalLink className="ml-1 size-3" />
+                <ExternalLink className="size-3" />
               </a>
               <a 
                 href={links.status} 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="
-                  inline-flex items-center justify-center rounded-md border
-                  border-input bg-background px-3 py-1.5 text-sm font-medium
-                  ring-offset-background transition-colors
+                  inline-flex items-center gap-1.5 rounded-md border border-input
+                  bg-background px-3 py-1.5 text-sm font-medium
+                  transition-colors
                   hover:bg-accent hover:text-accent-foreground
-                  focus-visible:ring-2 focus-visible:ring-ring
-                  focus-visible:ring-offset-2 focus-visible:outline-none
                 "
               >
                 Status
-                <ExternalLink className="ml-1 size-3" />
+                <ExternalLink className="size-3" />
               </a>
             </div>
           </div>

@@ -24,10 +24,10 @@ export function CapacityLimitsTable({ data }: CapacityLimitsTableProps) {
       icon={<Gauge className="size-4" />}
       collapsible
     >
-      <div className="overflow-auto">
+      <div className="overflow-auto rounded-lg border border-border/50">
         <Table>
           <TableHeader>
-            <TableRow>
+            <TableRow className="bg-muted/30">
               <TableHead className="w-32">Metric</TableHead>
               {data.sizes.map((size, index) => (
                 <TableHead 
@@ -111,4 +111,3 @@ export function CapacityLimitsTable({ data }: CapacityLimitsTableProps) {
     </SectionCard>
   );
 }
-

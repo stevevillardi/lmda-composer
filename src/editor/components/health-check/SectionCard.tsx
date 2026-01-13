@@ -26,7 +26,10 @@ export function SectionCard({
   const [isCollapsed, setIsCollapsed] = useState(defaultCollapsed);
 
   return (
-    <Card className={cn('overflow-hidden', className)}>
+    <Card className={cn(
+      'overflow-hidden border-border/70 bg-card/60 backdrop-blur-sm',
+      className
+    )}>
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -54,4 +57,3 @@ export function SectionCard({
     </Card>
   );
 }
-

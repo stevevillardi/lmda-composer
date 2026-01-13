@@ -1,6 +1,8 @@
 import { Bar, BarChart, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { SectionCard } from '../SectionCard';
-import { BarChart3, Info } from 'lucide-react';
+import { BarChart3 } from 'lucide-react';
+import { SuccessIcon } from '../../../constants/icons';
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import type { CollectionSummaryItem } from '../types';
 
 interface CollectionSummaryChartProps {
@@ -41,16 +43,18 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Array<
 export function CollectionSummaryChart({ data }: CollectionSummaryChartProps) {
   if (!data || data.length === 0) {
     return (
-      <SectionCard title="Collection Summary" icon={<BarChart3 className="
-        size-4
-      " />}>
-        <div className="
-          flex items-center justify-center py-8 text-muted-foreground
-          select-none
-        ">
-          <Info className="mr-2 size-5 opacity-50" />
-          <span className="text-sm">No collection data available</span>
-        </div>
+      <SectionCard title="Collection Summary" icon={<BarChart3 className="size-4" />}>
+        <Empty className="h-64 border-none bg-transparent shadow-none">
+          <EmptyMedia variant="icon" className="mx-auto mb-3 bg-muted/50">
+            <SuccessIcon className="size-5" />
+          </EmptyMedia>
+          <EmptyHeader>
+            <EmptyTitle className="text-sm font-medium">No collection data</EmptyTitle>
+            <EmptyDescription className="text-xs">
+              No failing collection threads detected.
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       </SectionCard>
     );
   }
@@ -65,9 +69,7 @@ export function CollectionSummaryChart({ data }: CollectionSummaryChartProps) {
     }));
 
   return (
-    <SectionCard title="Failing Threads by Collection Type" icon={<BarChart3 className="
-      size-4
-    " />}>
+    <SectionCard title="Failing Threads by Collection Type" icon={<BarChart3 className="size-4" />}>
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} layout="vertical" margin={{ left: 20, right: 20 }}>

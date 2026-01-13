@@ -1,5 +1,5 @@
 import { SectionCard } from '../SectionCard';
-import { MessageSquare, CheckCircle } from 'lucide-react';
+import { MessageSquare } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
@@ -15,6 +15,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
+import { SuccessIcon } from '../../../constants/icons';
 import type { TopMessages } from '../types';
 
 interface MessageResultsTableProps {
@@ -26,16 +28,18 @@ export function MessageResultsTable({ data }: MessageResultsTableProps) {
 
   if (!hasData) {
     return (
-      <SectionCard title="Top Message Results" icon={<MessageSquare className="
-        size-4
-      " />}>
-        <div className="
-          flex items-center justify-center py-8 text-muted-foreground
-          select-none
-        ">
-          <CheckCircle className="mr-2 size-5 text-teal-500" />
-          <span className="text-sm">No error messages detected</span>
-        </div>
+      <SectionCard title="Top Message Results" icon={<MessageSquare className="size-4" />}>
+        <Empty className="border-none bg-transparent py-6 shadow-none">
+          <EmptyMedia variant="icon" className="mx-auto mb-3 bg-teal-500/10">
+            <SuccessIcon className="size-5" />
+          </EmptyMedia>
+          <EmptyHeader>
+            <EmptyTitle className="text-sm font-medium">No error messages</EmptyTitle>
+            <EmptyDescription className="text-xs">
+              All tasks completed without errors.
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       </SectionCard>
     );
   }
@@ -47,7 +51,7 @@ export function MessageResultsTable({ data }: MessageResultsTableProps) {
       collapsible
     >
       <Tabs defaultValue="tlist" className="w-full">
-        <TabsList>
+        <TabsList className="bg-muted/30">
           <TabsTrigger value="tlist" className="gap-2">
             tlist
             <Badge variant="secondary" className="text-xs select-none">{data.tlist.length}</Badge>
@@ -81,20 +85,22 @@ export function MessageResultsTable({ data }: MessageResultsTableProps) {
 function MessageTable({ messages }: { messages: { message: string; count: number }[] }) {
   if (messages.length === 0) {
     return (
-      <div className="
-        flex items-center justify-center py-8 text-muted-foreground select-none
-      ">
-        <CheckCircle className="mr-2 size-4 text-teal-500" />
-        <span className="text-sm">No messages</span>
-      </div>
+      <Empty className="border-none bg-transparent py-6 shadow-none">
+        <EmptyMedia variant="icon" className="mx-auto mb-3 bg-teal-500/10">
+          <SuccessIcon className="size-4" />
+        </EmptyMedia>
+        <EmptyHeader>
+          <EmptyTitle className="text-sm font-medium">No messages</EmptyTitle>
+        </EmptyHeader>
+      </Empty>
     );
   }
 
   return (
-    <div className="max-h-64 overflow-auto">
+    <div className="max-h-64 overflow-auto rounded-lg border border-border/50">
       <Table>
         <TableHeader>
-          <TableRow>
+          <TableRow className="bg-muted/30">
             <TableHead className="w-20">Count</TableHead>
             <TableHead>Message</TableHead>
           </TableRow>
@@ -122,4 +128,3 @@ function MessageTable({ messages }: { messages: { message: string; count: number
     </div>
   );
 }
-

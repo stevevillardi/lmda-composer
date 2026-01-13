@@ -1,5 +1,5 @@
 import { SectionCard } from '../SectionCard';
-import { Server, Info } from 'lucide-react';
+import { Server } from 'lucide-react';
 import {
   Table,
   TableBody,
@@ -13,6 +13,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
+import { InfoIcon } from '../../../constants/icons';
 import type { HostStatItem } from '../types';
 
 interface HostStatsTableProps {
@@ -22,16 +24,18 @@ interface HostStatsTableProps {
 export function HostStatsTable({ data }: HostStatsTableProps) {
   if (!data || data.length === 0) {
     return (
-      <SectionCard title="Devices by Task Count" icon={<Server className="
-        size-4
-      " />}>
-        <div className="
-          flex items-center justify-center py-8 text-muted-foreground
-          select-none
-        ">
-          <Info className="mr-2 size-5 opacity-50" />
-          <span className="text-sm">No host data available</span>
-        </div>
+      <SectionCard title="Devices by Task Count" icon={<Server className="size-4" />}>
+        <Empty className="border-none bg-transparent py-6 shadow-none">
+          <EmptyMedia variant="icon" className="mx-auto mb-3 bg-muted/50">
+            <InfoIcon className="size-5" />
+          </EmptyMedia>
+          <EmptyHeader>
+            <EmptyTitle className="text-sm font-medium">No host data</EmptyTitle>
+            <EmptyDescription className="text-xs">
+              Device statistics will appear here when available.
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       </SectionCard>
     );
   }
@@ -42,10 +46,10 @@ export function HostStatsTable({ data }: HostStatsTableProps) {
       icon={<Server className="size-4" />}
       collapsible
     >
-      <div className="max-h-80 overflow-auto">
+      <div className="max-h-80 overflow-auto rounded-lg border border-border/50">
         <Table>
           <TableHeader>
-            <TableRow>
+            <TableRow className="bg-muted/30">
               <TableHead>Hostname</TableHead>
               <TableHead className="text-right">Data Tasks</TableHead>
               <TableHead className="text-right">Event Tasks</TableHead>
@@ -80,4 +84,3 @@ export function HostStatsTable({ data }: HostStatsTableProps) {
     </SectionCard>
   );
 }
-

@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { FileText, Copy, Check, Info } from 'lucide-react';
+import { FileText, Copy, Check } from 'lucide-react';
 import { SectionCard } from '../SectionCard';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
+import { InfoIcon } from '../../../constants/icons';
 import { clipboardToasts } from '../../../utils/toast-utils';
 import type { Logs } from '../types';
 
@@ -31,13 +33,17 @@ export function LogsViewer({ logs }: LogsViewerProps) {
   if (!hasLogs) {
     return (
       <SectionCard title="Collector Logs" icon={<FileText className="size-4" />}>
-        <div className="
-          flex items-center justify-center py-8 text-muted-foreground
-          select-none
-        ">
-          <Info className="mr-2 size-5 opacity-50" />
-          <span className="text-sm">No log data available</span>
-        </div>
+        <Empty className="border-none bg-transparent py-6 shadow-none">
+          <EmptyMedia variant="icon" className="mx-auto mb-3 bg-muted/50">
+            <InfoIcon className="size-5" />
+          </EmptyMedia>
+          <EmptyHeader>
+            <EmptyTitle className="text-sm font-medium">No log data</EmptyTitle>
+            <EmptyDescription className="text-xs">
+              Collector logs will appear here when available.
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
       </SectionCard>
     );
   }
@@ -49,7 +55,7 @@ export function LogsViewer({ logs }: LogsViewerProps) {
       collapsible
     >
       <Tabs defaultValue="wrapper" className="w-full">
-        <TabsList>
+        <TabsList className="bg-muted/30">
           <TabsTrigger value="wrapper" className="gap-2">
             wrapper.log
             <Badge variant="secondary" className="text-xs select-none">{logs.wrapper.length}</Badge>
@@ -107,7 +113,11 @@ function LogTab({
   isCopied: boolean;
 }) {
   if (lines.length === 0) {
-    return <p className="py-4 text-sm text-muted-foreground">No {name} log entries</p>;
+    return (
+      <p className="py-4 text-center text-sm text-muted-foreground">
+        No {name} log entries
+      </p>
+    );
   }
 
   return (
@@ -116,18 +126,20 @@ function LogTab({
         <Button variant="outline" size="sm" onClick={onCopy}>
           {isCopied ? (
             <>
-              <Check className="mr-1 size-3.5 text-teal-500" />
+              <Check className="mr-1.5 size-3.5 text-teal-500" />
               Copied
             </>
           ) : (
             <>
-              <Copy className="mr-1 size-3.5" />
+              <Copy className="mr-1.5 size-3.5" />
               Copy
             </>
           )}
         </Button>
       </div>
-      <ScrollArea className="h-64 rounded-md border bg-muted/30">
+      <ScrollArea className="
+        h-64 rounded-lg border border-border/50 bg-muted/30 backdrop-blur-sm
+      ">
         <pre className="p-3 font-mono text-xs">
           {lines.map((line, index) => (
             <div 
@@ -148,4 +160,3 @@ function LogTab({
     </div>
   );
 }
-

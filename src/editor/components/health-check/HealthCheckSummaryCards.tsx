@@ -31,10 +31,10 @@ interface MetricCardProps {
 
 function MetricCard({ label, value, icon, variant = 'default', subValue }: MetricCardProps) {
   const variantStyles = {
-    default: 'border-border',
-    warning: 'border-yellow-500/50 bg-yellow-500/5',
-    error: 'border-red-500/50 bg-red-500/5',
-    success: 'border-teal-500/50 bg-teal-500/5',
+    default: 'border-border/70 bg-card/60',
+    warning: 'border-yellow-500/50 bg-yellow-500/10',
+    error: 'border-red-500/50 bg-red-500/10',
+    success: 'border-teal-500/50 bg-teal-500/10',
   };
 
   const iconStyles = {
@@ -45,7 +45,10 @@ function MetricCard({ label, value, icon, variant = 'default', subValue }: Metri
   };
 
   return (
-    <Card className={cn('transition-colors', variantStyles[variant])}>
+    <Card className={cn(
+      'transition-colors backdrop-blur-sm',
+      variantStyles[variant]
+    )}>
       <CardContent className="p-4">
         <div className="flex items-start justify-between">
           <div className="space-y-1">
@@ -97,7 +100,10 @@ export function HealthCheckSummaryCards({ data }: HealthCheckSummaryCardsProps) 
   return (
     <div className="space-y-4">
       {/* Collector info row */}
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="
+        flex flex-wrap items-center gap-3 rounded-lg border border-border/70
+        bg-card/60 p-4 backdrop-blur-sm
+      ">
         <div className="flex items-center gap-2">
           <Server className="size-5 text-muted-foreground" />
           <span className="font-semibold">{collectorInfo.description || collectorInfo.hostname}</span>
@@ -160,4 +166,3 @@ export function HealthCheckSummaryCards({ data }: HealthCheckSummaryCardsProps) 
     </div>
   );
 }
-
