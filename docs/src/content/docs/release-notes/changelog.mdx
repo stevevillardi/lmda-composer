@@ -20,14 +20,68 @@ LMDA Composer follows semantic versioning (SemVer):
 
 ---
 
-## v1.5.0 — Create LogicModule Wizard & Enhanced Module Editing
+## v1.6.0 — LogSource Editing & Enhanced Search
+
+<div style="display: flex; align-items: center; gap: 0.75rem; margin: 1rem 0;">
+  <Badge text="v1.6.0" variant="note" />
+  <span style="font-size: 0.875rem; color: var(--sl-color-gray-3);">January 2026</span>
+</div>
+
+This release adds full LogSource configuration editing, expanded search capabilities, redesigned Health Check reports, and numerous UI improvements.
+
+### LogSource Configuration Editing
+
+| Feature | Description |
+|---------|-------------|
+| **Include Filters** | Add and edit log filters with operators like Contains, RegexMatch, and more. Configure AND/OR logic. |
+| **Log Fields** | Define log field mappings using Static values, Regex patterns, or LM Property tokens. |
+| **Resource Mappings** | Configure resource mappings with drag-to-reorder priority. Supports Static, Regex, and Token methods. |
+| **Full Sync Support** | Push and pull LogSource configurations alongside scripts and other module details. |
+
+### Enhanced Module Search
+
+| Feature | Description |
+|---------|-------------|
+| **All DataSource Types** | Datapoint search now includes SNMP, WMI, and other non-scripted DataSources—not just Groovy/PowerShell |
+| **Match Indicators** | See whether datapoint results matched by name or description with visual badges |
+| **LMX Links** | Jump directly to modules on the LogicMonitor Exchange from search results |
+
+### Redesigned Health Check Reports
+
+| Feature | Description |
+|---------|-------------|
+| **Modern Visual Design** | Refreshed styling with improved data visualization and consistent card layouts |
+| **Inline AppliesTo Testing** | Test suggested AppliesTo queries directly from the Health Check report with one click |
+| **Enhanced Debug Dialogs** | Improved layout for debug commands with better collector selection and results display |
+
+### Additional Features
+
+- **Save to Local Directory** — Option to save wizard-created modules as local directories for Git-friendly version control
+- **Release Notes Dialog** — In-app notifications show what's new after updates
+
+### Improvements
+
+- Refreshed Welcome Screens with streamlined actions and clearer workflows
+- Better unsaved changes dialog wording for clarity
+- Consistent button styling throughout UI
+- DisplayName validation prevents invalid hyphen usage in DataSource and ConfigSource
+
+### Bug Fixes
+
+- Fixed race conditions with tab state
+- Module search indexing now includes all module types for comprehensive datapoint search
+- Fixed missing API details for ConfigCheck push/pull operations
+
+---
+
+## v1.5.0 — Create LogicModule Wizard & API Explorer Docs
 
 <div style="display: flex; align-items: center; gap: 0.75rem; margin: 1rem 0;">
   <Badge text="v1.5.0" variant="note" />
   <span style="font-size: 0.875rem; color: var(--sl-color-gray-3);">January 2026</span>
 </div>
 
-This release introduces a powerful wizard for creating new LogicModules, full LogSource configuration editing, a redesigned Health Check experience, and expanded search capabilities.
+This release introduces the Create LogicModule Wizard for building new modules with a guided workflow, plus API Explorer documentation enhancements.
 
 ### Create LogicModule Wizard
 
@@ -36,7 +90,6 @@ This release introduces a powerful wizard for creating new LogicModules, full Lo
 | **Multi-Step Wizard** | Guided workflow for creating new modules with type selection, naming, and script configuration |
 | **All Module Types** | Support for DataSource, ConfigSource, TopologySource, PropertySource, LogSource, EventSource, and DiagnosticSource |
 | **Smart Defaults** | Auto-configures required fields like datapoints, config checks, and alert settings per module type |
-| **Save to Local Directory** | Option to save wizard-created modules as local directories for Git-friendly version control |
 
 ### Module Type Support
 
@@ -49,31 +102,6 @@ This release introduces a powerful wizard for creating new LogicModules, full Lo
 | LogSource | No | 5 min | No | logFields, resourceMapping |
 | EventSource | No | 30 min | No | Alert settings |
 | DiagnosticSource | No | On-demand | No | None |
-
-### LogSource Configuration Editing
-
-| Feature | Description |
-|---------|-------------|
-| **Include Filters** | Add and edit log filters with operators like Contains, RegexMatch, and more. Configure AND/OR logic. |
-| **Log Fields** | Define log field mappings using Static values, Regex patterns, or LM Property tokens. |
-| **Resource Mappings** | Configure resource mappings with drag-to-reorder priority. Supports Static, Regex, and Token methods. |
-| **Full Sync Support** | Push and pull LogSource configurations alongside scripts and other module details. |
-
-### Redesigned Health Check Reports
-
-| Feature | Description |
-|---------|-------------|
-| **Modern Visual Design** | Refreshed styling with improved data visualization and consistent card layouts |
-| **Inline AppliesTo Testing** | Test suggested AppliesTo queries directly from the Health Check report with one click |
-| **Enhanced Debug Dialogs** | Improved layout for debug commands with better collector selection and results display |
-
-### Enhanced Module Search
-
-| Feature | Description |
-|---------|-------------|
-| **All DataSource Types** | Datapoint search now includes SNMP, WMI, and other non-scripted DataSources—not just Groovy/PowerShell |
-| **Match Indicators** | See whether datapoint results matched by name or description with visual badges |
-| **LMX Links** | Jump directly to modules on the LogicMonitor Exchange from search results |
 
 ### Status Display Names
 
@@ -97,11 +125,10 @@ Example: Display `1` as "Online" and `0` as "Offline" instead of raw numbers.
 | **Schema Properties** | View request body schema with nested property details and required field indicators |
 | **Example Generation** | Auto-generated example request bodies based on the endpoint schema |
 
-### UI Improvements
+### Bug Fixes
 
-- **Refreshed Welcome Screens** — Streamlined actions with clearer workflows for creating, opening, and importing modules
-- **Release Notes Dialog** — In-app notifications show what's new after updates
-- **DisplayName Validation** — Validation prevents invalid hyphen usage in DataSource and ConfigSource display names
+- Fixed issue with logged out stale accounts
+- UI improvements for cursor interactions
 
 ---
 
@@ -130,7 +157,7 @@ This patch release includes improvements to module details editing and bug fixes
 
 <div style="display: flex; align-items: center; gap: 0.75rem; margin: 1rem 0;">
   <Badge text="v1.4.0" variant="note" />
-  <span style="font-size: 0.875rem; color: var(--sl-color-gray-3);">November 2025</span>
+  <span style="font-size: 0.875rem; color: var(--sl-color-gray-3);">December 2025</span>
 </div>
 
 This release adds full editing capabilities for DataSource datapoints and ConfigSource config checks directly within LMDA Composer.
@@ -183,7 +210,7 @@ This release adds full editing capabilities for DataSource datapoints and Config
 
 <div style="display: flex; align-items: center; gap: 0.75rem; margin: 1rem 0;">
   <Badge text="v1.3.5" variant="success" />
-  <span style="font-size: 0.875rem; color: var(--sl-color-gray-3);">January 2026</span>
+  <span style="font-size: 0.875rem; color: var(--sl-color-gray-3);">December 2025</span>
 </div>
 
 LMDA Composer is now available for LogicMonitor power users! This release includes a comprehensive set of features for LogicModule development.

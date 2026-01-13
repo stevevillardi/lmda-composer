@@ -28,31 +28,27 @@ export interface ReleaseNote {
  */
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
-    version: '1.5.0',
+    version: '1.6.0',
     date: 'January 2026',
-    title: 'Create LogicModule Wizard & Enhanced Module Editing',
+    title: 'LogSource Editing & Enhanced Search',
     highlights: [
-      'Create LogicModules with a guided wizard',
       'Full LogSource editing: Filters, Log Fields, and Resource Mappings',
       'Redesigned Health Check reports with inline AppliesTo testing',
       'Expanded datapoint search across all DataSource types',
+      'Save wizard-created modules as local directories',
     ],
     changes: [
       {
         category: 'added',
         items: [
-          'Create LogicModule Wizard - Build new modules with a guided multi-step workflow supporting all 7 module types',
-          'Save wizard-created modules as local directories for Git-friendly workflows',
           'LogSource editing - Add and edit Filters, Log Fields, and Resource Mappings in Module Details',
           'Sync support for LogSource configurations during push/pull operations',
+          'Save wizard-created modules as local directories for Git-friendly workflows',
           'In-app release notes dialog shows what\'s new after updates',
           'Inline AppliesTo testing directly from Health Check report queries',
           'Datapoint search now includes all DataSource types (SNMP, WMI, etc.), not just scripted modules',
           'Match indicators show whether datapoint results matched by name or description',
           'Direct links to LogicMonitor Exchange from search results',
-          'Status Display Names - Translate numeric values to human-readable status strings',
-          'Alert Message Templates with LogicMonitor token support',
-          'API Explorer Docs tab with endpoint documentation and example generation',
         ],
       },
       {
@@ -61,16 +57,46 @@ export const RELEASE_NOTES: ReleaseNote[] = [
           'Redesigned Health Check report with modern styling and better data visualization',
           'Enhanced Debug Commands dialog with improved layout and collector selection',
           'Refreshed Welcome Screens with streamlined actions and clearer workflows',
-          'Better unsaved changes dialog with context-specific action labels',
+          'Better unsaved changes dialog wording for clarity',
+          'Consistent button styling throughout UI',
           'Validation for displayNames containing hyphens in DataSource and ConfigSource',
         ],
       },
       {
         category: 'fixed',
         items: [
-          'ConfigCheck and datapoint details now properly sync during push/pull operations',
           'Race conditions with tab state resolved for more reliable navigation',
           'Module search indexing includes all module types for comprehensive datapoint search',
+          'Fixed missing API details for ConfigCheck push/pull operations',
+        ],
+      },
+    ],
+  },
+  {
+    version: '1.5.0',
+    date: 'January 2026',
+    title: 'Create LogicModule Wizard & API Explorer Docs',
+    highlights: [
+      'Create LogicModules with a guided wizard',
+      'API Explorer Docs tab with endpoint documentation',
+      'Status Display Names for datapoints',
+      'Alert Message Templates with token support',
+    ],
+    changes: [
+      {
+        category: 'added',
+        items: [
+          'Create LogicModule Wizard - Build new modules with a guided multi-step workflow supporting all 7 module types',
+          'Status Display Names - Translate numeric values to human-readable status strings',
+          'Alert Message Templates with LogicMonitor token support',
+          'API Explorer Docs tab with endpoint documentation and example generation',
+        ],
+      },
+      {
+        category: 'fixed',
+        items: [
+          'Fixed issue with logged out stale accounts',
+          'UI improvements for cursor interactions',
         ],
       },
     ],
@@ -103,7 +129,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
   },
   {
     version: '1.4.0',
-    date: 'November 2025',
+    date: 'December 2025',
     title: 'Module Details & Datapoints',
     highlights: [
       'Edit module details directly in LMDA Composer',
