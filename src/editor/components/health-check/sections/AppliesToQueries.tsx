@@ -78,18 +78,20 @@ export function AppliesToQueries({ queries }: AppliesToQueriesProps) {
               <p className="text-sm font-medium">{item.label}</p>
               <div className="flex shrink-0 items-center gap-1">
                 <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 gap-1.5 px-2"
-                      onClick={() => handleTestQuery(item.query)}
-                      disabled={!selectedPortalId}
-                    >
-                      <Play className="size-3.5" />
-                      <span className="text-xs">Test</span>
-                    </Button>
-                  </TooltipTrigger>
+                  <TooltipTrigger
+                    render={
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 gap-1.5 px-2"
+                        onClick={() => handleTestQuery(item.query)}
+                        disabled={!selectedPortalId}
+                      >
+                        <Play className="size-3.5" />
+                        <span className="text-xs">Test</span>
+                      </Button>
+                    }
+                  />
                   <TooltipContent>
                     {selectedPortalId 
                       ? 'Test this query in the AppliesTo Toolbox' 
@@ -97,20 +99,22 @@ export function AppliesToQueries({ queries }: AppliesToQueriesProps) {
                   </TooltipContent>
                 </Tooltip>
                 <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 px-2"
-                      onClick={() => copyToClipboard(item.query, index)}
-                    >
-                      {copiedIndex === index ? (
-                        <Check className="size-3.5 text-teal-500" />
-                      ) : (
-                        <Copy className="size-3.5" />
-                      )}
-                    </Button>
-                  </TooltipTrigger>
+                  <TooltipTrigger
+                    render={
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2"
+                        onClick={() => copyToClipboard(item.query, index)}
+                      >
+                        {copiedIndex === index ? (
+                          <Check className="size-3.5 text-teal-500" />
+                        ) : (
+                          <Copy className="size-3.5" />
+                        )}
+                      </Button>
+                    }
+                  />
                   <TooltipContent>Copy query</TooltipContent>
                 </Tooltip>
               </div>

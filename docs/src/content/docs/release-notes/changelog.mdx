@@ -30,14 +30,14 @@ LMDA Composer follows semantic versioning (SemVer):
 
 ---
 
-## v1.5.0 — Create LogicModule Wizard
+## v1.5.0 — Create LogicModule Wizard & Enhanced Module Editing
 
 <div style="display: flex; align-items: center; gap: 0.75rem; margin: 1rem 0;">
   <Badge text="v1.5.0" variant="note" />
   <span style="font-size: 0.875rem; color: var(--sl-color-gray-3);">January 2026</span>
 </div>
 
-This release introduces a powerful wizard for creating new LogicModules directly from LMDA Composer, plus enhanced datapoint editing features.
+This release introduces a powerful wizard for creating new LogicModules, full LogSource configuration editing, a redesigned Health Check experience, and expanded search capabilities.
 
 ### Create LogicModule Wizard
 
@@ -51,8 +51,8 @@ This release introduces a powerful wizard for creating new LogicModules directly
   <FeatureCard title="Smart Defaults" icon="check-circle" color="green">
     Auto-configures required fields like datapoints, config checks, and alert settings per module type.
   </FeatureCard>
-  <FeatureCard title="Safe Development" icon="lock" color="orange">
-    Sets AppliesTo to `false()` so new modules are inactive until you configure targeting.
+  <FeatureCard title="Save to Local Directory" icon="folder" color="cyan">
+    Option to save wizard-created modules as local directories for Git-friendly version control.
   </FeatureCard>
 </CardGrid>
 
@@ -68,6 +68,51 @@ This release introduces a powerful wizard for creating new LogicModules directly
 | EventSource | No | 30 min | No | Alert settings |
 | DiagnosticSource | No | On-demand | No | None |
 
+### LogSource Configuration Editing
+
+<CardGrid>
+  <FeatureCard title="Include Filters" icon="filter" color="blue">
+    Add and edit log filters with operators like Contains, RegexMatch, and more. Configure AND/OR logic.
+  </FeatureCard>
+  <FeatureCard title="Log Fields" icon="tag" color="purple">
+    Define log field mappings using Static values, Regex patterns, or LM Property tokens.
+  </FeatureCard>
+  <FeatureCard title="Resource Mappings" icon="link" color="green">
+    Configure resource mappings with drag-to-reorder priority. Supports Static, Regex, and Token methods.
+  </FeatureCard>
+  <FeatureCard title="Full Sync Support" icon="refresh-cw" color="orange">
+    Push and pull LogSource configurations alongside scripts and other module details.
+  </FeatureCard>
+</CardGrid>
+
+### Redesigned Health Check Reports
+
+<CardGrid>
+  <FeatureCard title="Modern Visual Design" icon="layout" color="blue">
+    Refreshed styling with improved data visualization and consistent card layouts.
+  </FeatureCard>
+  <FeatureCard title="Inline AppliesTo Testing" icon="play" color="green">
+    Test suggested AppliesTo queries directly from the Health Check report with one click.
+  </FeatureCard>
+  <FeatureCard title="Enhanced Debug Dialogs" icon="terminal" color="purple">
+    Improved layout for debug commands with better collector selection and results display.
+  </FeatureCard>
+</CardGrid>
+
+### Enhanced Module Search
+
+<CardGrid>
+  <FeatureCard title="All DataSource Types" icon="search" color="blue">
+    Datapoint search now includes SNMP, WMI, and other non-scripted DataSources—not just Groovy/PowerShell.
+  </FeatureCard>
+  <FeatureCard title="Match Indicators" icon="tag" color="purple">
+    See whether datapoint results matched by name or description with visual badges.
+  </FeatureCard>
+  <FeatureCard title="LMX Links" icon="external-link" color="green">
+    Jump directly to modules on the LogicMonitor Exchange from search results.
+  </FeatureCard>
+</CardGrid>
+
 ### Status Display Names
 
 <CardGrid>
@@ -76,9 +121,6 @@ This release introduces a powerful wizard for creating new LogicModules directly
   </FeatureCard>
   <FeatureCard title="Flexible Operators" icon="filter" color="purple">
     Configure conditions with equals, greater than, less than, and range operators.
-  </FeatureCard>
-  <FeatureCard title="Multiple Translations" icon="list" color="blue">
-    Add multiple status translations per datapoint for different value ranges.
   </FeatureCard>
 </CardGrid>
 
@@ -109,14 +151,17 @@ Example: Display `1` as "Online" and `0` as "Offline" instead of raw numbers.
   </FeatureCard>
 </CardGrid>
 
-### UI Enhancements
+### UI Improvements
 
 <CardGrid>
-  <FeatureCard title="Auto-Populate Display Name" icon="pencil" color="blue">
-    Display name automatically syncs with module name until manually edited.
+  <FeatureCard title="Refreshed Welcome Screens" icon="home" color="blue">
+    Streamlined actions with clearer workflows for creating, opening, and importing modules.
   </FeatureCard>
-  <FeatureCard title="Confirmation Review" icon="document" color="purple">
-    Review all wizard choices before creating the module in your portal.
+  <FeatureCard title="Release Notes Dialog" icon="bell" color="purple">
+    In-app notifications show what's new after updates.
+  </FeatureCard>
+  <FeatureCard title="DisplayName Validation" icon="check" color="green">
+    Validation prevents invalid hyphen usage in DataSource and ConfigSource display names.
   </FeatureCard>
 </CardGrid>
 
