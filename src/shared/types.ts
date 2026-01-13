@@ -708,6 +708,11 @@ export interface DataPointSearchResult {
     alertTransitionInterval?: number;
     alertClearTransitionInterval?: number;
   };
+  /** Indicates which fields matched the search query */
+  matchedFields: {
+    name: boolean;
+    description: boolean;
+  };
 }
 
 export interface LogicModule {

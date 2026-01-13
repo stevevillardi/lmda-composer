@@ -116,6 +116,10 @@ export async function searchDatapoints(
           alertTransitionInterval: dataPoint.alertTransitionInterval,
           alertClearTransitionInterval: dataPoint.alertClearTransitionInterval,
         },
+        matchedFields: {
+          name: nameMatch,
+          description: descriptionMatch,
+        },
       });
     }
   }

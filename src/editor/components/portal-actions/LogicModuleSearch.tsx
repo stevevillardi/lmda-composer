@@ -13,7 +13,11 @@ import {
   RefreshCw,
   X,
   FileCode,
+  FileText,
   Tag,
+  ExternalLink,
+  Maximize2,
+  Minimize2,
 } from 'lucide-react';
 import {
   ActiveDiscoveryIcon,
@@ -50,6 +54,8 @@ import {
   CriticalAlertIcon,
 } from '../../constants/icons';
 import { buildMonacoOptions, getMonacoTheme } from '@/editor/utils/monaco-settings';
+import { buildPortalEditUrl } from '@/shared/module-type-schemas';
+import { buildSearchRegex } from '@/shared/module-search-utils';
 
 import '../../monaco-loader';
 
@@ -104,8 +110,83 @@ function dedupeLineHighlights(matches: ScriptMatchRange[]): ScriptMatchRange[] {
   });
 }
 
+/**
+ * Renders text with highlighted portions that match the search query.
+ * Uses the same matching logic as the search functionality.
+ */
+function HighlightedText({ 
+  text, 
+  query, 
+  matchType, 
+  caseSensitive,
+  className 
+}: { 
+  text: string; 
+  query: string; 
+  matchType: ModuleSearchMatchType;
+  caseSensitive: boolean;
+  className?: string;
+}) {
+  if (!text || !query.trim()) {
+    return <span className={className}>{text}</span>;
+  }
+
+  try {
+    const regex = buildSearchRegex(query, matchType, caseSensitive);
+    const parts: Array<{ text: string; isMatch: boolean }> = [];
+    let lastIndex = 0;
+    let match = regex.exec(text);
+
+    while (match) {
+      // Add text before match
+      if (match.index > lastIndex) {
+        parts.push({ text: text.slice(lastIndex, match.index), isMatch: false });
+      }
+      // Add matched text
+      if (match[0].length > 0) {
+        parts.push({ text: match[0], isMatch: true });
+        lastIndex = match.index + match[0].length;
+      } else {
+        // Prevent infinite loop on zero-length matches
+        regex.lastIndex += 1;
+      }
+      match = regex.exec(text);
+    }
+
+    // Add remaining text after last match
+    if (lastIndex < text.length) {
+      parts.push({ text: text.slice(lastIndex), isMatch: false });
+    }
+
+    if (parts.length === 0) {
+      return <span className={className}>{text}</span>;
+    }
+
+    return (
+      <span className={className}>
+        {parts.map((part, i) => 
+          part.isMatch ? (
+            <mark 
+              key={i} 
+              className="rounded-sm bg-yellow-300/50 px-0.5 dark:bg-yellow-500/40"
+            >
+              {part.text}
+            </mark>
+          ) : (
+            <span key={i}>{part.text}</span>
+          )
+        )}
+      </span>
+    );
+  } catch {
+    // If regex is invalid, just return plain text
+    return <span className={className}>{text}</span>;
+  }
+}
+
 export function LogicModuleSearch() {
   const {
+    portals,
     selectedPortalId,
     moduleSearchOpen,
     setModuleSearchOpen,
@@ -195,6 +276,15 @@ export function LogicModuleSearch() {
       existing.push(result);
       grouped.set(result.module.moduleType, existing);
     }
+    // Sort results within each group alphabetically by displayName/name
+    for (const [key, results] of grouped) {
+      results.sort((a, b) => {
+        const nameA = (a.module.displayName || a.module.name).toLowerCase();
+        const nameB = (b.module.displayName || b.module.name).toLowerCase();
+        return nameA.localeCompare(nameB);
+      });
+      grouped.set(key, results);
+    }
     return grouped;
   }, [moduleScriptSearchResults]);
 
@@ -206,7 +296,22 @@ export function LogicModuleSearch() {
       existing.push(result);
       grouped.set(key, existing);
     }
-    return grouped;
+    // Sort datapoints within each module group alphabetically by name
+    for (const [key, results] of grouped) {
+      results.sort((a, b) => {
+        const nameA = a.dataPoint.name.toLowerCase();
+        const nameB = b.dataPoint.name.toLowerCase();
+        return nameA.localeCompare(nameB);
+      });
+      grouped.set(key, results);
+    }
+    // Sort the grouped entries by module displayName
+    const sortedEntries = Array.from(grouped.entries()).sort((a, b) => {
+      const nameA = (a[1][0]?.moduleDisplayName || a[1][0]?.moduleName || '').toLowerCase();
+      const nameB = (b[1][0]?.moduleDisplayName || b[1][0]?.moduleName || '').toLowerCase();
+      return nameA.localeCompare(nameB);
+    });
+    return new Map(sortedEntries);
   }, [moduleDatapointSearchResults]);
 
   const handleSearch = async () => {
@@ -222,6 +327,43 @@ export function LogicModuleSearch() {
     const selected = Array.isArray(value) ? value : [value];
     setModuleSearchModuleTypes(selected.filter(Boolean) as LogicModuleType[]);
   };
+
+  // Get all group keys for expand/collapse all
+  const allGroupKeys = useMemo(() => {
+    if (moduleSearchMode === 'scripts') {
+      return Array.from(groupedScriptResults.keys());
+    }
+    return Array.from(groupedDatapointResults.keys());
+  }, [moduleSearchMode, groupedScriptResults, groupedDatapointResults]);
+
+  // Calculate total match counts for script search
+  const totalScriptMatchCount = useMemo(() => {
+    return moduleScriptSearchResults.reduce((acc, result) => {
+      return acc + result.collectionMatches.length + result.adMatches.length;
+    }, 0);
+  }, [moduleScriptSearchResults]);
+
+  // Check if all groups are currently expanded
+  const allExpanded = useMemo(() => {
+    if (allGroupKeys.length === 0) return false;
+    return allGroupKeys.every(key => !collapsedGroups[key]);
+  }, [allGroupKeys, collapsedGroups]);
+
+  const handleToggleExpandCollapse = () => {
+    const collapsed: Record<string, boolean> = {};
+    const shouldCollapse = allExpanded;
+    for (const key of allGroupKeys) {
+      collapsed[key] = shouldCollapse;
+    }
+    setCollapsedGroups(collapsed);
+  };
+
+  // Get portal hostname for external links
+  const portalHostname = useMemo(() => {
+    if (!selectedPortalId) return null;
+    const portal = portals.find(p => p.id === selectedPortalId);
+    return portal?.hostname || null;
+  }, [portals, selectedPortalId]);
 
   const applyHighlights = (
     editorInstance: editor.IStandaloneCodeEditor | null,
@@ -494,11 +636,10 @@ export function LogicModuleSearch() {
                           <div className="flex shrink-0 items-center gap-1">
                             {isNameOnlyMatch ? (
                               <Badge
-                                variant="outline"
+                                variant="secondary"
                                 className="
-                                  flex h-4 items-center gap-1
-                                  border-muted-foreground/30 px-1 text-[9px]
-                                  text-muted-foreground
+                                  flex h-4 items-center gap-1 bg-primary/10
+                                  px-1 text-[9px] text-primary
                                 "
                                 aria-label="Matched by module name"
                               >
@@ -624,15 +765,47 @@ export function LogicModuleSearch() {
                         )}
                         onClick={() => setSelectedDatapointSearchResult(result)}
                       >
-                        <div className={cn("truncate text-sm", isSelected ? `
-                          font-medium text-foreground
-                        ` : `font-normal text-foreground/90`)}>
-                          {result.dataPoint.name}
-                        </div>
-                        <div className="
-                          mt-0.5 truncate text-xs text-muted-foreground/70
-                        ">
-                          {result.dataPoint.description}
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex-1">
+                            <div className={cn("truncate text-sm", isSelected ? `
+                              font-medium text-foreground
+                            ` : `font-normal text-foreground/90`)}>
+                              {result.dataPoint.name}
+                            </div>
+                            <div className="
+                              mt-0.5 truncate text-xs text-muted-foreground/70
+                            ">
+                              {result.dataPoint.description}
+                            </div>
+                          </div>
+                          <div className="flex shrink-0 items-center gap-1">
+                            {result.matchedFields?.name && (
+                              <Badge
+                                variant="secondary"
+                                className="
+                                  flex h-4 items-center gap-1 bg-primary/10
+                                  px-1 text-[9px] text-primary
+                                "
+                                aria-label="Matched by datapoint name"
+                              >
+                                <Tag className="size-2.5" />
+                                Name
+                              </Badge>
+                            )}
+                            {result.matchedFields?.description && (
+                              <Badge
+                                variant="secondary"
+                                className="
+                                  flex h-4 items-center gap-1 bg-teal-500/10
+                                  px-1 text-[9px] text-teal-600
+                                "
+                                aria-label="Matched by description"
+                              >
+                                <FileText className="size-2.5" />
+                                Desc
+                              </Badge>
+                            )}
+                          </div>
                         </div>
                       </button>
                     );
@@ -683,15 +856,41 @@ export function LogicModuleSearch() {
             <div className="flex items-start justify-between gap-4">
               <div className="min-w-0 flex-1">
                 <h3 className="truncate text-sm font-medium">
-                  {dataPoint.name}
+                  <HighlightedText
+                    text={dataPoint.name}
+                    query={moduleSearchTerm}
+                    matchType={moduleSearchMatchType}
+                    caseSensitive={moduleSearchCaseSensitive}
+                  />
                 </h3>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  {dataPoint.description || 'No description'}
+                  <HighlightedText
+                    text={dataPoint.description || 'No description'}
+                    query={moduleSearchTerm}
+                    matchType={moduleSearchMatchType}
+                    caseSensitive={moduleSearchCaseSensitive}
+                  />
                 </p>
               </div>
-              <Badge variant="outline" className="font-mono text-xs">
-                {selectedDatapointSearchResult.moduleDisplayName}
-              </Badge>
+              <div className="flex shrink-0 items-center gap-2">
+                <Badge variant="outline" className="font-mono text-xs">
+                  {selectedDatapointSearchResult.moduleDisplayName}
+                </Badge>
+                {portalHostname && (
+                  <Button
+                    variant="outline"
+                    size="xs"
+                    className="h-6 gap-1 px-2 text-[10px]"
+                    onClick={() => {
+                      const url = buildPortalEditUrl(portalHostname, 'datasource', selectedDatapointSearchResult.moduleId);
+                      window.open(url, '_blank');
+                    }}
+                  >
+                    <ExternalLink className="size-3" />
+                    Open in Portal
+                  </Button>
+                )}
+              </div>
             </div>
             <div className="
               mt-2 truncate font-mono text-xs text-muted-foreground
@@ -792,14 +991,14 @@ export function LogicModuleSearch() {
           fade-in
         ">
           <Empty className="
-            w-full max-w-sm border-none bg-transparent shadow-none
+            w-full max-w-xl border-none bg-transparent shadow-none
           ">
             <EmptyMedia variant="icon" className="mx-auto mb-4 bg-muted/50">
               <FileCode className="size-5 text-muted-foreground/70" />
             </EmptyMedia>
             <EmptyHeader>
               <EmptyTitle className="text-base font-medium">Search Across All Modules</EmptyTitle>
-              <EmptyDescription className="mx-auto mt-1.5 max-w-xs">
+              <EmptyDescription className="mx-auto mt-1.5 max-w-lg">
                 Find LogicModules by name or search within script content.
                 Select a result to preview matches.
               </EmptyDescription>
@@ -822,12 +1021,22 @@ export function LogicModuleSearch() {
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0 flex-1">
               <h3 className="truncate text-sm font-medium">
-                {module.displayName || module.name}
+                <HighlightedText
+                  text={module.displayName || module.name}
+                  query={moduleSearchTerm}
+                  matchType={moduleSearchMatchType}
+                  caseSensitive={moduleSearchCaseSensitive}
+                />
               </h3>
               <p className="
                 mt-0.5 truncate font-mono text-xs text-muted-foreground
               ">
-                {module.name}
+                <HighlightedText
+                  text={module.name}
+                  query={moduleSearchTerm}
+                  matchType={moduleSearchMatchType}
+                  caseSensitive={moduleSearchCaseSensitive}
+                />
               </p>
             </div>
             <div className="flex shrink-0 items-center gap-2">
@@ -837,6 +1046,20 @@ export function LogicModuleSearch() {
               <Badge variant="outline" className="text-xs">
                 {language}
               </Badge>
+              {portalHostname && (
+                <Button
+                  variant="outline"
+                  size="xs"
+                  className="h-6 gap-1 px-2 text-[10px]"
+                  onClick={() => {
+                    const url = buildPortalEditUrl(portalHostname, module.moduleType, module.id);
+                    window.open(url, '_blank');
+                  }}
+                >
+                  <ExternalLink className="size-3" />
+                  Open in Portal
+                </Button>
+              )}
             </div>
           </div>
           {module.appliesTo && (
@@ -1218,12 +1441,33 @@ export function LogicModuleSearch() {
             ">
               <span>
                 {moduleSearchMode === 'scripts'
-                  ? `${moduleScriptSearchResults.length} module${moduleScriptSearchResults.length === 1 ? '' : 's'}`
+                  ? `${moduleScriptSearchResults.length} module${moduleScriptSearchResults.length === 1 ? '' : 's'}${totalScriptMatchCount > 0 ? ` • ${totalScriptMatchCount} match${totalScriptMatchCount === 1 ? '' : 'es'}` : ''}`
                   : `${moduleDatapointSearchResults.length} datapoint${moduleDatapointSearchResults.length === 1 ? '' : 's'}`}
               </span>
-              <Badge variant="outline" className="text-[10px] uppercase">
-                {MATCH_LABELS[moduleSearchMatchType]}
-              </Badge>
+              <div className="flex items-center gap-1.5">
+                <Button
+                  variant="ghost"
+                  size="xs"
+                  onClick={handleToggleExpandCollapse}
+                  disabled={allGroupKeys.length === 0}
+                  className="h-6 gap-1 px-1.5 text-[10px]"
+                >
+                  {allExpanded ? (
+                    <>
+                      <Minimize2 className="size-3" />
+                      Collapse
+                    </>
+                  ) : (
+                    <>
+                      <Maximize2 className="size-3" />
+                      Expand
+                    </>
+                  )}
+                </Button>
+                <Badge variant="outline" className="text-[10px] uppercase">
+                  {MATCH_LABELS[moduleSearchMatchType]}
+                </Badge>
+              </div>
             </div>
             <div className="flex-1 overflow-auto">
               {renderResultsList()}

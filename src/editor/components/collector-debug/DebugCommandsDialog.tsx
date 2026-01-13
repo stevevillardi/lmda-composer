@@ -335,6 +335,7 @@ export function DebugCommandsDialog() {
     <Dialog open={debugCommandsDialogOpen} onOpenChange={setDebugCommandsDialogOpen}>
       <DialogContent className="
         flex h-[90vh] w-[95vw]! max-w-[95vw]! flex-col gap-0 p-0
+        select-none
       " showCloseButton>
         <DialogHeader className="border-b px-6 pt-6 pb-4">
           <DialogTitle className="flex items-center gap-2">
@@ -852,7 +853,7 @@ export function DebugCommandsDialog() {
                 )}
               </>
             ) : (
-              <div className="flex flex-1 items-center justify-center p-6">
+              <div className="flex flex-1 items-center justify-center p-6 select-none">
                 <div className="text-center text-muted-foreground">
                   <Terminal className="mx-auto mb-4 size-12 opacity-50" />
                   <p className="mb-2 text-lg font-medium">Select a command</p>

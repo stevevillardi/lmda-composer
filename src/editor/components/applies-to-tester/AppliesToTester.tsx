@@ -602,7 +602,7 @@ export function AppliesToTester() {
       }}
     >
       <DialogContent className="
-        flex h-[90vh] w-[90vw]! max-w-[90vw]! flex-col gap-0 p-0
+        flex h-[90vh] w-[90vw]! max-w-[90vw]! flex-col gap-0 p-0 select-none
       " showCloseButton>
         {/* Header */}
         <DialogHeader className="relative shrink-0 border-b px-6 pt-6 pb-4">
@@ -633,18 +633,18 @@ export function AppliesToTester() {
               />
               <SheetContent side="right" className="
                 flex w-full flex-col p-0
-                sm:max-w-md
+                sm:max-w-md select-none
               ">
-                <SheetHeader className="border-b p-6">
-                  <SheetTitle>Function Reference</SheetTitle>
-                  <SheetDescription>
-                    Browse built-in functions, operators, and manage your custom functions.
-                  </SheetDescription>
-                </SheetHeader>
-                
-                <div className="flex-1 overflow-auto p-6">
-                  {/* Search and Filter */}
-                  <div className="mb-4 flex items-center gap-2">
+                <SheetHeader className="shrink-0 space-y-4 border-b px-6 pt-6 pb-4">
+                  <div>
+                    <SheetTitle>Function Reference</SheetTitle>
+                    <SheetDescription>
+                      Browse built-in functions, operators, and manage your custom functions.
+                    </SheetDescription>
+                  </div>
+                  
+                  {/* Search and Filter - Fixed in header */}
+                  <div className="flex items-center gap-2">
                     <div className="relative flex-1">
                       <Search className="
                         absolute top-1/2 left-2.5 size-4 -translate-y-1/2
@@ -672,7 +672,9 @@ export function AppliesToTester() {
                       />
                     </div>
                   </div>
-                  
+                </SheetHeader>
+                
+                <div className="min-h-0 flex-1 overflow-auto p-4">
                   {/* Loading state */}
                   {isLoadingCustomFunctions && (
                     <div className="flex items-center justify-center py-8">
