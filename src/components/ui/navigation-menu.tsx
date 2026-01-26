@@ -28,11 +28,10 @@ function NavigationMenu({
   )
 }
 
-function NavigationMenuList({
-  className,
-  ref,
-  ...props
-}: NavigationMenuPrimitive.List.Props) {
+const NavigationMenuList = React.forwardRef<
+  HTMLDivElement,
+  NavigationMenuPrimitive.List.Props
+>(({ className, ...props }, ref) => {
   return (
     <NavigationMenuPrimitive.List
       data-slot="navigation-menu-list"
@@ -40,26 +39,27 @@ function NavigationMenuList({
         "group flex flex-1 list-none items-center justify-center gap-0",
         className
       )}
-      ref={ref as React.Ref<HTMLDivElement>}
+      ref={ref}
       {...props}
     />
   )
-}
+})
+NavigationMenuList.displayName = "NavigationMenuList"
 
-function NavigationMenuItem({
-  className,
-  ref,
-  ...props
-}: NavigationMenuPrimitive.Item.Props) {
+const NavigationMenuItem = React.forwardRef<
+  HTMLDivElement,
+  NavigationMenuPrimitive.Item.Props
+>(({ className, ...props }, ref) => {
   return (
     <NavigationMenuPrimitive.Item
       data-slot="navigation-menu-item"
       className={cn("relative", className)}
-      ref={ref as React.Ref<HTMLDivElement>}
+      ref={ref}
       {...props}
     />
   )
-}
+})
+NavigationMenuItem.displayName = "NavigationMenuItem"
 
 const navigationMenuTriggerStyle = cva(
   `
@@ -209,11 +209,10 @@ function NavigationMenuLink({
   )
 }
 
-function NavigationMenuIndicator({
-  className,
-  ref,
-  ...props
-}: NavigationMenuPrimitive.Icon.Props) {
+const NavigationMenuIndicator = React.forwardRef<
+  HTMLDivElement,
+  NavigationMenuPrimitive.Icon.Props
+>(({ className, ...props }, ref) => {
   return (
     <NavigationMenuPrimitive.Icon
       data-slot="navigation-menu-indicator"
@@ -225,7 +224,7 @@ function NavigationMenuIndicator({
         `,
         className
       )}
-      ref={ref as React.Ref<HTMLDivElement>}
+      ref={ref}
       {...props}
     >
       <div className="
@@ -233,7 +232,8 @@ function NavigationMenuIndicator({
       " />
     </NavigationMenuPrimitive.Icon>
   )
-}
+})
+NavigationMenuIndicator.displayName = "NavigationMenuIndicator"
 
 export {
   NavigationMenu,

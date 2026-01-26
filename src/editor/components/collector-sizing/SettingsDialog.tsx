@@ -637,7 +637,7 @@ function DeviceTypesTab() {
               <div className="flex-1">
                 <Select value={selectedMethod} onValueChange={(v) => v && setSelectedMethod(v)}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select method" />
+                    <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     {Object.keys(methodWeights as unknown as Record<string, number>)
@@ -783,7 +783,7 @@ function DeviceTypesTab() {
                     <div className="flex-1">
                       <Select value={selectedMethod} onValueChange={(v) => v && setSelectedMethod(v)}>
                         <SelectTrigger className="h-7 text-xs">
-                          <SelectValue placeholder="Method" />
+                          <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                           {getAvailableMethods(deviceType).map((method) => (
