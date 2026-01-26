@@ -1,4 +1,5 @@
 import type { Portal, Collector, DeviceInfo, DeviceProperty, AppliesToTestResult, AppliesToTestError, AppliesToTestFrom } from '@/shared/types';
+import { executeScriptWithTimeout, withTimeout, SCRIPT_EXECUTION_TIMEOUT_MS } from './utils/timeout';
 
 const STORAGE_KEY = 'lm-ide-portals';
 const NON_PORTAL_SUBDOMAINS = new Set([
@@ -454,23 +455,32 @@ export class PortalManager {
             await new Promise(resolve => setTimeout(resolve, retryDelay));
           }
           
-          const results = await chrome.scripting.executeScript({
-            target: { tabId },
-            world: 'MAIN', // Execute in the main world to access page's window object
-            func: () => {
-              const lmgd = (window as unknown as { LMGlobalData?: unknown }).LMGlobalData;
-              if (typeof lmgd === 'undefined' || lmgd === null) {
-                return { hasLMGlobalData: false, isPopulated: false };
-              }
-              if (typeof lmgd !== 'object') {
-                // Unexpected shape, but it exists and is "not empty"
-                return { hasLMGlobalData: true, isPopulated: true };
-              }
-              // Login pages can have LMGlobalData = {}. Treat that as not authenticated.
-              const keys = Object.keys(lmgd as Record<string, unknown>);
-              return { hasLMGlobalData: true, isPopulated: keys.length > 0 };
+          const results = await executeScriptWithTimeout(
+            tabId,
+            {
+              world: 'MAIN', // Execute in the main world to access page's window object
+              func: () => {
+                const lmgd = (window as unknown as { LMGlobalData?: unknown }).LMGlobalData;
+                if (typeof lmgd === 'undefined' || lmgd === null) {
+                  return { hasLMGlobalData: false, isPopulated: false };
+                }
+                if (typeof lmgd !== 'object') {
+                  // Unexpected shape, but it exists and is "not empty"
+                  return { hasLMGlobalData: true, isPopulated: true };
+                }
+                // Login pages can have LMGlobalData = {}. Treat that as not authenticated.
+                const keys = Object.keys(lmgd as Record<string, unknown>);
+                return { hasLMGlobalData: true, isPopulated: keys.length > 0 };
+              },
             },
-          });
+            SCRIPT_EXECUTION_TIMEOUT_MS
+          );
+
+          // Timeout returns null - treat as verification failure
+          if (results === null) {
+            console.warn(`Portal verification timed out for tab ${tabId}`);
+            return false;
+          }
           
           const result = results?.[0]?.result as
             | { hasLMGlobalData: boolean; isPopulated: boolean }
@@ -533,16 +543,20 @@ export class PortalManager {
   private async hasActiveSessionForTab(tabId: number): Promise<boolean> {
     // Keep this cheap: no retries/delays here. Callers can decide when to retry.
     try {
-      const results = await chrome.scripting.executeScript({
-        target: { tabId },
-        world: 'MAIN',
-        func: () => {
-          const lmgd = (window as unknown as { LMGlobalData?: unknown }).LMGlobalData;
-          if (typeof lmgd === 'undefined' || lmgd === null) return false;
-          if (typeof lmgd !== 'object') return true;
-          return Object.keys(lmgd as Record<string, unknown>).length > 0;
+      const results = await executeScriptWithTimeout(
+        tabId,
+        {
+          world: 'MAIN',
+          func: () => {
+            const lmgd = (window as unknown as { LMGlobalData?: unknown }).LMGlobalData;
+            if (typeof lmgd === 'undefined' || lmgd === null) return false;
+            if (typeof lmgd !== 'object') return true;
+            return Object.keys(lmgd as Record<string, unknown>).length > 0;
+          },
         },
-      });
+        SCRIPT_EXECUTION_TIMEOUT_MS
+      );
+      // Timeout returns null - treat as no active session
       return results?.[0]?.result === true;
     } catch {
       return false;
@@ -560,7 +574,10 @@ export class PortalManager {
   }
 
   async refreshAllCsrfTokens(): Promise<void> {
-    const refreshPromises: Promise<void>[] = [];
+    // Process portals individually with timeout to prevent one frozen tab from blocking all.
+    // Using sequential processing with per-portal timeout instead of Promise.allSettled
+    // because allSettled would still block waiting for hanging promises.
+    const PORTAL_REFRESH_TIMEOUT_MS = 10000; // 10 seconds per portal (includes retries)
 
     for (const portal of this.portals.values()) {
       if (portal.csrfToken && portal.csrfTokenTimestamp) {
@@ -573,11 +590,18 @@ export class PortalManager {
         }
       }
       if (portal.tabIds.length > 0) {
-        refreshPromises.push(this.refreshCsrfToken(portal));
+        try {
+          await withTimeout(
+            this.refreshCsrfToken(portal),
+            PORTAL_REFRESH_TIMEOUT_MS,
+            `CSRF refresh timed out for portal ${portal.hostname}`
+          );
+        } catch (error) {
+          // Log and continue - don't block on one frozen tab
+          console.warn(`[PortalManager] Failed to refresh CSRF for ${portal.hostname}:`, error);
+        }
       }
     }
-
-    await Promise.allSettled(refreshPromises);
   }
 
   private async refreshCsrfToken(portal: Portal): Promise<void> {
@@ -599,10 +623,17 @@ export class PortalManager {
         }
 
       // Execute in content script context to fetch CSRF token
-      const results = await chrome.scripting.executeScript({
-        target: { tabId },
-        func: fetchCsrfToken,
-      });
+      const results = await executeScriptWithTimeout(
+        tabId,
+        { func: fetchCsrfToken },
+        SCRIPT_EXECUTION_TIMEOUT_MS
+      );
+
+      // Timeout returns null - try next candidate
+      if (results === null) {
+        console.warn(`[PortalManager] CSRF token fetch timed out for tab ${tabId}`);
+        continue;
+      }
 
       const token = results?.[0]?.result ?? null;
       if (token) {
@@ -673,11 +704,20 @@ export class PortalManager {
     if ('error' in resolved) return [];
 
     try {
-      const results = await chrome.scripting.executeScript({
-        target: { tabId: resolved.tabId },
-        func: fetchCollectors,
-        args: [resolved.portal.csrfToken],
-      });
+      const results = await executeScriptWithTimeout(
+        resolved.tabId,
+        {
+          func: fetchCollectors,
+          args: [resolved.portal.csrfToken],
+        },
+        SCRIPT_EXECUTION_TIMEOUT_MS
+      );
+
+      // Timeout returns null
+      if (results === null) {
+        console.warn(`[PortalManager] getCollectors timed out for tab ${resolved.tabId}`);
+        return [];
+      }
 
       return results?.[0]?.result ?? [];
     } catch {
@@ -696,11 +736,20 @@ export class PortalManager {
     }
 
     try {
-      const results = await chrome.scripting.executeScript({
-        target: { tabId: resolved.tabId },
-        func: fetchDevices,
-        args: [resolved.portal.csrfToken, collectorId],
-      });
+      const results = await executeScriptWithTimeout(
+        resolved.tabId,
+        {
+          func: fetchDevices,
+          args: [resolved.portal.csrfToken, collectorId],
+        },
+        SCRIPT_EXECUTION_TIMEOUT_MS
+      );
+
+      // Timeout returns null
+      if (results === null) {
+        console.warn(`[PortalManager] getDevices timed out for tab ${resolved.tabId}`);
+        return { items: [], total: 0, error: 'TIMEOUT' };
+      }
 
       return results?.[0]?.result ?? { items: [], total: 0 };
     } catch {
@@ -722,11 +771,20 @@ export class PortalManager {
     if ('error' in resolved) return null;
 
     try {
-      const results = await chrome.scripting.executeScript({
-        target: { tabId: resolved.tabId },
-        func: fetchDeviceById,
-        args: [resolved.portal.csrfToken, resourceId],
-      });
+      const results = await executeScriptWithTimeout(
+        resolved.tabId,
+        {
+          func: fetchDeviceById,
+          args: [resolved.portal.csrfToken, resourceId],
+        },
+        SCRIPT_EXECUTION_TIMEOUT_MS
+      );
+
+      // Timeout returns null
+      if (results === null) {
+        console.warn(`[PortalManager] getDeviceById timed out for tab ${resolved.tabId}`);
+        return null;
+      }
 
       return results?.[0]?.result ?? null;
     } catch {
@@ -744,11 +802,20 @@ export class PortalManager {
     if ('error' in resolved) return [];
 
     try {
-      const results = await chrome.scripting.executeScript({
-        target: { tabId: resolved.tabId },
-        func: fetchDeviceProperties,
-        args: [resolved.portal.csrfToken, deviceId],
-      });
+      const results = await executeScriptWithTimeout(
+        resolved.tabId,
+        {
+          func: fetchDeviceProperties,
+          args: [resolved.portal.csrfToken, deviceId],
+        },
+        SCRIPT_EXECUTION_TIMEOUT_MS
+      );
+
+      // Timeout returns null
+      if (results === null) {
+        console.warn(`[PortalManager] getDeviceProperties timed out for tab ${resolved.tabId}`);
+        return [];
+      }
 
       return results?.[0]?.result ?? [];
     } catch {
@@ -796,11 +863,20 @@ export class PortalManager {
     }
 
     try {
-      const results = await chrome.scripting.executeScript({
-        target: { tabId: resolved.tabId },
-        func: testAppliesToExpression,
-        args: [resolved.portal.csrfToken, currentAppliesTo, testFrom],
-      });
+      const results = await executeScriptWithTimeout(
+        resolved.tabId,
+        {
+          func: testAppliesToExpression,
+          args: [resolved.portal.csrfToken, currentAppliesTo, testFrom],
+        },
+        SCRIPT_EXECUTION_TIMEOUT_MS
+      );
+
+      // Timeout returns null
+      if (results === null) {
+        console.warn(`[PortalManager] testAppliesTo timed out for tab ${resolved.tabId}`);
+        return { error: { errorMessage: 'Request timed out', errorCode: 408, errorDetail: null } };
+      }
 
       return results?.[0]?.result ?? { error: { errorMessage: 'Script execution failed', errorCode: 500, errorDetail: null } };
     } catch {

@@ -1,10 +1,41 @@
 /**
  * Typed Chrome messaging utility for communication between the editor and service worker.
- * 
+ *
  * This utility provides type-safe message passing with consistent error handling.
  */
 
 import type { EditorToSWMessage, SWToEditorMessage } from '@/shared/types';
+
+/**
+ * Default timeout for sendMessage (30 seconds).
+ * Generous enough to account for slow portal discovery with multiple tabs.
+ */
+const MESSAGE_TIMEOUT_MS = 30000;
+
+/**
+ * Wraps a promise with a timeout.
+ */
+function withMessageTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  errorMessage: string
+): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      reject(new Error(errorMessage));
+    }, timeoutMs);
+
+    promise
+      .then((result) => {
+        clearTimeout(timeoutId);
+        resolve(result);
+      })
+      .catch((error) => {
+        clearTimeout(timeoutId);
+        reject(error);
+      });
+  });
+}
 
 /**
  * Error response structure from the service worker.
@@ -52,10 +83,11 @@ type ResponsePayloadFor<T extends EditorToSWMessage['type']> =
 
 /**
  * Sends a typed message to the service worker and handles the response.
- * 
+ *
  * @param message - The message to send (must be a valid EditorToSWMessage)
+ * @param timeoutMs - Optional timeout in milliseconds (default: 30000)
  * @returns A result object with either the data or an error
- * 
+ *
  * @example
  * ```typescript
  * const result = await sendMessage({ type: 'DISCOVER_PORTALS' });
@@ -67,10 +99,15 @@ type ResponsePayloadFor<T extends EditorToSWMessage['type']> =
  * ```
  */
 export async function sendMessage<T extends EditorToSWMessage>(
-  message: T
+  message: T,
+  timeoutMs: number = MESSAGE_TIMEOUT_MS
 ): Promise<MessageResult<ResponsePayloadFor<T['type']>>> {
   try {
-    const response = await chrome.runtime.sendMessage(message);
+    const response = await withMessageTimeout(
+      chrome.runtime.sendMessage(message),
+      timeoutMs,
+      'Service worker did not respond in time'
+    );
     
     if (!response) {
       return { 
@@ -136,9 +173,18 @@ export async function sendMessage<T extends EditorToSWMessage>(
     
     return { ok: true, data: response.payload };
   } catch (error) {
-    return { 
-      ok: false, 
-      error: error instanceof Error ? error.message : 'Unknown error',
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    // Check for timeout error
+    if (errorMessage.includes('did not respond in time')) {
+      return {
+        ok: false,
+        error: 'Request timed out. Please try again.',
+        code: 'TIMEOUT'
+      };
+    }
+    return {
+      ok: false,
+      error: errorMessage,
       code: 'EXCEPTION'
     };
   }
