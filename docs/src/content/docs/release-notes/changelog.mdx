@@ -20,6 +20,56 @@ LMDA Composer follows semantic versioning (SemVer):
 
 ---
 
+## v1.7.0 — Collector Sizing Calculator
+
+<div style="display: flex; align-items: center; gap: 0.75rem; margin: 1rem 0;">
+  <Badge text="v1.7.0" variant="note" />
+  <span style="font-size: 0.875rem; color: var(--sl-color-gray-3);">January 2026</span>
+</div>
+
+This release introduces the Collector Sizing Calculator for estimating optimal LogicMonitor collector configurations, plus a critical bug fix for portal discovery.
+
+### Collector Sizing Calculator
+
+A new utility to help estimate collector hardware requirements based on your infrastructure. Configure devices, log sources, and NetFlow across multiple sites to get collector recommendations.
+
+| Feature | Description |
+|---------|-------------|
+| **Multi-Site Support** | Create and manage multiple sites, each with independent device and log configurations |
+| **Device Categories** | Pre-configured device types with realistic instance counts and collection method weights |
+| **Log Sources** | Configure System Logs, SNMP Traps, and NetFlow with events-per-second calculations |
+| **Collector Recommendations** | Automatic sizing recommendations for polling, logs, and NetFlow collectors |
+| **Data Ingestion Estimates** | Calculate estimated GB/day for logs and NetFlow data |
+| **Resource Summary** | View total vCPU, memory, and disk requirements across all collectors |
+| **Persistent State** | Configurations saved automatically and persist across sessions |
+
+### Collector Sizes
+
+| Size | vCPU | Memory | Max Load | Max EPS | Max FPS |
+|------|------|--------|----------|---------|---------|
+| SMALL | 1 | 2 GB | 21,286 | 200 | 7,800 |
+| MEDIUM | 2 | 4 GB | 48,557 | 500 | 13,797 |
+| LARGE | 4 | 8 GB | 104,714 | 2,500 | 23,166 |
+| XL | 8 | 16 GB | 165,950 | 4,000 | 37,418 |
+| XXL | 16 | 32 GB | 285,500 | 7,000 | 52,817 |
+
+### Settings
+
+Customize the calculator with configurable settings:
+
+- **Max Load %** — Target utilization percentage (50-100%)
+- **Method Weights** — CPU cost multipliers for each collection method (SNMP, Script, WMI, etc.)
+- **Failover Options** — Add extra collectors for high availability
+- **Forced Size** — Override automatic sizing with a specific collector size
+
+### Bug Fixes
+
+| Fix | Description |
+|-----|-------------|
+| **Portal Discovery** | Fixed portal discovery hanging on multi-profile Chrome browsers. Added timeout protection with 5s initial, 10s retry, and 30s maximum wait times. |
+
+---
+
 ## v1.6.0 — LogSource Editing & Enhanced Search
 
 <div style="display: flex; align-items: center; gap: 0.75rem; margin: 1rem 0;">

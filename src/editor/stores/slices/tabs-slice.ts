@@ -235,12 +235,12 @@ export interface TabsSliceDependencies {
   // From portal slice (for module scripts)
   selectedPortalId: string | null;
   portals: Portal[];
-  
+
   // From UI slice (for preferences, output tab, and workspace)
   preferences: { defaultLanguage: ScriptLanguage; defaultMode: ScriptMode };
-  outputTab: string;
-  activeWorkspace: 'script' | 'api' | 'devtools';
-  setActiveWorkspace: (workspace: 'script' | 'api' | 'devtools') => void;
+  outputTab: 'raw' | 'parsed' | 'validation' | 'graph';
+  activeWorkspace: 'script' | 'api' | 'collector-sizing' | 'devtools';
+  setActiveWorkspace: (workspace: 'script' | 'api' | 'collector-sizing' | 'devtools') => void;
   
   // From execution slice (for clearing parsed output when mode changes)
   parsedOutput: ParseResult | null;

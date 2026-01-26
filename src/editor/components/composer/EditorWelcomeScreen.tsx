@@ -15,6 +15,7 @@ import {
   GitBranch,
   ChevronRight,
   Braces,
+  Calculator,
 } from 'lucide-react';
 import { portalToasts } from '../../utils/toast-utils';
 import { useEditorStore } from '../../stores/editor-store';
@@ -497,8 +498,8 @@ export function EditorWelcomeScreen() {
             </Tooltip>
           </div>
 
-          {/* Switch to API Explorer */}
-          <div className="flex justify-center">
+          {/* Switch to other workspaces */}
+          <div className="flex flex-wrap items-center justify-center gap-2">
             <Button
               variant="ghost"
               size="sm"
@@ -506,7 +507,17 @@ export function EditorWelcomeScreen() {
               className="gap-2 text-muted-foreground hover:text-foreground"
             >
               <Braces className="size-4" />
-              Switch to API Explorer
+              API Explorer
+              <ChevronRight className="size-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setActiveWorkspace('collector-sizing')}
+              className="gap-2 text-muted-foreground hover:text-foreground"
+            >
+              <Calculator className="size-4" />
+              Collector Sizing
               <ChevronRight className="size-4" />
             </Button>
           </div>

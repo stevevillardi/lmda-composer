@@ -6,6 +6,7 @@ import { createToolsSlice, type ToolsSlice, toolsSliceInitialState } from './sli
 import { createAPISlice, type APISlice, apiSliceInitialState } from './slices/api-slice';
 import { createExecutionSlice, type ExecutionSlice, executionSliceInitialState } from './slices/execution-slice';
 import { createModuleSlice, type ModuleSlice, moduleSliceInitialState } from './slices/module-slice';
+import { createCollectorSizingSlice, type CollectorSizingSlice, collectorSizingSliceInitialState } from './slices/collector-sizing-slice';
 
 /**
  * Combined EditorState - extends all slice interfaces.
@@ -17,8 +18,9 @@ import { createModuleSlice, type ModuleSlice, moduleSliceInitialState } from './
  * - APISlice: API Explorer functionality
  * - ExecutionSlice: Script execution and history
  * - ModuleSlice: Module browser, search, commit, clone, pull
+ * - CollectorSizingSlice: Collector sizing calculator
  */
-type EditorState = UISlice & PortalSlice & TabsSlice & ToolsSlice & APISlice & ExecutionSlice & ModuleSlice;
+type EditorState = UISlice & PortalSlice & TabsSlice & ToolsSlice & APISlice & ExecutionSlice & ModuleSlice & CollectorSizingSlice;
 
 export const useEditorStore = create<EditorState>((set, get) => ({
   // Portal slice initial state (spread from portalSliceInitialState)
@@ -42,6 +44,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   // Tools slice initial state (spread from toolsSliceInitialState)
   ...toolsSliceInitialState,
 
+  // Collector Sizing slice initial state (spread from collectorSizingSliceInitialState)
+  ...collectorSizingSliceInitialState,
+
   // Portal slice actions - spread from createPortalSlice
   ...createPortalSlice(set, get, {} as StoreApi<EditorState>),
 
@@ -62,4 +67,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
 
   // Tools state and actions - spread from createToolsSlice
   ...createToolsSlice(set, get, {} as StoreApi<EditorState>),
+
+  // Collector Sizing state and actions - spread from createCollectorSizingSlice
+  ...createCollectorSizingSlice(set, get, {} as StoreApi<EditorState>),
 }));

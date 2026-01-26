@@ -5,7 +5,7 @@
  */
 /** @vitest-environment jsdom */
 import { describe, expect, it, beforeEach, vi } from 'vitest';
-import { render, screen, waitFor, within, act } from '@testing-library/react';
+import { render, screen, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom/vitest';
 import { CreateModuleWizard } from '../../../src/editor/components/create-module/CreateModuleWizard';
@@ -74,7 +74,7 @@ describe('CreateModuleWizard', () => {
     });
 
     it('shows portal name in description', () => {
-      const { portal } = setupOpenWizard();
+      setupOpenWizard();
       
       render(<CreateModuleWizard />);
       

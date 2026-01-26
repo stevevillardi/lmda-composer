@@ -64,6 +64,9 @@ const SaveOptionsDialogLazy = lazy(() => import('./components/nav-items/SaveOpti
 // Dev-only components (will be tree-shaken in production)
 const DevToolsPanelLazy = lazy(() => import('./components/dev-tools/DevToolsPanel').then((mod) => ({ default: mod.DevToolsPanel })));
 
+// Collector Sizing Calculator
+const CollectorSizingPanelLazy = lazy(() => import('./components/collector-sizing/CollectorSizingPanel').then((mod) => ({ default: mod.CollectorSizingPanel })));
+
 // Layout constants
 const PANEL_SIZES = {
   MAIN_WITH_SIDEBAR: '78.5%',
@@ -121,13 +124,14 @@ export function App() {
   const workspaceState = useMemo(() => {
     const apiTabCount = tabs.filter(t => t.kind === 'api').length;
     const scriptTabCount = tabs.filter(t => (t.kind ?? 'script') === 'script').length;
-    
+
     const showDevTools = activeWorkspace === 'devtools' && import.meta.env.DEV;
+    const showCollectorSizing = activeWorkspace === 'collector-sizing';
     const showApiWelcome = activeWorkspace === 'api' && apiTabCount === 0;
     const showScriptWelcome = activeWorkspace === 'script' && scriptTabCount === 0 && tabs.length === 0;
     const showWelcome = showApiWelcome || showScriptWelcome;
-    
-    return { showWelcome, showApiWelcome, showScriptWelcome, showDevTools };
+
+    return { showWelcome, showApiWelcome, showScriptWelcome, showDevTools, showCollectorSizing };
   }, [tabs, activeWorkspace]);
   
   // Custom hooks for app initialization and management
@@ -217,6 +221,12 @@ export function App() {
         <div className="min-h-0 flex-1 overflow-auto">
           <Suspense fallback={panelLoadingFallback}>
             <DevToolsPanelLazy />
+          </Suspense>
+        </div>
+      ) : workspaceState.showCollectorSizing ? (
+        <div className="min-h-0 flex-1 overflow-auto">
+          <Suspense fallback={panelLoadingFallback}>
+            <CollectorSizingPanelLazy />
           </Suspense>
         </div>
       ) : workspaceState.showWelcome ? (

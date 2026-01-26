@@ -387,8 +387,8 @@ export interface DraftTabs {
   lastModified: number;
   /** Module details drafts indexed by tab ID (serializable format) */
   moduleDetailsDrafts?: Record<string, SerializableModuleDetailsDraft>;
-  /** Active workspace (script, api, or devtools) at time of save */
-  activeWorkspace?: 'script' | 'api' | 'devtools';
+  /** Active workspace (script, api, collector-sizing, or devtools) at time of save */
+  activeWorkspace?: 'script' | 'api' | 'collector-sizing' | 'devtools';
 }
 
 // API Explorer

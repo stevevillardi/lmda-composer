@@ -17,8 +17,9 @@ import { normalizeScript } from '../helpers/slice-helpers';
 /**
  * Workspace type - determines which view is active.
  * 'devtools' is only available in development builds.
+ * 'collector-sizing' is a standalone utility workspace.
  */
-export type WorkspaceType = 'script' | 'api' | 'devtools';
+export type WorkspaceType = 'script' | 'api' | 'collector-sizing' | 'devtools';
 
 /**
  * State managed by the UI slice.

@@ -12,9 +12,7 @@ export default defineConfig({
         src: './src/assets/icon128.png',
         alt: 'LMDA Composer',
       },
-      social: {
-        // GitHub link will be added once the project is open source
-      },
+      social: [],
       customCss: ['./src/styles/custom.css'],
       head: [
         {
@@ -79,6 +77,12 @@ export default defineConfig({
           ],
         },
         {
+          label: 'Utilities',
+          items: [
+            { label: 'Collector Sizing', slug: 'utilities/collector-sizing' },
+          ],
+        },
+        {
           label: 'Reference',
           items: [
             { label: 'Keyboard Shortcuts', slug: 'reference/keyboard-shortcuts' },
@@ -99,6 +103,5 @@ export default defineConfig({
     }),
   ],
 });
-
 
 

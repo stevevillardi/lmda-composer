@@ -1,3 +1,4 @@
+import * as React from "react"
 import { NavigationMenu as NavigationMenuPrimitive } from "@base-ui/react/navigation-menu"
 import { cva } from "class-variance-authority"
 
@@ -29,6 +30,7 @@ function NavigationMenu({
 
 function NavigationMenuList({
   className,
+  ref,
   ...props
 }: NavigationMenuPrimitive.List.Props) {
   return (
@@ -38,6 +40,7 @@ function NavigationMenuList({
         "group flex flex-1 list-none items-center justify-center gap-0",
         className
       )}
+      ref={ref as React.Ref<HTMLDivElement>}
       {...props}
     />
   )
@@ -45,12 +48,14 @@ function NavigationMenuList({
 
 function NavigationMenuItem({
   className,
+  ref,
   ...props
 }: NavigationMenuPrimitive.Item.Props) {
   return (
     <NavigationMenuPrimitive.Item
       data-slot="navigation-menu-item"
       className={cn("relative", className)}
+      ref={ref as React.Ref<HTMLDivElement>}
       {...props}
     />
   )
@@ -206,6 +211,7 @@ function NavigationMenuLink({
 
 function NavigationMenuIndicator({
   className,
+  ref,
   ...props
 }: NavigationMenuPrimitive.Icon.Props) {
   return (
@@ -219,6 +225,7 @@ function NavigationMenuIndicator({
         `,
         className
       )}
+      ref={ref as React.Ref<HTMLDivElement>}
       {...props}
     >
       <div className="

@@ -6,6 +6,7 @@ import {
   BookOpen,
   Code,
   ChevronRight,
+  Calculator,
 } from 'lucide-react';
 import { useEditorStore } from '../../stores/editor-store';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -255,16 +256,28 @@ export function ApiWelcomeScreen() {
                   </p>
                 </div>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleBackToComposer}
-                className="gap-2 text-muted-foreground hover:text-foreground"
-              >
-                <Code className="size-4" />
-                Switch to Composer
-                <ChevronRight className="size-4" />
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleBackToComposer}
+                  className="gap-2 text-muted-foreground hover:text-foreground"
+                >
+                  <Code className="size-4" />
+                  Composer
+                  <ChevronRight className="size-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setActiveWorkspace('collector-sizing')}
+                  className="gap-2 text-muted-foreground hover:text-foreground"
+                >
+                  <Calculator className="size-4" />
+                  Collector Sizing
+                  <ChevronRight className="size-4" />
+                </Button>
+              </div>
             </div>
           </div>
 

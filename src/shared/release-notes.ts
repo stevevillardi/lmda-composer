@@ -28,6 +28,38 @@ export interface ReleaseNote {
  */
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.7.0',
+    date: 'January 2026',
+    title: 'Collector Sizing Calculator',
+    highlights: [
+      'Collector Sizing Calculator for estimating hardware requirements',
+      'Multi-site support with device, log, and NetFlow configurations',
+      'Automatic collector recommendations from SMALL to XXL',
+      'Fixed portal discovery hanging on multi-profile Chrome',
+    ],
+    changes: [
+      {
+        category: 'added',
+        items: [
+          'Collector Sizing Calculator - Estimate optimal collector configurations across multiple sites',
+          'Device categories with pre-configured instance counts and collection method weights',
+          'Log sources configuration for System Logs, SNMP Traps, and NetFlow',
+          'Automatic collector size recommendations based on load calculations',
+          'Data ingestion estimates (GB/day) for logs and NetFlow',
+          'Aggregated overview panel showing totals across all sites',
+          'Customizable method weights, collector capacities, and device defaults',
+          'Persistent state - configurations saved automatically',
+        ],
+      },
+      {
+        category: 'fixed',
+        items: [
+          'Portal discovery hanging on multi-profile Chrome - Added timeout protection',
+        ],
+      },
+    ],
+  },
+  {
     version: '1.6.0',
     date: 'January 2026',
     title: 'LogSource Editing & Enhanced Search',

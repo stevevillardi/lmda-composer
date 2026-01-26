@@ -1,4 +1,4 @@
-import {  
+import {
   Download,
   FileInput,
   FilePlus,
@@ -20,6 +20,7 @@ import {
   BookOpen,
   ExternalLink,
   Terminal,
+  Calculator,
 } from 'lucide-react';
 import { fileToasts, portalToasts } from '../../utils/toast-utils';
 import { DOCS_URLS } from '@/shared/app-config';
@@ -77,9 +78,9 @@ export function ActionsDropdown() {
     : null;
   const isPortalBoundActive = portalBinding?.isActive ?? true;
   const canCommit = activeTabId && isModuleTab && canCommitModule(activeTabId);
-  // Determine if we're in API mode based on active workspace
-  // This ensures welcome screens show the correct menu items
+  // Determine which workspace is active
   const isApiActive = activeWorkspace === 'api';
+  const isCollectorSizingActive = activeWorkspace === 'collector-sizing';
   const canSendApi = Boolean(
     selectedPortalId &&
     activeTab?.kind === 'api' &&
@@ -137,12 +138,30 @@ export function ActionsDropdown() {
       </Tooltip>
 
       <DropdownMenuContent align="end" className="w-72">
-        <DropdownMenuGroup>
-          <DropdownMenuSectionHeader>
-            {isApiActive ? 'API Actions' : 'File Actions'}
-          </DropdownMenuSectionHeader>
+        {isCollectorSizingActive ? (
+          // Collector Sizing workspace - only show workspace switching
+          <>
+            <DropdownMenuSectionHeader>Switch Workspace</DropdownMenuSectionHeader>
+            <DropdownMenuGroup>
+              <DropdownMenuItem onClick={() => setActiveWorkspace('script')}>
+                <FilePlus className="mr-2 size-4" />
+                <span className="flex-1">Switch to Script Editor</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setActiveWorkspace('api')}>
+                <Braces className="mr-2 size-4" />
+                <span className="flex-1">Switch to API Explorer</span>
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+          </>
+        ) : (
+          // Script/API workspaces - show full actions
+          <>
+            <DropdownMenuGroup>
+              <DropdownMenuSectionHeader>
+                {isApiActive ? 'API Actions' : 'File Actions'}
+              </DropdownMenuSectionHeader>
 
-          {isApiActive ? (
+              {isApiActive ? (
             <>
               <DropdownMenuItem onClick={() => openApiExplorerTab()}>
                 <Braces className="mr-2 size-4" />
@@ -346,20 +365,33 @@ export function ActionsDropdown() {
           </>
         )}
 
-        <DropdownMenuSectionHeader>Layout</DropdownMenuSectionHeader>
+            <DropdownMenuSectionHeader>Layout</DropdownMenuSectionHeader>
 
-        <DropdownMenuGroup>
-          <DropdownMenuItem 
-            onClick={() => {
-              toggleRightSidebar();
-            }}
-            disabled={!hasOpenTabs}
-          >
-            <PanelRight className="mr-2 size-4" />
-            <span className="flex-1">{rightSidebarOpen ? 'Hide' : 'Show'} Sidebar</span>
-            <Kbd className="ml-auto">⌘B</Kbd>
-          </DropdownMenuItem>
-        </DropdownMenuGroup>
+            <DropdownMenuGroup>
+              <DropdownMenuItem
+                onClick={() => {
+                  toggleRightSidebar();
+                }}
+                disabled={!hasOpenTabs}
+              >
+                <PanelRight className="mr-2 size-4" />
+                <span className="flex-1">{rightSidebarOpen ? 'Hide' : 'Show'} Sidebar</span>
+                <Kbd className="ml-auto">⌘B</Kbd>
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+
+            <DropdownMenuSectionHeader>Utilities</DropdownMenuSectionHeader>
+
+            <DropdownMenuGroup>
+              <DropdownMenuItem
+                onClick={() => setActiveWorkspace('collector-sizing')}
+              >
+                <Calculator className="mr-2 size-4" />
+                <span className="flex-1">Collector Sizing Calculator</span>
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+          </>
+        )}
 
         <DropdownMenuSectionHeader>Settings & Help</DropdownMenuSectionHeader>
 

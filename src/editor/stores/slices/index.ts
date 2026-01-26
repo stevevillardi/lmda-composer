@@ -39,6 +39,10 @@ export { createAPISlice, apiSliceInitialState } from './api-slice';
 export type { ToolsSlice, ToolsSliceState, ToolsSliceActions } from './tools-slice';
 export { createToolsSlice, toolsSliceInitialState } from './tools-slice';
 
+// Collector Sizing slice
+export type { CollectorSizingSlice, CollectorSizingSliceState, CollectorSizingSliceActions, Site } from './collector-sizing-slice';
+export { createCollectorSizingSlice, collectorSizingSliceInitialState } from './collector-sizing-slice';
+
 /**
  * Combined state type from all slices.
  * 
@@ -52,25 +56,28 @@ import type { ExecutionSliceState, ExecutionSliceActions } from './execution-sli
 import type { ModuleSliceState, ModuleSliceActions } from './module-slice';
 import type { APISliceState, APISliceActions } from './api-slice';
 import type { ToolsSliceState, ToolsSliceActions } from './tools-slice';
+import type { CollectorSizingSliceState, CollectorSizingSliceActions } from './collector-sizing-slice';
 
-export type CombinedSliceState = 
-  & PortalSliceState 
-  & UISliceState 
-  & TabsSliceState 
-  & ExecutionSliceState 
-  & ModuleSliceState 
-  & APISliceState 
-  & ToolsSliceState;
+export type CombinedSliceState =
+  & PortalSliceState
+  & UISliceState
+  & TabsSliceState
+  & ExecutionSliceState
+  & ModuleSliceState
+  & APISliceState
+  & ToolsSliceState
+  & CollectorSizingSliceState;
 
 /**
  * Combined actions type from all slices.
  */
-export type CombinedSliceActions = 
-  & PortalSliceActions 
-  & UISliceActions 
-  & TabsSliceActions 
-  & ExecutionSliceActions 
-  & ModuleSliceActions 
-  & APISliceActions 
-  & ToolsSliceActions;
+export type CombinedSliceActions =
+  & PortalSliceActions
+  & UISliceActions
+  & TabsSliceActions
+  & ExecutionSliceActions
+  & ModuleSliceActions
+  & APISliceActions
+  & ToolsSliceActions
+  & CollectorSizingSliceActions;
 

@@ -1,0 +1,287 @@
+---
+title: Collector Sizing Calculator
+description: Estimate optimal LogicMonitor collector configurations for your infrastructure.
+---
+
+import { Steps, Tabs, TabItem, Aside, Badge, LinkCard } from '@astrojs/starlight/components';
+
+The Collector Sizing Calculator helps you estimate the optimal collector hardware requirements based on your infrastructure. Configure devices, log sources, and NetFlow across multiple sites to get recommendations for polling, logs, and NetFlow collectors.
+
+## Opening the Calculator
+
+| Method | Action |
+|--------|--------|
+| **Welcome Screen** | Click "Collector Sizing" button in the Script Editor welcome screen |
+| **Actions Menu** | Open the Actions dropdown → Utilities → Collector Sizing Calculator |
+
+---
+
+## Interface Overview
+
+The calculator uses a sidebar layout with a site list on the left and configuration panels on the right.
+
+### Main Components
+
+| Component | Description |
+|-----------|-------------|
+| **Toolbar** | Contains collector size selector, advanced details toggle, settings, and reset options |
+| **Site List** | Left sidebar showing all configured sites with device counts and collector recommendations |
+| **Site Config Panel** | Main area with tabs for Devices, Logs, and Recommendations |
+| **Overview Panel** | Aggregated view showing totals across all sites |
+
+---
+
+## Getting Started
+
+<Steps>
+
+1. **Add a Site**
+
+   Click the **+** button in the site list header or wait for the welcome screen to guide you.
+
+2. **Configure Devices**
+
+   In the Devices tab, add device counts for each category. The calculator uses pre-configured instance counts and collection method weights.
+
+3. **Configure Log Sources** (Optional)
+
+   Switch to the Logs tab to add System Logs, SNMP Traps, and NetFlow configurations.
+
+4. **View Recommendations**
+
+   Switch to the Recommendations tab to see the calculated collector sizes, counts, and resource requirements.
+
+</Steps>
+
+---
+
+## Site Management
+
+### Adding Sites
+
+Each site represents a physical location or logical grouping of devices that will share collectors.
+
+- Click **+** in the site list header to add a new site
+- Sites are automatically named "Site 1", "Site 2", etc.
+- Click on a site name to rename it
+- Right-click or use the context menu to delete a site
+
+### Site Tabs
+
+<Tabs>
+  <TabItem label="Devices" icon="server">
+    Configure device counts by category. Each device type has:
+    - **Count** — Number of devices
+    - **Instances** — DataSource instances per device (configurable in settings)
+    - **Methods** — Collection method weights (e.g., 80% Script, 20% SNMP)
+  </TabItem>
+
+  <TabItem label="Logs" icon="document">
+    Configure log ingestion sources:
+    - **System Logs** — Firewalls, network devices, servers, etc.
+    - **SNMP Traps** — Devices sending SNMP trap events
+    - **NetFlow** — Network flow data from routers and switches
+  </TabItem>
+
+  <TabItem label="Recommendations" icon="rocket">
+    View calculated collector recommendations:
+    - Polling collectors for device monitoring
+    - Logs/Traps collectors for event ingestion
+    - NetFlow collectors for flow data
+  </TabItem>
+</Tabs>
+
+---
+
+## Device Configuration
+
+### Device Categories
+
+The calculator includes pre-configured device types with realistic instance counts and collection method distributions:
+
+| Category | Default Instances | Primary Methods |
+|----------|-------------------|-----------------|
+| Linux Servers | 100 | SNMPv3 (80%), Script (20%) |
+| Windows Servers | 120 | Script (75%), WMI (20%), JMX (5%) |
+| SQL Servers | 156 | Script (80%), WMI (20%) |
+| Routers | 92 | Script (55%), SNMPv3 (45%) |
+| Ethernet Switches | 120 | Script (55%), SNMPv3 (45%) |
+| Firewalls | 272 | Script (51%), SNMPv3 (48%), HTTP (1%) |
+| NetApp Storage | 945 | Script (95%), SNMPv3 (5%) |
+| Virtual Machines | 8 | Script (100%) |
+| Access Points | 15 | Script (80%), SNMPv3 (20%) |
+
+### Device Count Cards
+
+Each device category is displayed as a card with:
+- Device type icon and name
+- Count input field
+- Instance count per device
+- Collection method breakdown (when advanced details enabled)
+
+### Advanced Details
+
+Toggle **Details On** in the toolbar to show:
+- Per-device instance counts
+- Collection method percentages
+- Total instances calculation
+
+---
+
+## Log & Flow Configuration
+
+### System Logs
+
+Configure log sources by selecting a log type and entering the device count:
+
+| Log Type | Events/Second | Bytes/Event |
+|----------|---------------|-------------|
+| Firewalls | 1.0 | 300 |
+| Network Devices | 0.75 | 150 |
+| Linux Servers | 0.20 | 200 |
+| Windows Servers | 0.20 | 200 |
+| Load Balancers | 3.0 | 235 |
+| IIS Web Servers | 6.20 | 2005 |
+| vCenter | 1.75 | 300 |
+
+### SNMP Traps
+
+Configure devices sending SNMP traps with an estimated 0.01 events/second per device.
+
+### NetFlow
+
+Configure NetFlow-enabled devices:
+- **Flows/Second** — Default 1,100 FPS per device
+- **Bytes/Flow** — Used for ingestion estimates
+
+---
+
+## Recommendations
+
+### Collector Sizes
+
+The calculator recommends collectors from five size tiers:
+
+| Size | vCPU | Memory | Disk | Max Load | Max EPS | Max FPS |
+|------|------|--------|------|----------|---------|---------|
+| <Badge text="SMALL" variant="note" /> | 1 | 2 GB | 35 GB | 21,286 | 200 | 7,800 |
+| <Badge text="MEDIUM" variant="note" /> | 2 | 4 GB | 35 GB | 48,557 | 500 | 13,797 |
+| <Badge text="LARGE" variant="note" /> | 4 | 8 GB | 35 GB | 104,714 | 2,500 | 23,166 |
+| <Badge text="XL" variant="tip" /> | 8 | 16 GB | 35 GB | 165,950 | 4,000 | 37,418 |
+| <Badge text="XXL" variant="tip" /> | 16 | 32 GB | 35 GB | 285,500 | 7,000 | 52,817 |
+
+### Recommendation Cards
+
+Each collector type displays:
+- **Count** — Number of collectors needed
+- **Size** — Recommended collector size
+- **Utilization** — Load percentage with status indicator
+- **Resource Requirements** — Total vCPU, Memory, and Disk
+
+### Utilization Status
+
+| Status | Utilization | Description |
+|--------|-------------|-------------|
+| <Badge text="Optimal" variant="success" /> | 0-70% | Healthy headroom for growth |
+| <Badge text="Warning" variant="caution" /> | 70-85% | Consider capacity planning |
+| <Badge text="Critical" variant="danger" /> | 85%+ | At or near capacity limits |
+
+### Data Ingestion Estimates
+
+The Recommendations tab shows estimated daily data ingestion:
+- **Logs/Traps** — GB/day based on EPS and average event size
+- **NetFlow** — GB/day range based on FPS and flow record size
+
+---
+
+## Settings
+
+Access calculator settings via the **Settings** button in the toolbar.
+
+<Tabs>
+  <TabItem label="Collector Load" icon="gauge">
+    ### Max Load Percentage
+
+    Target maximum utilization (50-100%). Lower values provide more headroom.
+
+    ### Failover Configuration
+
+    - **Polling Failover** — Add extra polling collector for HA
+    - **Logs Failover** — Add extra log collector for HA
+
+    ### Collector Capacities
+
+    Customize capacity values (load, EPS, FPS) for each collector size.
+  </TabItem>
+
+  <TabItem label="Collection Methods" icon="network">
+    Configure the relative CPU/resource cost of each polling method:
+
+    | Method | Default Weight |
+    |--------|----------------|
+    | SNMPv2 | 1.0 |
+    | HTTP | 1.1 |
+    | JMX | 1.2 |
+    | SNMPv3 | 1.3 |
+    | JDBC | 1.5 |
+    | WMI | 2.2 |
+    | Perfmon | 3.0 |
+    | WinRM | 4.0 |
+    | Script | 5.0 |
+
+    Higher weights indicate more resource-intensive methods.
+  </TabItem>
+
+  <TabItem label="Device Types" icon="server">
+    Customize device type defaults:
+
+    - **Base Instances** — Default DataSource instances per device
+    - **Collection Methods** — Method distribution percentages
+    - **Add Device Type** — Create custom device categories
+  </TabItem>
+</Tabs>
+
+### Forced Collector Size
+
+Use the collector size selector in the toolbar to force all recommendations to use a specific size. Select "Auto" to let the calculator optimize automatically.
+
+---
+
+## Overview Panel
+
+Click **Overview** in the site list header to see aggregated results across all sites:
+
+- Total device count by category
+- Combined collector requirements
+- Total resource requirements (vCPU, Memory, Disk)
+- Per-site breakdown with individual recommendations
+
+---
+
+## Best Practices
+
+<Aside type="tip" title="Start Conservative">
+  Begin with lower device counts and adjust upward. It's easier to add capacity than to over-provision.
+</Aside>
+
+<Aside type="tip" title="Plan for Growth">
+  Target 70% utilization to leave headroom for growth and unexpected spikes.
+</Aside>
+
+<Aside type="caution" title="Verify Instance Counts">
+  The default instance counts are averages. Your actual DataSource configuration may vary significantly based on enabled modules.
+</Aside>
+
+<Aside type="note" title="Persistent State">
+  Your site configurations are automatically saved and will persist across sessions.
+</Aside>
+
+---
+
+## Next Steps
+
+<LinkCard
+  title="Context Selection"
+  description="Learn how to select portals and collectors for script execution."
+  href="/lmda-composer/core-features/context-selection/"
+/>
