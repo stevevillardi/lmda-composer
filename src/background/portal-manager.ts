@@ -292,10 +292,10 @@ export class PortalManager {
     try {
       // Initialize from storage if not already done
       await this.initialize();
-      
+
       // Query all LogicMonitor tabs
-      const tabs = await chrome.tabs.query({ 
-        url: 'https://*.logicmonitor.com/*' 
+      const tabs = await chrome.tabs.query({
+        url: 'https://*.logicmonitor.com/*'
       });
 
       // Group tabs by hostname, but first verify they are actual LM portals
@@ -303,14 +303,18 @@ export class PortalManager {
       const portalHasCompleteTab = new Map<string, boolean>();
       const portalHasActiveSession = new Map<string, boolean>();
       let skippedIncomplete = 0;
+      let skippedDiscarded = 0;
       let verifiedPortals = 0;
       let fallbackPortals = 0;
       let nonPortalMatches = 0;
       let includedIncomplete = 0;
-      
+
+      // Phase 1: Filter tabs and collect complete tabs to verify (fast, no async blocking)
+      const tabsToVerify: Array<{ tab: chrome.tabs.Tab; hostname: string }> = [];
+
       for (const tab of tabs) {
         if (!tab.url || !tab.id) continue;
-        
+
         const url = new URL(tab.url);
         const hostname = url.hostname;
         const isLikelyPortal = isLikelyPortalHostname(hostname);
@@ -322,29 +326,53 @@ export class PortalManager {
           continue;
         }
 
-        // If the tab isn't fully loaded, we can't reliably verify LMGlobalData (or fetch CSRF).
-        // Still include the hostname so the user can see the portal and we preserve state.
-        if (tab.status !== 'complete') {
-          console.log(`Including incomplete tab ${tab.id}: status is ${tab.status}`);
-          skippedIncomplete += 1;
-          includedIncomplete += 1;
-        } else {
-          portalHasCompleteTab.set(hostname, true);
-          const isLMPortal = await this.verifyLogicMonitorPortal(tab.id);
-        if (isLMPortal) {
-          verifiedPortals += 1;
-            portalHasActiveSession.set(hostname, true);
-          } else {
-            // Heuristic fallback: hostname looks like a portal, but LM app didn't expose LMGlobalData
-            // (often due to login page / expired session / alternate LM page).
-          fallbackPortals += 1;
-          }
-        }
-        
+        // Track all tabs by hostname (complete or not)
         if (!portalTabs.has(hostname)) {
           portalTabs.set(hostname, []);
         }
         portalTabs.get(hostname)!.push(tab.id);
+
+        // If the tab isn't fully loaded or is discarded, we can't execute scripts on it.
+        // Still include the hostname so the user can see the portal and we preserve state.
+        if (tab.status !== 'complete') {
+          console.log(`Skipping incomplete tab ${tab.id}: status is ${tab.status}`);
+          skippedIncomplete += 1;
+          includedIncomplete += 1;
+        } else if (tab.discarded === true) {
+          console.log(`Skipping discarded tab ${tab.id}`);
+          skippedDiscarded += 1;
+        } else {
+          portalHasCompleteTab.set(hostname, true);
+          tabsToVerify.push({ tab, hostname });
+        }
+      }
+
+      // Phase 2: Verify all complete tabs IN PARALLEL
+      // This prevents frozen/slow tabs from blocking the entire discovery process
+      const verificationResults = await Promise.allSettled(
+        tabsToVerify.map(async ({ tab, hostname }) => {
+          const isActive = await this.verifyLogicMonitorPortal(tab.id!);
+          return { tabId: tab.id!, hostname, isActive };
+        })
+      );
+
+      // Phase 3: Process verification results
+      for (const result of verificationResults) {
+        if (result.status === 'fulfilled') {
+          const { hostname, isActive } = result.value;
+          if (isActive) {
+            verifiedPortals += 1;
+            portalHasActiveSession.set(hostname, true);
+          } else {
+            // Heuristic fallback: hostname looks like a portal, but LM app didn't expose LMGlobalData
+            // (often due to login page / expired session / alternate LM page).
+            fallbackPortals += 1;
+          }
+        } else {
+          // Promise rejected - log but don't crash
+          console.warn('[PortalDiscovery] Tab verification failed:', result.reason);
+          fallbackPortals += 1;
+        }
       }
 
       // Update portals map - preserve existing CSRF tokens when possible
@@ -401,6 +429,7 @@ export class PortalManager {
         portalsFound: portalTabs.size,
         portalHosts: Array.from(portalTabs.keys()),
         skippedIncomplete,
+        skippedDiscarded,
         includedIncomplete,
         verifiedPortals,
         fallbackPortals,
@@ -443,18 +472,19 @@ export class PortalManager {
         return false;
       }
       
-      // Try to execute script with retry logic for timing issues
+      // Try to execute script - minimal retry logic since tab.status === 'complete'
+      // means the page has finished loading. Empty LMGlobalData = logged out (no retry needed).
       let lastError: Error | null = null;
-      const maxRetries = 3;
-      const retryDelay = 500; // 500ms between retries
-      
+      const maxRetries = 2; // Reduced from 3 - one retry for edge cases
+      const retryDelay = 200; // Reduced from 500ms
+
       for (let attempt = 0; attempt < maxRetries; attempt++) {
         try {
           if (attempt > 0) {
-            // Wait before retrying (page might still be loading LMGlobalData)
+            // Brief wait before retrying
             await new Promise(resolve => setTimeout(resolve, retryDelay));
           }
-          
+
           const results = await executeScriptWithTimeout(
             tabId,
             {
@@ -476,42 +506,37 @@ export class PortalManager {
             SCRIPT_EXECUTION_TIMEOUT_MS
           );
 
-          // Timeout returns null - treat as verification failure
+          // Timeout returns null - frozen/suspended tab, no point retrying
           if (results === null) {
             console.warn(`Portal verification timed out for tab ${tabId}`);
             return false;
           }
-          
+
           const result = results?.[0]?.result as
             | { hasLMGlobalData: boolean; isPopulated: boolean }
             | undefined;
-          
+
           if (result?.hasLMGlobalData && result.isPopulated) return true;
 
-          // If LMGlobalData exists but is empty, it may still be initializing, but it's also the
-          // logged-out/login-page shape. We'll retry a couple times before giving up.
+          // If LMGlobalData exists but is empty, user is logged out - don't retry
+          // (this is the final state for logged-out portals, not a loading issue)
           if (result?.hasLMGlobalData && !result.isPopulated) {
-            if (attempt < maxRetries - 1) {
-              console.log(`Portal verification attempt ${attempt + 1} failed: LMGlobalData empty for tab ${tabId}, retrying...`);
-              continue;
-            }
             return false;
           }
-          
-          // If result is false but no error, the page might still be loading
-          // Try again if we have retries left
+
+          // If LMGlobalData not found at all, might be a timing issue - one retry
           if (attempt < maxRetries - 1) {
-            console.log(`Portal verification attempt ${attempt + 1} failed: LMGlobalData not found for tab ${tabId}, retrying...`);
+            console.log(`Portal verification: LMGlobalData not found for tab ${tabId}, retrying...`);
             continue;
           }
-          
+
           return false;
         } catch (error) {
           lastError = error as Error;
-          
+
           // Check if it's a scripting error (tab might be in a restricted state)
           const errorMessage = error instanceof Error ? error.message : String(error);
-          
+
           // Some errors are permanent (e.g., cannot access chrome:// pages)
           if (errorMessage.includes('Cannot access') || errorMessage.includes('No tab with id')) {
             console.warn(`Permanent error verifying tab ${tabId}:`, errorMessage);
@@ -574,11 +599,12 @@ export class PortalManager {
   }
 
   async refreshAllCsrfTokens(): Promise<void> {
-    // Process portals individually with timeout to prevent one frozen tab from blocking all.
-    // Using sequential processing with per-portal timeout instead of Promise.allSettled
-    // because allSettled would still block waiting for hanging promises.
-    const PORTAL_REFRESH_TIMEOUT_MS = 10000; // 10 seconds per portal (includes retries)
+    // Process all portals in PARALLEL with individual timeouts to prevent
+    // one frozen tab from blocking the entire refresh process.
+    const PORTAL_REFRESH_TIMEOUT_MS = 5000; // 5 seconds per portal
 
+    // Collect portals that need refresh
+    const portalsToRefresh: Portal[] = [];
     for (const portal of this.portals.values()) {
       if (portal.csrfToken && portal.csrfTokenTimestamp) {
         const age = Date.now() - portal.csrfTokenTimestamp;
@@ -590,17 +616,33 @@ export class PortalManager {
         }
       }
       if (portal.tabIds.length > 0) {
+        portalsToRefresh.push(portal);
+      }
+    }
+
+    // Refresh all portals in parallel with individual timeouts
+    const refreshResults = await Promise.allSettled(
+      portalsToRefresh.map(async (portal) => {
         try {
           await withTimeout(
             this.refreshCsrfToken(portal),
             PORTAL_REFRESH_TIMEOUT_MS,
             `CSRF refresh timed out for portal ${portal.hostname}`
           );
+          return { hostname: portal.hostname, success: true };
         } catch (error) {
           // Log and continue - don't block on one frozen tab
           console.warn(`[PortalManager] Failed to refresh CSRF for ${portal.hostname}:`, error);
+          return { hostname: portal.hostname, success: false, error };
         }
-      }
+      })
+    );
+
+    // Log summary of refresh results
+    const succeeded = refreshResults.filter(r => r.status === 'fulfilled' && r.value.success).length;
+    const failed = refreshResults.length - succeeded;
+    if (failed > 0) {
+      console.warn(`[PortalManager] CSRF refresh: ${succeeded} succeeded, ${failed} failed`);
     }
   }
 

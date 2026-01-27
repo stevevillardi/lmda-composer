@@ -64,6 +64,7 @@ export function ContextDropdown({
     setSelectedCollector,
     devices,
     isFetchingDevices,
+    isDiscoveringPortals,
     hostname,
     setHostname,
     refreshPortals,
@@ -73,7 +74,6 @@ export function ContextDropdown({
 
   const [isOpen, setIsOpen] = useState(false);
   const [deviceSearchQuery, setDeviceSearchQuery] = useState('');
-  const [isRefreshingPortals, setIsRefreshingPortals] = useState(false);
   const [isRefreshingCollectors, setIsRefreshingCollectors] = useState(false);
 
   useEffect(() => {
@@ -142,17 +142,9 @@ export function ContextDropdown({
     return `${selectedPortal.hostname} → ${selectedCollector.description || selectedCollector.hostname}${device}`;
   };
 
-  // Handle portal refresh with loading state
-  const handleRefreshPortals = async () => {
-    setIsRefreshingPortals(true);
-    try {
-      await refreshPortals();
-    } finally {
-      // Add a small delay to ensure the animation is visible
-      setTimeout(() => {
-        setIsRefreshingPortals(false);
-      }, 300);
-    }
+  // Handle portal refresh - loading state is managed by the store
+  const handleRefreshPortals = () => {
+    refreshPortals();
   };
 
   // Handle collector refresh with loading state
@@ -251,13 +243,13 @@ export function ContextDropdown({
                 variant="outline"
                 size="sm"
                 onClick={handleRefreshPortals}
-                disabled={isRefreshingPortals}
+                disabled={isDiscoveringPortals}
                 className="w-full bg-background/50"
               >
-                <RefreshCw className={cn("mr-2 size-3.5", isRefreshingPortals && `
+                <RefreshCw className={cn("mr-2 size-3.5", isDiscoveringPortals && `
                   animate-spin
                 `)} />
-                {isRefreshingPortals ? 'Checking...' : 'Check for Portals'}
+                {isDiscoveringPortals ? 'Checking...' : 'Check for Portals'}
               </Button>
             </EmptyContent>
           </Empty>
@@ -284,16 +276,16 @@ export function ContextDropdown({
                       variant="ghost"
                       size="xs"
                       onClick={handleRefreshPortals}
-                      disabled={isRefreshingPortals}
+                      disabled={isDiscoveringPortals}
                       className={cn(
                         "transition-all duration-200",
-                        isRefreshingPortals && "opacity-70"
+                        isDiscoveringPortals && "opacity-70"
                       )}
                     >
                       <RefreshCw 
                         className={cn(
                           "size-3 transition-transform duration-200",
-                          isRefreshingPortals && "animate-spin"
+                          isDiscoveringPortals && "animate-spin"
                         )} 
                       />
                       Refresh
@@ -301,7 +293,7 @@ export function ContextDropdown({
                   }
                 />
                 <TooltipContent>
-                  {isRefreshingPortals ? 'Refreshing portals...' : 'Refresh portals'}
+                  {isDiscoveringPortals ? 'Refreshing portals...' : 'Refresh portals'}
                 </TooltipContent>
               </Tooltip>
             </div>
@@ -376,13 +368,13 @@ export function ContextDropdown({
                     variant="outline"
                     size="sm"
                     onClick={handleRefreshPortals}
-                    disabled={isRefreshingPortals}
+                    disabled={isDiscoveringPortals}
                     className="w-full bg-background/50"
                   >
-                    <RefreshCw className={cn("mr-2 size-3.5", isRefreshingPortals && `
+                    <RefreshCw className={cn("mr-2 size-3.5", isDiscoveringPortals && `
                       animate-spin
                     `)} />
-                    {isRefreshingPortals ? 'Checking...' : 'Refresh portal status'}
+                    {isDiscoveringPortals ? 'Checking...' : 'Refresh portal status'}
                   </Button>
                 </EmptyContent>
               </Empty>

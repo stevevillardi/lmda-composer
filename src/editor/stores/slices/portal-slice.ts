@@ -27,7 +27,10 @@ export interface PortalSliceState {
   selectedPortalId: string | null;
   collectors: Collector[];
   selectedCollectorId: number | null;
-  
+
+  // Loading states
+  isDiscoveringPortals: boolean;
+
   // Device context (global defaults)
   devices: DeviceInfo[];
   isFetchingDevices: boolean;
@@ -120,6 +123,7 @@ export const portalSliceInitialState: PortalSliceState = {
   selectedPortalId: null,
   collectors: [],
   selectedCollectorId: null,
+  isDiscoveringPortals: false,
   devices: [],
   isFetchingDevices: false,
   hostname: '',
@@ -313,13 +317,16 @@ export const createPortalSlice: StateCreator<
   },
 
   refreshPortals: async () => {
+    set({ isDiscoveringPortals: true });
+
     const result = await sendMessage({ type: 'DISCOVER_PORTALS' });
     if (!result.ok) {
       console.error('Failed to refresh portals:', result.error);
       portalToasts.refreshFailed();
+      set({ isDiscoveringPortals: false });
       return;
     }
-    
+
     const portals = result.data as Portal[];
     set({ portals });
     
@@ -336,7 +343,10 @@ export const createPortalSlice: StateCreator<
       
       if (lastPortal) {
         // Guard: Check if portal was manually selected during async operation
-        if (get().selectedPortalId) return;
+        if (get().selectedPortalId) {
+          set({ isDiscoveringPortals: false });
+          return;
+        }
         
         // Restore last portal
         set({ selectedPortalId: lastPortal.id });
@@ -351,7 +361,10 @@ export const createPortalSlice: StateCreator<
         });
         
         // Guard: Abort if portal changed during async collectors fetch
-        if (get().selectedPortalId !== restoringPortalId) return;
+        if (get().selectedPortalId !== restoringPortalId) {
+          set({ isDiscoveringPortals: false });
+          return;
+        }
         
         if (collectorsResult.ok && lastContext) {
           const collectors = collectorsResult.data as Collector[];
@@ -380,6 +393,8 @@ export const createPortalSlice: StateCreator<
         get().refreshCollectors();
       }
     }
+
+    set({ isDiscoveringPortals: false });
   },
 
   refreshCollectors: async () => {

@@ -28,6 +28,31 @@ export interface ReleaseNote {
  */
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.7.1',
+    date: 'January 2026',
+    title: 'Bug Fixes & Performance',
+    highlights: [
+      'Faster portal discovery with multiple browser tabs',
+      'Loading indicator when detecting portals',
+      'Fixed Collector Sizing context menu',
+    ],
+    changes: [
+      {
+        category: 'improved',
+        items: [
+          'Portal discovery is now significantly faster, especially with many open tabs',
+          'Loading spinner shows when portal detection is in progress',
+        ],
+      },
+      {
+        category: 'fixed',
+        items: [
+          'Collector Sizing workspace context menu not appearing',
+        ],
+      },
+    ],
+  },
+  {
     version: '1.7.0',
     date: 'January 2026',
     title: 'Collector Sizing Calculator',

@@ -54,10 +54,11 @@ export function withTimeout<T>(
 }
 
 /**
- * Default timeout for script execution (5 seconds).
- * Generous enough for slow networks, but not infinite.
+ * Default timeout for script execution (2.5 seconds).
+ * Responsive tabs reply in milliseconds; if a tab can't respond in 2.5s,
+ * it's likely frozen/suspended and unusable.
  */
-export const SCRIPT_EXECUTION_TIMEOUT_MS = 5000;
+export const SCRIPT_EXECUTION_TIMEOUT_MS = 2500;
 
 /**
  * Executes a script in a tab with timeout protection.
