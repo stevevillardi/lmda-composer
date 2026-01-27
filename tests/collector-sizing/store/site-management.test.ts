@@ -4,7 +4,7 @@
  * Tests addSite, removeSite, renameSite, and related actions
  * in the collector sizing slice.
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { useEditorStore } from '../../../src/editor/stores/editor-store';
 import {
   createDefaultDevices,

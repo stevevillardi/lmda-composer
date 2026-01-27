@@ -4,10 +4,10 @@
  * Tests loadCollectorSizingState, saveCollectorSizingState,
  * and resetCollectorSizing actions.
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { useEditorStore } from '../../../src/editor/stores/editor-store';
 import { resetChromeMocks, getChromeMock } from '../../setup';
-import type { Site, CollectorSizingConfig } from '../../../src/editor/stores/slices/collector-sizing-slice';
+import type { Site } from '../../../src/editor/stores/slices/collector-sizing-slice';
 
 // Get initial state for resets
 const initialState = useEditorStore.getState();
@@ -408,7 +408,7 @@ describe('Persistence', () => {
 
   describe('recalculateSite', () => {
     it('updates calculation result for specific site', () => {
-      const { addSite, updateDeviceCount, recalculateSite } = useEditorStore.getState();
+      const { addSite, updateDeviceCount } = useEditorStore.getState();
       const siteId = addSite('Test Site');
 
       // Directly modify state to clear calculation (simulating load from storage)

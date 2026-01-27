@@ -264,7 +264,7 @@ export function ApiWelcomeScreen() {
                   className="gap-2 text-muted-foreground hover:text-foreground"
                 >
                   <Code className="size-4" />
-                  Composer
+                  Script Editor
                   <ChevronRight className="size-4" />
                 </Button>
                 <Button

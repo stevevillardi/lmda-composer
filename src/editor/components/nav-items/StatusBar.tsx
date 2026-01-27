@@ -119,13 +119,17 @@ export function StatusBar() {
   // Get extension version
   const extensionVersion = useMemo(() => getExtensionVersion(), []);
 
-  // Execution status
+  // Execution status - prioritize connection state over stale execution results
   let statusText = 'Ready';
   let statusVariant: 'default' | 'secondary' | 'destructive' | 'outline' = 'secondary';
-  
+
   if (isExecuting) {
     statusText = 'Executing...';
     statusVariant = 'default';
+  } else if (!selectedPortalId) {
+    // No portal connected - show this regardless of stale execution state
+    statusText = 'No Portal';
+    statusVariant = 'outline';
   } else if (currentExecution) {
     switch (currentExecution.status) {
       case 'complete':

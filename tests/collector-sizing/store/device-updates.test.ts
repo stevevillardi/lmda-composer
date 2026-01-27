@@ -4,7 +4,7 @@
  * Tests updateDeviceCount, addDeviceType, deleteDeviceType,
  * and related device configuration actions.
  */
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { useEditorStore } from '../../../src/editor/stores/editor-store';
 import { resetChromeMocks } from '../../setup';
 
@@ -128,7 +128,7 @@ describe('Device Updates', () => {
 
   describe('addDeviceType', () => {
     it('adds device type to defaults', () => {
-      const { addDeviceType, collectorSizingConfig } = useEditorStore.getState();
+      const { addDeviceType } = useEditorStore.getState();
 
       addDeviceType('Custom Device', 'Server', 50, { SNMPv3: 1.0 });
 

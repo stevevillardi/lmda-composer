@@ -71,7 +71,8 @@ const runPrimaryAction = () => {
     return;
   }
 
-  if (!isExecuting && selectedPortalId && selectedCollectorId) {
+  // Only execute if we have an active tab (not on welcome screen)
+  if (!isExecuting && selectedPortalId && selectedCollectorId && tabs.length > 0) {
     executeScript();
   }
 };
@@ -115,13 +116,23 @@ const toggleView = () => {
     return;
   }
 
-  // Switch to API workspace
-  setActiveWorkspace('api');
-  const lastApi = getLastTabIdByKind('api');
-  if (lastApi) {
-    setActiveTab(lastApi);
+  if (currentWorkspace === 'script') {
+    // Switch to API workspace
+    setActiveWorkspace('api');
+    const lastApi = getLastTabIdByKind('api');
+    if (lastApi) {
+      setActiveTab(lastApi);
+    }
+    // If no API tabs, shows ApiWelcomeScreen
+    return;
   }
-  // If no API tabs, shows ApiWelcomeScreen
+
+  // From collector-sizing or other workspaces, go to script (primary workspace)
+  setActiveWorkspace('script');
+  const lastScript = getLastTabIdByKind('script');
+  if (lastScript) {
+    setActiveTab(lastScript);
+  }
 };
 
 export const copyOutputToClipboard = async () => {

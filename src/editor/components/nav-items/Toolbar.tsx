@@ -12,7 +12,7 @@ import {
   SettingsIcon,
   ImportIcon,
 } from '../../constants/icons';
-import { FlaskConical } from 'lucide-react';
+import { FlaskConical, Calculator } from 'lucide-react';
 import { MODE_ITEMS } from '../../constants/mode-config';
 import { executionToasts, moduleToasts, portalToasts } from '../../utils/toast-utils';
 import { useEditorStore } from '../../stores/editor-store';
@@ -157,8 +157,8 @@ export function Toolbar() {
     setPendingLanguage(null);
   };
 
-  // Check if we can execute
-  const canExecute = selectedPortalId && selectedCollectorId && !isExecuting;
+  // Check if we can execute (need portal, collector, not executing, and an active tab)
+  const canExecute = selectedPortalId && selectedCollectorId && !isExecuting && tabs.length > 0;
 
   const handleRunClick = () => {
     if (powerShellBlocked) {
@@ -182,9 +182,37 @@ export function Toolbar() {
   // Check if we can commit module changes (has changes and portal selected)
   const canCommit = activeTabId && canCommitModule(activeTabId);
 
-  if (isApiTab) {
+  // Determine effective workspace for toolbar rendering
+  const effectiveWorkspace = useMemo(() => {
+    if (activeWorkspace === 'collector-sizing') return 'collector-sizing';
+    if (activeWorkspace === 'api') return 'api';
+    if (isApiTab) return 'api';
+    return 'script';
+  }, [activeWorkspace, isApiTab]);
+
+  // Collector Sizing Toolbar - minimal controls
+  if (effectiveWorkspace === 'collector-sizing') {
+    return (
+      <div className="flex items-center gap-2 border-b border-border bg-secondary/30 px-3 py-2">
+        <div className="flex items-center gap-2">
+          <Calculator className={SIZES.ICON_MEDIUM} />
+          <span className="text-sm font-medium text-foreground">
+            Collector Sizing Calculator
+          </span>
+        </div>
+        <div className="flex-1" />
+        <div className="flex items-center gap-1.5">
+          <ActionsDropdown />
+        </div>
+      </div>
+    );
+  }
+
+  if (effectiveWorkspace === 'api') {
+    const hasActiveApiTab = activeTab?.kind === 'api';
     const canSendApi = Boolean(
       selectedPortalId &&
+      hasActiveApiTab &&
       activeTab?.api?.request.path.trim() &&
       !isExecutingApi
     );
@@ -216,59 +244,63 @@ export function Toolbar() {
           <ContextDropdown showCollector={false} showDevice={false} />
         </div>
 
-        <Separator orientation="vertical" className="mx-1 h-8" />
+        {hasActiveApiTab && (
+          <>
+            <Separator orientation="vertical" className="mx-1 h-8" />
 
-        <div className="flex items-center gap-2">
-          <Label className="
-            hidden text-xs whitespace-nowrap text-muted-foreground select-none
-            lg:block
-          ">
-            Pagination:
-          </Label>
-          <div className="
-            flex items-center gap-1 rounded-md border border-input
-            bg-background/50
-          ">
-            <div className="flex items-center gap-2 px-2">
-              <span className="text-xs text-muted-foreground select-none">Auto</span>
-              <Switch
-                checked={pagination?.enabled ?? false}
-                onCheckedChange={(checked) => updatePagination({ enabled: checked })}
-              />
-            </div>
-            <Separator orientation="vertical" className="h-8" />
-            <div className="flex items-center gap-2 px-2">
-              <Tooltip>
-                <TooltipTrigger
-                  render={
-                    <span className="
-                      text-xs whitespace-nowrap text-muted-foreground
-                      select-none
-                    ">
-                      Batch Size
-                    </span>
-                  }
-                />
-                <TooltipContent>Controls `size` when auto pagination is on.</TooltipContent>
-              </Tooltip>
-              <Slider
-                value={[pagination?.pageSize ?? 25]}
-                onValueChange={(value) =>
-                  updatePagination({ pageSize: Array.isArray(value) ? value[0] : value })
-                }
-                min={25}
-                max={1000}
-                step={25}
-                className="w-[120px]"
-              />
-              <span className="
-                w-6 text-right text-xs text-muted-foreground select-none
+            <div className="flex items-center gap-2">
+              <Label className="
+                hidden text-xs whitespace-nowrap text-muted-foreground select-none
+                lg:block
               ">
-                {pagination?.pageSize ?? 25}
-              </span>
+                Pagination:
+              </Label>
+              <div className="
+                flex items-center gap-1 rounded-md border border-input
+                bg-background/50
+              ">
+                <div className="flex items-center gap-2 px-2">
+                  <span className="text-xs text-muted-foreground select-none">Auto</span>
+                  <Switch
+                    checked={pagination?.enabled ?? false}
+                    onCheckedChange={(checked) => updatePagination({ enabled: checked })}
+                  />
+                </div>
+                <Separator orientation="vertical" className="h-8" />
+                <div className="flex items-center gap-2 px-2">
+                  <Tooltip>
+                    <TooltipTrigger
+                      render={
+                        <span className="
+                          text-xs whitespace-nowrap text-muted-foreground
+                          select-none
+                        ">
+                          Batch Size
+                        </span>
+                      }
+                    />
+                    <TooltipContent>Controls `size` when auto pagination is on.</TooltipContent>
+                  </Tooltip>
+                  <Slider
+                    value={[pagination?.pageSize ?? 25]}
+                    onValueChange={(value) =>
+                      updatePagination({ pageSize: Array.isArray(value) ? value[0] : value })
+                    }
+                    min={25}
+                    max={1000}
+                    step={25}
+                    className="w-[120px]"
+                  />
+                  <span className="
+                    w-6 text-right text-xs text-muted-foreground select-none
+                  ">
+                    {pagination?.pageSize ?? 25}
+                  </span>
+                </div>
+              </div>
             </div>
-          </div>
-        </div>
+          </>
+        )}
 
         <div className="ml-auto flex items-center gap-1.5">
           <ActionsDropdown />

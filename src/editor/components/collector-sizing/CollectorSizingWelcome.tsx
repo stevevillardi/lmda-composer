@@ -3,7 +3,7 @@
  * Shown when no sites are configured yet.
  */
 
-import { Server, Plus, Calculator, MapPin, CheckCircle2, ChevronRight, Code } from 'lucide-react';
+import { Server, Plus, Calculator, MapPin, CheckCircle2, ChevronRight, Code, Braces } from 'lucide-react';
 import { useEditorStore } from '../../stores/editor-store';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -115,8 +115,8 @@ export function CollectorSizingWelcome() {
             </div>
           </div>
 
-          {/* Switch to Composer */}
-          <div className="flex justify-center">
+          {/* Switch to other workspaces */}
+          <div className="flex flex-wrap items-center justify-center gap-2">
             <Button
               variant="ghost"
               size="sm"
@@ -124,7 +124,17 @@ export function CollectorSizingWelcome() {
               className="gap-2 text-muted-foreground hover:text-foreground"
             >
               <Code className="size-4" />
-              Switch to Script Editor
+              Script Editor
+              <ChevronRight className="size-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setActiveWorkspace('api')}
+              className="gap-2 text-muted-foreground hover:text-foreground"
+            >
+              <Braces className="size-4" />
+              API Explorer
               <ChevronRight className="size-4" />
             </Button>
           </div>
