@@ -150,7 +150,7 @@ export function ApiRequestBuilder() {
   }
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col overflow-hidden">
       <div className="flex h-12 items-center gap-2 border-b border-border px-3">
         <Select
           value={method}

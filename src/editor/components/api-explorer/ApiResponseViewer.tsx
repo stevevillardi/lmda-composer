@@ -551,7 +551,7 @@ export function ApiResponseViewer() {
   );
 
   return (
-    <div className="flex h-full flex-col border-t border-border">
+    <div className="flex h-full flex-col overflow-hidden border-t border-border">
       {fullscreenOpen ? (
         <Dialog open={fullscreenOpen} onOpenChange={setFullscreenOpen}>
           <DialogContent
