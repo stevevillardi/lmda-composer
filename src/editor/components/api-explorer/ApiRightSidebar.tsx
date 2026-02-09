@@ -82,7 +82,7 @@ export function ApiRightSidebar() {
   }, [responseJson]);
 
   return (
-    <div className="flex h-full flex-col border-l border-border bg-background">
+    <div className="flex h-full min-w-0 flex-col overflow-hidden border-l border-border bg-background">
       <div className="
         flex h-12 items-center gap-2 border-b border-border px-3 text-xs
         font-medium tracking-wide text-muted-foreground uppercase select-none

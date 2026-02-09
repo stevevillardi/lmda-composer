@@ -193,7 +193,7 @@ export function ApiEndpointDocs({ endpoint }: ApiEndpointDocsProps) {
           space-y-2 rounded-md border border-border/40 bg-card/40 p-3
           backdrop-blur-sm
         ">
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 items-center gap-2">
             <span
               className={cn(
                 `
@@ -206,7 +206,7 @@ export function ApiEndpointDocs({ endpoint }: ApiEndpointDocsProps) {
             >
               {endpoint.method}
             </span>
-            <code className="flex-1 truncate font-mono text-xs text-foreground/90">
+            <code className="min-w-0 flex-1 truncate font-mono text-xs text-foreground/90">
               {endpoint.path}
             </code>
           </div>

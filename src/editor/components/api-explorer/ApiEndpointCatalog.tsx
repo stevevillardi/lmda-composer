@@ -91,7 +91,8 @@ export function ApiEndpointCatalog() {
 
   return (
     <div className="
-      flex h-full min-h-0 flex-col border-r border-border bg-background
+      flex h-full min-h-0 min-w-0 flex-col overflow-hidden border-r
+      border-border bg-background
     ">
       <div className="
         flex h-12 items-center gap-2 border-b border-border bg-background px-3

@@ -5,7 +5,7 @@ import { ApiResponseViewer } from './ApiResponseViewer';
 
 export function ApiExplorerPanel() {
   return (
-    <ResizablePanelGroup direction="horizontal" className="h-full">
+    <ResizablePanelGroup direction="horizontal" className="h-full overflow-hidden">
       <ResizablePanel defaultSize="21%" minSize="15%" maxSize="30%">
         <ApiEndpointCatalog />
       </ResizablePanel>

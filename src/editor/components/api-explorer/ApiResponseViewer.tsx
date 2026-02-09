@@ -452,12 +452,13 @@ export function ApiResponseViewer() {
             <div className="space-y-1 p-2">
               {Object.entries(response.headers).map(([key, value]) => (
                 <div key={key} className="
-                  group flex items-center justify-between gap-4 rounded-sm p-2
-                  transition-colors
+                  group flex min-w-0 items-center justify-between gap-4
+                  rounded-sm p-2 transition-colors
                   hover:bg-muted/40
                 ">
                   <span className="
-                    font-mono text-xs text-muted-foreground select-none
+                    shrink-0 font-mono text-xs text-muted-foreground
+                    select-none
                   ">{key}</span>
                   <div className="flex min-w-0 items-center gap-2">
                     <Tooltip>
@@ -505,7 +506,7 @@ export function ApiResponseViewer() {
           <ScrollArea className="
             min-h-0 flex-1 rounded-md border border-border/60 bg-muted/5
           ">
-            <div className="min-w-0 space-y-5 p-3">
+            <div className="min-w-0 max-w-full space-y-5 p-3">
               {Object.entries(snippets).map(([label, snippet]) => (
                 <div key={label}>
                   <div className="mb-2 flex items-center justify-between">
@@ -551,7 +552,7 @@ export function ApiResponseViewer() {
   );
 
   return (
-    <div className="flex h-full flex-col overflow-hidden border-t border-border">
+    <div className="flex h-full min-w-0 flex-col overflow-hidden border-t border-border">
       {fullscreenOpen ? (
         <Dialog open={fullscreenOpen} onOpenChange={setFullscreenOpen}>
           <DialogContent
