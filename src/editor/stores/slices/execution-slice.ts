@@ -36,8 +36,12 @@ const STORAGE_KEY_HISTORY = 'editor_execution_history';
  */
 export interface ExecutionSliceState {
   isExecuting: boolean;
-  currentExecution: ExecutionResult | null;
-  parsedOutput: ParseResult | null;
+  /** Per-tab execution results keyed by tab ID */
+  executionResultsByTabId: Record<string, ExecutionResult>;
+  /** Per-tab parsed output keyed by tab ID */
+  parsedOutputByTabId: Record<string, ParseResult>;
+  /** Which tab triggered the currently running execution */
+  executingTabId: string | null;
   editorInstance: editor.IStandaloneCodeEditor | null;
   
   // Execution context dialog state (for Collection/Batch Collection modes)
@@ -60,6 +64,8 @@ export interface ExecutionSliceActions {
   executeScript: () => Promise<void>;
   parseCurrentOutput: () => void;
   clearOutput: () => void;
+  /** Clean up execution data for a specific tab (used on tab close) */
+  clearTabExecution: (tabId: string) => void;
   
   // Execution context dialog actions
   setExecutionContextDialogOpen: (open: boolean) => void;
@@ -114,8 +120,9 @@ export interface ExecutionSliceDependencies {
 
 export const executionSliceInitialState: ExecutionSliceState = {
   isExecuting: false,
-  currentExecution: null,
-  parsedOutput: null,
+  executionResultsByTabId: {},
+  parsedOutputByTabId: {},
+  executingTabId: null,
   editorInstance: null,
   
   // Execution context dialog state
@@ -154,19 +161,25 @@ export const createExecutionSlice: StateCreator<
     
     // Get active tab data directly
     const activeTab = state.tabs.find(t => t.id === state.activeTabId);
-    if (!activeTab) {
-      set({
-        currentExecution: {
-          id: crypto.randomUUID(),
-          status: 'error',
-          rawOutput: '',
-          duration: 0,
-          startTime: Date.now(),
-          error: 'No active tab',
-        },
-        outputTab: 'raw',
-        parsedOutput: null,
-      } as Partial<ExecutionSlice & ExecutionSliceDependencies>);
+    const tabId = state.activeTabId;
+    
+    if (!activeTab || !tabId) {
+      if (tabId) {
+        set((prev) => ({
+          executionResultsByTabId: {
+            ...prev.executionResultsByTabId,
+            [tabId]: {
+              id: crypto.randomUUID(),
+              status: 'error',
+              rawOutput: '',
+              duration: 0,
+              startTime: Date.now(),
+              error: 'No active tab',
+            },
+          },
+          outputTab: 'raw',
+        } as Partial<ExecutionSlice & ExecutionSliceDependencies>));
+      }
       return;
     }
 
@@ -180,19 +193,30 @@ export const createExecutionSlice: StateCreator<
     const selectedCollector = state.collectors.find(c => c.id === state.selectedCollectorId);
     const isWindowsCollector = selectedCollector?.arch?.toLowerCase().includes('win') ?? true;
     
+    /** Helper to set an error result for the current tab */
+    const setTabError = (error: string) => {
+      set((prev) => {
+        const { [tabId]: _removedParsed, ...restParsed } = prev.parsedOutputByTabId;
+        return {
+          executionResultsByTabId: {
+            ...prev.executionResultsByTabId,
+            [tabId]: {
+              id: crypto.randomUUID(),
+              status: 'error' as const,
+              rawOutput: '',
+              duration: 0,
+              startTime: Date.now(),
+              error,
+            },
+          },
+          parsedOutputByTabId: restParsed,
+          outputTab: 'raw',
+        } as Partial<ExecutionSlice & ExecutionSliceDependencies>;
+      });
+    };
+    
     if (!state.selectedPortalId || !state.selectedCollectorId) {
-      set({
-        currentExecution: {
-          id: crypto.randomUUID(),
-          status: 'error',
-          rawOutput: '',
-          duration: 0,
-          startTime: Date.now(),
-          error: 'Please select a portal and collector',
-        },
-        outputTab: 'raw',
-        parsedOutput: null,
-      } as Partial<ExecutionSlice & ExecutionSliceDependencies>);
+      setTabError('Please select a portal and collector');
       return;
     }
 
@@ -200,36 +224,14 @@ export const createExecutionSlice: StateCreator<
     if (activeTab.source?.type === 'module') {
       const binding = getPortalBindingStatus(activeTab, state.selectedPortalId, state.portals);
       if (!binding.isActive || !binding.portalId) {
-        set({
-          currentExecution: {
-            id: crypto.randomUUID(),
-            status: 'error',
-            rawOutput: '',
-            duration: 0,
-            startTime: Date.now(),
-            error: binding.reason || 'The bound portal is not active for this tab.',
-          },
-          outputTab: 'raw',
-          parsedOutput: null,
-        } as Partial<ExecutionSlice & ExecutionSliceDependencies>);
+        setTabError(binding.reason || 'The bound portal is not active for this tab.');
         return;
       }
       executionPortalId = binding.portalId;
     }
 
     if (language === 'powershell' && !isWindowsCollector) {
-      set({
-        currentExecution: {
-          id: crypto.randomUUID(),
-          status: 'error',
-          rawOutput: '',
-          duration: 0,
-          startTime: Date.now(),
-          error: 'PowerShell execution is only supported on Windows collectors. Select a Windows collector to run this script.',
-        },
-        outputTab: 'raw',
-        parsedOutput: null,
-      } as Partial<ExecutionSlice & ExecutionSliceDependencies>);
+      setTabError('PowerShell execution is only supported on Windows collectors. Select a Windows collector to run this script.');
       return;
     }
 
@@ -257,14 +259,19 @@ export const createExecutionSlice: StateCreator<
     // Generate execution ID for tracking/cancellation
     const executionId = crypto.randomUUID();
     
-    // Clear previous execution and switch to raw output tab
-    set({ 
-      isExecuting: true, 
-      currentExecution: null,
-      currentExecutionId: executionId,
-      parsedOutput: null,
-      outputTab: 'raw',
-    } as Partial<ExecutionSlice & ExecutionSliceDependencies>);
+    // Clear previous execution for this tab and switch to raw output tab
+    set((prev) => {
+      const { [tabId]: _removedExec, ...restExec } = prev.executionResultsByTabId;
+      const { [tabId]: _removedParsed, ...restParsed } = prev.parsedOutputByTabId;
+      return {
+        isExecuting: true,
+        executingTabId: tabId,
+        currentExecutionId: executionId,
+        executionResultsByTabId: restExec,
+        parsedOutputByTabId: restParsed,
+        outputTab: 'raw',
+      } as Partial<ExecutionSlice & ExecutionSliceDependencies>;
+    });
 
     try {
       const selectedDevice = state.hostname 
@@ -289,7 +296,14 @@ export const createExecutionSlice: StateCreator<
 
       if (result.ok) {
         const execution = result.data as ExecutionResult;
-        set({ currentExecution: execution, isExecuting: false });
+        set((prev) => ({
+          executionResultsByTabId: {
+            ...prev.executionResultsByTabId,
+            [tabId]: execution,
+          },
+          isExecuting: false,
+          executingTabId: null,
+        }));
         
         // Add to history
         const collectorDesc = get().collectors.find(c => c.id === state.selectedCollectorId);
@@ -333,44 +347,78 @@ export const createExecutionSlice: StateCreator<
           get().parseCurrentOutput();
         }
       } else {
-        set({
-          currentExecution: {
+        set((prev) => ({
+          executionResultsByTabId: {
+            ...prev.executionResultsByTabId,
+            [tabId]: {
+              id: crypto.randomUUID(),
+              status: 'error' as const,
+              rawOutput: '',
+              duration: 0,
+              startTime: Date.now(),
+              error: result.error || 'Unknown error from service worker',
+            },
+          },
+          isExecuting: false,
+          executingTabId: null,
+        }));
+      }
+    } catch (error) {
+      set((prev) => ({
+        executionResultsByTabId: {
+          ...prev.executionResultsByTabId,
+          [tabId]: {
             id: crypto.randomUUID(),
-            status: 'error',
+            status: 'error' as const,
             rawOutput: '',
             duration: 0,
             startTime: Date.now(),
-            error: result.error || 'Unknown error from service worker',
+            error: error instanceof Error ? error.message : 'Unknown error',
           },
-          isExecuting: false,
-        });
-      }
-    } catch (error) {
-      set({
-        currentExecution: {
-          id: crypto.randomUUID(),
-          status: 'error',
-          rawOutput: '',
-          duration: 0,
-          startTime: Date.now(),
-          error: error instanceof Error ? error.message : 'Unknown error',
         },
         isExecuting: false,
-      });
+        executingTabId: null,
+      }));
     }
   },
 
   clearOutput: () => {
-    set({ currentExecution: null, parsedOutput: null });
+    const { activeTabId } = get();
+    if (!activeTabId) return;
+    set((prev) => {
+      const { [activeTabId]: _removedExec, ...restExec } = prev.executionResultsByTabId;
+      const { [activeTabId]: _removedParsed, ...restParsed } = prev.parsedOutputByTabId;
+      return {
+        executionResultsByTabId: restExec,
+        parsedOutputByTabId: restParsed,
+      };
+    });
+  },
+
+  clearTabExecution: (tabId: string) => {
+    set((prev) => {
+      const { [tabId]: _removedExec, ...restExec } = prev.executionResultsByTabId;
+      const { [tabId]: _removedParsed, ...restParsed } = prev.parsedOutputByTabId;
+      return {
+        executionResultsByTabId: restExec,
+        parsedOutputByTabId: restParsed,
+      };
+    });
   },
 
   parseCurrentOutput: () => {
-    const { currentExecution, tabs, activeTabId } = get();
+    const { executionResultsByTabId, tabs, activeTabId } = get();
     const activeTab = tabs.find(t => t.id === activeTabId);
     const mode = activeTab?.mode ?? 'freeform';
+    const currentExecution = activeTabId ? executionResultsByTabId[activeTabId] : undefined;
     
     if (!currentExecution?.rawOutput || mode === 'freeform') {
-      set({ parsedOutput: null });
+      if (activeTabId) {
+        set((prev) => {
+          const { [activeTabId]: _removed, ...rest } = prev.parsedOutputByTabId;
+          return { parsedOutputByTabId: rest };
+        });
+      }
       return;
     }
     
@@ -379,7 +427,19 @@ export const createExecutionSlice: StateCreator<
       moduleType: activeTab?.source?.moduleType,
       scriptType: activeTab?.source?.scriptType,
     });
-    set({ parsedOutput: result });
+    if (result && activeTabId) {
+      set((prev) => ({
+        parsedOutputByTabId: {
+          ...prev.parsedOutputByTabId,
+          [activeTabId]: result,
+        },
+      }));
+    } else if (activeTabId) {
+      set((prev) => {
+        const { [activeTabId]: _removed, ...rest } = prev.parsedOutputByTabId;
+        return { parsedOutputByTabId: rest };
+      });
+    }
   },
 
   // Execution context dialog actions
@@ -388,9 +448,10 @@ export const createExecutionSlice: StateCreator<
   },
 
   confirmExecutionContext: async (wildvalue: string, datasourceId: string) => {
-    const { pendingExecution } = get();
-    if (!pendingExecution) return;
+    const { pendingExecution, activeTabId } = get();
+    if (!pendingExecution || !activeTabId) return;
 
+    const tabId = activeTabId;
     const executionId = crypto.randomUUID();
 
     // Close dialog and store values
@@ -401,14 +462,19 @@ export const createExecutionSlice: StateCreator<
       pendingExecution: null,
     } as Partial<ExecutionSlice & ExecutionSliceDependencies>);
 
-    // Now execute with the context values
-    set({ 
-      isExecuting: true, 
-      currentExecution: null,
-      currentExecutionId: executionId,
-      parsedOutput: null,
-      outputTab: 'raw',
-    } as Partial<ExecutionSlice & ExecutionSliceDependencies>);
+    // Now execute with the context values - clear this tab's previous results
+    set((prev) => {
+      const { [tabId]: _removedExec, ...restExec } = prev.executionResultsByTabId;
+      const { [tabId]: _removedParsed, ...restParsed } = prev.parsedOutputByTabId;
+      return {
+        isExecuting: true,
+        executingTabId: tabId,
+        currentExecutionId: executionId,
+        executionResultsByTabId: restExec,
+        parsedOutputByTabId: restParsed,
+        outputTab: 'raw',
+      } as Partial<ExecutionSlice & ExecutionSliceDependencies>;
+    });
 
     try {
       const result = await sendMessage({
@@ -423,7 +489,14 @@ export const createExecutionSlice: StateCreator<
 
       if (result.ok) {
         const execution = result.data as ExecutionResult;
-        set({ currentExecution: execution, isExecuting: false });
+        set((prev) => ({
+          executionResultsByTabId: {
+            ...prev.executionResultsByTabId,
+            [tabId]: execution,
+          },
+          isExecuting: false,
+          executingTabId: null,
+        }));
         
         // Add to history
         const selectedCollector = get().collectors.find(c => c.id === pendingExecution.collectorId);
@@ -445,30 +518,38 @@ export const createExecutionSlice: StateCreator<
           get().parseCurrentOutput();
         }
       } else {
-        set({
-          currentExecution: {
+        set((prev) => ({
+          executionResultsByTabId: {
+            ...prev.executionResultsByTabId,
+            [tabId]: {
+              id: crypto.randomUUID(),
+              status: 'error' as const,
+              rawOutput: '',
+              duration: 0,
+              startTime: Date.now(),
+              error: result.error || 'Unknown error from service worker',
+            },
+          },
+          isExecuting: false,
+          executingTabId: null,
+        }));
+      }
+    } catch (error) {
+      set((prev) => ({
+        executionResultsByTabId: {
+          ...prev.executionResultsByTabId,
+          [tabId]: {
             id: crypto.randomUUID(),
-            status: 'error',
+            status: 'error' as const,
             rawOutput: '',
             duration: 0,
             startTime: Date.now(),
-            error: result.error || 'Unknown error from service worker',
+            error: error instanceof Error ? error.message : 'Unknown error',
           },
-          isExecuting: false,
-        });
-      }
-    } catch (error) {
-      set({
-        currentExecution: {
-          id: crypto.randomUUID(),
-          status: 'error',
-          rawOutput: '',
-          duration: 0,
-          startTime: Date.now(),
-          error: error instanceof Error ? error.message : 'Unknown error',
         },
         isExecuting: false,
-      });
+        executingTabId: null,
+      }));
     }
   },
 
@@ -485,7 +566,7 @@ export const createExecutionSlice: StateCreator<
   },
 
   cancelExecution: async () => {
-    const { currentExecutionId } = get();
+    const { currentExecutionId, executingTabId } = get();
     if (!currentExecutionId) return;
 
     const result = await sendMessage({
@@ -493,18 +574,28 @@ export const createExecutionSlice: StateCreator<
         payload: { executionId: currentExecutionId },
       });
 
-    if (result.ok) {
+    if (result.ok && executingTabId) {
+        set((prev) => ({
+          isExecuting: false,
+          executingTabId: null,
+          cancelDialogOpen: false,
+          executionResultsByTabId: {
+            ...prev.executionResultsByTabId,
+            [executingTabId]: {
+              id: currentExecutionId,
+              status: 'cancelled' as const,
+              rawOutput: '',
+              duration: 0,
+              startTime: Date.now(),
+              error: 'Execution cancelled by user',
+            },
+          },
+        }));
+    } else if (result.ok) {
         set({ 
           isExecuting: false, 
+          executingTabId: null,
           cancelDialogOpen: false,
-          currentExecution: {
-            id: currentExecutionId,
-            status: 'cancelled',
-            rawOutput: '',
-            duration: 0,
-            startTime: Date.now(),
-            error: 'Execution cancelled by user',
-          },
         });
     } else {
       console.error('Failed to cancel execution:', result.error);

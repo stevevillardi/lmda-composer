@@ -53,7 +53,6 @@ export function CommandPalette() {
     isExecuting,
     executeApiRequest,
     isExecutingApi,
-    currentExecution,
     clearOutput,
     refreshPortals,
     refreshCollectors,
@@ -83,6 +82,11 @@ export function CommandPalette() {
     createNewFile,
     openApiExplorerTab,
   } = useEditorStore();
+
+  // Per-tab execution result for output commands
+  const currentExecution = useEditorStore((s) =>
+    s.activeTabId ? s.executionResultsByTabId[s.activeTabId] ?? null : null
+  );
 
   const activeTab = tabs.find(t => t.id === activeTabId);
 

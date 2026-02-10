@@ -136,7 +136,8 @@ const toggleView = () => {
 };
 
 export const copyOutputToClipboard = async () => {
-  const { currentExecution, setCommandPaletteOpen } = getState();
+  const { executionResultsByTabId, activeTabId, setCommandPaletteOpen } = getState();
+  const currentExecution = activeTabId ? executionResultsByTabId[activeTabId] : undefined;
   if (currentExecution?.rawOutput) {
     try {
       await navigator.clipboard.writeText(currentExecution.rawOutput);

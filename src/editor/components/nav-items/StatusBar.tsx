@@ -64,20 +64,26 @@ const WARNING_THRESHOLD = 50000;  // 50K - show yellow warning
 const DANGER_THRESHOLD = 60000;   // 60K - show red warning
 
 export function StatusBar() {
-  const { 
-    tabs,
-    activeTabId,
-    currentExecution, 
-    isExecuting,
-    isExecutingApi,
-    portals,
-    selectedPortalId,
-    collectors,
-    selectedCollectorId,
-    devices,
-    hostname,
-    chordPending,
-  } = useEditorStore();
+  const tabs = useEditorStore((s) => s.tabs);
+  const activeTabId = useEditorStore((s) => s.activeTabId);
+  const isExecuting = useEditorStore((s) => s.isExecuting);
+  const executingTabId = useEditorStore((s) => s.executingTabId);
+  const isExecutingApi = useEditorStore((s) => s.isExecutingApi);
+  const portals = useEditorStore((s) => s.portals);
+  const selectedPortalId = useEditorStore((s) => s.selectedPortalId);
+  const collectors = useEditorStore((s) => s.collectors);
+  const selectedCollectorId = useEditorStore((s) => s.selectedCollectorId);
+  const devices = useEditorStore((s) => s.devices);
+  const hostname = useEditorStore((s) => s.hostname);
+  const chordPending = useEditorStore((s) => s.chordPending);
+
+  // Per-tab execution result
+  const currentExecution = useEditorStore((s) =>
+    s.activeTabId ? s.executionResultsByTabId[s.activeTabId] ?? null : null
+  );
+
+  // Only show executing state when the active tab is the one executing
+  const isTabExecuting = isExecuting && executingTabId === activeTabId;
 
   // Get active tab data
   const activeTab = useMemo(() => {
@@ -123,7 +129,7 @@ export function StatusBar() {
   let statusText = 'Ready';
   let statusVariant: 'default' | 'secondary' | 'destructive' | 'outline' = 'secondary';
 
-  if (isExecuting) {
+  if (isTabExecuting) {
     statusText = 'Executing...';
     statusVariant = 'default';
   } else if (!selectedPortalId) {
@@ -352,7 +358,7 @@ export function StatusBar() {
           <Badge 
             variant={statusVariant} 
             className={cn(
-              isExecuting && 'animate-pulse'
+              isTabExecuting && 'animate-pulse'
             )}
             aria-live="polite"
             aria-atomic="true"

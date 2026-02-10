@@ -1,5 +1,6 @@
 import { useRef, useEffect, useState, useCallback, KeyboardEvent } from 'react';
-import { X, Plus, Circle, Save, Upload, Trash2, AlertTriangle, Braces, Link2, Cloud, Folder } from 'lucide-react';
+import { X, Plus, Circle, Save, Upload, Trash2, AlertTriangle, Braces, Link2, Cloud, Folder, Loader2 } from 'lucide-react';
+import type { ExecutionResult } from '@/shared/types';
 import { clipboardToasts, portalToasts } from '../../utils/toast-utils';
 import { useEditorStore } from '../../stores/editor-store';
 import { Button } from '@/components/ui/button';
@@ -62,6 +63,9 @@ function LanguageIcon({ language }: { language: EditorTab['language'] }) {
   return <LanguageBadge language={language} />;
 }
 
+/** Execution status for a tab */
+type TabExecutionStatus = 'executing' | 'complete' | 'error' | 'cancelled' | null;
+
 interface TabItemProps {
   tab: EditorTab;
   isActive: boolean;
@@ -69,6 +73,8 @@ interface TabItemProps {
   isFileDirty: boolean;
   /** Has unpushed portal changes (blue indicator) */
   hasPortalChanges: boolean;
+  /** Execution status for this tab */
+  executionStatus: TabExecutionStatus;
   selectedPortalId: string | null;
   portals: Portal[];
   onActivate: () => void;
@@ -82,6 +88,7 @@ function TabItem({
   isActive, 
   isFileDirty: fileDirty,
   hasPortalChanges: portalChanges,
+  executionStatus,
   selectedPortalId,
   portals,
   onActivate, 
@@ -197,8 +204,55 @@ function TabItem({
                     </span>
                   )}
                   
-                  {/* Dirty indicators and close button container */}
+                  {/* Status indicators and close button container */}
                   <span className="flex shrink-0 items-center gap-0.5">
+                    {/* Execution status indicator */}
+                    {executionStatus === 'executing' && (
+                      <Tooltip>
+                        <TooltipTrigger
+                          render={
+                            <Loader2 className={cn(
+                              "size-3 shrink-0 animate-spin",
+                              isActive ? "text-teal-400" : "text-teal-400/70"
+                            )} />
+                          }
+                        />
+                        <TooltipContent side="bottom" className="text-xs">
+                          Executing script...
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                    {executionStatus === 'complete' && !fileDirty && !portalChanges && (
+                      <Tooltip>
+                        <TooltipTrigger
+                          render={
+                            <span className={cn(
+                              "size-2 shrink-0 rounded-full",
+                              isActive ? "bg-teal-500" : "bg-teal-500/60"
+                            )} />
+                          }
+                        />
+                        <TooltipContent side="bottom" className="text-xs">
+                          Execution complete
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+                    {executionStatus === 'error' && !fileDirty && !portalChanges && (
+                      <Tooltip>
+                        <TooltipTrigger
+                          render={
+                            <span className={cn(
+                              "size-2 shrink-0 rounded-full",
+                              isActive ? "bg-red-500" : "bg-red-500/60"
+                            )} />
+                          }
+                        />
+                        <TooltipContent side="bottom" className="text-xs">
+                          Execution failed
+                        </TooltipContent>
+                      </Tooltip>
+                    )}
+
                     {/* Portal changes indicator (blue cloud) */}
                     {portalChanges && (
                       <Tooltip>
@@ -331,6 +385,22 @@ function TabItem({
   );
 }
 
+/** Compute execution status for a specific tab */
+function getTabExecutionStatus(
+  tabId: string,
+  executionResultsByTabId: Record<string, ExecutionResult>,
+  isExecuting: boolean,
+  executingTabId: string | null,
+): TabExecutionStatus {
+  if (isExecuting && executingTabId === tabId) return 'executing';
+  const result = executionResultsByTabId[tabId];
+  if (!result) return null;
+  if (result.status === 'complete') return 'complete';
+  if (result.status === 'error' || result.status === 'timeout') return 'error';
+  if (result.status === 'cancelled') return 'cancelled';
+  return null;
+}
+
 export function TabBar() {
   const {
     tabs,
@@ -353,6 +423,11 @@ export function TabBar() {
     setModuleCommitConfirmationOpen,
     moduleCommitConfirmationOpen,
   } = useEditorStore();
+
+  // Execution state for tab indicators
+  const executionResultsByTabId = useEditorStore((s) => s.executionResultsByTabId);
+  const isExecuting = useEditorStore((s) => s.isExecuting);
+  const executingTabId = useEditorStore((s) => s.executingTabId);
   
   // Track pending tab close with confirmation
   const [pendingCloseTabId, setPendingCloseTabId] = useState<string | null>(null);
@@ -583,6 +658,7 @@ export function TabBar() {
             isActive={tab.id === activeTabId}
             isFileDirty={isFileDirty(tab)}
             hasPortalChanges={hasPortalChanges(tab)}
+            executionStatus={getTabExecutionStatus(tab.id, executionResultsByTabId, isExecuting, executingTabId)}
             selectedPortalId={selectedPortalId}
             portals={portals}
             onActivate={() => setActiveTab(tab.id)}

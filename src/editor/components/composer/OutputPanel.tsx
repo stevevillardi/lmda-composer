@@ -14,6 +14,7 @@ import { ValidationContent } from './ValidationContent';
 import { TopologyGraphView } from './TopologyGraphView';
 import { CopyButton } from '../shared/CopyButton';
 import type { ParseResult, TopologyParseResult } from '../../utils/output-parser';
+import type { ExecutionResult } from '@/shared/types';
 
 // Helper to get parsed tab status indicator
 function getParsedTabIndicator(parsedOutput: ParseResult | null): React.ReactNode {
@@ -61,16 +62,24 @@ function getValidationTabIndicator(parsedOutput: ParseResult | null): React.Reac
 }
 
 export function OutputPanel() {
-  const {
-    currentExecution,
-    outputTab,
-    setOutputTab,
-    clearOutput,
-    isExecuting,
-    tabs,
-    activeTabId,
-    parsedOutput,
-  } = useEditorStore();
+  const outputTab = useEditorStore((s) => s.outputTab);
+  const setOutputTab = useEditorStore((s) => s.setOutputTab);
+  const clearOutput = useEditorStore((s) => s.clearOutput);
+  const isExecuting = useEditorStore((s) => s.isExecuting);
+  const executingTabId = useEditorStore((s) => s.executingTabId);
+  const tabs = useEditorStore((s) => s.tabs);
+  const activeTabId = useEditorStore((s) => s.activeTabId);
+
+  // Per-tab execution selectors
+  const currentExecution = useEditorStore((s) =>
+    s.activeTabId ? s.executionResultsByTabId[s.activeTabId] ?? null : null
+  );
+  const parsedOutput = useEditorStore((s) =>
+    s.activeTabId ? s.parsedOutputByTabId[s.activeTabId] ?? null : null
+  );
+  
+  // Only show executing state when the active tab is the one executing
+  const isTabExecuting = isExecuting && executingTabId === activeTabId;
 
   const [fullscreenOpen, setFullscreenOpen] = useState(false);
 
@@ -186,7 +195,7 @@ export function OutputPanel() {
 
         {/* Status Badge */}
         <ExecutionStatus
-          isExecuting={isExecuting}
+          isExecuting={isTabExecuting}
           execution={currentExecution}
         />
       </div>
@@ -260,7 +269,7 @@ export function OutputPanel() {
         role="tabpanel"
         aria-labelledby="output-tab-raw"
       >
-        {isExecuting ? (
+        {isTabExecuting ? (
           <div className="flex items-center gap-2 text-muted-foreground">
             <Loader2 className="size-4 animate-spin" />
             <span>Executing script...</span>
@@ -349,7 +358,7 @@ export function OutputPanel() {
 
 interface ExecutionStatusProps {
   isExecuting: boolean;
-  execution: ReturnType<typeof useEditorStore.getState>['currentExecution'];
+  execution: ExecutionResult | null;
 }
 
 function ExecutionStatus({ isExecuting, execution }: ExecutionStatusProps) {
@@ -407,7 +416,7 @@ function formatDuration(ms: number): string {
 }
 
 interface RawOutputContentProps {
-  execution: NonNullable<ReturnType<typeof useEditorStore.getState>['currentExecution']>;
+  execution: ExecutionResult;
 }
 
 function RawOutputContent({ execution }: RawOutputContentProps) {

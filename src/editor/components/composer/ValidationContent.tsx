@@ -15,7 +15,14 @@ import {
 } from '../../utils/output-parser';
 
 export function ValidationContent() {
-  const { parsedOutput, currentExecution, tabs, activeTabId } = useEditorStore();
+  const tabs = useEditorStore((s) => s.tabs);
+  const activeTabId = useEditorStore((s) => s.activeTabId);
+  const currentExecution = useEditorStore((s) =>
+    s.activeTabId ? s.executionResultsByTabId[s.activeTabId] ?? null : null
+  );
+  const parsedOutput = useEditorStore((s) =>
+    s.activeTabId ? s.parsedOutputByTabId[s.activeTabId] ?? null : null
+  );
 
   // Derive mode from active tab (getters are not reactive in Zustand)
   const mode = useMemo(() => {

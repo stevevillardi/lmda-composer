@@ -242,8 +242,9 @@ export interface TabsSliceDependencies {
   activeWorkspace: 'script' | 'api' | 'collector-sizing' | 'devtools';
   setActiveWorkspace: (workspace: 'script' | 'api' | 'collector-sizing' | 'devtools') => void;
   
-  // From execution slice (for clearing parsed output when mode changes)
-  parsedOutput: ParseResult | null;
+  // From execution slice (for clearing parsed output when mode changes, and tab cleanup)
+  parsedOutputByTabId: Record<string, ParseResult>;
+  clearTabExecution: (tabId: string) => void;
   
   // From module slice (for save options dialog)
   setSaveOptionsDialogOpen: (open: boolean, tabId?: string) => void;
@@ -327,7 +328,7 @@ export const createTabsSlice: StateCreator<
   },
 
   closeTab: (tabId) => {
-    const { tabs, activeTabId, tabsNeedingPermission } = get();
+    const { tabs, activeTabId, tabsNeedingPermission, clearTabExecution } = get();
     const tabIndex = tabs.findIndex(t => t.id === tabId);
     if (tabIndex === -1) return;
     
@@ -353,34 +354,53 @@ export const createTabsSlice: StateCreator<
       activeTabId: newActiveTabId,
       tabsNeedingPermission: newTabsNeedingPermission,
     });
+    
+    // Clean up execution data for the closed tab
+    clearTabExecution(tabId);
   },
 
   closeOtherTabs: (tabId) => {
-    const { tabs } = get();
+    const { tabs, clearTabExecution } = get();
     const tabToKeep = tabs.find(t => t.id === tabId);
     if (!tabToKeep) return;
 
     const targetKind = tabToKeep.kind ?? 'script';
+    const closedTabIds = tabs
+      .filter(t => (t.kind ?? 'script') === targetKind && t.id !== tabId)
+      .map(t => t.id);
     const remainingTabs = tabs.filter(t => (t.kind ?? 'script') !== targetKind || t.id === tabId);
 
     set({
       tabs: remainingTabs,
       activeTabId: tabId,
     });
+    
+    // Clean up execution data for closed tabs
+    for (const closedId of closedTabIds) {
+      clearTabExecution(closedId);
+    }
   },
 
   closeAllTabs: () => {
-    const { tabs, activeTabId } = get();
+    const { tabs, activeTabId, clearTabExecution } = get();
     const activeTab = tabs.find(t => t.id === activeTabId);
     if (!activeTab) {
+      // No active tab - close all and clean up all execution data
+      const allTabIds = tabs.map(t => t.id);
       set({
         tabs: [],
         activeTabId: null,
       });
+      for (const id of allTabIds) {
+        clearTabExecution(id);
+      }
       return;
     }
 
     const targetKind = activeTab.kind ?? 'script';
+    const closedTabIds = tabs
+      .filter(t => (t.kind ?? 'script') === targetKind)
+      .map(t => t.id);
     const remainingTabs = tabs.filter(t => (t.kind ?? 'script') !== targetKind);
     const nextActive = remainingTabs[0]?.id ?? null;
 
@@ -388,6 +408,11 @@ export const createTabsSlice: StateCreator<
       tabs: remainingTabs,
       activeTabId: nextActive,
     });
+    
+    // Clean up execution data for closed tabs
+    for (const closedId of closedTabIds) {
+      clearTabExecution(closedId);
+    }
   },
 
   setActiveTab: (tabId) => {
@@ -543,14 +568,16 @@ export const createTabsSlice: StateCreator<
   },
 
   setMode: (mode) => {
-    const { tabs, activeTabId, outputTab } = get();
+    const { tabs, activeTabId, outputTab, parsedOutputByTabId } = get();
     const activeTab = tabs.find(t => t.id === activeTabId);
     if (!activeTab || activeTab.kind === 'api') return;
     
-    // Clear parsed output and switch to raw tab if in freeform mode
-    const updates: Partial<TabsSlice & TabsSliceDependencies> = {
-      parsedOutput: null, // Always clear parsed output when mode changes
-    };
+    // Clear parsed output for this tab when mode changes
+    const updates: Partial<TabsSlice & TabsSliceDependencies> = {};
+    if (activeTabId) {
+      const { [activeTabId]: _removed, ...rest } = parsedOutputByTabId;
+      updates.parsedOutputByTabId = rest;
+    }
     if (mode === 'freeform' && (outputTab === 'parsed' || outputTab === 'validation' || outputTab === 'graph')) {
       updates.outputTab = 'raw';
     }
