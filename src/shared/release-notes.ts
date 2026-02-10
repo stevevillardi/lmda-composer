@@ -27,6 +27,45 @@ export interface ReleaseNote {
  * The first entry is considered the "latest" release.
  */
 export const RELEASE_NOTES: ReleaseNote[] = [
+    {
+    version: '1.7.3',
+    date: 'February 2026',
+    title: 'Bug Fixes & Enhancements',
+    highlights: [
+      'Redesigned API Explorer layout to work more consistently across different chrome engines',
+      'Multi file editor improvements',
+    ],
+    changes: [
+      {
+        category: 'improved',
+        items: [
+          'Script output is now tied to the active script tab, not the entire editor',
+        ],
+      },
+      {
+        category: 'fixed',
+        items: [
+          'API Explorer layout not working consistently across different chrome engines',
+        ],
+      },
+    ],
+  },
+    {
+    version: '1.7.2',
+    date: 'February 2026',
+    title: 'Bug Fixes',
+    highlights: [
+      'Fixed issue with certain browser versions not being able to resize panels',
+    ],
+    changes: [
+      {
+        category: 'fixed',
+        items: [
+          'Fixed issue with certain browser versions not being able to resize panels',
+        ],
+      },
+    ],
+  },
   {
     version: '1.7.1',
     date: 'January 2026',
