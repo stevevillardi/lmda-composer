@@ -77,7 +77,7 @@ describe('workspace-navigation', () => {
       expect(setActiveTab).toHaveBeenCalledWith('script-2');
     });
 
-    it('switches workspace without setting active tab when target has no tabs', () => {
+    it('switches workspace and clears active tab when target has no tabs', () => {
       const tabs = [createApiTab('api-1')];
       const setActiveWorkspace = vi.fn();
       const setActiveTab = vi.fn();
@@ -90,7 +90,7 @@ describe('workspace-navigation', () => {
       });
 
       expect(setActiveWorkspace).toHaveBeenCalledWith('script');
-      expect(setActiveTab).not.toHaveBeenCalled();
+      expect(setActiveTab).toHaveBeenCalledWith(null);
     });
   });
 

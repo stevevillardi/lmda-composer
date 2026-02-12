@@ -7,7 +7,7 @@ interface SwitchWorkspaceOptions {
   targetWorkspace: WorkspaceKind;
   tabs: EditorTab[];
   setActiveWorkspace: (workspace: EditorWorkspace) => void;
-  setActiveTab: (tabId: string) => void;
+  setActiveTab: (tabId: string | null) => void;
 }
 
 export interface WorkspaceVisibilityState {
@@ -40,9 +40,7 @@ export function switchWorkspaceWithLastTab({
 }: SwitchWorkspaceOptions): void {
   setActiveWorkspace(targetWorkspace);
   const lastTab = getLastTabIdByKind(tabs, targetWorkspace);
-  if (lastTab) {
-    setActiveTab(lastTab);
-  }
+  setActiveTab(lastTab);
 }
 
 export function getWorkspaceVisibilityState(

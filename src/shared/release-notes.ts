@@ -34,6 +34,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
     highlights: [
       'Fixed API Explorer to Script Editor switching when no script tabs are open',
       'Unified workspace switching behavior across Actions menu, Collector Sizing, and keyboard navigation',
+      'Improved tab keyboard navigation and action consistency across the app',
     ],
     changes: [
       {
@@ -42,12 +43,15 @@ export const RELEASE_NOTES: ReleaseNote[] = [
           'Switching from API Explorer to Script Editor now correctly shows the Script welcome screen when no script tabs exist',
           'Collector Sizing workspace switching now consistently restores the most recent tab for the selected workspace',
           'Resolved view-toggle edge cases where workspace switches could appear to do nothing',
+          'Arrow-key navigation across open tabs now behaves more reliably',
+          'Save and Save As shortcuts now only run when an active tab is selected',
         ],
       },
       {
         category: 'improved',
         items: [
           'Centralized workspace/tab switching logic to keep dropdown actions, command palette, and keyboard shortcuts in sync',
+          'Aligned Actions menu and Command Palette options so common tasks are easier to find in either place',
         ],
       },
     ],

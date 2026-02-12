@@ -847,9 +847,13 @@ onDocumentReady(() => {
 // Listen for messages from service worker (only if context is valid)
 if (isExtensionContextValid()) {
   chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+    if (!isExtensionContextValid()) {
+      return false;
+    }
     if (message.type === 'GET_CONTEXT') {
       sendResponse(extractDeviceContext());
+      return false;
     }
-    return true;
+    return false;
   });
 }

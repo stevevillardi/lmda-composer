@@ -166,7 +166,7 @@ export interface TabsSliceActions {
   closeTab: (tabId: string) => void;
   closeOtherTabs: (tabId: string) => void;
   closeAllTabs: () => void;
-  setActiveTab: (tabId: string) => void;
+  setActiveTab: (tabId: string | null) => void;
   renameTab: (tabId: string, newName: string) => void;
   updateTabContent: (tabId: string, content: string) => void;
   updateActiveTabContent: (content: string) => void;
@@ -416,6 +416,10 @@ export const createTabsSlice: StateCreator<
   },
 
   setActiveTab: (tabId) => {
+    if (tabId === null) {
+      set({ activeTabId: null });
+      return;
+    }
     const { tabs, setActiveWorkspace } = get();
     const tab = tabs.find(t => t.id === tabId);
     if (tab) {

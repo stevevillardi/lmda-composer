@@ -21,10 +21,14 @@ import {
   Send,
   Puzzle,
   ArrowLeftRight,
+  Calculator,
+  BookOpen,
+  ExternalLink,
 } from 'lucide-react';
 import { useEditorStore } from '../../stores/editor-store';
 import { copyOutputToClipboard, handleGlobalKeyDown } from '../../utils/keyboard-shortcuts';
 import { getWorkspaceFromState, switchWorkspaceWithLastTab } from '../../utils/workspace-navigation';
+import { DOCS_URLS, LMDA_MODULE_DOCS_URLS } from '@/shared/app-config';
 import {
   Command,
   CommandDialog,
@@ -47,42 +51,40 @@ interface CommandAction {
 }
 
 export function CommandPalette() {
-  const {
-    commandPaletteOpen,
-    setCommandPaletteOpen,
-    executeScript,
-    isExecuting,
-    executeApiRequest,
-    isExecutingApi,
-    clearOutput,
-    refreshPortals,
-    refreshCollectors,
-    selectedPortalId,
-    selectedCollectorId,
-    setModuleBrowserOpen,
-    setModuleSearchOpen,
-    setSettingsDialogOpen,
-    setAppliesToTesterOpen,
-    setDebugCommandsDialogOpen,
-    setModuleSnippetsDialogOpen,
-    tabs,
-    activeTabId,
-    activeWorkspace,
-    setActiveWorkspace,
-    setActiveTab,
-    setRightSidebarOpen,
-    setRightSidebarTab,
-    portals,
-    setSelectedPortal,
-    toggleRightSidebar,
-    exportToFile,
-    saveFile,
-    saveFileAs,
-    openFileFromDisk,
-    openModuleFolderFromDisk,
-    createNewFile,
-    openApiExplorerTab,
-  } = useEditorStore();
+  const commandPaletteOpen = useEditorStore((s) => s.commandPaletteOpen);
+  const setCommandPaletteOpen = useEditorStore((s) => s.setCommandPaletteOpen);
+  const executeScript = useEditorStore((s) => s.executeScript);
+  const isExecuting = useEditorStore((s) => s.isExecuting);
+  const executeApiRequest = useEditorStore((s) => s.executeApiRequest);
+  const isExecutingApi = useEditorStore((s) => s.isExecutingApi);
+  const clearOutput = useEditorStore((s) => s.clearOutput);
+  const refreshPortals = useEditorStore((s) => s.refreshPortals);
+  const refreshCollectors = useEditorStore((s) => s.refreshCollectors);
+  const selectedPortalId = useEditorStore((s) => s.selectedPortalId);
+  const selectedCollectorId = useEditorStore((s) => s.selectedCollectorId);
+  const setModuleBrowserOpen = useEditorStore((s) => s.setModuleBrowserOpen);
+  const setModuleSearchOpen = useEditorStore((s) => s.setModuleSearchOpen);
+  const setSettingsDialogOpen = useEditorStore((s) => s.setSettingsDialogOpen);
+  const setAppliesToTesterOpen = useEditorStore((s) => s.setAppliesToTesterOpen);
+  const setDebugCommandsDialogOpen = useEditorStore((s) => s.setDebugCommandsDialogOpen);
+  const setModuleSnippetsDialogOpen = useEditorStore((s) => s.setModuleSnippetsDialogOpen);
+  const tabs = useEditorStore((s) => s.tabs);
+  const activeTabId = useEditorStore((s) => s.activeTabId);
+  const activeWorkspace = useEditorStore((s) => s.activeWorkspace);
+  const setActiveWorkspace = useEditorStore((s) => s.setActiveWorkspace);
+  const setActiveTab = useEditorStore((s) => s.setActiveTab);
+  const setRightSidebarOpen = useEditorStore((s) => s.setRightSidebarOpen);
+  const setRightSidebarTab = useEditorStore((s) => s.setRightSidebarTab);
+  const portals = useEditorStore((s) => s.portals);
+  const setSelectedPortal = useEditorStore((s) => s.setSelectedPortal);
+  const toggleRightSidebar = useEditorStore((s) => s.toggleRightSidebar);
+  const exportToFile = useEditorStore((s) => s.exportToFile);
+  const saveFile = useEditorStore((s) => s.saveFile);
+  const saveFileAs = useEditorStore((s) => s.saveFileAs);
+  const openFileFromDisk = useEditorStore((s) => s.openFileFromDisk);
+  const openModuleFolderFromDisk = useEditorStore((s) => s.openModuleFolderFromDisk);
+  const createNewFile = useEditorStore((s) => s.createNewFile);
+  const openApiExplorerTab = useEditorStore((s) => s.openApiExplorerTab);
 
   // Per-tab execution result for output commands
   const currentExecution = useEditorStore((s) =>
@@ -90,6 +92,7 @@ export function CommandPalette() {
   );
 
   const activeTab = tabs.find(t => t.id === activeTabId);
+  const hasOpenTabs = tabs.length > 0;
 
   // Toggle view helper
   const handleToggleView = () => {
@@ -145,6 +148,7 @@ export function CommandPalette() {
         setCommandPaletteOpen(false);
         saveFile();
       },
+      disabled: !hasOpenTabs,
     },
     {
       id: 'save-file-as',
@@ -155,6 +159,7 @@ export function CommandPalette() {
         setCommandPaletteOpen(false);
         saveFileAs();
       },
+      disabled: !hasOpenTabs,
     },
     {
       id: 'open-file',
@@ -185,6 +190,7 @@ export function CommandPalette() {
         setCommandPaletteOpen(false);
         exportToFile();
       },
+      disabled: !hasOpenTabs,
     },
   ];
 
@@ -243,6 +249,15 @@ export function CommandPalette() {
       icon: <ArrowLeftRight className="size-4" />,
       shortcut: '⌘K M',
       action: handleToggleView,
+    },
+    {
+      id: 'collector-sizing',
+      label: 'Collector Sizing Calculator',
+      icon: <Calculator className="size-4" />,
+      action: () => {
+        setCommandPaletteOpen(false);
+        setActiveWorkspace('collector-sizing');
+      },
     },
     {
       id: 'open-module-browser',
@@ -353,6 +368,27 @@ export function CommandPalette() {
     },
   ];
 
+  const helpCommands: CommandAction[] = [
+    {
+      id: 'documentation',
+      label: 'Documentation',
+      icon: <BookOpen className="size-4" />,
+      action: () => {
+        setCommandPaletteOpen(false);
+        window.open(DOCS_URLS.home, '_blank');
+      },
+    },
+    {
+      id: 'install-lm-pwsh-module',
+      label: 'Install the LM Pwsh Module',
+      icon: <ExternalLink className="size-4" />,
+      action: () => {
+        setCommandPaletteOpen(false);
+        window.open(LMDA_MODULE_DOCS_URLS.docs, '_blank');
+      },
+    },
+  ];
+
   // Portal switch commands
   const portalCommands: CommandAction[] = portals
     .filter(p => p.id !== selectedPortalId)
@@ -450,6 +486,22 @@ export function CommandPalette() {
 
           <CommandGroup heading="Refresh">
             {refreshCommands.map((cmd) => (
+              <CommandItem
+                key={cmd.id}
+                onSelect={cmd.action}
+                disabled={cmd.disabled}
+              >
+                {cmd.icon}
+                <span>{cmd.label}</span>
+                {cmd.shortcut && <CommandShortcut>{cmd.shortcut}</CommandShortcut>}
+              </CommandItem>
+            ))}
+          </CommandGroup>
+
+          <CommandSeparator />
+
+          <CommandGroup heading="Help">
+            {helpCommands.map((cmd) => (
               <CommandItem
                 key={cmd.id}
                 onSelect={cmd.action}

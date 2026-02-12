@@ -176,8 +176,9 @@ const singleShortcuts: SingleShortcut[] = [
     label: 'Save',
     match: (event) => matchesModKey(event, 's', false),
     action: () => {
-      const { saveFile } = getState();
-      void saveFile();
+      const { saveFile, activeTabId } = getState();
+      if (!activeTabId) return;
+      void saveFile(activeTabId);
     },
     monacoKeybinding: KeyMod.CtrlCmd | KeyCode.KeyS,
   },
@@ -239,8 +240,9 @@ const chordShortcuts: ChordShortcut[] = [
     followKey: 's',
     followShift: true,
     action: () => {
-      const { saveFileAs } = getState();
-      void saveFileAs();
+      const { saveFileAs, activeTabId } = getState();
+      if (!activeTabId) return;
+      void saveFileAs(activeTabId);
     },
   },
   {

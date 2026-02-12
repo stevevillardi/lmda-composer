@@ -49,9 +49,9 @@ The API Explorer is a portal-scoped, LM-tailored API playground that uses the ex
 
 ## Schema Handling
 
-**Source:** `docs/logicmonitor-api.yaml`
+**Source:** Remote LogicMonitor Swagger JSON (`https://www.logicmonitor.com/swagger-ui-master/api-v3/dist/swagger.json`).
 
-**Bundling:** Convert to JSON at build time and import into the editor UI.
+**Loading:** Schema is fetched at runtime in the editor UI and cached in memory.
 
 **Indexing:**
 - Group endpoints by tag.

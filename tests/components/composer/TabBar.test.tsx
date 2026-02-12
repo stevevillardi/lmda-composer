@@ -642,6 +642,29 @@ describe('TabBar', () => {
       const inactiveTab = tabs.find(t => t.getAttribute('aria-selected') === 'false');
       expect(inactiveTab).toHaveAttribute('tabindex', '-1');
     });
+
+    it('moves focus and active tab with ArrowRight', async () => {
+      const user = userEvent.setup();
+      const tab1 = createMockTab({ displayName: 'First.groovy' });
+      const tab2 = createMockTab({ displayName: 'Second.groovy' });
+
+      setStoreState({
+        tabs: [tab1, tab2],
+        activeTabId: tab1.id,
+      });
+
+      render(<TabBar />);
+
+      const firstTab = screen.getByRole('tab', { name: /First\.groovy/i });
+      firstTab.focus();
+
+      await user.keyboard('{ArrowRight}');
+
+      await waitFor(() => {
+        expect(screen.getByRole('tab', { name: /Second\.groovy/i })).toHaveAttribute('aria-selected', 'true');
+      });
+      expect(screen.getByRole('tab', { name: /Second\.groovy/i })).toHaveFocus();
+    });
   });
 
   // ===========================================================================

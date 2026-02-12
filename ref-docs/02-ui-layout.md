@@ -215,7 +215,7 @@
 
 ## Overlays & Modals
 
-### Command Palette (`Cmd+K` / `Ctrl+K`)
+### Command Palette (`Cmd+Shift+P` / `Ctrl+Shift+P`)
 
 **shadcn Component:** `Command`
 
@@ -239,7 +239,7 @@
 └─────────────────────────────────────────────────────────┘
 ```
 
-### Module Browser (`Ctrl+Shift+I`)
+### Module Browser (`Cmd/Ctrl+K`, then `I`)
 
 **shadcn Component:** `Sheet` (slides in from right)
 
@@ -268,7 +268,7 @@
 └───────────────────────────────────────────────────┘
 ```
 
-### Module Search (`Ctrl+Shift+F`)
+### Module Search (`Cmd/Ctrl+K`, then `S`)
 
 **shadcn Component:** `Dialog`
 
@@ -307,18 +307,16 @@
 | Shortcut | Action |
 |----------|--------|
 | `Ctrl+Enter` / `F5` | Run script |
-| `Ctrl+K` | Open command palette |
-| `Ctrl+O` | Open file from disk |
+| `Ctrl+Shift+P` | Open command palette |
+| `Ctrl+K`, then `O` | Open file from disk |
 | `Ctrl+S` | Save file (to existing location or Save As) |
-| `Ctrl+Shift+S` | Save As (always prompt for location) |
-| `Ctrl+Shift+C` | Copy output to clipboard |
-| `Ctrl+Shift+F` | Search LogicModules |
-| `Ctrl+Shift+I` | Import from LMX |
+| `Ctrl+K`, then `Shift+S` | Save As (always prompt for location) |
+| `Ctrl+K`, then `C` | Copy output to clipboard |
+| `Ctrl+K`, then `S` | Search LogicModules |
+| `Ctrl+K`, then `I` | Import from LMX |
 | `Ctrl+,` | Open settings |
-| `Ctrl+\`` | Toggle output panel |
+| `Ctrl+K`, then `M` | Toggle API/Script view |
 | `Escape` | Close overlays/modals |
-| `Ctrl+1` | Focus editor |
-| `Ctrl+2` | Focus output |
 
 ---
 

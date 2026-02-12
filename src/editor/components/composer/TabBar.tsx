@@ -473,11 +473,11 @@ export function TabBar() {
     
     if (targetIndex !== currentIndex) {
       setActiveTab(visibleTabs[targetIndex].id);
-      // Focus the tab button
-      const tabButton = tabListRef.current.querySelector(
-        `button[role="tab"][aria-controls="tabpanel-${visibleTabs[targetIndex].id}"]`
-      ) as HTMLButtonElement;
-      tabButton?.focus();
+      // Focus the next tab element after switching.
+      const nextTab = tabListRef.current.querySelector(
+        `[role="tab"][aria-controls="tabpanel-${visibleTabs[targetIndex].id}"]`
+      ) as HTMLElement | null;
+      nextTab?.focus();
     }
   }, [visibleTabs, activeTabId, setActiveTab]);
   
@@ -678,6 +678,7 @@ export function TabBar() {
                 variant="ghost"
                 size="sm"
                 onClick={handleNewTab}
+                aria-label={isApiActive ? 'Create a new API request tab' : 'Create a new file tab'}
                 className="h-6 gap-1 px-2 text-xs"
               >
                 {isApiActive ? <Braces className="size-3.5" /> : <Plus className="

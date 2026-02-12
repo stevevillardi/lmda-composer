@@ -109,7 +109,7 @@ interface Snippet {
 Multi-tab editing model for the editor.
 
 ```typescript
-type EditorTabSourceType = 'module' | 'file' | 'new' | 'history';
+type EditorTabSourceType = 'module' | 'file' | 'new' | 'history' | 'api';
 
 interface EditorTabSource {
   type: EditorTabSourceType;
@@ -127,15 +127,17 @@ interface EditorTabContextOverride {
 
 interface EditorTab {
   id: string;
+  kind?: 'script' | 'api';
   displayName: string;
   content: string;
   language: ScriptLanguage;
   mode: ScriptMode;
   source?: EditorTabSource;
   contextOverride?: EditorTabContextOverride;
-  originalContent?: string;
-  hasFileHandle?: boolean;
-  isLocalFile?: boolean;
+  api?: ApiTabState;
+  document?: DocumentState;
+  fileHandleId?: string;
+  directoryHandleId?: string;
 }
 
 interface DraftTabs {
@@ -771,6 +773,8 @@ interface UserPreferences {
   defaultMode: ScriptMode;
   defaultLanguage: ScriptLanguage;
   maxHistorySize: number;
+  apiHistoryLimit: number;
+  apiResponseSizeLimit: number;
 }
 
 interface DraftScript {
@@ -797,15 +801,11 @@ interface DraftTabs {
 ```typescript
 interface EditorTab {
   // ... existing fields ...
-  
-  /** Content when file was opened or last saved (for dirty detection) */
-  originalContent?: string;
-  
-  /** Whether this tab has a persisted file handle in IndexedDB */
-  hasFileHandle?: boolean;
-  
-  /** Distinguishes local files from modules, new files, history entries */
-  isLocalFile?: boolean;
+  kind?: 'script' | 'api';
+  api?: ApiTabState;
+  document?: DocumentState;
+  fileHandleId?: string;
+  directoryHandleId?: string;
 }
 ```
 
@@ -813,13 +813,8 @@ interface EditorTab {
 
 ```typescript
 function isTabDirty(tab: EditorTab): boolean {
-  // New file without originalContent is always "dirty" (never saved)
-  if (tab.originalContent === undefined) {
-    return true;
-  }
-  
-  // Compare current content to original
-  return tab.content !== tab.originalContent;
+  // Dirty state comes from unified document state.
+  return tab.content !== getOriginalContent(tab);
 }
 ```
 

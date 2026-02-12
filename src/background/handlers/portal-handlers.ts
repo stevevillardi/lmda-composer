@@ -27,7 +27,10 @@ export function handleCsrfToken(
   const { portalId, token } = payload;
   portalManager.receiveCsrfTokenFromContentScript(portalId, token)
     .then(() => sendResponse({ success: true }))
-    .catch(() => sendResponse({ success: true }));
+    .catch((error) => sendResponse({
+      success: false,
+      error: error instanceof Error ? error.message : 'Failed to receive CSRF token',
+    }));
 }
 
 export async function handleGetCollectors(

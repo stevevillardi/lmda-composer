@@ -15,7 +15,7 @@ LogicMonitor IDE is a Chrome Extension (Manifest V3) that provides an enhanced s
 │  ┌─────────────────────────────────────────────────────────────────────────┐│
 │  │                     Service Worker (background)                          ││
 │  │  ┌─────────────────┐  ┌─────────────────┐  ┌──────────────────────────┐ ││
-│  │  │  PortalManager  │  │  CollectorPool  │  │    LogicModuleLoader     │ ││
+│  │  │  PortalManager  │  │ Collector Cache │  │      ModuleLoader        │ ││
 │  │  │  - Tab discovery│  │  - Fetch list   │  │    - Search modules      │ ││
 │  │  │  - CSRF tokens  │  │  - Status cache │  │    - Load scripts        │ ││
 │  │  └────────┬────────┘  └────────┬────────┘  └────────────┬─────────────┘ ││
@@ -78,7 +78,7 @@ The service worker is the central coordinator. It:
 **Key Design Decisions:**
 - Service workers are event-driven and can be terminated by Chrome when idle
 - State must be persisted to `chrome.storage` for durability
-- Use `chrome.alarms` for periodic CSRF token refresh
+- CSRF tokens are refreshed on demand and cached with TTL logic
 
 **Files:**
 ```
@@ -86,11 +86,19 @@ background/
 ├── service-worker.ts      # Entry point, message routing
 ├── portal-manager.ts      # Multi-portal detection, CSRF tokens, collectors, state persistence
 ├── script-executor.ts     # Orchestrates script execution flow with cancellation support
+├── api-executor.ts        # API explorer request execution
 ├── debug-api.ts           # Debug API client (execute/poll, command builders, rate limiting)
-├── property-prefetcher.ts # Fetches device props via Groovy for PowerShell
 ├── token-substitutor.ts   # ##TOKEN## detection and replacement
 ├── module-loader.ts       # LogicModule fetching with pagination
 ├── module-searcher.ts     # Script/datapoint search across modules
+├── module-snippets-cache.ts # Snippet cache and lookup
+├── sender-validation.ts   # Sender origin validation
+├── handlers/              # Domain message handlers
+│   ├── portal-handlers.ts
+│   ├── execution-handlers.ts
+│   ├── module-handlers.ts
+│   ├── snippets-handlers.ts
+│   └── custom-function-handlers.ts
 └── rate-limiter.ts        # Rate limit detection and exponential backoff
 ```
 
@@ -106,14 +114,14 @@ background/
                          │
         ┌────────────────┼────────────────┐
         ▼                ▼                ▼
-┌───────────────┐ ┌─────────────┐ ┌──────────────────┐
-│  debug-api    │ │  property-  │ │  token-          │
-│               │ │  prefetcher │ │  substitutor     │
-│ - execute()   │ │             │ │                  │
-│ - poll()      │ │ - Groovy    │ │ - hasTokens()    │
-│ - buildCmd()  │ │   prefetch  │ │ - substitute()   │
-└───────────────┘ │ - JSON parse│ │ - extractTokens()│
-                  └─────────────┘ └──────────────────┘
+┌───────────────┐ ┌──────────────────┐
+│  debug-api    │ │  token-          │
+│               │ │  substitutor     │
+│ - execute()   │ │                  │
+│ - poll()      │ │ - hasTokens()    │
+│ - buildCmd()  │ │ - substitute()   │
+└───────────────┘ │ - extractTokens()│
+                  └──────────────────┘
 ```
 
 ### 2. Content Scripts (`content/`)
@@ -189,7 +197,7 @@ editor/
 │   ├── RightSidebar.tsx   # Properties/Snippets/History panel
 │   ├── SnippetLibraryPanel.tsx # Snippet filters and insertion
 │   ├── StatusBar.tsx      # Status info display
-│   ├── CommandPalette.tsx # Quick command access (Ctrl+K)
+│   ├── CommandPalette.tsx # Quick command access (Ctrl+Shift+P)
 │   ├── ExecutionContextDialog.tsx  # Wildvalue/DatasourceId prompts
 │   ├── ExecutionHistoryPanel.tsx   # History sidebar panel
 │   ├── LogicModuleBrowser.tsx      # Module search and preview

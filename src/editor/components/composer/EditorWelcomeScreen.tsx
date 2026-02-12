@@ -312,7 +312,7 @@ export function EditorWelcomeScreen() {
               transition-all
               hover:border-primary/20 hover:shadow-md
             ">
-              <CardHeader className="pb-3">
+              <CardHeader className="pb-0">
                 <CardTitle className="flex items-center gap-2 text-base font-medium">
                   <div className="
                     flex size-8 items-center justify-center rounded-full
@@ -382,7 +382,7 @@ export function EditorWelcomeScreen() {
               transition-all
               hover:border-primary/20 hover:shadow-md
             ">
-              <CardHeader className="pb-3">
+              <CardHeader className="pb-0">
                 <CardTitle className="flex items-center gap-2 text-base font-medium">
                   <div className="
                     flex size-8 items-center justify-center rounded-full
@@ -438,7 +438,7 @@ export function EditorWelcomeScreen() {
                       ? "hover:border-primary/20 hover:shadow-md"
                       : "opacity-60"
                   )}>
-                    <CardHeader className="pb-3">
+                    <CardHeader className="pb-0">
                       <CardTitle className="flex items-center gap-2 text-base font-medium">
                         <div className="
                           flex size-8 items-center justify-center rounded-full

@@ -15,7 +15,7 @@ describe('module-search-utils', () => {
 
   it('finds match ranges across lines', () => {
     const text = 'alpha\nbeta\nalpha';
-    const ranges = findMatchRanges(text, 'alpha', 'contains', false);
+    const ranges = findMatchRanges(text, 'alpha', 'substring', false);
     expect(ranges).toEqual([
       { line: 1, startColumn: 1, endColumn: 6 },
       { line: 3, startColumn: 1, endColumn: 6 },
@@ -23,7 +23,7 @@ describe('module-search-utils', () => {
   });
 
   it('textMatches respects case sensitivity', () => {
-    expect(textMatches('Alpha', 'alpha', 'contains', false)).toBe(true);
-    expect(textMatches('Alpha', 'alpha', 'contains', true)).toBe(false);
+    expect(textMatches('Alpha', 'alpha', 'substring', false)).toBe(true);
+    expect(textMatches('Alpha', 'alpha', 'substring', true)).toBe(false);
   });
 });

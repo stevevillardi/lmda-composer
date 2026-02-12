@@ -401,7 +401,7 @@ if (dsId) {
 ### F4.1 LogicModule Browser ✅
 
 **Description:**  
-Browse LogicModules across 6 module types in the selected portal, preview scripts in read-only Monaco editors, and load them into the main editor.
+Browse LogicModules across 7 module types in the selected portal, preview scripts in read-only Monaco editors, and load them into the main editor.
 
 **User Story:**  
 As a user, I want to load existing LogicModule scripts so I can test and debug them without navigating the LM UI.
@@ -419,7 +419,7 @@ As a user, I want to load existing LogicModule scripts so I can test and debug t
 
 **Behavior:**
 1. Click "Open from LMX" button in toolbar (requires portal selection)
-2. Toggle between 6 module types
+2. Toggle between 7 module types
 3. Search modules by name, displayName, or appliesTo
 4. Select a module to see script preview
 5. AD-enabled modules show dual-pane view (AD left, Collection right)
@@ -428,7 +428,7 @@ As a user, I want to load existing LogicModule scripts so I can test and debug t
 8. Auto-sets language and execution mode based on loaded script
 
 **Acceptance Criteria:**
-- [x] Browse all 6 module types
+- [x] Browse all 7 module types
 - [x] Filter by script-based collection methods
 - [x] Search modules by name/displayName/appliesTo
 - [x] Show collectMethod, AD status, appliesTo in list
@@ -665,7 +665,7 @@ Replace hostname text input with searchable device dropdown.
 
 ---
 
-## Phase 6 Features 🚧 IN PROGRESS
+## Phase 6 Features ✅ COMPLETE
 
 ### F6.1 Open File from Disk
 
