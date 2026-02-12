@@ -35,6 +35,7 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { getOriginalContent } from './utils/document-helpers';
+import { getWorkspaceVisibilityState } from './utils/workspace-navigation';
 import {
   useAppInitialization,
   useThemeSync,
@@ -122,16 +123,7 @@ export function App() {
   
   // Compute workspace visibility state
   const workspaceState = useMemo(() => {
-    const apiTabCount = tabs.filter(t => t.kind === 'api').length;
-    const scriptTabCount = tabs.filter(t => (t.kind ?? 'script') === 'script').length;
-
-    const showDevTools = activeWorkspace === 'devtools' && import.meta.env.DEV;
-    const showCollectorSizing = activeWorkspace === 'collector-sizing';
-    const showApiWelcome = activeWorkspace === 'api' && apiTabCount === 0;
-    const showScriptWelcome = activeWorkspace === 'script' && scriptTabCount === 0 && tabs.length === 0;
-    const showWelcome = showApiWelcome || showScriptWelcome;
-
-    return { showWelcome, showApiWelcome, showScriptWelcome, showDevTools, showCollectorSizing };
+    return getWorkspaceVisibilityState(tabs, activeWorkspace, import.meta.env.DEV);
   }, [tabs, activeWorkspace]);
   
   // Custom hooks for app initialization and management

@@ -26,6 +26,7 @@ import { fileToasts, portalToasts } from '../../utils/toast-utils';
 import { DOCS_URLS } from '@/shared/app-config';
 import { useEditorStore } from '../../stores/editor-store';
 import { getPortalBindingStatus } from '../../utils/portal-binding';
+import { switchWorkspaceWithLastTab } from '../../utils/workspace-navigation';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -91,25 +92,23 @@ export function ActionsDropdown() {
     activeTab?.kind !== 'api'
   );
 
-  const getLastTabIdByKind = (kind: 'api' | 'script') => {
-    return [...tabs].reverse().find(tab => (tab.kind ?? 'script') === kind)?.id ?? null;
-  };
-
   const switchToScriptView = () => {
-    setActiveWorkspace('script');
-    const lastScript = getLastTabIdByKind('script');
-    if (lastScript) {
-      setActiveTab(lastScript);
-    }
+    switchWorkspaceWithLastTab({
+      targetWorkspace: 'script',
+      tabs,
+      setActiveWorkspace,
+      setActiveTab,
+    });
     // If no script tabs exist, the workspace will show EditorWelcomeScreen
   };
 
   const switchToApiView = () => {
-    setActiveWorkspace('api');
-    const lastApi = getLastTabIdByKind('api');
-    if (lastApi) {
-      setActiveTab(lastApi);
-    }
+    switchWorkspaceWithLastTab({
+      targetWorkspace: 'api',
+      tabs,
+      setActiveWorkspace,
+      setActiveTab,
+    });
     // If no API tabs exist, the workspace will show ApiWelcomeScreen
   };
 
@@ -143,11 +142,11 @@ export function ActionsDropdown() {
           <>
             <DropdownMenuSectionHeader>Switch Workspace</DropdownMenuSectionHeader>
             <DropdownMenuGroup>
-              <DropdownMenuItem onClick={() => setActiveWorkspace('script')}>
+              <DropdownMenuItem onClick={switchToScriptView}>
                 <FilePlus className="mr-2 size-4" />
                 <span className="flex-1">Switch to Script Editor</span>
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setActiveWorkspace('api')}>
+              <DropdownMenuItem onClick={switchToApiView}>
                 <Braces className="mr-2 size-4" />
                 <span className="flex-1">Switch to API Explorer</span>
               </DropdownMenuItem>

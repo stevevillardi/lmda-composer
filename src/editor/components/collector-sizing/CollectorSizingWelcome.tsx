@@ -5,6 +5,7 @@
 
 import { Server, Plus, Calculator, MapPin, CheckCircle2, ChevronRight, Code, Braces } from 'lucide-react';
 import { useEditorStore } from '../../stores/editor-store';
+import { switchWorkspaceWithLastTab } from '../../utils/workspace-navigation';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -43,10 +44,28 @@ const STEPS = [
 // ============================================================================
 
 export function CollectorSizingWelcome() {
-  const { addSite, setActiveWorkspace } = useEditorStore();
+  const { addSite, tabs, setActiveWorkspace, setActiveTab } = useEditorStore();
 
   const handleGetStarted = () => {
     addSite('Site 1');
+  };
+
+  const switchToScriptView = () => {
+    switchWorkspaceWithLastTab({
+      targetWorkspace: 'script',
+      tabs,
+      setActiveWorkspace,
+      setActiveTab,
+    });
+  };
+
+  const switchToApiView = () => {
+    switchWorkspaceWithLastTab({
+      targetWorkspace: 'api',
+      tabs,
+      setActiveWorkspace,
+      setActiveTab,
+    });
   };
 
   return (
@@ -120,7 +139,7 @@ export function CollectorSizingWelcome() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setActiveWorkspace('script')}
+              onClick={switchToScriptView}
               className="gap-2 text-muted-foreground hover:text-foreground"
             >
               <Code className="size-4" />
@@ -130,7 +149,7 @@ export function CollectorSizingWelcome() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setActiveWorkspace('api')}
+              onClick={switchToApiView}
               className="gap-2 text-muted-foreground hover:text-foreground"
             >
               <Braces className="size-4" />

@@ -1,6 +1,7 @@
 import { KeyCode, KeyMod, type editor } from 'monaco-editor';
 import { clipboardToasts } from './toast-utils';
 import { useEditorStore } from '../stores/editor-store';
+import { getWorkspaceFromState, switchWorkspaceWithLastTab } from './workspace-navigation';
 
 // ============================================================================
 // Types
@@ -99,40 +100,35 @@ const createNewFileOrApi = () => {
 const toggleView = () => {
   const { activeTabId, tabs, activeWorkspace, setActiveTab, setActiveWorkspace } = getState();
   const activeTab = activeTabId ? tabs.find(tab => tab.id === activeTabId) : null;
-  const getLastTabIdByKind = (kind: 'api' | 'script') =>
-    [...tabs].reverse().find(tab => (tab.kind ?? 'script') === kind)?.id ?? null;
-
-  // Determine current workspace from active tab or workspace state
-  const currentWorkspace = activeTab?.kind === 'api' ? 'api' : activeWorkspace;
+  const currentWorkspace = getWorkspaceFromState(activeTab ?? null, activeWorkspace);
 
   if (currentWorkspace === 'api') {
-    // Switch to script workspace
-    setActiveWorkspace('script');
-    const lastScript = getLastTabIdByKind('script');
-    if (lastScript) {
-      setActiveTab(lastScript);
-    }
-    // If no script tabs, shows EditorWelcomeScreen
+    switchWorkspaceWithLastTab({
+      targetWorkspace: 'script',
+      tabs,
+      setActiveWorkspace,
+      setActiveTab,
+    });
     return;
   }
 
   if (currentWorkspace === 'script') {
-    // Switch to API workspace
-    setActiveWorkspace('api');
-    const lastApi = getLastTabIdByKind('api');
-    if (lastApi) {
-      setActiveTab(lastApi);
-    }
-    // If no API tabs, shows ApiWelcomeScreen
+    switchWorkspaceWithLastTab({
+      targetWorkspace: 'api',
+      tabs,
+      setActiveWorkspace,
+      setActiveTab,
+    });
     return;
   }
 
   // From collector-sizing or other workspaces, go to script (primary workspace)
-  setActiveWorkspace('script');
-  const lastScript = getLastTabIdByKind('script');
-  if (lastScript) {
-    setActiveTab(lastScript);
-  }
+  switchWorkspaceWithLastTab({
+    targetWorkspace: 'script',
+    tabs,
+    setActiveWorkspace,
+    setActiveTab,
+  });
 };
 
 export const copyOutputToClipboard = async () => {

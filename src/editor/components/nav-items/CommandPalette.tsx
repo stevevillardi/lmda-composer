@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { useEditorStore } from '../../stores/editor-store';
 import { copyOutputToClipboard, handleGlobalKeyDown } from '../../utils/keyboard-shortcuts';
+import { getWorkspaceFromState, switchWorkspaceWithLastTab } from '../../utils/workspace-navigation';
 import {
   Command,
   CommandDialog,
@@ -93,19 +94,22 @@ export function CommandPalette() {
   // Toggle view helper
   const handleToggleView = () => {
     setCommandPaletteOpen(false);
-    const getLastTabIdByKind = (kind: 'api' | 'script') =>
-      [...tabs].reverse().find(tab => (tab.kind ?? 'script') === kind)?.id ?? null;
-    
-    const currentWorkspace = activeTab?.kind === 'api' ? 'api' : activeWorkspace;
+    const currentWorkspace = getWorkspaceFromState(activeTab ?? null, activeWorkspace);
     
     if (currentWorkspace === 'api') {
-      setActiveWorkspace('script');
-      const lastScript = getLastTabIdByKind('script');
-      if (lastScript) setActiveTab(lastScript);
+      switchWorkspaceWithLastTab({
+        targetWorkspace: 'script',
+        tabs,
+        setActiveWorkspace,
+        setActiveTab,
+      });
     } else {
-      setActiveWorkspace('api');
-      const lastApi = getLastTabIdByKind('api');
-      if (lastApi) setActiveTab(lastApi);
+      switchWorkspaceWithLastTab({
+        targetWorkspace: 'api',
+        tabs,
+        setActiveWorkspace,
+        setActiveTab,
+      });
     }
   };
 
