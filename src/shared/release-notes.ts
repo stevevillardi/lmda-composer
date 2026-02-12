@@ -45,6 +45,7 @@ export const RELEASE_NOTES: ReleaseNote[] = [
           'Resolved view-toggle edge cases where workspace switches could appear to do nothing',
           'Arrow-key navigation across open tabs now behaves more reliably',
           'Save and Save As shortcuts now only run when an active tab is selected',
+          'LogicModule Browser now only surfaces importable scripted modules (script or batchscript) instead of non-script module variants',
         ],
       },
       {
