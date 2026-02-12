@@ -43,6 +43,19 @@ import type { LogicModuleType, LogicModuleInfo } from '@/shared/types';
 import { ModulePreview } from './ModulePreview';
 import { LOGIC_MODULE_TYPES } from '../../constants/logic-module-types';
 
+function isImportableScriptModule(module: LogicModuleInfo): boolean {
+  const collectMethod = module.collectMethod?.toLowerCase();
+  const isScriptCollectMethod = collectMethod === 'script' || collectMethod === 'batchscript';
+  const hasCollectionScript = !!module.collectionScript?.trim();
+  const hasAdScript = !!module.adScript?.trim();
+
+  // EventSource uses collector type to distinguish script vs non-script variants.
+  if (module.moduleType === 'eventsource' && module.collector && module.collector !== 'scriptevent')
+    return false;
+
+  return isScriptCollectMethod && (hasCollectionScript || hasAdScript);
+}
+
 export function LogicModuleBrowser() {
   const {
     moduleBrowserOpen,
@@ -106,7 +119,7 @@ export function LogicModuleBrowser() {
 
   // Filter and sort modules by search query
   const filteredModules = useMemo(() => {
-    let filtered = modules;
+    let filtered = modules.filter(isImportableScriptModule);
     
     // Filter by search query
     if (moduleSearchQuery.trim()) {
