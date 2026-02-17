@@ -171,6 +171,18 @@ export async function sendMessage<T extends EditorToSWMessage>(
       };
     }
     
+    // Check for module detail/lineage/access group/delete error responses
+    if (response.type === 'MODULE_DETAILS_ERROR' ||
+        response.type === 'LINEAGE_ERROR' ||
+        response.type === 'ACCESS_GROUPS_ERROR' ||
+        response.type === 'MODULE_DELETE_ERROR') {
+      return {
+        ok: false,
+        error: response.payload?.error || 'Module operation failed',
+        code: response.payload?.code?.toString()
+      };
+    }
+    
     return { ok: true, data: response.payload };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';

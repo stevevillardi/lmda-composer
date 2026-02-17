@@ -10,6 +10,7 @@ import {
   HeartPulse,
   Terminal,
   Clock,
+  RefreshCw,
 } from 'lucide-react';
 import { SuccessIcon, ErrorIcon } from '../../constants/icons';
 import { clipboardToasts, collectorToasts } from '../../utils/toast-utils';
@@ -19,6 +20,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 import type { DebugCommand } from '../../data/debug-commands';
 import type { DebugCommandResult } from '@/shared/types';
@@ -29,6 +31,7 @@ interface MultiCollectorResultsProps {
   command: DebugCommand;
   executedCommand?: string;
   onBack: () => void;
+  onRerun: () => void;
 }
 
 // Component to render result content, with special handling for health check
@@ -92,7 +95,7 @@ function ResultContent({
   );
 }
 
-export function MultiCollectorResults({ command, executedCommand, onBack }: MultiCollectorResultsProps) {
+export function MultiCollectorResults({ command, executedCommand, onBack, onRerun }: MultiCollectorResultsProps) {
   const {
     debugCommandResults,
     collectors,
@@ -271,6 +274,17 @@ export function MultiCollectorResults({ command, executedCommand, onBack }: Mult
                 Cancel
               </Button>
             )}
+            {!isExecutingDebugCommand && resultsWithCollectors.length > 0 && (
+              <Button
+                variant="execute"
+                size="sm"
+                onClick={onRerun}
+                className="gap-1.5"
+              >
+                <RefreshCw className="size-4" />
+                Rerun
+              </Button>
+            )}
             <Button
               variant="outline"
               size="sm"
@@ -304,7 +318,7 @@ export function MultiCollectorResults({ command, executedCommand, onBack }: Mult
                 className="gap-1.5"
               >
                 <Download className="size-4" />
-                Export
+                Export All
               </Button>
             )}
             {executedCommand && command.type !== 'healthcheck' && (
@@ -315,7 +329,7 @@ export function MultiCollectorResults({ command, executedCommand, onBack }: Mult
                 className="gap-1.5"
               >
                 <Copy className="size-4" />
-                Copy
+                Copy Command
               </Button>
             )}
           </div>
@@ -427,7 +441,7 @@ export function MultiCollectorResults({ command, executedCommand, onBack }: Mult
                               className="gap-1.5"
                             >
                               <Copy className="size-3.5" />
-                              Copy
+                              Copy Output
                             </Button>
                             <Button
                               variant="outline"
@@ -441,7 +455,7 @@ export function MultiCollectorResults({ command, executedCommand, onBack }: Mult
                               className="gap-1.5"
                             >
                               <Download className="size-3.5" />
-                              Download
+                              Download Output
                             </Button>
                           </>
                         )}
@@ -548,13 +562,20 @@ export function MultiCollectorResults({ command, executedCommand, onBack }: Mult
                       View Details
                     </Button>
                     {result.output && (
-                      <Button
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={() => copyOutput(result.output!)}
-                      >
-                        <Copy className="size-3.5" />
-                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger
+                          render={
+                            <Button
+                              variant="ghost"
+                              size="icon-sm"
+                              onClick={() => copyOutput(result.output!)}
+                            >
+                              <Copy className="size-3.5" />
+                            </Button>
+                          }
+                        />
+                        <TooltipContent>Copy Output</TooltipContent>
+                      </Tooltip>
                     )}
                   </div>
                 </div>

@@ -30,15 +30,33 @@ export const RELEASE_NOTES: ReleaseNote[] = [
   {
     version: '1.7.5',
     date: 'February 2026',
-    title: 'Script Execution Timeout Fix',
+    title: 'Debug Commands Fix & Execution Improvements',
     highlights: [
+      'Fixed debug command parameters not being passed to the collector',
+      'Added Rerun button for quick re-execution of debug commands',
       'Fixed "Another script is already running" error for long-running scripts',
     ],
     changes: [
       {
         category: 'fixed',
         items: [
+          'Fixed debug command parameters not being sent to the collector — positional arguments (host, OID, taskId, etc.) were incorrectly formatted as key=value pairs instead of bare values',
+          'Fixed positional arguments appearing before key=value options — options like version=v3 now correctly precede positional args (e.g. `!snmpget version=v3 host .1.2.3`)',
+          'Fixed swapped parameter definitions between !slist and !sdetail commands',
           'Fixed script execution timeout mismatch that caused "Another script is already running" errors when scripts took longer than 30 seconds',
+          'Fixed stale execution state cleanup when script execution times out or fails',
+        ],
+      },
+      {
+        category: 'added',
+        items: [
+          'Rerun button in debug command results to quickly re-execute the same command on the same collectors',
+        ],
+      },
+      {
+        category: 'improved',
+        items: [
+          'Clarified ambiguous button labels in debug command results — "Copy" split into "Copy Command" and "Copy Output", "Export" renamed to "Export All", "Download" renamed to "Download Output"',
         ],
       },
     ],

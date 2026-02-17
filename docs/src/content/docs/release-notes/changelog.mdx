@@ -20,18 +20,30 @@ LMDA Composer follows semantic versioning (SemVer):
 
 ---
 
-## v1.7.5 — Script Execution Timeout Fix
+## v1.7.5 — Debug Commands Fix & Execution Improvements
 
 <div style="display: flex; align-items: center; gap: 0.75rem; margin: 1rem 0;">
   <Badge text="v1.7.5" variant="success" />
   <span style="font-size: 0.875rem; color: var(--sl-color-gray-3);">February 2026</span>
 </div>
 
-This patch release fixes a timeout mismatch that caused false "Another script is already running" errors.
+This patch release fixes a critical issue where debug command parameters were not being passed to the collector, adds a Rerun button for debug commands, fixes execution timeout errors, and clarifies result action labels.
 
 ### Bug Fixes
 
+- Fixed debug command parameters not being sent to the collector — positional arguments (host, OID, taskId, etc.) were incorrectly formatted as `key=value` pairs instead of bare values
+- Fixed positional arguments appearing before key=value options — options like `version=v3` now correctly precede positional args (e.g. `!snmpget version=v3 host .1.2.3`)
+- Fixed swapped parameter definitions between `!slist` and `!sdetail` commands
 - Fixed script execution timeout mismatch that caused "Another script is already running" errors when scripts took longer than 30 seconds
+- Fixed stale execution state cleanup when script execution times out or fails
+
+### Added
+
+- Rerun button in debug command results to quickly re-execute the same command on the same collectors
+
+### Improved
+
+- Clarified ambiguous button labels in debug command results — "Copy" split into "Copy Command" and "Copy Output", "Export" renamed to "Export All", "Download" renamed to "Download Output"
 
 ---
 

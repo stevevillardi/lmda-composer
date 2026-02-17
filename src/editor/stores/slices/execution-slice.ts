@@ -24,7 +24,7 @@ import { parseOutput } from '../../utils/output-parser';
 import { getPortalBindingStatus } from '../../utils/portal-binding';
 import { normalizeMode } from '../../utils/mode-utils';
 import { createHistoryDocument } from '../../utils/document-helpers';
-import { sendMessage } from '../../utils/chrome-messaging';
+import { sendMessage, sendMessageIgnoreError } from '../../utils/chrome-messaging';
 
 // ============================================================================
 // Types
@@ -48,6 +48,8 @@ export interface ExecutionSliceState {
   // Execution context dialog state (for Collection/Batch Collection modes)
   executionContextDialogOpen: boolean;
   pendingExecution: Omit<ExecuteScriptRequest, 'wildvalue' | 'datasourceId'> | null;
+  /** Tab ID that triggered the pending execution context dialog */
+  pendingExecutionTabId: string | null;
   
   // Cancel execution state
   currentExecutionId: string | null;
@@ -129,6 +131,7 @@ export const executionSliceInitialState: ExecutionSliceState = {
   // Execution context dialog state
   executionContextDialogOpen: false,
   pendingExecution: null,
+  pendingExecutionTabId: null,
   
   // Cancel execution state
   currentExecutionId: null,
@@ -253,6 +256,7 @@ export const createExecutionSlice: StateCreator<
           hostname: state.hostname || undefined,
           deviceId: pendingDevice?.id,
         },
+        pendingExecutionTabId: tabId,
       });
       return;
     }
@@ -297,13 +301,18 @@ export const createExecutionSlice: StateCreator<
 
       if (result.ok) {
         const execution = result.data as ExecutionResult;
+        // Only write result if the tab still exists (it may have been closed during execution)
+        const tabStillExists = get().tabs.some(t => t.id === tabId);
         set((prev) => ({
-          executionResultsByTabId: {
-            ...prev.executionResultsByTabId,
-            [tabId]: execution,
-          },
+          ...(tabStillExists && {
+            executionResultsByTabId: {
+              ...prev.executionResultsByTabId,
+              [tabId]: execution,
+            },
+          }),
           isExecuting: false,
           executingTabId: null,
+          currentExecutionId: null,
         }));
         
         // Add to history
@@ -348,37 +357,51 @@ export const createExecutionSlice: StateCreator<
           get().parseCurrentOutput();
         }
       } else {
+        const tabStillExists = get().tabs.some(t => t.id === tabId);
         set((prev) => ({
+          ...(tabStillExists && {
+            executionResultsByTabId: {
+              ...prev.executionResultsByTabId,
+              [tabId]: {
+                id: executionId,
+                status: 'error' as const,
+                rawOutput: '',
+                duration: 0,
+                startTime: Date.now(),
+                error: result.error || 'Unknown error from service worker',
+              },
+            },
+          }),
+          isExecuting: false,
+          executingTabId: null,
+          currentExecutionId: null,
+        }));
+      }
+    } catch (error) {
+      // Cancel the execution in the service worker to clean up its state
+      sendMessageIgnoreError({
+        type: 'CANCEL_EXECUTION',
+        payload: { executionId },
+      });
+      
+      const tabStillExists = get().tabs.some(t => t.id === tabId);
+      set((prev) => ({
+        ...(tabStillExists && {
           executionResultsByTabId: {
             ...prev.executionResultsByTabId,
             [tabId]: {
-              id: crypto.randomUUID(),
+              id: executionId,
               status: 'error' as const,
               rawOutput: '',
               duration: 0,
               startTime: Date.now(),
-              error: result.error || 'Unknown error from service worker',
+              error: error instanceof Error ? error.message : 'Unknown error',
             },
           },
-          isExecuting: false,
-          executingTabId: null,
-        }));
-      }
-    } catch (error) {
-      set((prev) => ({
-        executionResultsByTabId: {
-          ...prev.executionResultsByTabId,
-          [tabId]: {
-            id: crypto.randomUUID(),
-            status: 'error' as const,
-            rawOutput: '',
-            duration: 0,
-            startTime: Date.now(),
-            error: error instanceof Error ? error.message : 'Unknown error',
-          },
-        },
+        }),
         isExecuting: false,
         executingTabId: null,
+        currentExecutionId: null,
       }));
     }
   },
@@ -397,14 +420,36 @@ export const createExecutionSlice: StateCreator<
   },
 
   clearTabExecution: (tabId: string) => {
+    const { executingTabId, currentExecutionId } = get();
+    const isClosingExecutingTab = tabId === executingTabId;
+    
+    // If closing the tab that's currently executing, cancel the service worker execution
+    if (isClosingExecutingTab && currentExecutionId) {
+      sendMessageIgnoreError({
+        type: 'CANCEL_EXECUTION',
+        payload: { executionId: currentExecutionId },
+      });
+    }
+    
     set((prev) => {
       const { [tabId]: _removedExec, ...restExec } = prev.executionResultsByTabId;
       const { [tabId]: _removedParsed, ...restParsed } = prev.parsedOutputByTabId;
       return {
         executionResultsByTabId: restExec,
         parsedOutputByTabId: restParsed,
+        // Reset execution state if the closed tab was the executing tab
+        ...(isClosingExecutingTab && {
+          isExecuting: false,
+          executingTabId: null,
+          currentExecutionId: null,
+        }),
       };
     });
+    
+    // Also close the execution context dialog if it was triggered by this tab
+    if (isClosingExecutingTab) {
+      set({ executionContextDialogOpen: false, pendingExecution: null });
+    }
   },
 
   parseCurrentOutput: () => {
@@ -449,10 +494,16 @@ export const createExecutionSlice: StateCreator<
   },
 
   confirmExecutionContext: async (wildvalue: string, datasourceId: string) => {
-    const { pendingExecution, activeTabId } = get();
-    if (!pendingExecution || !activeTabId) return;
+    const { pendingExecution, pendingExecutionTabId, tabs } = get();
+    if (!pendingExecution || !pendingExecutionTabId) return;
+    
+    // Verify the originating tab still exists
+    if (!tabs.some(t => t.id === pendingExecutionTabId)) {
+      set({ executionContextDialogOpen: false, pendingExecution: null, pendingExecutionTabId: null });
+      return;
+    }
 
-    const tabId = activeTabId;
+    const tabId = pendingExecutionTabId;
     const executionId = crypto.randomUUID();
 
     // Close dialog and store values
@@ -461,6 +512,7 @@ export const createExecutionSlice: StateCreator<
       wildvalue: wildvalue || get().wildvalue,
       datasourceId: datasourceId || get().datasourceId,
       pendingExecution: null,
+      pendingExecutionTabId: null,
     } as Partial<ExecutionSlice & ExecutionSliceDependencies>);
 
     // Now execute with the context values - clear this tab's previous results
@@ -490,13 +542,17 @@ export const createExecutionSlice: StateCreator<
 
       if (result.ok) {
         const execution = result.data as ExecutionResult;
+        const tabStillExists = get().tabs.some(t => t.id === tabId);
         set((prev) => ({
-          executionResultsByTabId: {
-            ...prev.executionResultsByTabId,
-            [tabId]: execution,
-          },
+          ...(tabStillExists && {
+            executionResultsByTabId: {
+              ...prev.executionResultsByTabId,
+              [tabId]: execution,
+            },
+          }),
           isExecuting: false,
           executingTabId: null,
+          currentExecutionId: null,
         }));
         
         // Add to history
@@ -519,37 +575,51 @@ export const createExecutionSlice: StateCreator<
           get().parseCurrentOutput();
         }
       } else {
+        const tabStillExists = get().tabs.some(t => t.id === tabId);
         set((prev) => ({
+          ...(tabStillExists && {
+            executionResultsByTabId: {
+              ...prev.executionResultsByTabId,
+              [tabId]: {
+                id: executionId,
+                status: 'error' as const,
+                rawOutput: '',
+                duration: 0,
+                startTime: Date.now(),
+                error: result.error || 'Unknown error from service worker',
+              },
+            },
+          }),
+          isExecuting: false,
+          executingTabId: null,
+          currentExecutionId: null,
+        }));
+      }
+    } catch (error) {
+      // Cancel the execution in the service worker to clean up its state
+      sendMessageIgnoreError({
+        type: 'CANCEL_EXECUTION',
+        payload: { executionId },
+      });
+      
+      const tabStillExists = get().tabs.some(t => t.id === tabId);
+      set((prev) => ({
+        ...(tabStillExists && {
           executionResultsByTabId: {
             ...prev.executionResultsByTabId,
             [tabId]: {
-              id: crypto.randomUUID(),
+              id: executionId,
               status: 'error' as const,
               rawOutput: '',
               duration: 0,
               startTime: Date.now(),
-              error: result.error || 'Unknown error from service worker',
+              error: error instanceof Error ? error.message : 'Unknown error',
             },
           },
-          isExecuting: false,
-          executingTabId: null,
-        }));
-      }
-    } catch (error) {
-      set((prev) => ({
-        executionResultsByTabId: {
-          ...prev.executionResultsByTabId,
-          [tabId]: {
-            id: crypto.randomUUID(),
-            status: 'error' as const,
-            rawOutput: '',
-            duration: 0,
-            startTime: Date.now(),
-            error: error instanceof Error ? error.message : 'Unknown error',
-          },
-        },
+        }),
         isExecuting: false,
         executingTabId: null,
+        currentExecutionId: null,
       }));
     }
   },
@@ -558,6 +628,7 @@ export const createExecutionSlice: StateCreator<
     set({ 
       executionContextDialogOpen: false, 
       pendingExecution: null,
+      pendingExecutionTabId: null,
     });
   },
 
@@ -570,16 +641,23 @@ export const createExecutionSlice: StateCreator<
     const { currentExecutionId, executingTabId } = get();
     if (!currentExecutionId) return;
 
-    const result = await sendMessage({
-        type: 'CANCEL_EXECUTION',
-        payload: { executionId: currentExecutionId },
-      });
+    // Always attempt to cancel in the service worker
+    sendMessageIgnoreError({
+      type: 'CANCEL_EXECUTION',
+      payload: { executionId: currentExecutionId },
+    });
 
-    if (result.ok && executingTabId) {
-        set((prev) => ({
-          isExecuting: false,
-          executingTabId: null,
-          cancelDialogOpen: false,
+    // Always reset UI state regardless of cancel response
+    // The service worker cancel is fire-and-forget; the execution will
+    // either be aborted or complete naturally, both of which clean up service worker state
+    if (executingTabId) {
+      const tabStillExists = get().tabs.some(t => t.id === executingTabId);
+      set((prev) => ({
+        isExecuting: false,
+        executingTabId: null,
+        currentExecutionId: null,
+        cancelDialogOpen: false,
+        ...(tabStillExists && {
           executionResultsByTabId: {
             ...prev.executionResultsByTabId,
             [executingTabId]: {
@@ -591,18 +669,16 @@ export const createExecutionSlice: StateCreator<
               error: 'Execution cancelled by user',
             },
           },
-        }));
-    } else if (result.ok) {
-        set({ 
-          isExecuting: false, 
-          executingTabId: null,
-          cancelDialogOpen: false,
-        });
+        }),
+      }));
     } else {
-      console.error('Failed to cancel execution:', result.error);
+      set({ 
+        isExecuting: false, 
+        executingTabId: null,
+        currentExecutionId: null,
+        cancelDialogOpen: false,
+      });
     }
-    
-    set({ cancelDialogOpen: false });
   },
 
   // Execution history actions

@@ -57,7 +57,7 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Displays detailed information about a specific Active Discovery task. The taskId can be found with !adlist.',
     example: '!adetail 142',
     parameters: [
-      { name: 'taskId', description: 'Task ID from !adlist output (labeled as "id")', required: true, example: '142' }
+      { name: 'taskId', description: 'Task ID from !adlist output (labeled as "id")', required: true, example: '142', positional: true }
     ],
     category: 'discovery'
   },
@@ -83,7 +83,7 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Displays detailed information about a specific data collection task. The taskId can be found with !tlist.',
     example: '!tdetail 12323209239991',
     parameters: [
-      { name: 'taskId', description: 'Task ID from !tlist output', required: true, example: '12323209239991' }
+      { name: 'taskId', description: 'Task ID from !tlist output', required: true, example: '12323209239991', positional: true }
     ],
     category: 'discovery'
   },
@@ -94,7 +94,7 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Shows detailed information about a specific AutoProps task.',
     example: '!apdetail 5678',
     parameters: [
-      { name: 'taskId', description: 'AutoProps task ID from !aplist output', required: true, example: '5678' }
+      { name: 'taskId', description: 'AutoProps task ID from !aplist output', required: true, example: '5678', positional: true }
     ],
     category: 'discovery'
   },
@@ -113,7 +113,7 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Shows detailed information about a specific NetScan task.',
     example: '!nspdetail 42',
     parameters: [
-      { name: 'taskId', description: 'NetScan task ID from !nsplist output', required: true, example: '42' }
+      { name: 'taskId', description: 'NetScan task ID from !nsplist output', required: true, example: '42', positional: true }
     ],
     category: 'discovery'
   },
@@ -132,7 +132,7 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Shows detailed information about a specific script property task.',
     example: '!spdetail 1200',
     parameters: [
-      { name: 'taskId', description: 'Script property task ID from !splist output', required: true, example: '1200' }
+      { name: 'taskId', description: 'Script property task ID from !splist output', required: true, example: '1200', positional: true }
     ],
     category: 'discovery'
   },
@@ -151,7 +151,7 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Shows detailed information about a specific topology task.',
     example: '!tpdetail 201',
     parameters: [
-      { name: 'taskId', description: 'Topology task ID from !tplist output', required: true, example: '201' }
+      { name: 'taskId', description: 'Topology task ID from !tplist output', required: true, example: '201', positional: true }
     ],
     category: 'discovery'
   },
@@ -168,10 +168,7 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     name: 'Task Details from !tlist',
     command: '!slist',
     description: 'Shows task details from !tlist output.',
-    example: '!slist 1023',
-    parameters: [
-      { name: 'taskId', description: 'Task ID from !tlist output', required: true, example: '1023' }
-    ],
+    example: '!slist',
     category: 'discovery'
   },
   {
@@ -179,7 +176,10 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     name: 'Internal Task Execution',
     command: '!sdetail',
     description: 'Lists internal task execution details.',
-    example: '!sdetail',
+    example: '!sdetail 1023',
+    parameters: [
+      { name: 'taskId', description: 'Task ID from !tlist output', required: true, example: '1023', positional: true }
+    ],
     category: 'discovery'
   },
 
@@ -207,7 +207,7 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Restarts the specified Collector service.',
     example: '!restart watchdog',
     parameters: [
-      { name: 'service', description: 'Service to restart (watchdog or collector)', required: true, example: 'watchdog' }
+      { name: 'service', description: 'Service to restart (watchdog or collector)', required: true, example: 'watchdog', positional: true }
     ],
     category: 'system'
   },
@@ -245,7 +245,7 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Gets the SHA256 values of all libraries, DLL and JAR files which are exported when a collector is installed. If filename is specified, gets the decrypted SHA of that file.',
     example: '!DecryptFileSHA logicmonitor-util.jar',
     parameters: [
-      { name: 'filename', description: 'Optional filename to get SHA for specific file', required: false, example: 'logicmonitor-util.jar' }
+      { name: 'filename', description: 'Optional filename to get SHA for specific file', required: false, example: 'logicmonitor-util.jar', positional: true }
     ],
     category: 'system'
   },
@@ -264,7 +264,7 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Gets a configuration value from the collector.',
     example: '!getconfig enableAD',
     parameters: [
-      { name: 'configKey', description: 'Configuration key to retrieve', required: true, example: 'enableAD' }
+      { name: 'configKey', description: 'Configuration key to retrieve', required: true, example: 'enableAD', positional: true }
     ],
     category: 'system'
   },
@@ -299,7 +299,7 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Updates the collector description.',
     example: '!register "Collector 123"',
     parameters: [
-      { name: 'description', description: 'New collector description', required: true, example: 'Collector 123' }
+      { name: 'description', description: 'New collector description', required: true, example: 'Collector 123', positional: true }
     ],
     category: 'system'
   },
@@ -326,7 +326,7 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Gets or sets internal site configuration.',
     example: '!sconfig view',
     parameters: [
-      { name: 'action', description: 'Action to perform: view or set', required: true, example: 'view' },
+      { name: 'action', description: 'Action to perform: view or set', required: true, example: 'view', positional: true },
       { name: 'key', description: 'Config key (required if action=set)', required: false, example: 'key' },
       { name: 'value', description: 'Config value (required if action=set)', required: false, example: 'value' }
     ],
@@ -339,7 +339,7 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Enables or disables reduced logging mode.',
     example: '!reducelog true',
     parameters: [
-      { name: 'enabled', description: 'Enable reduced logging (true/false)', required: true, example: 'true' }
+      { name: 'enabled', description: 'Enable reduced logging (true/false)', required: true, example: 'true', positional: true }
     ],
     category: 'system'
   },
@@ -368,7 +368,7 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Runs a Groovy script on the collector.',
     example: '!groovy myscript.groovy',
     parameters: [
-      { name: 'script', description: 'Groovy script file path or script content', required: true, example: 'myscript.groovy' }
+      { name: 'script', description: 'Groovy script file path or script content', required: true, example: 'myscript.groovy', positional: true }
     ],
     category: 'scripting'
   },
@@ -379,7 +379,7 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Runs a PowerShell script on the collector (Windows only).',
     example: '!posh check.ps1',
     parameters: [
-      { name: 'script', description: 'PowerShell script file path or script content', required: true, example: 'check.ps1' }
+      { name: 'script', description: 'PowerShell script file path or script content', required: true, example: 'check.ps1', positional: true }
     ],
     category: 'scripting'
   },
@@ -390,7 +390,7 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Runs a VBScript on the collector (Windows only).',
     example: '!vbscript script.vbs',
     parameters: [
-      { name: 'script', description: 'VBScript file path or script content', required: true, example: 'script.vbs' }
+      { name: 'script', description: 'VBScript file path or script content', required: true, example: 'script.vbs', positional: true }
     ],
     category: 'scripting'
   },
@@ -401,7 +401,7 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Runs a Java command on the host.',
     example: '!java -version',
     parameters: [
-      { name: 'command', description: 'Java command and arguments', required: true, example: '-version' }
+      { name: 'command', description: 'Java command and arguments', required: true, example: '-version', positional: true }
     ],
     category: 'scripting'
   },
@@ -414,8 +414,8 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Copies a file in the agentRoot directory.',
     example: '!cp logs/debug.log logs/debug_copy.log',
     parameters: [
-      { name: 'source', description: 'Source file path', required: true, example: 'logs/debug.log' },
-      { name: 'dest', description: 'Destination file path', required: true, example: 'logs/debug_copy.log' }
+      { name: 'source', description: 'Source file path', required: true, example: 'logs/debug.log', positional: true },
+      { name: 'dest', description: 'Destination file path', required: true, example: 'logs/debug_copy.log', positional: true }
     ],
     category: 'fileops'
   },
@@ -426,7 +426,7 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Lists files in the specified folder.',
     example: '!dir logs',
     parameters: [
-      { name: 'path', description: 'Folder path to list', required: false, example: 'logs' }
+      { name: 'path', description: 'Folder path to list', required: false, example: 'logs', positional: true }
     ],
     category: 'fileops'
   },
@@ -437,7 +437,7 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Generates a checksum for the specified file.',
     example: '!digest agent.conf',
     parameters: [
-      { name: 'file', description: 'File path to generate checksum for', required: true, example: 'agent.conf' }
+      { name: 'file', description: 'File path to generate checksum for', required: true, example: 'agent.conf', positional: true }
     ],
     category: 'fileops'
   },
@@ -448,8 +448,8 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Tails a file with optional regex filtering.',
     example: '!tail debug.log ERROR',
     parameters: [
-      { name: 'file', description: 'File path to tail', required: true, example: 'debug.log' },
-      { name: 'pattern', description: 'Optional regex pattern to filter lines', required: false, example: 'ERROR' }
+      { name: 'file', description: 'File path to tail', required: true, example: 'debug.log', positional: true },
+      { name: 'pattern', description: 'Optional regex pattern to filter lines', required: false, example: 'ERROR', positional: true }
     ],
     category: 'fileops'
   },
@@ -460,8 +460,8 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Unzips an archive file.',
     example: '!unzip archive.zip',
     parameters: [
-      { name: 'archive', description: 'Archive file path to extract', required: true, example: 'archive.zip' },
-      { name: 'dest', description: 'Destination directory (optional)', required: false, example: 'extracted' }
+      { name: 'archive', description: 'Archive file path to extract', required: true, example: 'archive.zip', positional: true },
+      { name: 'dest', description: 'Destination directory (optional)', required: false, example: 'extracted', positional: true }
     ],
     category: 'fileops'
   },
@@ -472,7 +472,7 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Copies a file from the server to the agent.',
     example: '!put script.sh',
     parameters: [
-      { name: 'file', description: 'File path on server to copy', required: true, example: 'script.sh' }
+      { name: 'file', description: 'File path on server to copy', required: true, example: 'script.sh', positional: true }
     ],
     category: 'fileops'
   },
@@ -483,8 +483,8 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Moves a temporary file into the root directory.',
     example: '!replace temp.log logs/debug.log',
     parameters: [
-      { name: 'source', description: 'Source temporary file path', required: true, example: 'temp.log' },
-      { name: 'dest', description: 'Destination file path in root directory', required: true, example: 'logs/debug.log' }
+      { name: 'source', description: 'Source temporary file path', required: true, example: 'temp.log', positional: true },
+      { name: 'dest', description: 'Destination file path in root directory', required: true, example: 'logs/debug.log', positional: true }
     ],
     category: 'fileops'
   },
@@ -495,7 +495,7 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Diagnoses log file events.',
     example: '!logfile debug.log',
     parameters: [
-      { name: 'file', description: 'Log file path to diagnose', required: true, example: 'debug.log' }
+      { name: 'file', description: 'Log file path to diagnose', required: true, example: 'debug.log', positional: true }
     ],
     category: 'fileops'
   },
@@ -506,7 +506,7 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Uploads log files to the LogicMonitor portal.',
     example: '!uploadlog debug.log',
     parameters: [
-      { name: 'file', description: 'Log file path to upload', required: true, example: 'debug.log' }
+      { name: 'file', description: 'Log file path to upload', required: true, example: 'debug.log', positional: true }
     ],
     category: 'fileops'
   },
@@ -519,7 +519,7 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Pings the specified host.',
     example: '!ping 10.36.11.240',
     parameters: [
-      { name: 'host', description: 'Hostname or IP address to ping', required: true, example: '10.36.11.240' },
+      { name: 'host', description: 'Hostname or IP address to ping', required: true, example: '10.36.11.240', positional: true },
       { name: 'type', description: 'Ping type (optional, e.g., proxy)', required: false, example: 'proxy' }
     ],
     category: 'network'
@@ -531,7 +531,7 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Sends an HTTP request and displays the response. URL is required.',
     example: '!http http://www.google.com/index.html',
     parameters: [
-      { name: 'url', description: 'URL to request (required)', required: true, example: 'http://www.google.com/index.html' },
+      { name: 'url', description: 'URL to request (required)', required: true, example: 'http://www.google.com/index.html', positional: true },
       { name: 'username', description: 'Basic auth username', required: false, example: 'user' },
       { name: 'password', description: 'Basic auth password', required: false, example: 'pass' },
       { name: 'method', description: 'HTTP method (GET, POST, PUT)', required: false, example: 'GET' },
@@ -550,8 +550,8 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Starts packet capture on the specified interface.',
     example: '!packetcapture eth0 60',
     parameters: [
-      { name: 'interface', description: 'Network interface name', required: true, example: 'eth0' },
-      { name: 'duration', description: 'Capture duration in seconds', required: true, example: '60' }
+      { name: 'interface', description: 'Network interface name', required: true, example: 'eth0', positional: true },
+      { name: 'duration', description: 'Capture duration in seconds', required: true, example: '60', positional: true }
     ],
     category: 'network'
   },
@@ -587,8 +587,8 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Runs an OpenSSL command against the specified host.',
     example: '!opssl hostname:443',
     parameters: [
-      { name: 'target', description: 'Target hostname:port', required: true, example: 'hostname:443' },
-      { name: 'command', description: 'OpenSSL command and arguments', required: false, example: 's_client -connect' }
+      { name: 'target', description: 'Target hostname:port', required: true, example: 'hostname:443', positional: true },
+      { name: 'command', description: 'OpenSSL command and arguments', required: false, example: 's_client -connect', positional: true }
     ],
     category: 'network'
   },
@@ -599,7 +599,7 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Views SSL information for the specified host.',
     example: '!jssl hostname:443',
     parameters: [
-      { name: 'target', description: 'Target hostname:port', required: true, example: 'hostname:443' }
+      { name: 'target', description: 'Target hostname:port', required: true, example: 'hostname:443', positional: true }
     ],
     category: 'network'
   },
@@ -610,7 +610,7 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Prints SSL certificate information for the specified host.',
     example: '!sslcerts hostname:443',
     parameters: [
-      { name: 'target', description: 'Target hostname:port', required: true, example: 'hostname:443' }
+      { name: 'target', description: 'Target hostname:port', required: true, example: 'hostname:443', positional: true }
     ],
     category: 'network'
   },
@@ -621,7 +621,7 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Tests SSL connection to the specified host.',
     example: '!ssltest hostname:443',
     parameters: [
-      { name: 'target', description: 'Target hostname:port', required: true, example: 'hostname:443' }
+      { name: 'target', description: 'Target hostname:port', required: true, example: 'hostname:443', positional: true }
     ],
     category: 'network'
   },
@@ -632,7 +632,7 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Tests HTTP metrics for the specified URL.',
     example: '!webperf https://example.com',
     parameters: [
-      { name: 'url', description: 'URL to test', required: true, example: 'https://example.com' }
+      { name: 'url', description: 'URL to test', required: true, example: 'https://example.com', positional: true }
     ],
     category: 'network'
   },
@@ -643,8 +643,8 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Sends a syslog message to the specified host.',
     example: '!syslogsender hostname "test message"',
     parameters: [
-      { name: 'hostname', description: 'Target hostname', required: true, example: 'hostname' },
-      { name: 'message', description: 'Syslog message to send', required: true, example: 'test message' }
+      { name: 'hostname', description: 'Target hostname', required: true, example: 'hostname', positional: true },
+      { name: 'message', description: 'Syslog message to send', required: true, example: 'test message', positional: true }
     ],
     category: 'network'
   },
@@ -655,8 +655,8 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Runs a MongoDB query on the specified host.',
     example: '!mongo dbhost query',
     parameters: [
-      { name: 'host', description: 'MongoDB host', required: true, example: 'dbhost' },
-      { name: 'query', description: 'MongoDB query to execute', required: true, example: 'query' }
+      { name: 'host', description: 'MongoDB host', required: true, example: 'dbhost', positional: true },
+      { name: 'query', description: 'MongoDB query to execute', required: true, example: 'query', positional: true }
     ],
     category: 'network'
   },
@@ -667,8 +667,8 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Calls a NetApp API on the specified host.',
     example: '!netapp hostname apicall',
     parameters: [
-      { name: 'hostname', description: 'NetApp hostname', required: true, example: 'hostname' },
-      { name: 'apicall', description: 'NetApp API call to execute', required: true, example: 'apicall' }
+      { name: 'hostname', description: 'NetApp hostname', required: true, example: 'hostname', positional: true },
+      { name: 'apicall', description: 'NetApp API call to execute', required: true, example: 'apicall', positional: true }
     ],
     category: 'network'
   },
@@ -695,8 +695,8 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Get the values of a list of OIDs from the given host using SNMP.',
     example: '!snmpget paz02sql003 .1.2.3.4.5.5',
     parameters: [
-      { name: 'host', description: 'Target hostname or IP address (required)', required: true, example: 'paz02sql003' },
-      { name: 'oid', description: 'SNMP OID(s) to query (required, space-separated for multiple)', required: true, example: '.1.2.3.4.5.5' },
+      { name: 'host', description: 'Target hostname or IP address (required)', required: true, example: 'paz02sql003', positional: true },
+      { name: 'oid', description: 'SNMP OID(s) to query (required, space-separated for multiple)', required: true, example: '.1.2.3.4.5.5', positional: true },
       { name: 'version', description: 'SNMP version: v1, v2c, or v3', required: false, example: 'v2c' },
       { name: 'port', description: 'SNMP port number (default: 161)', required: false, example: '161' },
       { name: 'useSystem', description: 'Use system command instead of collector (64-bit systems only, default: false)', required: false, example: 'false' },
@@ -720,8 +720,8 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Walk through SNMP OID tree starting from the given OID.',
     example: '!snmpwalk paz02sql003 .1.2.3.4.5.5',
     parameters: [
-      { name: 'host', description: 'Target hostname or IP address (required)', required: true, example: 'paz02sql003' },
-      { name: 'oid', description: 'Starting OID for the walk (required)', required: true, example: '.1.2.3.4.5.5' },
+      { name: 'host', description: 'Target hostname or IP address (required)', required: true, example: 'paz02sql003', positional: true },
+      { name: 'oid', description: 'Starting OID for the walk (required)', required: true, example: '.1.2.3.4.5.5', positional: true },
       { name: 'version', description: 'SNMP version: v1, v2c, or v3', required: false, example: 'v2c' },
       { name: 'port', description: 'SNMP port number (default: 161)', required: false, example: '161' },
       { name: 'usegetnext', description: 'Use getnext PDU for snmpwalk (default: false)', required: false, example: 'false' },
@@ -746,8 +746,8 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Diagnoses SNMP OID access issues.',
     example: '!snmpdiagnose hostname .1.3.6.1.2.1.1.1.0',
     parameters: [
-      { name: 'hostname', description: 'Target hostname or IP address', required: true, example: 'hostname' },
-      { name: 'oid', description: 'SNMP OID to diagnose', required: true, example: '.1.3.6.1.2.1.1.1.0' }
+      { name: 'hostname', description: 'Target hostname or IP address', required: true, example: 'hostname', positional: true },
+      { name: 'oid', description: 'SNMP OID to diagnose', required: true, example: '.1.3.6.1.2.1.1.1.0', positional: true }
     ],
     category: 'diagnostics'
   },
@@ -774,7 +774,7 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Gets the output of a previously executed debug command.',
     example: '!debugdetail !pollnow',
     parameters: [
-      { name: 'command', description: 'Debug command to get output for', required: true, example: '!pollnow' }
+      { name: 'command', description: 'Debug command to get output for', required: true, example: '!pollnow', positional: true }
     ],
     category: 'diagnostics'
   },
@@ -797,7 +797,7 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
       { name: 'authType', description: 'Authentication Type, default value is NTLMv2', required: false, example: 'Kerberos' },
       { name: 'username', description: 'WMI User Credentials (will use wmi.user property if not passed)', required: false, example: 'foo' },
       { name: 'password', description: 'WMI Password (will use wmi.pass property if not passed)', required: false, example: 'bar' },
-      { name: 'query', description: 'WMI query to execute (required)', required: true, example: 'SELECT * FROM Win32_OperatingSystem' }
+      { name: 'query', description: 'WMI query to execute (required)', required: true, example: 'SELECT * FROM Win32_OperatingSystem', positional: true }
     ],
     category: 'query'
   },
@@ -826,8 +826,8 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Runs a CIM query on the specified host.',
     example: '!cim hostname query',
     parameters: [
-      { name: 'hostname', description: 'Target hostname', required: true, example: 'hostname' },
-      { name: 'query', description: 'CIM query to execute', required: true, example: 'query' }
+      { name: 'hostname', description: 'Target hostname', required: true, example: 'hostname', positional: true },
+      { name: 'query', description: 'CIM query to execute', required: true, example: 'query', positional: true }
     ],
     category: 'query'
   },
@@ -838,8 +838,8 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Runs an ESX query on the specified host.',
     example: '!esx hostname query',
     parameters: [
-      { name: 'hostname', description: 'Target hostname', required: true, example: 'hostname' },
-      { name: 'query', description: 'ESX query to execute', required: true, example: 'query' }
+      { name: 'hostname', description: 'Target hostname', required: true, example: 'hostname', positional: true },
+      { name: 'query', description: 'ESX query to execute', required: true, example: 'query', positional: true }
     ],
     category: 'query'
   },
@@ -850,8 +850,8 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Queries a JMX path on the specified host.',
     example: '!jmx hostname path.to.metric',
     parameters: [
-      { name: 'hostname', description: 'Target hostname', required: true, example: 'hostname' },
-      { name: 'path', description: 'JMX path to query', required: true, example: 'path.to.metric' }
+      { name: 'hostname', description: 'Target hostname', required: true, example: 'hostname', positional: true },
+      { name: 'path', description: 'JMX path to query', required: true, example: 'path.to.metric', positional: true }
     ],
     category: 'query'
   },
@@ -862,9 +862,9 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Calls a WMI method on the specified host.',
     example: '!wmimethod hostname class method',
     parameters: [
-      { name: 'hostname', description: 'Target hostname', required: true, example: 'hostname' },
-      { name: 'class', description: 'WMI class name', required: true, example: 'class' },
-      { name: 'method', description: 'WMI method name', required: true, example: 'method' }
+      { name: 'hostname', description: 'Target hostname', required: true, example: 'hostname', positional: true },
+      { name: 'class', description: 'WMI class name', required: true, example: 'class', positional: true },
+      { name: 'method', description: 'WMI method name', required: true, example: 'method', positional: true }
     ],
     category: 'query'
   },
@@ -875,7 +875,7 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Queries Xen counters on the specified host.',
     example: '!xen hostname',
     parameters: [
-      { name: 'hostname', description: 'Target hostname', required: true, example: 'hostname' }
+      { name: 'hostname', description: 'Target hostname', required: true, example: 'hostname', positional: true }
     ],
     category: 'query'
   },
@@ -917,7 +917,7 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Runs a logman command (Windows only).',
     example: '!logman query',
     parameters: [
-      { name: 'command', description: 'Logman command and arguments', required: true, example: 'query' }
+      { name: 'command', description: 'Logman command and arguments', required: true, example: 'query', positional: true }
     ],
     category: 'windows'
   },
@@ -928,8 +928,8 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Manages Windows services (Windows only).',
     example: '!svc status "LogicMonitor Collector"',
     parameters: [
-      { name: 'action', description: 'Service action: status, start, stop, restart', required: true, example: 'status' },
-      { name: 'service', description: 'Service name', required: true, example: 'LogicMonitor Collector' }
+      { name: 'action', description: 'Service action: status, start, stop, restart', required: true, example: 'status', positional: true },
+      { name: 'service', description: 'Service name', required: true, example: 'LogicMonitor Collector', positional: true }
     ],
     category: 'windows'
   },
@@ -940,7 +940,7 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Runs typeperf command (Windows only).',
     example: '!typeperf "\\Processor(_Total)\\% Processor Time"',
     parameters: [
-      { name: 'counter', description: 'Performance counter path', required: true, example: '\\Processor(_Total)\\% Processor Time' }
+      { name: 'counter', description: 'Performance counter path', required: true, example: '\\Processor(_Total)\\% Processor Time', positional: true }
     ],
     category: 'windows'
   },
@@ -959,7 +959,7 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Runs a WMIC command (Windows only).',
     example: '!syswmic alias list brief',
     parameters: [
-      { name: 'command', description: 'WMIC command and arguments', required: true, example: 'alias list brief' }
+      { name: 'command', description: 'WMIC command and arguments', required: true, example: 'alias list brief', positional: true }
     ],
     category: 'windows'
   },
@@ -1023,7 +1023,7 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Changes the agent log level.',
     example: '!loglevel INFO',
     parameters: [
-      { name: 'level', description: 'Log level: TRACE, DEBUG, INFO, WARN, ERROR', required: true, example: 'INFO' }
+      { name: 'level', description: 'Log level: TRACE, DEBUG, INFO, WARN, ERROR', required: true, example: 'INFO', positional: true }
     ],
     category: 'health'
   },
@@ -1034,7 +1034,7 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Adjusts the Log4j log level.',
     example: '!log4jloglevel DEBUG',
     parameters: [
-      { name: 'level', description: 'Log4j log level: TRACE, DEBUG, INFO, WARN, ERROR', required: true, example: 'DEBUG' }
+      { name: 'level', description: 'Log4j log level: TRACE, DEBUG, INFO, WARN, ERROR', required: true, example: 'DEBUG', positional: true }
     ],
     category: 'health'
   },
@@ -1045,7 +1045,7 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Searches logs for the specified pattern.',
     example: '!logsearch error',
     parameters: [
-      { name: 'pattern', description: 'Search pattern or keyword', required: true, example: 'error' }
+      { name: 'pattern', description: 'Search pattern or keyword', required: true, example: 'error', positional: true }
     ],
     category: 'health'
   },
@@ -1056,7 +1056,7 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Keeps the agent alive for the specified duration.',
     example: '!keepagentalive 300',
     parameters: [
-      { name: 'duration', description: 'Duration in seconds to keep agent alive', required: true, example: '300' }
+      { name: 'duration', description: 'Duration in seconds to keep agent alive', required: true, example: '300', positional: true }
     ],
     category: 'health'
   },
@@ -1075,7 +1075,7 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Runs the jcmd tool for JVM diagnostics.',
     example: '!jcmd',
     parameters: [
-      { name: 'command', description: 'jcmd command and arguments', required: false, example: 'GC.run' }
+      { name: 'command', description: 'jcmd command and arguments', required: false, example: 'GC.run', positional: true }
     ],
     category: 'health'
   },
@@ -1086,7 +1086,7 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Lists performance counters for the specified host.',
     example: '!perfinfo hostname',
     parameters: [
-      { name: 'hostname', description: 'Target hostname', required: true, example: 'hostname' }
+      { name: 'hostname', description: 'Target hostname', required: true, example: 'hostname', positional: true }
     ],
     category: 'health'
   },
@@ -1097,7 +1097,7 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Queries Windows performance counters (Windows only).',
     example: '!perfmon hostname',
     parameters: [
-      { name: 'hostname', description: 'Target hostname', required: true, example: 'hostname' }
+      { name: 'hostname', description: 'Target hostname', required: true, example: 'hostname', positional: true }
     ],
     category: 'health'
   },
@@ -1110,7 +1110,7 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Cancels a collection task.',
     example: '!tcancel 321',
     parameters: [
-      { name: 'taskId', description: 'Task ID from !tlist output', required: true, example: '321' }
+      { name: 'taskId', description: 'Task ID from !tlist output', required: true, example: '321', positional: true }
     ],
     category: 'taskmgmt'
   },
@@ -1121,7 +1121,7 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Disables a collection task.',
     example: '!tremove 321',
     parameters: [
-      { name: 'taskId', description: 'Task ID from !tlist output', required: true, example: '321' }
+      { name: 'taskId', description: 'Task ID from !tlist output', required: true, example: '321', positional: true }
     ],
     category: 'taskmgmt'
   },
@@ -1132,7 +1132,7 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Kills a process by process ID.',
     example: '!taskkill 3456',
     parameters: [
-      { name: 'pid', description: 'Process ID to kill', required: true, example: '3456' }
+      { name: 'pid', description: 'Process ID to kill', required: true, example: '3456', positional: true }
     ],
     category: 'taskmgmt'
   },
@@ -1161,7 +1161,7 @@ export const DEBUG_COMMANDS: DebugCommand[] = [
     description: 'Displays syntax and usage details for a specific command.',
     example: 'help !adlist',
     parameters: [
-      { name: 'command', description: 'Command name to get help for', required: true, example: '!adlist' }
+      { name: 'command', description: 'Command name to get help for', required: true, example: '!adlist', positional: true }
     ],
     category: 'misc'
   }

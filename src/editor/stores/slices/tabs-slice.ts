@@ -328,7 +328,7 @@ export const createTabsSlice: StateCreator<
   },
 
   closeTab: (tabId) => {
-    const { tabs, activeTabId, tabsNeedingPermission, clearTabExecution } = get();
+    const { tabs, activeTabId, tabsNeedingPermission, clearTabExecution, moduleDetailsDraftByTabId } = get();
     const tabIndex = tabs.findIndex(t => t.id === tabId);
     if (tabIndex === -1) return;
     
@@ -349,6 +349,12 @@ export const createTabsSlice: StateCreator<
         : findNextTabAfterClose(tabs, tabId, tabIndex, tab.kind ?? 'script');
     }
     
+    // Clean up module details draft for the closed tab
+    if (moduleDetailsDraftByTabId[tabId]) {
+      const { [tabId]: _removed, ...rest } = moduleDetailsDraftByTabId;
+      set({ moduleDetailsDraftByTabId: rest });
+    }
+    
     set({
       tabs: newTabs,
       activeTabId: newActiveTabId,
@@ -360,7 +366,7 @@ export const createTabsSlice: StateCreator<
   },
 
   closeOtherTabs: (tabId) => {
-    const { tabs, clearTabExecution } = get();
+    const { tabs, clearTabExecution, moduleDetailsDraftByTabId } = get();
     const tabToKeep = tabs.find(t => t.id === tabId);
     if (!tabToKeep) return;
 
@@ -369,6 +375,16 @@ export const createTabsSlice: StateCreator<
       .filter(t => (t.kind ?? 'script') === targetKind && t.id !== tabId)
       .map(t => t.id);
     const remainingTabs = tabs.filter(t => (t.kind ?? 'script') !== targetKind || t.id === tabId);
+
+    // Clean up module details drafts for closed tabs
+    const closedSet = new Set(closedTabIds);
+    const hasOrphanedDrafts = Object.keys(moduleDetailsDraftByTabId).some(id => closedSet.has(id));
+    if (hasOrphanedDrafts) {
+      const cleanedDrafts = Object.fromEntries(
+        Object.entries(moduleDetailsDraftByTabId).filter(([id]) => !closedSet.has(id))
+      );
+      set({ moduleDetailsDraftByTabId: cleanedDrafts });
+    }
 
     set({
       tabs: remainingTabs,
@@ -382,14 +398,15 @@ export const createTabsSlice: StateCreator<
   },
 
   closeAllTabs: () => {
-    const { tabs, activeTabId, clearTabExecution } = get();
+    const { tabs, activeTabId, clearTabExecution, moduleDetailsDraftByTabId } = get();
     const activeTab = tabs.find(t => t.id === activeTabId);
     if (!activeTab) {
-      // No active tab - close all and clean up all execution data
+      // No active tab - close all and clean up all execution data + drafts
       const allTabIds = tabs.map(t => t.id);
       set({
         tabs: [],
         activeTabId: null,
+        moduleDetailsDraftByTabId: {},
       });
       for (const id of allTabIds) {
         clearTabExecution(id);
@@ -404,9 +421,16 @@ export const createTabsSlice: StateCreator<
     const remainingTabs = tabs.filter(t => (t.kind ?? 'script') !== targetKind);
     const nextActive = remainingTabs[0]?.id ?? null;
 
+    // Clean up module details drafts for closed tabs
+    const closedSet = new Set(closedTabIds);
+    const cleanedDrafts = Object.fromEntries(
+      Object.entries(moduleDetailsDraftByTabId).filter(([id]) => !closedSet.has(id))
+    );
+
     set({
       tabs: remainingTabs,
       activeTabId: nextActive,
+      moduleDetailsDraftByTabId: cleanedDrafts,
     });
     
     // Clean up execution data for closed tabs
@@ -779,16 +803,21 @@ export const createTabsSlice: StateCreator<
       }
     }
     
+    // Validate that the saved activeTabId exists in the restored tabs
+    const validActiveTabId = normalizedTabs.some(t => t.id === draftTabs.activeTabId)
+      ? draftTabs.activeTabId
+      : normalizedTabs[0]?.id ?? null;
+    
     set({
       tabs: normalizedTabs,
-      activeTabId: draftTabs.activeTabId,
+      activeTabId: validActiveTabId,
       hasSavedDraft: true, // Mark as having saved draft so auto-save will update it
       moduleDetailsDraftByTabId: restoredModuleDetailsDrafts,
     });
     
     // Restore the active workspace if saved, but ensure it matches the active tab's kind
     // If active tab is a script tab, use script workspace regardless of saved workspace
-    const activeTab = normalizedTabs.find(t => t.id === draftTabs.activeTabId);
+    const activeTab = normalizedTabs.find(t => t.id === validActiveTabId);
     if (activeTab) {
       const tabKind = activeTab.kind ?? 'script';
       setActiveWorkspace(tabKind === 'api' ? 'api' : 'script');

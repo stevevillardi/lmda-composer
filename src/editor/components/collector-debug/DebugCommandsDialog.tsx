@@ -321,20 +321,22 @@ export function DebugCommandsDialog() {
     const formatDebugCommand = (command: string, params: Record<string, string>, positional: string[]) => {
       const parts: string[] = [];
 
-      for (const value of positional) {
-        const needsQuoting = /[\s"\\]/.test(value);
-        const formattedValue = needsQuoting
-          ? `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
-          : value;
-        parts.push(formattedValue);
-      }
-
+      // Key=value options come first (e.g. version=v3 auth=MD5)
       for (const [key, value] of Object.entries(params)) {
         const needsQuoting = /[\s"\\]/.test(value);
         const formattedValue = needsQuoting
           ? `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
           : value;
         parts.push(`${key}=${formattedValue}`);
+      }
+
+      // Positional args come last (e.g. <host> <oid>)
+      for (const value of positional) {
+        const needsQuoting = /[\s"\\]/.test(value);
+        const formattedValue = needsQuoting
+          ? `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
+          : value;
+        parts.push(formattedValue);
       }
 
       if (parts.length === 0) return command;
@@ -762,6 +764,7 @@ export function DebugCommandsDialog() {
                     command={selectedCommand}
                     executedCommand={executedCommand ?? selectedCommand.command}
                     onBack={() => setShowResults(false)}
+                    onRerun={handleExecute}
                   />
                 )}
               </>

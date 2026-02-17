@@ -302,16 +302,7 @@ export function buildDebugCommand(
 ): string {
   const args: string[] = [];
 
-  if (positionalArgs && positionalArgs.length > 0) {
-    for (const value of positionalArgs) {
-      const needsQuoting = /[\s"\\]/.test(value);
-      const formattedValue = needsQuoting
-        ? `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
-        : value;
-      args.push(formattedValue);
-    }
-  }
-
+  // Key=value options come first (e.g. version=v3 auth=MD5)
   if (parameters) {
     for (const [key, value] of Object.entries(parameters)) {
       if (value !== undefined && value !== null && value !== '') {
@@ -321,6 +312,17 @@ export function buildDebugCommand(
           : value;
         args.push(`${key}=${formattedValue}`);
       }
+    }
+  }
+
+  // Positional args come last (e.g. <host> <oid>)
+  if (positionalArgs && positionalArgs.length > 0) {
+    for (const value of positionalArgs) {
+      const needsQuoting = /[\s"\\]/.test(value);
+      const formattedValue = needsQuoting
+        ? `"${value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"`
+        : value;
+      args.push(formattedValue);
     }
   }
 
