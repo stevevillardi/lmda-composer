@@ -17,6 +17,7 @@ import type {
   Portal,
   UserPreferences,
 } from '@/shared/types';
+import { EXECUTE_SCRIPT_TIMEOUT_MS } from '@/shared/types';
 import type { ParseResult } from '../../utils/output-parser';
 import type { editor } from 'monaco-editor';
 import { parseOutput } from '../../utils/output-parser';
@@ -292,7 +293,7 @@ export const createExecutionSlice: StateCreator<
           wildvalue: state.wildvalue || undefined,
           datasourceId: state.datasourceId || undefined,
         },
-      });
+      }, EXECUTE_SCRIPT_TIMEOUT_MS);
 
       if (result.ok) {
         const execution = result.data as ExecutionResult;
@@ -485,7 +486,7 @@ export const createExecutionSlice: StateCreator<
           wildvalue: wildvalue || undefined,
           datasourceId: datasourceId || undefined,
         },
-      });
+      }, EXECUTE_SCRIPT_TIMEOUT_MS);
 
       if (result.ok) {
         const execution = result.data as ExecutionResult;

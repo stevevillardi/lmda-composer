@@ -28,6 +28,22 @@ export interface ReleaseNote {
  */
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.7.5',
+    date: 'February 2026',
+    title: 'Script Execution Timeout Fix',
+    highlights: [
+      'Fixed "Another script is already running" error for long-running scripts',
+    ],
+    changes: [
+      {
+        category: 'fixed',
+        items: [
+          'Fixed script execution timeout mismatch that caused "Another script is already running" errors when scripts took longer than 30 seconds',
+        ],
+      },
+    ],
+  },
+  {
     version: '1.7.4',
     date: 'February 2026',
     title: 'Workspace Switching Bug Fixes',

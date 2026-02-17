@@ -1396,4 +1396,6 @@ export const API_VERSION = '3';
 export const MAX_SCRIPT_LENGTH = 64000;
 export const EXECUTION_POLL_INTERVAL_MS = 1000;
 export const EXECUTION_MAX_ATTEMPTS = 120;
+// Editor message timeout for script execution (must exceed EXECUTION_MAX_ATTEMPTS + buffer)
+export const EXECUTE_SCRIPT_TIMEOUT_MS = 130000;
 export const CSRF_REFRESH_INTERVAL_MS = 10 * 60 * 1000;
