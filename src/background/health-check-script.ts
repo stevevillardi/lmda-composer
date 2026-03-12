@@ -82,6 +82,7 @@ def collectorID = hostProps.get('system.collectorID') ?: ''
 def totalPhysicalMem = hostProps.get('system.totalphysicalmemory') ?: ''
 def collectorVersion = hostProps.get('system.collectorversion') ?: ''
 def company = ''
+def server = ''
 def collectorConfigs = [:]
 
 // Note: When running via !groovy debug command, hostProps may be empty
@@ -92,6 +93,7 @@ def collectorConfigs = [:]
 def agentConfFile = new File('../conf/agent.conf')
 def regexCollectorID = /^id=(\\d+)$/
 def regexCompany = /^company=(.*)$/
+def regexServer = /^server=(.*)$/
 def regexThreadpool = /^(collector\\..*)\\.threadpool=(\\d+)$/
 def regexCollectorTimeout = /^(collector\\..*)\\.timeout=(\\d+)$/
 
@@ -107,6 +109,11 @@ try {
             def matcherCompany = (line =~ regexCompany)
             if (matcherCompany.find()) {
                 company = matcherCompany[0][1]
+            }
+            // Parse server: format is "server=portalname.logicmonitor.com" or "server=portalname.lmgov.us"
+            def matcherServer = (line =~ regexServer)
+            if (matcherServer.find()) {
+                server = matcherServer[0][1]
             }
             // Parse threadpool settings
             def matcherThreadpool = (line =~ regexThreadpool)
@@ -649,10 +656,11 @@ def netflowDevices = netscanLines.take(listAmount).collect { raw ->
      interfaceIdx: parts.size() >= 4 ? parts[2] : null, ips: parts.size() >= 4 ? parts[3] : (parts.size() == 3 ? parts[2] : '')]
 }
 
-// Portal links
+// Portal links - prefer server field (supports lmgov.us), fall back to company.logicmonitor.com
+def portalHost = server ?: (company ? "\${company}.logicmonitor.com" : '')
 def portalLinks = null
-if (company && collectorID) {
-    def baseUrl = "https://\${company}.logicmonitor.com"
+if (portalHost && collectorID) {
+    def baseUrl = "https://\${portalHost}"
     portalLinks = [
         configuration: "\${baseUrl}/santaba/uiv4/settings/collectors/collectorConfiguration?id=\${collectorID}",
         events: "\${baseUrl}/santaba/uiv4/settings/collectors/collectorEvents?id=\${collectorID}",

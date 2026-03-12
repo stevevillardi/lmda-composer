@@ -78,7 +78,7 @@ describe('CreateModuleWizard', () => {
       
       render(<CreateModuleWizard />);
       
-      expect(screen.getByText(/testportal\.logicmonitor\.com/i)).toBeInTheDocument();
+      expect(screen.getByText(/test\d+\.logicmonitor\.com/i)).toBeInTheDocument();
     });
 
     it('shows step indicator with 4 steps', () => {

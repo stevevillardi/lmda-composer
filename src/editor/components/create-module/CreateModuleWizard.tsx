@@ -218,7 +218,7 @@ export function CreateModuleWizard() {
           <DialogDescription>
             Create a new scripted module in{' '}
             <span className="font-medium text-foreground">
-              {portal?.displayName.toLowerCase() + ".logicmonitor.com" || 'your portal'}
+              {portal?.hostname || 'your portal'}
             </span>
           </DialogDescription>
         </DialogHeader>

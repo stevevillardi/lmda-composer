@@ -20,8 +20,7 @@ export async function fetchCustomFunctions(
   portalId: string,
   csrfToken: string | null
 ): Promise<CustomAppliesToFunction[]> {
-  const portal = portalId.includes('.') ? portalId : `${portalId}.logicmonitor.com`;
-  const url = `https://${portal}/santaba/rest/setting/functions`;
+  const url = `https://${portalId}/santaba/rest/setting/functions`;
 
   const response = await fetch(url, {
     method: 'GET',
@@ -67,8 +66,7 @@ export async function createCustomFunction(
   csrfToken: string | null,
   functionData: { name: string; code: string; description?: string }
 ): Promise<CustomAppliesToFunction> {
-  const portal = portalId.includes('.') ? portalId : `${portalId}.logicmonitor.com`;
-  const url = `https://${portal}/santaba/rest/setting/functions`;
+  const url = `https://${portalId}/santaba/rest/setting/functions`;
 
   const payload: Record<string, string> = {
     name: functionData.name,
@@ -110,8 +108,7 @@ export async function updateCustomFunction(
   functionId: number,
   functionData: { name: string; code: string; description?: string }
 ): Promise<CustomAppliesToFunction> {
-  const portal = portalId.includes('.') ? portalId : `${portalId}.logicmonitor.com`;
-  const url = `https://${portal}/santaba/rest/setting/functions/${functionId}`;
+  const url = `https://${portalId}/santaba/rest/setting/functions/${functionId}`;
 
   const payload: Record<string, string> = {
     name: functionData.name,
@@ -152,8 +149,7 @@ export async function deleteCustomFunction(
   csrfToken: string | null,
   functionId: number
 ): Promise<void> {
-  const portal = portalId.includes('.') ? portalId : `${portalId}.logicmonitor.com`;
-  const url = `https://${portal}/santaba/rest/setting/functions/${functionId}`;
+  const url = `https://${portalId}/santaba/rest/setting/functions/${functionId}`;
 
   const response = await fetch(url, {
     method: 'DELETE',

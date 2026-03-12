@@ -30,6 +30,14 @@ describe('sender-validation', () => {
     expect(result).toBe(true);
   });
 
+  it('accepts lmgov.us (FedRAMP) pages', () => {
+    const result = isValidSender({
+      id: 'ext-id',
+      url: 'https://acme.lmgov.us/some/page',
+    } as chrome.runtime.MessageSender);
+    expect(result).toBe(true);
+  });
+
   it('rejects non-LogicMonitor pages', () => {
     const result = isValidSender({
       id: 'ext-id',

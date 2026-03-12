@@ -456,6 +456,7 @@ def collectorSize = memoryToSizeMap.get(javaMaxMemoryGiB, "Unknown")
 // Read agent.conf
 def agentConfigData = []
 def company = ""
+def server = ""
 def configCollectorId = ""
 def agentFile = new File("../conf/agent.conf")
 if (agentFile.exists()) {
@@ -465,6 +466,7 @@ if (agentFile.exists()) {
         def matcherTimeout = (line =~ /^(collector\\..*)\\timeout=(\\d+)\$/)
         def matcherCollectorID = (line =~ /^(id)=(\\d+)\$/)
         def matcherCompany = (line =~ /^(company)=(.*)/)
+        def matcherServer = (line =~ /^(server)=(.*)/)
         
         if (matcherThreadpool.find()) {
             def key = matcherThreadpool[0][1].replaceFirst(/^collector\\./, "")
@@ -476,6 +478,8 @@ if (agentFile.exists()) {
             configCollectorId = matcherCollectorID[0][2]
         } else if (matcherCompany.find()) {
             company = matcherCompany[0][2]
+        } else if (matcherServer.find()) {
+            server = matcherServer[0][2]
         }
     }
     configMap.each { param, vals ->
@@ -601,12 +605,13 @@ def appliesToQueries = [
     ]
 ]
 
-// Collector portal links
-def portalLinks = company ? [
-    configuration: "https://\${company}.logicmonitor.com/santaba/uiv4/settings/collectors/collectorConfiguration?id=\${configCollectorId ?: collectorID}",
-    events: "https://\${company}.logicmonitor.com/santaba/uiv4/settings/collectors/collectorEvents?id=\${configCollectorId ?: collectorID}",
-    logLevels: "https://\${company}.logicmonitor.com/santaba/uiv4/settings/collectors/collectorLogsForm/\${configCollectorId ?: collectorID}",
-    status: "https://\${company}.logicmonitor.com/santaba/uiv4/settings/collectors/collectorStatus?id=\${configCollectorId ?: collectorID}"
+// Collector portal links - prefer server field (supports lmgov.us), fall back to company.logicmonitor.com
+def portalHost = server ?: (company ? "\${company}.logicmonitor.com" : '')
+def portalLinks = portalHost ? [
+    configuration: "https://\${portalHost}/santaba/uiv4/settings/collectors/collectorConfiguration?id=\${configCollectorId ?: collectorID}",
+    events: "https://\${portalHost}/santaba/uiv4/settings/collectors/collectorEvents?id=\${configCollectorId ?: collectorID}",
+    logLevels: "https://\${portalHost}/santaba/uiv4/settings/collectors/collectorLogsForm/\${configCollectorId ?: collectorID}",
+    status: "https://\${portalHost}/santaba/uiv4/settings/collectors/collectorStatus?id=\${configCollectorId ?: collectorID}"
 ] : null
 
 // Build final results object

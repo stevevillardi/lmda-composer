@@ -1,4 +1,5 @@
 import type { Portal, Collector, DeviceInfo, DeviceProperty, AppliesToTestResult, AppliesToTestError, AppliesToTestFrom } from '@/shared/types';
+import { isLmDomain, isLmUrl, LM_URL_MATCH_PATTERNS } from '@/shared/domains';
 import { executeScriptWithTimeout, withTimeout, SCRIPT_EXECUTION_TIMEOUT_MS } from './utils/timeout';
 
 const STORAGE_KEY = 'lm-ide-portals';
@@ -19,7 +20,7 @@ const NON_PORTAL_SUBDOMAINS = new Set([
 ]);
 
 function isLikelyPortalHostname(hostname: string): boolean {
-  if (!hostname.endsWith('.logicmonitor.com')) return false;
+  if (!isLmDomain(hostname)) return false;
   const parts = hostname.split('.');
   if (parts.length < 3) return false;
   return !NON_PORTAL_SUBDOMAINS.has(parts[0]);
@@ -179,7 +180,7 @@ export class PortalManager {
         if (!tab?.url) continue;
 
         const hostname = new URL(tab.url).hostname;
-        if (!hostname.endsWith('.logicmonitor.com')) continue;
+        if (!isLmDomain(hostname)) continue;
 
         validTabIds.push(tabId);
 
@@ -223,7 +224,7 @@ export class PortalManager {
         if (!tab?.url) continue;
 
         const hostname = new URL(tab.url).hostname;
-        if (!hostname.endsWith('.logicmonitor.com')) continue;
+        if (!isLmDomain(hostname)) continue;
 
         const isUsable =
           tab.status === 'complete' &&
@@ -295,7 +296,7 @@ export class PortalManager {
 
       // Query all LogicMonitor tabs
       const tabs = await chrome.tabs.query({
-        url: 'https://*.logicmonitor.com/*'
+        url: LM_URL_MATCH_PATTERNS
       });
 
       // Group tabs by hostname, but first verify they are actual LM portals
@@ -468,7 +469,7 @@ export class PortalManager {
       }
       
       // Verify URL matches LogicMonitor pattern
-      if (!tab.url || !tab.url.includes('logicmonitor.com')) {
+      if (!tab.url || !isLmUrl(tab.url)) {
         return false;
       }
       

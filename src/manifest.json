@@ -15,7 +15,8 @@
     "scripting"
   ],
   "host_permissions": [
-    "https://*.logicmonitor.com/*"
+    "https://*.logicmonitor.com/*",
+    "https://*.lmgov.us/*"
   ],
   "background": {
     "service_worker": "src/background/service-worker.ts",
@@ -23,7 +24,7 @@
   },
   "content_scripts": [
     {
-      "matches": ["https://*.logicmonitor.com/*"],
+      "matches": ["https://*.logicmonitor.com/*", "https://*.lmgov.us/*"],
       "js": ["src/content/index.ts"],
       "run_at": "document_idle"
     }
@@ -38,7 +39,7 @@
   "web_accessible_resources": [
     {
       "resources": ["src/editor/index.html"],
-      "matches": ["https://*.logicmonitor.com/*"]
+      "matches": ["https://*.logicmonitor.com/*", "https://*.lmgov.us/*"]
     }
   ]
 }

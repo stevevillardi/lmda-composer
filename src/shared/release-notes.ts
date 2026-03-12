@@ -28,6 +28,32 @@ export interface ReleaseNote {
  */
 export const RELEASE_NOTES: ReleaseNote[] = [
   {
+    version: '1.8.0',
+    date: 'March 2026',
+    title: 'FedRAMP Domain Support & Collector Filtering',
+    highlights: [
+      'Full support for lmgov.us (FedRAMP) portals alongside logicmonitor.com',
+      'Searchable collector selector with filtering by name, hostname, and group',
+      'Health check portal links now auto-detect the correct domain from collector config',
+    ],
+    changes: [
+      {
+        category: 'added',
+        items: [
+          'FedRAMP domain support — lmgov.us portals are now automatically discovered, authenticated, and fully functional alongside logicmonitor.com portals',
+          'Collector search and filtering in the context menu — filter collectors by description, hostname, group name, or ID',
+        ],
+      },
+      {
+        category: 'improved',
+        items: [
+          'Health check portal links now read the server field from agent.conf for correct URL generation on both commercial and FedRAMP collectors',
+          'Create Module wizard now displays the actual portal hostname instead of reconstructing it',
+        ],
+      },
+    ],
+  },
+  {
     version: '1.7.5',
     date: 'February 2026',
     title: 'Debug Commands Fix & Execution Improvements',

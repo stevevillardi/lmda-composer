@@ -1,3 +1,5 @@
+import { isLmDomain } from '@/shared/domains';
+
 export function isValidSender(sender: chrome.runtime.MessageSender): boolean {
   if (sender.id !== chrome.runtime.id) {
     return false;
@@ -12,7 +14,7 @@ export function isValidSender(sender: chrome.runtime.MessageSender): boolean {
     if (url.protocol === 'chrome-extension:') {
       return true;
     }
-    if (url.protocol === 'https:' && url.hostname.endsWith('logicmonitor.com')) {
+    if (url.protocol === 'https:' && isLmDomain(url.hostname)) {
       return true;
     }
   } catch {

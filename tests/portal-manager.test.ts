@@ -49,6 +49,42 @@ describe('PortalManager', () => {
     expect(portals.map(p => p.hostname).sort()).toEqual(['acme.logicmonitor.com', 'beta.logicmonitor.com']);
   });
 
+  it('discovers lmgov.us (FedRAMP) portals alongside logicmonitor.com portals', async () => {
+    const chromeMock = getChromeMock() as unknown as {
+      tabs: {
+        query: ReturnType<typeof vi.fn>;
+        get: ReturnType<typeof vi.fn>;
+      };
+      scripting: {
+        executeScript: ReturnType<typeof vi.fn>;
+      };
+      storage: {
+        local: {
+          get: ReturnType<typeof vi.fn>;
+          set: ReturnType<typeof vi.fn>;
+        };
+      };
+    };
+
+    chromeMock.tabs.query.mockResolvedValueOnce([
+      { id: 1, url: 'https://acme.logicmonitor.com/santaba/home', status: 'unloaded' },
+      { id: 2, url: 'https://gov-portal.lmgov.us/santaba/home', status: 'unloaded' },
+    ]);
+
+    chromeMock.tabs.get.mockImplementation(async (tabId: number) => {
+      const map: Record<number, chrome.tabs.Tab> = {
+        1: { id: 1, url: 'https://acme.logicmonitor.com/santaba/home', status: 'unloaded', discarded: true, active: false, lastAccessed: 10, index: 0, pinned: false, highlighted: false, windowId: 1, incognito: false, selected: false, autoDiscardable: true, groupId: -1 },
+        2: { id: 2, url: 'https://gov-portal.lmgov.us/santaba/home', status: 'unloaded', discarded: true, active: false, lastAccessed: 20, index: 1, pinned: false, highlighted: false, windowId: 1, incognito: false, selected: false, autoDiscardable: true, groupId: -1 },
+      };
+      return map[tabId] ?? null;
+    });
+
+    const pm = new PortalManager();
+    const portals = await pm.discoverPortals();
+
+    expect(portals.map(p => p.hostname).sort()).toEqual(['acme.logicmonitor.com', 'gov-portal.lmgov.us']);
+  });
+
   it('prefers an active/usable complete tab when multiple tabs exist for a portal', async () => {
     const chromeMock = getChromeMock() as unknown as {
       tabs: {

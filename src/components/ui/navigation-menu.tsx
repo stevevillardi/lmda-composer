@@ -29,7 +29,7 @@ function NavigationMenu({
 }
 
 const NavigationMenuList = React.forwardRef<
-  HTMLDivElement,
+  HTMLUListElement,
   NavigationMenuPrimitive.List.Props
 >(({ className, ...props }, ref) => {
   return (
@@ -47,7 +47,7 @@ const NavigationMenuList = React.forwardRef<
 NavigationMenuList.displayName = "NavigationMenuList"
 
 const NavigationMenuItem = React.forwardRef<
-  HTMLDivElement,
+  HTMLLIElement,
   NavigationMenuPrimitive.Item.Props
 >(({ className, ...props }, ref) => {
   return (

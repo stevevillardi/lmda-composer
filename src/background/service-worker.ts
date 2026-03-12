@@ -4,6 +4,7 @@ import { ApiExecutor } from './api-executor';
 import { ModuleLoader } from './module-loader';
 import { isValidSender } from './sender-validation';
 import { clearRateLimitState, initRateLimitState } from './rate-limiter';
+import { isLmDomain } from '@/shared/domains';
 // Initialize the health check script
 import './health-check-script';
 import type { 
@@ -309,7 +310,7 @@ chrome.tabs.onUpdated.addListener(async (_tabId, changeInfo, tab) => {
   if (changeInfo.status !== 'complete') return;
   try {
     const url = tab.url ? new URL(tab.url) : null;
-    if (url?.hostname.endsWith('.logicmonitor.com')) {
+    if (isLmDomain(url?.hostname)) {
       await portalManager.discoverPortals();
     }
   } catch {

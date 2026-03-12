@@ -181,7 +181,7 @@ export async function executeAndPoll(
     await sleepWithAbort(EXECUTION_POLL_INTERVAL_MS, abortSignal);
   }
 
-  throw new Error(`Execution timed out after ${EXECUTION_MAX_ATTEMPTS} seconds`);
+  throw new Error(`Execution timed out after ${EXECUTION_MAX_ATTEMPTS} polling attempts`);
 }
 
 /**

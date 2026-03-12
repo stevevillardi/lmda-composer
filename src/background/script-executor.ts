@@ -72,19 +72,20 @@ export class ScriptExecutor {
 
   /**
    * Execute a script and return the result.
-   * Only one execution can run at a time - concurrent calls will be rejected.
+   * Only one execution can run at a time - if another is active, it is
+   * automatically cancelled before the new one starts.
    */
   async execute(request: ExecuteScriptRequest): Promise<ExecutionResult> {
     const startTime = Date.now();
     const executionId = request.executionId ?? crypto.randomUUID();
     
-    // Check for concurrent execution
+    // Auto-cancel any existing execution to avoid race conditions between
+    // CANCEL_EXECUTION and EXECUTE_SCRIPT message delivery ordering
     if (this.activeExecutions.size > 0) {
-      return this.errorResult(
-        executionId, 
-        startTime, 
-        'Another script is already running. Please wait for it to complete or cancel it first.'
-      );
+      for (const [existingId, existing] of this.activeExecutions.entries()) {
+        existing.abortController.abort();
+        this.activeExecutions.delete(existingId);
+      }
     }
     
     const abortController = new AbortController();

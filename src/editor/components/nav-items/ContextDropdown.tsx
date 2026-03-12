@@ -73,6 +73,7 @@ export function ContextDropdown({
   } = useEditorStore();
 
   const [isOpen, setIsOpen] = useState(false);
+  const [collectorSearchQuery, setCollectorSearchQuery] = useState('');
   const [deviceSearchQuery, setDeviceSearchQuery] = useState('');
   const [isRefreshingCollectors, setIsRefreshingCollectors] = useState(false);
 
@@ -82,7 +83,17 @@ export function ContextDropdown({
     }
   }, [isOpen, portals.length, refreshPortals]);
 
-  // Filter devices based on search query
+  const filteredCollectors = useMemo(() => {
+    if (!collectorSearchQuery.trim()) return collectors;
+    const query = collectorSearchQuery.toLowerCase();
+    return collectors.filter(collector =>
+      collector.description.toLowerCase().includes(query) ||
+      collector.hostname.toLowerCase().includes(query) ||
+      collector.collectorGroupName.toLowerCase().includes(query) ||
+      collector.id.toString().includes(query)
+    );
+  }, [collectors, collectorSearchQuery]);
+
   const filteredDevices = useMemo(() => {
     if (!deviceSearchQuery.trim()) return devices;
     const query = deviceSearchQuery.toLowerCase();
@@ -116,14 +127,6 @@ export function ContextDropdown({
     ...portals.map(p => ({ value: p.id, label: p.hostname }))
   ];
   
-  const collectorItems = [
-    { value: null, label: 'Select collector...' },
-    ...collectors.map(c => ({ 
-      value: c.id.toString(), 
-      label: c.description || c.hostname 
-    }))
-  ];
-
   const formatDeviceLabel = (deviceName: string) => {
     const device = devices.find(d => d.name === deviceName);
     if (!device) return deviceName;
@@ -415,73 +418,128 @@ export function ContextDropdown({
                     </TooltipContent>
                   </Tooltip>
                 </div>
-                <Select 
-                  value={selectedCollectorId?.toString() ?? null} 
-                  onValueChange={(value) => setSelectedCollector(value ? parseInt(value) : null)}
+                <Combobox
+                  value={selectedCollectorId?.toString() ?? ''}
+                  onValueChange={(value) => {
+                    setSelectedCollector(value ? parseInt(value) : null);
+                    if (value) setCollectorSearchQuery('');
+                  }}
+                  itemToStringLabel={(value) => {
+                    if (!value || typeof value !== 'string') return '';
+                    const c = collectors.find(col => col.id.toString() === value);
+                    if (!c) return value;
+                    return c.description || c.hostname;
+                  }}
                   disabled={!selectedPortalId || collectors.length === 0}
-                  items={collectorItems}
                 >
-                  <SelectTrigger className="h-8 w-full" aria-label="Select collector">
-                    <div className="
-                      flex min-w-0 flex-1 items-center gap-2 overflow-hidden
-                    ">
-                      {selectedCollector && (
-                        <Server
-                          className={cn(
-                            'size-4 shrink-0',
-                            selectedCollector.isDown 
-                              ? 'text-red-500' 
-                              : 'text-teal-500'
-                          )}
-                        />
-                      )}
-                      <SelectValue className="truncate" />
-                    </div>
-                  </SelectTrigger>
-                  <SelectContent align="start" className="min-w-[320px]">
-                    {collectors.length === 0 ? (
-                      <div className="
-                        px-2 py-4 text-center text-sm text-muted-foreground
-                      ">
-                        {selectedPortalId ? 'No collectors found' : 'Select a portal first'}
-                      </div>
-                    ) : (
-                      collectors.map((collector) => (
-                        <SelectItem 
-                          key={collector.id} 
-                          value={collector.id.toString()}
-                          disabled={collector.isDown}
-                        >
-                          <div className="flex w-full items-center gap-2">
-                            <Server
-                              className={cn(
-                                'size-4 shrink-0',
-                                collector.isDown 
-                                  ? 'text-red-500' 
-                                  : 'text-teal-500'
-                              )}
-                            />
-                            <div className="flex min-w-0 flex-1 flex-col">
-                              <span className="truncate font-medium">
-                                {collector.description || collector.hostname}
-                                {collector.isDown && (
-                                  <span className="ml-1.5 text-xs text-red-500">(offline)</span>
-                                )}
-                              </span>
-                              <span className="
-                                truncate text-xs text-muted-foreground
-                              ">
-                                #{collector.id}
-                                {collector.collectorGroupName && ` · ${collector.collectorGroupName}`}
-                                {collector.arch && ` · ${collector.arch}`}
-                              </span>
-                            </div>
-                          </div>
-                        </SelectItem>
-                      ))
+                  <InputGroup className="h-9 w-full" data-disabled={!selectedPortalId || collectors.length === 0}>
+                    {selectedCollector && (
+                      <InputGroupAddon align="inline-start">
+                        <Server className={cn(
+                          "size-4 shrink-0",
+                          selectedCollector.isDown
+                            ? "text-red-500"
+                            : "text-teal-500"
+                        )} />
+                      </InputGroupAddon>
                     )}
-                  </SelectContent>
-                </Select>
+                    <ComboboxPrimitive.Input
+                      render={<InputGroupInput disabled={!selectedPortalId || collectors.length === 0} />}
+                      placeholder={
+                        !selectedPortalId
+                          ? 'Select a portal first...'
+                          : collectors.length === 0
+                            ? 'No collectors found'
+                            : 'Search collectors...'
+                      }
+                      onChange={(e) => setCollectorSearchQuery(e.target.value)}
+                    />
+                    <InputGroupAddon align="inline-end">
+                      {selectedCollectorId ? (
+                        <ComboboxPrimitive.Clear
+                          render={<InputGroupButton variant="ghost" size="icon-xs" />}
+                        >
+                          <X className="pointer-events-none size-3.5" />
+                        </ComboboxPrimitive.Clear>
+                      ) : (
+                        <InputGroupButton
+                          size="icon-xs"
+                          variant="ghost"
+                          render={<ComboboxPrimitive.Trigger />}
+                          disabled={!selectedPortalId || collectors.length === 0}
+                          className="data-pressed:bg-transparent"
+                        >
+                          <ChevronDown className="
+                            pointer-events-none size-3.5 text-muted-foreground
+                          " />
+                        </InputGroupButton>
+                      )}
+                    </InputGroupAddon>
+                  </InputGroup>
+                  <ComboboxContent className="min-w-[320px]">
+                    <ComboboxList>
+                      {collectors.length === 0 ? (
+                        <div className="
+                          flex items-center justify-center py-4 text-sm
+                          text-muted-foreground
+                        ">
+                          {selectedPortalId ? 'No collectors found' : 'Select a portal first'}
+                        </div>
+                      ) : filteredCollectors.length === 0 ? (
+                        <div className="
+                          flex items-center justify-center py-4 text-sm
+                          text-muted-foreground
+                        ">
+                          No collectors match &ldquo;{collectorSearchQuery}&rdquo;
+                        </div>
+                      ) : (
+                        filteredCollectors.map((collector) => (
+                          <ComboboxItem
+                            key={collector.id}
+                            value={collector.id.toString()}
+                            disabled={collector.isDown}
+                            className="
+                              group relative mx-1 my-0.5 cursor-pointer
+                              rounded-sm border-l-2 border-transparent px-2.5
+                              py-2 transition-all
+                              hover:border-l-primary/50 hover:bg-accent/40
+                              aria-selected:border-primary
+                              aria-selected:bg-accent/50
+                              aria-selected:text-accent-foreground
+                            "
+                          >
+                            <div className="flex w-full items-center gap-2">
+                              <Server
+                                className={cn(
+                                  'size-3.5 shrink-0 transition-colors',
+                                  collector.isDown
+                                    ? 'text-red-500'
+                                    : 'text-teal-500'
+                                )}
+                              />
+                              <div className="flex min-w-0 flex-1 flex-col">
+                                <span className="truncate text-xs font-medium">
+                                  {collector.description || collector.hostname}
+                                  {collector.isDown && (
+                                    <span className="ml-1.5 text-red-500">(offline)</span>
+                                  )}
+                                </span>
+                                <span className="
+                                  truncate text-[10px] text-muted-foreground
+                                  group-aria-selected:text-muted-foreground/80
+                                ">
+                                  #{collector.id}
+                                  {collector.collectorGroupName && ` · ${collector.collectorGroupName}`}
+                                  {collector.arch && ` · ${collector.arch}`}
+                                </span>
+                              </div>
+                            </div>
+                          </ComboboxItem>
+                        ))
+                      )}
+                    </ComboboxList>
+                  </ComboboxContent>
+                </Combobox>
               </div>
             </>
           )}
